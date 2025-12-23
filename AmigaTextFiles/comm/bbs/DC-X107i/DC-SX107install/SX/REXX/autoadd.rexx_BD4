@@ -1,0 +1,38 @@
+/* ============================================ */
+/* === AUTO ADD SCRIPT FOR SYSTEM-X / AMIRC === */
+/* ============================================ */
+/*
+
+To run this program, type this in shell:
+
+rx sx:rexx/autoadd.rexx
+
+*/
+
+OPTIONS RESULTS
+
+IF ~Open(file, "ENV:ppp0iplocal", 'R') THEN do;exit;end
+ip = readln(file)
+Close(file)
+
+IF ~show(ports,"SX-MCP-REXX") THEN do;done=1;end
+IF ~show(ports,"AMIRC.1") THEN do;done=1;end
+
+do While done ~= 1
+
+	ADDRESS "SX-MCP-REXX"
+	TOTALNODES; nodes = RC
+	ONLINENODES; onnodes = RC
+	freenodes = nodes-onnodes
+
+	ADDRESS "AMIRC.1"
+	"SAY [COUNTDOWN BBS] TELNET: "ip"  "freenodes"/"nodes" nodes free."
+
+	ADDRESS COMMAND 'Wait 30'
+
+	IF ~show(ports,"SX-MCP-REXX") THEN do;done=1;end
+	IF ~show(ports,"AMIRC.1") THEN do;done=1;end
+
+end
+
+EXIT 0

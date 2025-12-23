@@ -1,0 +1,188 @@
+
+=====( NLTOSCR V1.00 )=============================================
+
+        Written for use with Xenolink
+        This is not  Public Domain  or  Shareware !
+
+        (c)Copyright  Oct-Dec. 1992  , By Paul Spijkerman
+
+
+This utility will turn a Nodelist into an easy to read ANSI screen.
+By using some flags (in a configuration file) you can select only
+the normal nodes , so it will make a nice "byescreen" or something
+like that.
+
+Features:
+
+ - Indicates Real modem speed, compression flag and modem type
+ - Shows online time
+ - Phone number translation
+ - "ANSI-compression" no unnecessary ANSI-codes
+ - One configuration file with all nodelists
+ - speed about 40 secs per 100KB nodelist on a 8 Mhz 68000
+
+===( History )================================================
+
+About a half year ago we started a little net in the direct neaberhood,
+I was de third member and got a nice function.
+I had to make ANSI-screens from the nodelists.
+
+The first time it was fun, the second time it was a crime (we didn't had
+diff. files then).
+
+So I started to write a program which made them fully automatically.
+Later I thought it would be nice if I had an information menu in which
+users can find some information about the nets and look at the nodelists.
+So the program got a configuration file for multiple nets.
+
+
+===( How to install )========================================
+
+Place NLTOSCR in de utilities directory or a directory you've made
+for it, in the last case you have to specify a path.
+
+Usage:   NLTOSCR  <path:nodelist.nnn>  [<path:configfile>]
+
+The default configuration file is Xconfig:NLToScr.CFG so you
+only have to specify a name if you put the configuration somewhere else.
+Note that you have to specify the exact name of the nodelist (No wildcards).
+Also note that the extention of the nodelist name is not mandatory.
+In a maintenance script this would be more practical:
+
+    cd Xin:
+    list >ram:bat nodelist.???   lformat="NLTOSCR %s"
+    execute ram:bat
+    cd Xenolink:
+
+Where you of course have to change "nodelist" in the name of the/a
+nodelist.
+
+Note that you only need one configuration file for all nodelists you want to
+turn into ANSI screens.
+
+A sample maintenance script to make screens automaticaly from incoming
+nodelists is suplied in this archive.
+
+===( The Configuration file )================================
+
+For every Nodelist you want to procces you have to make an entry 
+in de configuration file.
+Starting with the keword  nodelist: followed by 1 or more spaces
+and the name of the list without the .nnn part.
+f.i.
+nodelist:  tcclist
+Every nodelist entry is terminated with a endentry keyword.
+Between these keywords there are 6 mandatory keywords:
+(note that only the part from a matching nodelist: command untill
+ the endentry command is parsed.)
+
+
+1. The Path and name of the ANSI screen.
+output:    xbulletins:TCCans.gr1
+
+2. The Path and name of an ANSI headerfile.
+header:    xenolink:tcc/header.ans
+
+3. The Path and name of an ANSI footerfile.
+footer:    xenolink:tcc/footer.ans
+
+4. The number you have to add to dial out of the country.
+Addforeign:  09-
+
+5. The number of the country you live in.  (The netherlands is 31)
+Local:       31-
+
+6. The number you have to add to a local number to make it dialable.
+Addlocal:    0
+
+
+
+
+Also there are a few options:
+
+Do you want an ANSI file starting with a @.
+keyword:  donotuse@  or  use@    (default: donotuse@)
+
+Do you want node entries beginning with 
+Zone,Region,Host,Hub,Pvt and Point displayed.
+Keyword:  hosts  or  nohosts    (default: nohosts)
+
+If you want to filter out nodes with special functions, by checking out 
+the beginning of the BBSname use the filter: keyword followed by the
+the first karakters of the name, default : no filter is used.
+
+If nodes do not want in an ANSI-screen of your net, you can specify
+a flag for that node in the nodelist.
+Define this flag in the configuration with the keyword nodisplayflag
+followed by the flag you made up, default : no flag is defined.
+
+
+===( Interpretation of a nodelist )==========================
+
+Entrys with a bbsname starting with "Undef" will be ignored  !!!
+Entrys starting with Down will be ignored.
+Entrys with the mail only (MO (no human callers)) flag will be ignored.
+If in the configuration the filter: command is used all entrys
+with a bbsname starting with the defined string will be ignored. 
+Note that capitals in this case stay capitals.
+All comment lines will be ignored.
+
+Modem speed is determined by the V21,V22,V22B,V32,V32B flags,
+or the 1200,2400,4800,9600,19200,38400 speed indicator.
+The highest speed is used. 
+For instance: a V32B flag overrules a 9600 speed indicator resulting
+in a speed of 14400 baud.
+
+Flags used voor types of modems:
+         <- default , no type is indicated
+   HST   <- for USRobotics modem with HST norm 9600 baud (or higher)
+   H14   <- for HST capable modems with 14400 baud
+   H16   <- for HST capable modems with 16800 baud
+   ZYX   <- for ZyXEL Fax modems (with speeds of 16k8,19k2 or higher)
+   H96   <- Hayes V9600 modem
+   MAX   <- Microcom AX/96xx series modem
+   PEP   <- Packet Ensemble Protocol modem
+   CSP   <- Compucom Speedmodem
+
+Flags for compression:
+         <- default, no compression flag is specified
+   MNP   <- ignored if V42 or V42B flag is present. 
+   V42   <- ignored if V42B flag is present
+   V42B  <- LAP-M data correction/ BLTZ compression
+
+Flags starting with DA,SA,SU,TU,WE,TH and FR will be printed
+entirely in the online-times column.
+Note : that MO (Monday) is not in the list because this is the Mail Only flag.
+
+The country part of local numbers is removed and a number to make
+it dialable is added at the start of the number.  
+For numbers outside your country a number is added to the start
+of the number to make it dialable.
+
+
+==================================================================
+Still thinking about:
+
+  Implementing dupe checking.
+  Colors in the configuration file.
+  Different Output formats, selectable or configurable in the 
+     configuration file , No ideas about this one yet.
+  The showing of node-numbers.
+
+===================================================================
+
+   Paul Spijkerman                Sysop of: The Flying Deuces (Stan laurel)
+   Bernhard fabritiuslaan 19      BBS number : +31-5999-64696
+   9462 SM  Gasselte,DR           Running under Xenolink !!!
+   The Netherlands, Europe
+
+     I hope you enjoy this program.
+     Please write me if you have any suggestions or ideas.
+     If you find it usefull please send me a postcard.
+
+     Reachable through the Xenolink echomail.   (10:100/151)
+
+        NLA    :  14:103/103         TCC     :  53:1300/101
+        AMY    :  39:155/103         031-net :  12:100/5013
+        /\LIEN :  66:666/304         PNN-net :  13:402/108
+

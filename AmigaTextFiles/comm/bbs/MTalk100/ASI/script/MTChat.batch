@@ -1,0 +1,37 @@
+.key uname,alias,level,ansi,port
+.bra {
+.ket }
+failat 20
+DOORS:ASI/BIN/ReqSelect "MTalk Chat Request" "{uname} wishes to chat." "Yes Sir!" "Be there in a sec!" "No Way!" TIMEOUT 10 BEEP >ENV:RS
+set rs `type ENV:RS`
+echo >ENV:RS$rs
+echo >ENV:RS.{ansi}
+set ansi N
+
+if exists ENV:RS.COLOR
+    set ansi Y
+endif
+
+;version dlg.library >NIL:   ; check if we are running on a DLG system
+;if not warn
+;    DLG:TFlags >NIL: -p {port} -bcDefKWXSVrT
+;endif
+
+if exists ENV:RS1   ; SysOp clicked on okay
+    run DOORS:ASI/BIN/MTalk <>"CON:0/0/670/220/MTalk Output" NICK SysOp REAL SysOp UID SysOp LEVEL 255 ANSI $ansi TALK Y
+    DOORS:ASI/BIN/MTalk NICK {alias} REAL {uname} UID {uname} LEVEL {level} ANSI $ansi TALK Y TALKTO SysOp
+else
+    if exists ENV:RS2   ; SysOp clicked middle gadget
+        echo "Hold on, I'll be there in a sec."
+    else
+        echo "Sorry, sysop is not around right now to chat."
+
+        if exists t:gone_reason.txt
+            type t:gone_reason.txt
+        endif
+    endif
+endif
+
+delete >NIL: ENV:RS$rs ENV:RS ENV:RS.{ansi}
+unset rs
+unset mode

@@ -1,0 +1,238 @@
+;	ZConnect-Upload
+;
+;	Scriptfile zum Empfang neuer Nachrichten im ZConnect-Format
+;
+;	$VER: 1.00 / 16.08.1995
+;
+;       Beschreibung :
+;	Direkter Empfang von neuen Daten im ZConnect-Format.
+;	Die gesendeten Daten werden im Directory MBMSG:POINT/<Portname>/
+;	temporaer gespeichert.
+;	Existiert der Port IMPORT, so wird der Import durch einen Event
+;	auf diesen Port umgelenkt.
+;	
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die folgende Befehle zugreifen kann !
+;
+;	ADD EVENT
+;	CHECK FILE
+;	DISK EXECUTE
+;	DISK UPLOAD
+;	ECHO
+;	EXTERN
+;	FASTNET GETFILE
+;	GOTO
+;	IF
+;	ON ERROR
+;	ZCONNECT GETFILE
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DELETE
+;	LIST
+;	SORT
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	STRASSE  : @NETCALL
+;	STADT	 : Name der Domain (z.B. Fastnet.de)
+;
+;	Einrichtung eines LocalGates fuer die Einbindung eines anderen
+;	lokalen Netzwerks :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	VORNAME  : Gatename im Fastnet (z.B. Z-Netz)
+;	STRASSE  : @LOCALGATE
+;	STADT	 : Name der Domain (z.B. Z-Netz.de)
+;
+;	Einrichtung eines Gates fuer die Einbindung eines anderen
+;	globalen Netzwerks :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	VORNAME  : Gatename im Fastnet (z.B. Z-Netz)
+;	NACHNAME : Gatename im Zerberus-Netz (z.B. Fastnet)
+;	STRASSE  : @GATE
+;	STADT	 : Name der Domain (z.B. Z-Netz.de)
+;
+;	Wenn hinter der anrufenden Node noch weitere Nodes haengen,
+;	die ebenfalls das Netz empfangen, so muss die Datei
+;	MBDAT:NODENAME.NODES eingerichtet werden
+;	(NODENAME = Name der anrufenden Node).
+;	In dieser Datei muessen die anrufende Node und die Nodes stehen,
+;	die ueber sie zu erreichen sind.
+;	Der Aufbau dieses Files ist im Kapitel Systemnachrichten/Nodeliste
+;	der Fastnet-Format-Guide nachzulesen. Die Datei muss einer normalen
+;	Nodelisten-Systemnachricht entsprechen, als Datum darf der Wert 0
+;	angegeben werden, er entspricht immer dem akt. Tag.
+;
+;	Konstanten :
+;
+;DEBUG    ="ON"					; Rette empfangenes Pointfile
+DEBUGDIR  = "AMMS:NETDEBUG/"			; Debug-Directory
+IMPORTPORT= "IMPORT"				; Portname fuer Import
+TMPDIR    = "mbmsg:point/'{port}'/"		; Dir fuer Tmp-Files
+IMPORTDIR = "mbnet:Import/"			; Import-Directory
+IMFTABDIR = "mbnet:ImportFTab/"			; Import-FTab-Directory
+RECFILE   = "caller.lha"			; Name des empfangenen Files
+TBOXDIR   = "mbdat:"				; Dir fuer Fastnet-Nodefile
+IMPORTFILE= "'IMPORTDIR''{NAME}'@ZC'{CALLNR}'.LHA" ; Importfile fuer anderen Port
+UPACKER   = "lha -P-1 e ""'TMPDIR''RECFILE'"" ""'TMPDIR'"" ""~(#?/#?|#?:#?)"""
+						; Entpacken
+LISTFILES = "'IMPORTDIR''{NAME}'@ZC#?"		; Importfile
+LISTUPACK = "makedir *""'TMPDIR'%m*"" *n lha -P-1 e *""%s%s*"" *""'TMPDIR'%m/*"" *""~(#?/#?|#?:#?)*"""
+
+;
+;	Domainname holen
+;
+_on error ERROR					; Im Fehlerfall ...
+DOMAIN={CITY}					; Domainname holen
+
+;
+;	Pruefe auf normalen Netcall
+;
+
+_if {STREET} != "@NETCALL" then _goto LOCALGATE
+FIL=16+128+256+512+32768
+OP_GET="/Type=0/Filter='FIL'/Cache=512/Header=96" ; Setze Optionen
+_goto START
+
+;
+;	Pruefe auf LocalGate
+;
+LOCALGATE:
+_if {STREET} != "@LOCALGATE" then _goto GATE
+FIL=16+128+256+512+32768+262144
+OP_GET="/Type=2/Filter='FIL'/Cache=512/Header=96" ; Setze Optionen
+_goto START
+
+;
+;	Pruefe auf Gate
+;
+GATE:
+_if {STREET} != "@GATE" then _goto USERPOINT
+FIL=16+128+256+512+32768
+OP_GET="/Type=1/Filter='FIL'/Cache=512/Header=96" ; Setze Optionen
+_goto START
+
+;
+;	User-Point
+;
+USERPOINT:
+FIL=16+128+256+512
+OP_GET="/Type=3/Filter='FIL'/Cache=128/Header=48" ; Setze Optionen
+DOMAIN="ZER"					; Domain ZER setzen
+
+;
+;	Texte laden
+;
+START:
+_gosub LOADTEXT					; Texte laden
+
+;
+;	Filebrett-Konverter-Files einbinden
+;
+
+_check file "'IMFTABDIR''{NAME}'" NOIMPORTCVT
+OP_GET="'OP_GET'/FBoardlist=*""'IMFTABDIR''{NAME}'*"""
+NOIMPORTCVT:
+
+;
+;	Starttext ausgeben
+;
+
+_echo STARTTEXT
+
+;
+;	Upload-Abfrage
+;
+
+_menu MENUTEXT -
+ KEY_UPLOAD UPLOAD -
+ KEY_ABORT ABORT
+
+;
+;	Loesche alte Files / Rename, wenn File immer noch geoeffnet
+;
+UPLOAD:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_extern/q rename "'TMPDIR''RECFILE'" "'TMPDIR''RECFILE''{CALLNR}'"
+
+;
+;	Upload der gepackten ZConnect-Daten
+;
+
+_echo UPLOADTEXT
+_on error ERROR_UPLOAD
+_disk upload "'TMPDIR''RECFILE'"
+_on error ERROR
+
+;
+;	Bei Netcall optional zusaetzliche Nodes in Liste aufnehmen
+;
+
+_if {STREET} != "@NETCALL" then _goto NONODES	; @Netcall ? Nein, verzw.
+_check file "'TBOXDIR''{NAME}'.NODES" NONODES	; Wenn File nicht vorhanden, verzw.
+_fastnet getfile "'TBOXDIR''{NAME}'.NODES"	; Nodes in Nodeliste aufnehmen
+NONODES:
+
+;
+;	Wenn Debug-Modus aktiv, empfangenes Pointfile retten
+;
+
+_if DEBUG == "ON" then _extern/q copy "'TMPDIR''RECFILE'" "'DEBUGDIR''{NAME}''{CALLNR}'.LHA"
+
+;
+;	Wenn Port IMPORT existiert, Import-Event starten
+;
+
+_check port "'IMPORTPORT'" IMPORT		; Wenn kein Port, verzw.
+_echo PARTEXT
+_extern/q copy "'TMPDIR''RECFILE'" "'IMPORTFILE'"
+_add event/Background "'IMPORTPORT'" 0 3 mbbatch:zconnect_import "'{NAME}'"
+_goto END					; -> Ende
+
+;
+;	Wenn kein Port, alle Messages, Files und PMs sofort importieren
+;
+IMPORT:
+_echo/nolf UNPACKTEXT
+_extern/q 'UPACKER'
+_echo/nolf IMPORTTEXT
+_extern/q delete "'TMPDIR''RECFILE'"
+_extern/q list >"t:zc1'{port}'" "'TMPDIR'" lformat "zconnect getfile'OP_GET' *"%s%s*" 'DOMAIN'"
+_extern/q echo >"t:zc2'{port}'"
+_extern/q sort "t:zc1'{port}'" to "t:zc2'{port}'"
+_disk execute "t:zc2'{port}'"
+_extern/q delete "t:zc1'{port}'" "t:zc2'{port}'"
+_echo IMPORTENDTEXT
+_goto END					; -> Ende
+
+;
+;       Wenn Fehler beim Upload ...
+;
+ERROR_UPLOAD:
+_menu RETRYTEXT -
+ KEY_RETRY UPLOAD -
+ KEY_BREAK ABORT
+
+;
+;       Ende
+;
+ERROR:
+_echo ERRORTEXT
+
+ABORT:
+END:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" all ; Disk aufraeumen
+_eod
+
+;
+; Unterroutine: Lade sprachspezifische Texte
+;
+LOADTEXT:
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/zconnect_upload.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/zconnect_upload.bat"
+_return

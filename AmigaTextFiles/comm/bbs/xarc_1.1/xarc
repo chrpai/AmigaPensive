@@ -1,0 +1,122 @@
+/* :ts=2
+ *
+ *  XArc.rexx
+ *
+ *  Unpack archive file of any type based on file contents.
+ *
+ *  Currently supported: ZOO, LHA, LZH, ARC, ZIP, ARJ
+ *
+ *  Based on unpack.rexx Revision 1.1  90/02/02  21:59:51  jh
+ *
+ */
+
+options failat 10
+
+signal on halt
+signal on ioerr
+signal on break_c
+
+CSI     = '9b'x
+OFF     = CSI'0m'
+BO      = CSI'37m'
+
+packer.       = ""
+cmd.          = ""
+
+packer.arc                      = "pkxarc"
+cmd.x.arc                       = "-x"
+cmd.v.arc                       = "-v"
+cmd.a.arc                       = ""
+
+packer.zoo                      = "Zoo"
+cmd.x.zoo                       = "e//"
+cmd.v.zoo                       = "v"
+cmd.a.zoo                       = "a"
+
+packer.lharc            = "LHA -a -x -m"
+/*packer.lharc          = "lz -a -x -m"*/
+cmd.x.lharc                     = "e"
+cmd.v.lharc                     = "v"
+cmd.a.lharc                     = "a"
+
+packer.zip                      = "unzip"
+cmd.x.zip                       = " "
+cmd.v.zip                       = "-v"
+cmd.a.zip                       = ""
+
+packer.arj                      = "unarj"
+cmd.x.arj                       = "x"
+cmd.v.arj                       = "l"
+cmd.a.arj                       = ""
+
+ext = "ZOO LZH ARC ZIP ARJ"
+
+if arg() = 0 | arg(1) = '?' then call usage
+
+parse upper arg option infiles
+
+
+select
+  when option="V" then com=v
+  when option="E" then com=x
+  when option="X" then com=x
+  when option="A" then com=a
+  otherwise call usage
+end
+
+parse var infiles file infiles
+
+ofile = file
+do while ~exists(file)
+  parse var ext this ext
+  if this="" then do
+    say BO"Can't find" ofile OFF
+    exit 20
+  end
+  file = ofile"."this
+end
+
+/* ------- Get type from file content ------- */
+if ~open('in', file, 'R') then do
+  say BO"Can't open" file OFF
+  exit 20
+end
+buff = readch('in', 8)
+call close ('in')
+
+select
+  when left(buff, 4)      == 'ZOO '                     then type = zoo
+  when substr(buff, 3, 3) == '-lh'                      then type = lharc
+  when left(buff, 1)      == '1A'x                      then type = arc
+  when left(buff, 2)      == 'PK'                       then type = zip
+        when left(buff, 2)                      == '60'x||'ea'x then type = arj
+  otherwise do
+    say BO"Cannot handle" file"!"OFF
+    exit 20
+  end
+end
+
+say BO"Processing" file "type" type "..."OFF
+if cmd.com.type=="" then do
+        say BO"Can't do that"OFF
+        exit 20
+end
+
+Address Command packer.type cmd.com.type file infiles
+exit RC
+
+/* ----------------------------------------------------------------------- */
+* Error Handling */
+halt:
+ioerr:
+break_c:
+exit 10
+
+/* ----------------------------------------------------------------------- */
+usage:
+        say "Usage: XArc command filename [filename..]"
+        say
+        say "    E,X   extract files"
+        say "    V     list archive contents"
+        say "    A     add files to archive"
+        exit 0

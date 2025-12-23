@@ -1,0 +1,1767 @@
+'
+MODE 0
+' DEFINT "a-z"
+DIM ln$(99),areas$(50,2)
+DIM ansi$(10)
+' rem the next line when compiling the final door !!!
+'
+' test%=1
+'
+cr$=CHR$(13)+CHR$(10)
+de$=CHR$(8)+" "+CHR$(8)
+esc$=CHR$(27)
+screenclr$=cr$+cr$+CHR$(12)
+'
+IF test%=1
+  ' setup dummy names, etc
+  rtime$="60"
+  uname$="FERDINAND MARCOS"
+  id$="99"
+  lev$="9"
+  bd$="2400"
+  ring$="0"
+  ansi%=99
+  path$=""      ! ie current dir
+ELSE
+  OPEN "I",#2,"RAM:USERDATA"
+  LINE INPUT #2,rtime$
+  LINE INPUT #2,uname$
+  LINE INPUT #2,id$
+  LINE INPUT #2,lev$
+  LINE INPUT #2,bd$
+  LINE INPUT #2,ring$
+  LINE INPUT #2,path$
+  CLOSE #2
+  '
+  ' Get ansi setting somehow...
+  ' ansi setting is on the 7th line of 'ram:doordata'
+  ' but doordata is only generated if the dhandler is used to
+  ' run the door. Doors run straight off the BBS - well, you have to
+  ' ask them.
+  '
+  IF EXIST("ram:doordata")
+    OPEN "I",#2,"ram:doordata",16384
+    FOR k%=1 TO 6
+      LINE INPUT #2,temp$
+    NEXT k%
+    LINE INPUT #2,ansi$
+    CLOSE #2
+    ansi%=VAL(ansi$)
+    ' \/ woops, forgot to setup array string. Never mind, set flag now!
+    weknow%=1
+    GOSUB setansi
+    weknow%=0
+  ELSE
+    '
+    ansi%=99
+    ' we dunno what they want, so we'd better ask em AFTER the modem's opened
+  ENDIF
+ENDIF
+'
+' Investigate our working environment from the NEW config file...
+'
+'
+IF EXIST("S:Metro.cfg")
+  config$="S:Metro.cfg"
+ELSE IF EXIST("BBS:Metro.cfg")
+  config$="BBS:Metro.cfg"
+ELSE IF EXIST("Metro.cfg")
+  config$="Metro.cfg"
+ELSE
+  config$="XXX"
+ENDIF
+'
+' Defaults
+'
+bbsname$="The OzMetro BBS"
+mbd$="19200"
+sfd$="BBS:"
+udfd$="BBS:"
+lmod$="1"
+sysopname$="The Sysop"
+winw$="640"
+winh$="200"
+'
+IF config$<>"XXX"
+  '
+  OPEN "I",#2,config$,128
+  DO WHILE (NOT EOF(#2))
+    LINE INPUT #2,xx$
+    xx$=TRIM$(xx$)
+    xxu$=UPPER$(xx$)
+    '
+    IF xxu$="" OR LEFT$(xxu$,1)=";"
+      ' Do nothing
+    ELSE IF LEFT$(xxu$,7)="BBSNAME"
+      xx$=MID$(xx$,8,255)
+      xx$=TRIM$(xx$)
+      bbsname$=xx$
+    ELSE IF LEFT$(xxu$,7)="MAXBAUD"
+      xx$=MID$(xx$,8,255)
+      xx$=TRIM$(xx$)
+      mbd$=xx$
+    ELSE IF LEFT$(xxu$,9)="SYSOPNAME"
+      xx$=MID$(xx$,10,255)
+      xx$=TRIM$(xx$)
+      sysopname$=xx$
+    ELSE IF LEFT$(xxu$,11)="WINDOWWIDTH"
+      xx$=MID$(xx$,12,255)
+      xx$=TRIM$(xx$)
+      winw$=xx$
+    ELSE IF LEFT$(xxu$,12)="WINDOWHEIGHT"
+      xx$=MID$(xx$,13,255)
+      xx$=TRIM$(xx$)
+      winh$=xx$
+    ELSE IF LEFT$(xxu$,11)="LOCKEDMODEM"
+      xx$=MID$(xx$,13,255)
+      xx$=TRIM$(xx$)
+      lmod$="1"
+    ELSE IF LEFT$(xxu$,13)="NOLOCKEDMODEM"
+      xx$=MID$(xx$,13,255)
+      xx$=TRIM$(xx$)
+      lmod$="0"
+    ENDIF
+    '
+  LOOP UNTIL EOF(#2)
+  CLOSE #2
+ENDIF
+'
+'
+sw%=VAL(winw$)
+sh%=VAL(winh$)
+sx%=0
+sy%=0
+ww%=sw%
+wh%=sh%-12
+wx%=0
+wy%=11
+'
+' integer conversion for system variables
+'
+tpc%=VAL(rtime$)
+id%=VAL(id$)
+lev%=VAL(lev$)
+ring%=VAL(ring$)
+bd%=VAL(bd$)
+timeon%=CINT(TIMER/200)
+'
+OPENS 1,sx%,sy%,sw%,sh%,3,32768
+OPENW #1,wx%,wy%,ww%,wh%,0,0,1
+'
+' Hack these settings if you like: format &Hxxx
+' the xxx is the HEX value of the RGB register
+'
+SETCOLOR 0,&H0
+SETCOLOR 1,&HF11
+SETCOLOR 2,&H1F1
+SETCOLOR 3,&HFF1
+SETCOLOR 4,&H11F
+SETCOLOR 5,&HF1F
+SETCOLOR 6,&H1FF
+SETCOLOR 7,&HFFF
+'
+title$="Story Door: ID: "+id$+" ("+uname$+") Lev: "+lev$+" Baud: "
+IF ring%=0
+  title$=title$+"Local Login"
+ELSE
+  title$=title$+bd$
+ENDIF
+xx$="Written by Percy L Broadnax and Peter F Deane"
+TITLEW #1,title$,xx$
+TITLES #1,xx$
+'
+' modem need not be opened if it's a local login!
+' then you can test em standalone with the BBS running, among other things...
+'
+IF ring%<>0
+  BACKS 1
+  GOSUB modem.o
+ELSE
+  ~ActivateWindow(WINDOW(1))
+ENDIF
+'
+' Figure out the page pause setting!
+'
+flnm$=sfd$+"BBSFILES/userlog"
+IF EXIST(flnm$)
+  OPEN "R",#2,flnm$,125
+  FIELD #2,25 AS un$,10 AS pa$,1 AS le$,25 AS fr$,12 AS ph$,10 AS dl$,6 AS lm$,6 AS lf$,10 AS ind$,3 AS tc$,3 AS td$,1 AS sw$,1 AS pr$,1 AS mo$,5 AS cn$,4 AS dm1$,2 AS dm2$
+  GET #2,id%
+  page%=VAL(dm2$)
+  CLOSE #2
+ELSE
+  page%=21
+ENDIF
+IF page%>5
+  scrnht%=page%-1
+ELSE
+  scrnht%=22
+ENDIF
+IF ring%=0
+  scrnht%=(wh%/8)-4
+ENDIF
+'
+' ======================================================================
+'
+' We're in, hit em hard and good!
+'
+' reset terminal
+o$=esc$+"[0;40;37m"+CHR$(12)
+GOSUB 2
+o$=cr$+cr$+"Never Ending Story"
+GOSUB 2
+o$=cr$+cr$+"  By PLB & PFD"
+GOSUB 2
+o$=cr$+cr$+"  Version 2.00"
+GOSUB 2
+o$=cr$+cr$+"    24 Nov 94"
+GOSUB 2
+'
+IF ansi%>2
+  GOSUB setansi
+ENDIF
+'
+' ======================================================================
+'
+' Fix up the door indices, etc...
+'
+' stories.index has two lines:
+' # of invocations of the door
+' # of users who have previously been here.
+'
+IF NOT EXIST(path$+"Stories.index")
+  ' this is for the very first time - without a stories.index we start afresh
+  ' a bit of code here, but saves the sysops work.
+  '
+  OPEN "O",#2,path$+"Stories.index"
+  PRINT #2,"1"
+  PRINT #2,"1"
+  CLOSE #2
+  '
+  IF EXIST(path$+"Stories.visitors")
+    KILL path$+"Stories.visitors"
+  ENDIF
+  '
+  ' make up a dummy random file with the sysopname
+  ' he'll get a nice surprise if it's been loaded before by a different name :-)
+  '
+  OPEN "R",#2,path$+"Stories.visitors",32
+  FIELD #2,25 AS visname$,7 AS visindex$
+  LSET visname$=sysopname$
+  LSET visindex$="1"
+  PUT #2,1
+  CLOSE #2
+ENDIF
+'
+OPEN "I",#2,path$+"Stories.index"
+LINE INPUT #2,index$
+LINE INPUT #2,users$
+CLOSE #2
+index%=VAL(index$)+1
+users%=VAL(users$)
+'
+' search through file to get their last visit #:
+'
+OPEN "R",#2,path$+"Stories.visitors",32
+FIELD #2,25 AS visname$,7 AS visindex$
+k%=0
+foundit%=0
+WHILE k%<users%
+  INC k%
+  GET #2,k%
+  check$=TRIM$(visname$)
+  IF INSTR(check$,uname$)>0
+    foundit%=1
+    lastvisit%=VAL(visindex$)
+    LSET visindex$=STR$(index%)
+    LSET visname$=uname$
+    PUT #2,k%
+  ENDIF
+  '
+  EXIT IF foundit%=1
+  '
+  ' ^ So it's kludgy, but we stop wasting time, and avoid 2 matches!!
+WEND
+'
+IF foundit%=1
+  o$=cr$+cr$+"Welcome back "+uname$+" !!!"
+  GOSUB 2
+  o$=cr$+cr$+"Since your last visit, this door has been entered "
+  o$=o$+STR$(index%-lastvisit%-1)+" times."+cr$
+  GOSUB 2
+ELSE
+  o$=cr$+cr$+cr$+"A hearty welcome to you, "+uname$+" !!!"
+  GOSUB 2
+  o$=cr$+cr$+"I see you haven't relished the delights of this door yet!"
+  GOSUB 2
+  o$=cr$+"I hope you like it enough to write many, many brilliant stories."
+  GOSUB 2
+  LSET visindex$=STR$(index%)
+  LSET visname$=uname$
+  PUT #2,k%+1
+  lastvisit%=1
+  users%=users%+1
+ENDIF
+CLOSE #2
+'
+' update index now!
+OPEN "O",#2,path$+"Stories.index"
+PRINT #2,STR$(index%)
+PRINT #2,STR$(users%)
+CLOSE #2
+'
+GOSUB press
+GOSUB 1
+IF car%>0
+  GOTO bye
+ENDIF
+'
+' ======================================================================
+main:
+' ======================================================================
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+cs$="Welcome To The Never Ending Story Door v2.0"
+GOSUB center
+o$=screenclr$+ansi$(2)+lcs$
+GOSUB 2
+cs$="Written By Percy L. Broadnax and Peter F. Deane"
+GOSUB center
+o$=cr$+cr$+ansi$(5)+lcs$+cr$
+GOSUB 2
+o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"R"+ansi$(1)+"]"+ansi$(2)+"ead A Story"
+GOSUB 2
+o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"A"+ansi$(1)+"]"+ansi$(3)+"dd To A Story"
+GOSUB 2
+o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"S"+ansi$(1)+"]"+ansi$(5)+"tart A New Story"
+GOSUB 2
+o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"T"+ansi$(1)+"]"+ansi$(6)+"oggle ANSI"
+GOSUB 2
+o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"P"+ansi$(1)+"]"+ansi$(2)+"age Pause Setting"
+GOSUB 2
+o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"M"+ansi$(1)+"]"+ansi$(7)+"aintenance"
+GOSUB 2
+o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"Q"+ansi$(1)+"]"+ansi$(1)+"uit"
+GOSUB 2
+GOSUB tchk
+cs$="("+STR$(rtime%)+" min) Enter Command: "
+GOSUB center
+o$=cr$+cr$+ansi$(1)+lcs$
+in%=0
+il%=1
+GOSUB 1
+IF car%>0
+  GOTO bye
+ENDIF
+'
+' ======================================================================
+IF in$="Q"
+  GOTO bye
+ENDIF
+'
+' ======================================================================
+IF in$="R"
+  GOSUB readstories
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="A"
+  GOSUB appendstories
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="S"
+  GOSUB beginstory
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="T"
+  GOSUB setansi
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="M"
+  GOSUB sysop
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="P"
+  GOSUB setpagepause
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+' ======================================================================
+' final check before looping.
+IF car%>0
+  GOTO bye
+ENDIF
+'
+in$=""
+GOTO main
+' ======================================================================
+'
+bye:
+cs$="Never Ending Story was written by Percy Broadnax and Peter Deane."
+GOSUB center
+o$=screenclr$+cr$+ansi$(6)+lcs$+cr$
+GOSUB 2
+cs$="Brought to you on "+bbsname$
+GOSUB center
+o$=cr$+cr$+ansi$(2)+lcs$
+GOSUB 2
+cs$="by "+sysopname$
+GOSUB center
+o$=cr$+cr$+ansi$(5)+lcs$
+GOSUB 2
+cs$="Hope you had fun! See you next time."
+GOSUB center
+o$=cr$+cr$+ansi$(3)+lcs$+cr$
+GOSUB 2
+IF EXIST("ram:userdata")
+  KILL "RAM:USERDATA"
+ENDIF
+DELAY 2
+CLOSES 1
+GOSUB modem.c
+CLEAR
+END
+'
+'
+' *******************************************
+PROCEDURE sysop
+  ' *****************************************
+  '
+  maintloop:
+  '
+  cs$="Sysop Maintenance Menu"
+  GOSUB center
+  o$=screenclr$+ansi$(2)+lcs$
+  GOSUB 2
+  cs$="Power to the mighty one!"
+  GOSUB center
+  o$=cr$+cr$+ansi$(5)+lcs$+cr$
+  GOSUB 2
+  IF lev%<>9
+    GOTO sysopexit
+  ENDIF
+  ' let em in that far! :-)
+  '
+  o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"D"+ansi$(1)+"]"+ansi$(2)+"elete A Story"
+  GOSUB 2
+  o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"F"+ansi$(1)+"]"+ansi$(3)+"ull Story"
+  GOSUB 2
+  o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"R"+ansi$(1)+"]"+ansi$(5)+"ename Story"
+  GOSUB 2
+  ' leave these lines in to make it easier to add more functions!
+  ' o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"T"+ansi$(1)+"]"+ansi$(6)+"oggle ANSI"
+  ' GOSUB 2
+  ' o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"P"+ansi$(1)+"]"+ansi$(2)+"age Pause Setting"
+  ' GOSUB 2
+  o$=cr$+SPACE$(30)+ansi$(1)+"["+ansi$(7)+"Q"+ansi$(1)+"]"+ansi$(1)+"uit"
+  GOSUB 2
+  '
+  cs$="("+STR$(rtime%)+" min) Enter Command: "
+  GOSUB center
+  o$=cr$+cr$+ansi$(6)+lcs$
+  in%=0
+  il%=1
+  GOSUB 1
+  IF car%>0 OR in$="Q"
+    GOTO sysopexit
+  ENDIF
+  '
+  IF in$="D" AND lev%=9
+    GOSUB deletestory
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  IF in$="F" AND lev%=9
+    maintain%=1
+    GOSUB readstories
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  IF in$="R" AND lev%=9
+    GOSUB renamestory
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  IF car%=0
+    GOTO maintloop
+  ENDIF
+  '
+  sysopexit:
+RETURN
+'
+'
+'
+' *******************************************
+PROCEDURE readstories
+  ' *****************************************
+  '
+  GOSUB stories.load
+  '
+  IF nofile%=1
+    GOSUB nonewritten
+    GOTO readexit
+  ENDIF
+  '
+  GOSUB select.story
+  '
+  IF selt%=999
+    GOSUB storygone
+    GOTO readexit
+  ENDIF
+  '
+  o$=screenclr$+SPACE$(20)+ansi$(2)+"Story: "+ansi$(3)+file$
+  GOSUB 2
+  o$=cr$+cr$+SPACE$(20)+ansi$(1)+"["+ansi$(7)+"F"+ansi$(1)+"]"+ansi$(5)+"rom the start"
+  GOSUB 2
+  ' don't give them this option ALL the time:
+  IF lastvisit%<=VAL(areas$(selt%,2))
+    o$=cr$+SPACE$(20)+ansi$(1)+"["+ansi$(7)+"N"+ansi$(1)+"]"+ansi$(6)+"ew lines only"
+    GOSUB 2
+  ELSE
+    o$=cr$+SPACE$(20)+ansi$(1)+"[ ]"+ansi$(6)+" No New Lines Today"
+    GOSUB 2
+  ENDIF
+  o$=cr$+cr$+SPACE$(20)+ansi$(3)+"Read option <CR>=From Start: "
+  in%=0
+  il%=1
+  GOSUB 1
+  IF car%>0
+    GOTO readexit
+  ENDIF
+  newlines%=0
+  IF in$<>"N"
+    newlines%=0
+  ELSE
+    IF lastvisit%<=VAL(areas$(selt%,2))
+      newlines%=1
+    ENDIF
+  ENDIF
+  '
+  GOSUB seq.o
+  GOSUB press
+  GOSUB 1
+  readexit:
+RETURN
+'
+'
+' *******************************************
+PROCEDURE appendstories
+  ' *****************************************
+  '
+  GOSUB stories.load
+  '
+  IF nofile%=1
+    GOSUB nonewritten
+    GOTO appendexit
+  ENDIF
+  '
+  GOSUB select.story
+  '
+  IF selt%=999
+    GOSUB storygone
+    GOTO appendexit
+  ENDIF
+  '
+  GOSUB text.ed
+  '
+  IF storyaborted%=1
+    storyaborted%=0
+  ELSE
+    ' update the new lines counter
+    GOSUB stories.load
+    areas$(selt%,2)=STR$(index%)
+    OPEN "O",#2,path$+"Stories"
+    FOR k%=1 TO z%
+      PRINT #2,areas$(k%,1)
+      PRINT #2,areas$(k%,2)
+    NEXT k%
+    CLOSE #2
+  ENDIF
+  appendexit:
+RETURN
+'
+'
+' *******************************************
+PROCEDURE beginstory
+  ' *****************************************
+  '
+  GOSUB stories.load
+  '
+  IF z%=50
+    o$=cr$+cr$+ansi$(1)+"Sorry! Only 50 stories allowed!"+cr$
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO beginexit
+  ENDIF
+  '
+  o$=cr$+cr$+ansi$(6)+"And what will the title of this story be? "
+  in%=1
+  il%=25
+  GOSUB 1
+  IF car%>0 OR b%=0
+    GOTO beginexit
+  ENDIF
+  file$=in$
+  IF EXIST(path$+file$)
+    o$=cr$+cr$+ansi$(1)+"Sorry... That story already exists!"+cr$
+    GOSUB 2
+    o$=ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO beginexit
+  ENDIF
+  '
+  n.story%=1
+  GOSUB text.ed
+  n.story%=0
+  '
+  beginexit:
+RETURN
+'
+'
+' *******************************************
+PROCEDURE deletestory
+  ' *****************************************
+  '
+  IF lev%<9
+    GOTO deleteexit
+  ENDIF
+  GOSUB stories.load
+  IF nofile%=1
+    GOSUB nonewritten
+    GOTO deleteexit
+  ENDIF
+  '
+  GOSUB select.story
+  '
+  IF selt%=999
+    GOSUB storygone
+    GOTO deleteexit
+  ENDIF
+  '
+  o$=cr$+cr$+"Delete "+file$
+  GOSUB 2
+  o$=cr$+cr$+"Is that right (y/N)? "
+  in%=3
+  il%=1
+  yes%=0
+  GOSUB 1
+  IF car%>0 OR in$="NO"
+    GOTO deleteexit
+  ENDIF
+  o$=cr$+cr$+"One last chance: Delete "+file$+" (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF car%>0 OR in$="NO"
+    GOTO deleteexit
+  ENDIF
+  '
+  GOSUB stories.load
+  '
+  OPEN "O",#2,path$+"Stories"
+  k%=0
+  WHILE k%<z%
+    INC k%
+    IF k%=selt%
+      NAME path$+areas$(k%,1) AS path$+areas$(k%,1)+".deleted"
+    ELSE
+      PRINT #2,areas$(k%,1)
+      PRINT #2,areas$(k%,2)
+    ENDIF
+  WEND
+  CLOSE #2
+  '
+  deleteexit:
+RETURN
+'
+'
+' *******************************************
+PROCEDURE renamestory
+  ' *****************************************
+  '
+  IF lev%<9
+    GOTO renexit
+  ENDIF
+  '
+  GOSUB stories.load
+  '
+  IF nofile%=1
+    GOSUB nonewritten
+    GOTO renexit
+  ENDIF
+  '
+  GOSUB select.story
+  '
+  IF selt%=999
+    GOSUB storygone
+    GOTO renexit
+  ENDIF
+  '
+  GOSUB stories.load
+  '
+  oldname$=areas$(selt%,1)
+  o$=screenclr$+"Renaming the story: "+oldname$
+  GOSUB 2
+  o$=cr$+cr$+"Enter new name (<CR> to abort rename): "
+  in%=1
+  il%=25
+  GOSUB 1
+  IF car%>0 OR in$=""
+    GOTO renexit
+  ENDIF
+  newname$=in$
+  o$=cr$+cr$+newname$+", is that correct (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF in$="NO" OR car%>0
+    GOTO renexit
+  ENDIF
+  NAME path$+oldname$ AS path$+newname$
+  areas$(selt%,1)=newname$
+  OPEN "O",#2,path$+"Stories"
+  k%=0
+  FOR k%=1 TO z%
+    PRINT #2,areas$(k%,1)
+    PRINT #2,areas$(k%,2)
+  NEXT k%
+  CLOSE #2
+  '
+  renexit:
+RETURN
+'
+' *******************************************
+PROCEDURE nonewritten
+  ' *****************************************
+  o$=cr$+cr$+ansi$(1)+"No stories have been written so far."+cr$
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+RETURN
+'
+' *******************************************
+PROCEDURE storygone
+  ' *****************************************
+  o$=cr$+cr$+ansi$(1)+"That story is not available today."+cr$
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+RETURN
+'
+'
+'
+PROCEDURE 1
+  GOSUB 2
+  GOSUB 3
+RETURN
+'
+'
+PROCEDURE 2
+  '
+  IF ring%=1
+    PRINT #1,o$;
+  ENDIF
+  IF icon%=0
+    PRINT o$;
+  ENDIF
+  IF (modout%=1 OR cmdmenu%=1 OR dismsg%=1)
+    GOSUB 3
+  ENDIF
+  2.1:
+  o$=""
+RETURN
+'
+'
+PROCEDURE 3
+  idle%=CINT(TIMER/200)
+  key$=""
+  in$=""
+  in1$=""
+  a%=0
+  keyy%=0
+  b%=0
+  car%=0
+  DO
+    IF MOUSEK=3
+      ALERT 0,"Really kill the Door?",2,"Yes|No",pdq%
+      IF pdq%=1
+        END
+      ENDIF
+      ' reset idle timer after returning from Alert
+      idle%=CINT(TIMER/200)
+    ENDIF
+    IF ring%=1
+      cd%=0
+      cd%=LPEEK(12570624)
+      cd%=cd% AND 8192
+      IF cd%<>0
+        car%=1
+        keyy%=1
+      ENDIF
+    ENDIF
+    key$=INKEY$
+    IF key$<>""
+      GOTO mod.in1
+    ENDIF
+    '
+    IF ring%=1
+      IF LOC(#1)>0
+        in1$=INPUT$(1,#1)
+        key$=in1$
+        in1$=""
+      ENDIF
+    ENDIF
+    '
+    mod.in1:
+    IF key$=CHR$(19)
+      pau$=""
+      hold%=CINT(TIMER/200)
+      WHILE CINT(TIMER/200)<hold%+45
+        pau$=INKEY$
+        IF pau$<>""
+          key$=""
+          pau$=""
+          GOTO mod.in1.1
+        ENDIF
+        IF ring%=1
+          IF LOC(#1)>0
+            key$=""
+            pau$=""
+            GOTO mod.in1.1
+          ENDIF
+        ENDIF
+      WEND
+      key$=""
+      pau$=""
+      GOTO mod.in1.1
+    ENDIF
+    '
+    mod.in1.1:
+    IF modout%=1 AND key$=""
+      keyy%=1
+    ENDIF
+    IF modout%=1 AND key$=CHR$(32)
+      abort%=1
+      GOTO 2.1
+    ENDIF
+    IF modout%=1 AND key$<>CHR$(32)
+      keyy%=1
+    ENDIF
+    IF key$=""
+      GOTO mod.in2
+    ENDIF
+    mod.in1.5:
+    a%=ASC(key$)
+    b%=LEN(in$)
+    IF a%=13
+      GOTO mod.in1.6
+    ENDIF
+    IF (a%=8 OR a%=127) AND LEN(in$)>=1
+      in$=LEFT$(in$,b%-1)
+      DEC b%
+      o$=de$
+      GOSUB 2
+    ENDIF
+    IF b%=il%
+      GOTO mod.in2
+    ENDIF
+    IF in%=0
+      IF a%>31 AND a%<127
+        IF cmd%=1
+          cmdmenu%=0
+          dismsg%=0
+        ENDIF
+        key$=UPPER$(key$)
+        o$=key$+cr$
+        GOSUB 2
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in1.6:
+    IF in%=1 AND a%>31 AND a%<127
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=2 AND a%>31 AND a%<127
+      key$=UPPER$(key$)
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=3
+      IF a%=13 AND yes%=1
+        o$="YES"
+        GOSUB 2
+        in$="YES"
+        keyy%=1
+      ENDIF
+      IF a%=13 AND yes%=0
+        o$="NO"
+        GOSUB 2
+        in$="NO"
+        keyy%=1
+      ENDIF
+      IF a%=89 OR a%=121
+        o$="YES"+cr$
+        GOSUB 2
+        in$="YES"
+        keyy%=1
+      ENDIF
+      IF a%=78 OR a%=110
+        o$="NO"+cr$
+        GOSUB 2
+        in$="NO"
+        keyy%=1
+      ENDIF
+    ENDIF
+    IF in%=4 AND a%>47 AND a%<58
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=5
+      IF (a%=8 OR a%=127) AND LEN(ln$(ln%))>=1
+        ln$(ln%)=LEFT$(ln$(ln%),LEN(ln$(ln%))-1)
+        o$=de$
+        GOSUB 2
+        keyy%=1
+      ENDIF
+      IF a%=13
+        in$=key$
+        keyy%=1
+      ENDIF
+      IF a%=9
+        o$="     "
+        GOSUB 2
+        in$="     "
+        keyy%=1
+      ENDIF
+      IF a%>26 AND a%<127
+        o$=key$
+        GOSUB 2
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    '
+    ' new one: no echoing of input at all! Good for More (Y/n)? stuff, etc...
+    '
+    IF in%=9
+      IF a%>31 AND a%<127
+        key$=UPPER$(key$)
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    '
+    mod.in1.7:
+    IF a%=13
+      IF (in%<>5 AND in%<>7 AND in%<>9)
+        o$=cr$
+        GOSUB 2
+        keyy%=1
+      ENDIF
+      IF in%=9
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in2:
+    IF CINT(TIMER/200)>idle%+300
+      IF lev%>7 AND CINT(TIMER/200)>idle%+600
+        car%=1
+        keyy%=1
+      ENDIF
+      IF lev%<8
+        car%=1
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in2.0:
+  LOOP UNTIL keyy%=1
+  '
+  mod.in2.1:
+RETURN
+'
+'
+PROCEDURE text.ed
+  GOSUB tchk
+  IF car%>0
+    GOTO text9
+  ENDIF
+  FOR sc%=0 TO 99
+    ln$(sc%)=""
+  NEXT sc%
+  in%=5
+  il%=1
+  ln%=0
+  in$=""
+  cs$="Maximum number of lines 99.  75 characters per line."
+  GOSUB center
+  o$=screenclr$+ansi$(2)+lcs$
+  GOSUB 2
+  cs$="Enter a Carriage Return on a blank line to exit Editor."
+  GOSUB center
+  o$=cr$+cr$+ansi$(6)+lcs$+cr$+ansi$(0)
+  GOSUB 2
+  text1:
+  IF in$=CHR$(13) OR in$=CHR$(10) OR in$=CHR$(32)
+    in$=""
+  ENDIF
+  INC ln%
+  IF ln%<10
+    o$=cr$+" "+STR$(ln%)+": "+in$
+  ELSE
+    o$=cr$+RIGHT$(STR$(ln%),2)+": "+in$
+  ENDIF
+  GOSUB 2
+  ln$(ln%)=ln$(ln%)+in$
+  text2:
+  GOSUB 3
+  IF car%>0
+    GOTO text9
+  ENDIF
+  IF in$=CHR$(13) AND LEN(ln$(ln%))=0
+    DEC ln%
+    GOTO text5
+  ENDIF
+  IF in$=CHR$(13)
+    GOTO text4
+  ENDIF
+  ln$(ln%)=ln$(ln%)+in$
+  IF LEN(ln$(ln%))<75
+    GOTO text2
+  ENDIF
+  in$=""
+  i%=LEN(ln$(ln%))
+  string1$=ln$(ln%)
+  string2$=" "
+  GOSUB match0
+  IF match%=0
+    GOTO text4
+  ENDIF
+  text3:
+  aw$=MID$(ln$(ln%),i%,1)
+  IF aw$=" " AND LEN(ln$(ln%))=75
+    in$=" "
+    DEC i%
+    ln$(ln%)=LEFT$(ln$(ln%),i%)
+    o$=de$
+    GOSUB 2
+    GOTO text4
+  ENDIF
+  IF aw$<>" "
+    in$=aw$+in$
+    DEC i%
+    ln$(ln%)=LEFT$(ln$(ln%),i%)
+    o$=de$
+    GOSUB 2
+    GOTO text3
+  ENDIF
+  IF aw$=" "
+    DEC i%
+    ln$(ln%)=LEFT$(ln$(ln%),i%)
+    o$=de$
+    GOSUB 2
+  ENDIF
+  text4:
+  IF ln%=96
+    o$=cr$+ansi$(1)+"Only 3 lines left."
+    GOSUB 2
+  ENDIF
+  IF ln%=99
+    o$=cr$+ansi$(1)+"This is your last line."
+    GOSUB 2
+  ENDIF
+  o$=ansi$(7)
+  GOSUB 2
+  IF ln%<99
+    GOTO text1
+  ENDIF
+  text5:
+  o$=cr$+cr$+ansi$(7)+"[S]ave - [R]esume - [E]dit - [D]elete - [I]nsert - [C]enter"
+  o$=o$+" - [L]ist - [A]bort"+cr$+cr$+"Enter Command: "
+  in%=0
+  il%=1
+  GOSUB 1
+  ' -----
+  IF in$="S"
+    text5.1:
+    IF n.story%=1
+      IF NOT EXIST(path$+"Stories")
+        OPEN "O",#2,path$+"stories"
+        PRINT #2,file$
+        PRINT #2,STR$(index%)
+        CLOSE #2
+      ELSE
+        OPEN "A",#2,path$+"Stories"
+        PRINT #2,file$
+        PRINT #2,STR$(index%)
+        CLOSE #2
+      ENDIF
+    ENDIF
+    IF NOT EXIST(path$+file$)
+      OPEN "O",#2,path$+file$,16384
+    ELSE
+      OPEN "A",#2,path$+file$,16384
+    ENDIF
+    GOSUB time1
+    '
+    ' add index value here
+    '
+    PRINT #2," "
+    PRINT #2,"*&*&* ";STR$(index%)
+    PRINT #2,"*&*&* Real Name: ";uname$
+    PRINT #2,"*&*&* Written  : ";time1$
+    PRINT #2," "
+    '
+    FOR qk%=1 TO ln%
+      PRINT #2,ln$(qk%)
+    NEXT qk%
+    '
+    ' here's the bit to muck around with
+    '
+    o$=cr$+cr$+"Use an alias (y/N)? "
+    in%=3
+    il%=1
+    yes%=0
+    GOSUB 1
+    IF car%>0
+      GOTO text9
+    ENDIF
+    IF in$="NO"
+      author$=uname$
+    ELSE
+      o$=cr$+"What name to use  ? "
+      in%=1
+      il%=25
+      GOSUB 1
+      IF car%>0
+        GOTO text9
+      ENDIF
+      author$=in$
+    ENDIF
+    '
+    o$=cr$+cr$+"Add the Time/Date (Y/n)? "
+    in%=3
+    il%=1
+    yes%=1
+    GOSUB 1
+    IF car%>0
+      GOTO text9
+    ENDIF
+    IF in$="YES"
+      written$=time1$
+    ELSE
+      written$="sometime"
+    ENDIF
+    PRINT #2," "
+    PRINT #2,"Written By: ";author$;"  At: ";written$
+    PRINT #2,"----------------------------------------------------------------------------"
+    CLOSE #2
+    o$=cr$+ansi$(3)+"Story Saved!"+cr$
+    GOSUB 2
+    o$=ansi$(0)
+    GOSUB 2
+    GOTO text9
+  ENDIF
+  ' -----
+  IF in$="R"
+    in$=""
+    in%=5
+    il%=1
+    GOTO text4
+  ENDIF
+  ' -----
+  IF in$="E"
+    text5.2:
+    o$=cr$+ansi$(3)+"Enter Line # To Edit: "
+    in%=4
+    il%=2
+    GOSUB 1
+    IF car%>0
+      GOTO text9
+    ENDIF
+    o$=ansi$(7)
+    GOSUB 2
+    IF b%=0
+      GOTO text5
+    ELSE
+      eline%=VAL(in$)
+    ENDIF
+    IF eline%<1 OR eline%>ln%
+      GOTO text5.2
+    ENDIF
+    IF eline%<10
+      o$=cr$+" "+STR$(eline%)+": "+ln$(eline%)
+      GOSUB 2
+    ELSE
+      o$=cr$+RIGHT$(STR$(eline%),2)+": "+ln$(eline%)
+      GOSUB 2
+    ENDIF
+    text5.21:
+    o$=cr$+"Enter New Line"+cr$+"  : "
+    in%=1
+    il%=75
+    GOSUB 1
+    IF b%=0
+      o$=cr$+ansi$(1)+"No Change!"
+      GOSUB 2
+      o$=ansi$(7)
+      GOSUB 2
+      GOTO text5
+    ENDIF
+    ln$(eline%)=in$
+    GOTO text5
+  ENDIF
+  ' -----
+  IF in$="D"
+    text5.3:
+    o$=cr$+ansi$(1)+"Start Delete At Line #: "
+    in%=4
+    il%=2
+    GOSUB 1
+    o$=ansi$(7)
+    GOSUB 2
+    IF b%=0
+      GOTO text5
+    ELSE
+      sline%=VAL(in$)
+    ENDIF
+    IF sline%<1 OR sline%>ln%
+      GOTO text5.3
+    ENDIF
+    text5.31:
+    o$=cr$+ansi$(1)+"End Delete At Line #: "
+    in%=4
+    il%=2
+    GOSUB 1
+    o$=ansi$(7)
+    GOSUB 2
+    IF b%=0
+      GOTO text5
+    ELSE
+      eline%=VAL(in$)
+    ENDIF
+    IF eline%<sline% OR eline%>ln%
+      GOTO text5.31
+    ENDIF
+    ' fix an interesting bug! No-one likes deleting >49 lines they've typed, eh?
+    dline%=eline%-sline%+1
+    FOR count.pd%=sline% TO ln%-dline%
+      ln$(count.pd%)=ln$(dline%+count.pd%)
+    NEXT count.pd%
+    WHILE count.pd%=<99
+      ln$(count.pd%)=""
+      INC count.pd%
+    WEND
+    ln%=ln%-dline%
+    GOTO text5
+  ENDIF
+  ' -----
+  IF in$="C"
+    text5.4:
+    o$=cr$+ansi$(1)+"Enter Line # To Center: "
+    in%=4
+    il%=2
+    GOSUB 1
+    o$=ansi$(7)
+    GOSUB 2
+    IF b%=0
+      GOTO text5
+    ELSE
+      cline%=VAL(in$)
+    ENDIF
+    IF cline%<1 OR cline%>ln%
+      GOTO text5.4
+    ENDIF
+    cs$=ln$(cline%)
+    GOSUB center
+    ln$(cline%)=lcs$
+    GOTO text5
+  ENDIF
+  ' -----
+  IF in$="L"
+    text5.5:
+    o$=cr$+ansi$(1)+"Start List At Line # (Return = 1): "
+    in%=4
+    il%=2
+    GOSUB 1
+    o$=ansi$(7)
+    GOSUB 2
+    IF b%=0
+      sline%=1
+      GOTO text5.51
+    ENDIF
+    sline%=VAL(in$)
+    IF sline%<1 OR sline%>ln%
+      GOTO text5.5
+    ENDIF
+    text5.51:
+    o$=cr$+ansi$(1)+"End List At Line # (Return = To End): "
+    in%=4
+    il%=2
+    GOSUB 1
+    o$=ansi$(7)
+    GOSUB 2
+    IF b%=0
+      eline%=ln%
+      GOTO text5.52
+    ENDIF
+    eline%=VAL(in$)
+    IF eline%<sline% OR eline%>ln%
+      GOTO text5.51
+    ENDIF
+    text5.52:
+    o$=cr$
+    GOSUB 2
+    FOR qm%=sline% TO eline%
+      IF qm%<10
+        o$=cr$+" "+STR$(qm%)+": "+ln$(qm%)
+        GOSUB 2
+      ELSE
+        o$=cr$+RIGHT$(STR$(qm%),2)+": "+ln$(qm%)
+        GOSUB 2
+      ENDIF
+    NEXT qm%
+    GOTO text5
+  ENDIF
+  ' -----
+  IF in$="I"
+    text5.6:
+    o$=cr$+ansi$(1)+"Enter Line # To Insert: "
+    in%=4
+    il%=2
+    GOSUB 1
+    o$=ansi$(7)
+    GOSUB 2
+    IF b%=0
+      GOTO text5
+    ELSE
+      iline%=VAL(in$)
+    ENDIF
+    IF iline%<1 OR iline%>ln%
+      GOTO text5.6
+    ENDIF
+    INC ln%
+    IF ln%>98
+      o$=cr$+ansi$(1)+"Sorry, Story Is Full."+ansi$(7)
+      GOSUB 2
+      GOTO text5
+    ENDIF
+    FOR qm%=ln% TO iline%+1 STEP -1
+      ln$(qm%)=ln$(qm%-1)
+    NEXT qm%
+    ln$(iline%)=""
+    eline%=iline%
+    GOTO text5.21
+  ENDIF
+  ' -----
+  IF in$="A"
+    o$=cr$+ansi$(1)+"Are You Sure You Want To Abort (y/N)? "
+    yes%=0
+    in%=3
+    il%=1
+    GOSUB 1
+    in%=0
+    o$=ansi$(7)
+    GOSUB 2
+    IF in$="NO"
+      GOTO text5
+    ENDIF
+    FOR sc%=0 TO 99
+      ln$(sc%)=""
+    NEXT sc%
+    o$=cr$+ansi$(1)+"Story Aborted!"
+    GOSUB 2
+    storyaborted%=1
+    o$=ansi$(7)
+    GOSUB 2
+    GOTO text9
+  ENDIF
+  GOTO text5
+  text9:
+RETURN
+'
+PROCEDURE seq.o
+  '
+  IF NOT EXIST(path$+file$)
+    o$=cr$+cr$+ansi$(1)+"File Not Found..."+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO seq.o1
+  ENDIF
+  lncount%=0
+  modout%=1
+  OPEN "I",#2,path$+file$,16384
+  '
+  IF newlines%=1
+    check%=0
+    o$=cr$+"Scanning for new lines...."
+    GOSUB 2
+    DO
+      LINE INPUT #2,text$
+      IF LEFT$(text$,5)="*&*&*"
+        check%=VAL(MID$(text$,6,8))
+        ' get past the useful sysop's info lines
+        WHILE LEFT$(text$,5)="*&*&*"
+          LINE INPUT #2,text$
+        WEND
+      ENDIF
+    LOOP UNTIL EOF(#2) OR check%>=lastvisit%
+    IF EOF(#2)
+      o$=cr$+cr$+ansi$(1)+"Sorry, no new lines in this story, perhaps you should [A]dd some!"+cr$
+      GOSUB 2
+      CLOSE #2
+      GOTO seq.o1
+    ENDIF
+  ENDIF
+  '
+  GOSUB header
+  DO UNTIL EOF(#2)
+    LINE INPUT #2,text$
+    IF LEFT$(text$,5)<>"*&*&*" OR maintain%=1
+      INC lncount%
+      o$=text$+cr$
+      GOSUB 2
+    ENDIF
+    IF contin%=0
+      IF lncount%>=scrnht%
+        GOSUB pagepause
+      ENDIF
+    ENDIF
+    IF car%>0
+      GOTO seq.o1
+    ENDIF
+    IF abort%=1
+      CLOSE #2
+      abort%=0
+      GOTO seq.o1
+    ENDIF
+  LOOP
+  CLOSE #2
+  seq.o1:
+  maintain%=0
+  modout%=0
+  contin%=0
+  o$=ansi$(0)
+  GOSUB 2
+RETURN
+'
+PROCEDURE select.story
+  selt%=999
+  i%=0
+  col%=1
+  row%=1
+  o$=screenclr$+ansi$(6)+"   Available stories  ("+ansi$(1)+"*"+ansi$(6)+" means new lines added)"+cr$
+  GOSUB 2
+  sel.a1:
+  INC i%
+  IF i%>z%
+    GOTO sel.a3
+  ENDIF
+  IF i%<10
+    sp$=" "
+  ELSE
+    sp$=""
+  ENDIF
+  areas$(i%,1)=sp$+STR$(i%)+" - "+areas$(i%,1)
+  l%=LEN(areas$(i%,1))
+  IF VAL(areas$(i%,2))>=lastvisit%
+    newflag$=ansi$(1)+" * "
+  ELSE
+    newflag$=ansi$(1)+"   "
+  ENDIF
+  IF col%=1
+    l$=SPACE$(37-l%)
+    o$=cr$+newflag$+ansi$(3)+areas$(i%,1)+l$
+    GOSUB 2
+  ENDIF
+  IF col%=2
+    o$=newflag$+ansi$(5)+areas$(i%,1)
+    GOSUB 2
+    col%=0
+  ENDIF
+  sel.a2:
+  INC col%
+  GOTO sel.a1
+  sel.a3:
+  GOSUB tchk
+  IF car%>0
+    GOTO sel.a6
+  ENDIF
+  o$=cr$+cr$+ansi$(2)+"   Time Left "+STR$(rtime%)+ansi$(1)+"  Which One? (Not Hotkeyed) "
+  in%=4
+  il%=2
+  GOSUB 1
+  sel.a4:
+  o$=ansi$(7)
+  GOSUB 2
+  aaa%=0
+  sel.a5:
+  INC aaa%
+  IF aaa%>z%
+    selt%=999
+    GOTO sel.a6
+  ENDIF
+  IF in$<>STR$(aaa%)
+    GOTO sel.a5
+  ENDIF
+  file$=RIGHT$(areas$(aaa%,1),LEN(areas$(aaa%,1))-5)
+  selt%=aaa%
+  sel.a6:
+RETURN
+'
+PROCEDURE stories.load
+  nofile%=0
+  file$=path$+"stories"
+  IF NOT EXIST(file$)
+    nofile%=1
+    GOTO area.load2
+  ENDIF
+  FOR sc%=0 TO 50
+    areas$(sc%,1)=""
+    areas$(sc%,2)=""
+  NEXT sc%
+  z%=0
+  OPEN "I",#2,file$,16384
+  DO UNTIL EOF(#2)
+    INC z%
+    LINE INPUT #2,areas$(z%,1)
+    LINE INPUT #2,areas$(z%,2)
+    area.load1:
+  LOOP
+  CLOSE #2
+  area.load2:
+RETURN
+'
+PROCEDURE header
+  cs$="CTRL S To PAUSE  -  ANY KEY To RESUME  -  SPACE BAR To ABORT"
+  GOSUB center
+  o$=screenclr$+ansi$(3)+lcs$+cr$+cr$
+  GOSUB 2
+  o$=ansi$(7)
+  GOSUB 2
+RETURN
+'
+PROCEDURE center
+  lcs%=LEN(cs$)
+  lcs$=SPACE$(38-lcs%/2)+cs$
+RETURN
+'
+PROCEDURE press
+  o$=cr$+cr$+ansi$(0)+"Strike a key... "
+  in%=0
+  il%=1
+RETURN
+'
+PROCEDURE correct
+  ' not sure if this is used??
+  o$=cr$+cr$+"Is This Correct? (Y/n) "
+  yes%=1
+  in%=3
+  il%=1
+RETURN
+'
+PROCEDURE pagepause
+  modout%=0
+  o$="More (Y/n/c)?"
+  GOSUB 2
+  in%=9
+  il%=1
+  GOSUB 3
+  IF car%>0
+    GOTO pagepause9
+  ENDIF
+  o$=de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$
+  GOSUB 2
+  IF in$=" " OR in$="N"
+    abort%=1
+  ENDIF
+  IF in$="C"
+    contin%=1
+  ENDIF
+  lncount%=0
+  modout%=1
+  pagepause9:
+RETURN
+'
+PROCEDURE time1
+  t.t%=FRE(0)
+  time1$=TIME$
+  t.t%=VAL(LEFT$(time1$,2))
+  IF t.t%>11
+    a$=" PM"
+  ELSE
+    a$=" AM"
+  ENDIF
+  IF t.t%=0
+    t.t%=12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%<10
+    time1$=RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ELSE IF t.t%>21
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%>12
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ENDIF
+  time1$=time1$+a$+"  "+DATE$
+RETURN
+'
+PROCEDURE tchk
+  GOSUB time1
+  timenow%=CINT(TIMER/200)
+  ctime%=(timenow%-timeon%)
+  ctime%=CINT(ctime%/60)
+  rtime%=tpc%-ctime%
+  IF rtime%<=0
+    o$=cr$+cr$+"Sorry, Time Limit Exceeded!"
+    GOSUB 2
+    car%=2
+  ENDIF
+RETURN
+'
+PROCEDURE modem.c
+  CLOSE #1
+RETURN
+'
+PROCEDURE modem.o
+  OPEN "",#1,"COM1:"+bd$+",n,8,1",16384
+RETURN
+'
+PROCEDURE match0
+  match%=INSTR(string1$,string2$)
+RETURN
+'
+PROCEDURE setpagepause
+  oldscrnht%=scrnht%
+  o$=cr$+cr$+ansi$(2)+"Current Screen Height: "+ansi$(5)+STR$(oldscrnht%)
+  GOSUB 2
+  o$=cr$+cr$+ansi$(3)+"Change Screen Height (y/N)? "
+  in%=3
+  il%=1
+  yes%=0
+  GOSUB 1
+  IF in$="NO" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  o$=cr$+ansi$(2)+"New Screen Height: "+ansi$(1)
+  in%=4
+  il%=2
+  GOSUB 1
+  IF in$="" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=VAL(in$)
+  o$=cr$+ansi$(3)+"Are "+ansi$(1)+STR$(scrnht%)+ansi$(3)+" lines okay (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF in$="YES" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  o$=cr$+cr$+ansi$(1)+"No Change"
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+  '
+  pauseexit:
+RETURN
+'
+PROCEDURE setansi
+  '
+  IF weknow%=1
+    IF ansi%=1
+      in$="YES"
+    ELSE
+      in$="NO"
+    ENDIF
+  ELSE
+    o$=cr$+cr$+"Do you want ANSI (Y/n)? "
+    in%=3
+    il%=1
+    yes%=1
+    GOSUB 1
+    IF car%>0
+      GOTO setansi9
+    ENDIF
+  ENDIF
+  '
+  IF in$="YES"
+    ansi%=1
+    ansi$(1)=esc$+"[31m"
+    ansi$(2)=esc$+"[32m"
+    ansi$(3)=esc$+"[33m"
+    ansi$(4)=esc$+"[34m"
+    ansi$(5)=esc$+"[35m"
+    ansi$(6)=esc$+"[36m"
+    ansi$(7)=esc$+"[37m"
+    ansi$(8)=esc$+"[1m"
+    ansi$(9)=esc$+"[3m"
+    ansi$(10)=esc$+"[4m"
+  ELSE
+    ansi%=0
+    FOR kk%=1 TO 10
+      ansi$(kk%)=""
+    NEXT kk%
+  ENDIF
+  ansi$(0)=esc$+"[0;37;40m"
+  setansi9:
+  IF weknow%<>1
+    o$=ansi$(0)
+    GOSUB 2
+  ENDIF
+RETURN
+'
+'
+'
+'
+'

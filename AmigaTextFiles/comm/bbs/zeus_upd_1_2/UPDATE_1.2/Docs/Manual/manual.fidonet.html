@@ -1,0 +1,893 @@
+<html>
+<head>
+  <title>FidoNet</title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="main.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="manual.messages.html"><img src="prev.gif" alt="PREV" border=0></a><a href="manual.internet.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+
+<br><i><b>Chapter 8 - FidoNet</b></i>
+<br>
+<br><b>Introduction</b>
+<br>
+<br>This part of the manual covers the use of the message processing tools supplied with Zeus such as ZMP (fidonet mail import and export utility), ZMailer (fidonet packet transfering utility) and nodelisting documentation such as creating your own point net and using Traplist for parsing nodelists. Nodelists are like a telephone book listing the names and numbers of all the systems connected to FidoNet.
+<br>
+<br>Also covered are other mail applicable aspects such as file hatching with fidonet technology.
+<br>
+<br><b>About Fidonet and other Networks.</b>
+<br>
+<br>FidoNet is the largest amateur network in the world. It was started in 1984 by Tom Jennings. Currently more than 20000 nodes worldwide are connected. The network has a hierarchic tree (or star) topology:
+<br>
+<br><img src="fidotopology.gif" alt="FidoNet Picture">
+<br>
+<br>Zones are divided in Regions, which are divided in Nets. The Nets consist of Nodes, which are usually (but not necessarily) Bulletin Board Systems. Each node has a unique address which consists of four parts: Zone, Net, Node and Point, in text form expressed as &quot;zone:net/node.point&quot;. Zone numbers 1 up to and including 6 are used by FidoNet:
+<br>
+<br><pre>    1 = North America (United States of America and Canada)
+    2 = Europe and Commonwealth of Independent States
+    3 = Oceania (Australia and New Zealand)
+    4 = Latin America
+    5 = Africa
+    6 = Asia
+</pre><br>
+<br>There are several other networks that use FidoNet Technology. Networks such as AmigaNet use higher zone numbers which are allocated by a central body, 39-41 for example.
+<br>
+<br>Many nodes have one or more points. A point is a user who gets mail from a node (it's &quot;boss&quot;), usually as compressed mail files. This way they can read and write messages offline saving time and money. The point address of the boss is 0 (e.g. 2:441/58.0) but the &quot;.0&quot; is often omitted from the address.
+<br>
+<br>To operate successfully as a FidoNet node a variety of tools are needed. As you would expect Zeus provides these tools built-in but also has extensive support for third-party programs.
+<br>
+<br>
+<br><b>Mailer</b> (also known as a FrontDoor)
+<br>
+<br>The mailer is a program that waits for incoming calls from users and FidoNet systems. Users calling are passed through to the BBS. FidoNet calls are intercepted and a handshaking procedure is started. This handshaking establishes a common protocol between the two mailers, exchanges information about each other's system and makes sure that the connection is secure (i.e. the passwords match and mail is not being received by a foreign source).
+<br>
+<br>Zeus's internal mailer is called ZMailer and is stored in Zeus:Bin. Its configuration program is Zeus:Prefs/Mailer.
+<br>
+<br>Other Amiga mailers are available and compatible with Zeus. They are all available on the AmiNet.
+<br>
+<br><pre>Mailer                   AmiNet FileName
+
+TrapDoor                 from most BBS's as TD_1_84.lzh
+Gotcha                   Gotcha12b1.lha
+GMS                      comm/fido/GMS_11b64.lha
+JamMail                  comm/fido/jm960227.lha
+&quot;The Shelter Mailers&quot;    comm/fido/SHELTER275.lha
+</pre><br>
+<br>
+<br><b>Mail Processor</b> (also known as a tosser, scanner or packer)
+<br>
+<br>This program is used to &quot;import&quot; and &quot;export&quot; mail. Most mail processors work on a two phase basis. Exporting scans the message bases on the BBS searching for mail that has not been seen by all the systems who take an area (or 'echo') and gathers it into &quot;bundles&quot; stored in the &quot;outbound&quot; directory ready for collecting or sending by the Mailer. Importing scans the &quot;inbound&quot; directory for new mail bundles received by the Mailer and unpacks them into the message bases ready for reading by the BBS users and the system's points.
+<br>
+<br>Zeus's internal mail processor is called ZMP and is stored in Zeus:Bin. Its configuration is stored and changed using a text file called Zeus:Config/ZMP.cfg.
+<br>
+<br>Other Amiga mail processors are available and compatible with Zeus (using the mbstarmsg.library, see chapter Message Subsystem, section Message Base Libraries).
+<br>
+<br><pre>Mail Processor                  AmiNet FileName
+
+EMS                             ems_1_0_exec.lha
+Foozle                          comm/fido/foozle102.lha
+MailManager                     comm/fido/mm_1_2.lha
+JS_Toss                         comm/fido/JS_Toss102b.lha
+TrapToss                        comm/fido/TrapToss_1_50.lzh
+</pre><br>
+<br>
+<br><b>Tick Processor</b>
+<br>
+<br>FidoNet also provides support for &quot;file echoes&quot;. These are similar in setup to a message echo, except they carry binary files rather than ASCII message text. A tick processor reads in TIC files from the inbound directory and adds their associated files to the correct file areas. Tick often has a companion called &quot;Hatch&quot; which allows FidoNet systems to send files to the file echo for distribution.
+<br>
+<br>Zeus's Tick is built into the Zeus Mail Processor (ZMP) and can be run by specifying the TICK keyword on operation.
+<br>
+<br>Other Tick processors for the Amiga are available, but not recommended for use as they cannot integrate with the Zeus file catalogue which renders them only partially useful.
+<br>
+<br>
+<br><b>Areafix</b>
+<br>
+<br>Areafix is a relatively new FidoNet utility designed to take the pain out of running a busy node system for the SysOp. Before Areafix was used FidoNet administrators had to &quot;fix&quot; people into message echoes manually by editing their configurations. This was time wasting when users wished to add a large number of echoes. In addition to this, Areafix allows user's to connect to echoes not taken by the node. This is done by sending a chain of Areafix requests back up the FidoNet hierachy until a system is found which taks the echo that the user requries. Areafix could cause huge space wastage and gigantic mail packets if abused, so most Areafix programs allow strict access restriction systems to be implemented to stop some systems fixing into private echoes, too many, or any at all.
+<br>
+<br>Zeus's Areafix is built into the Zeus Mail Processor (ZMP) and is automatically run when an import is in progress.
+<br>
+<br>
+<br><b>Nodelists</b>
+<br>
+<br>To function in a proper environment the Zeus specific mailer (ZMailer) requires you to have configured nodelists for every FidoNet technology network you carry on your bulletin board. This may include a pointlist, as nodelists only carry information about zones, networks and nodes.
+<br>
+<br>The 'TrapList' utilities you will need to compile and update nodelists can be found on disk #4 of the Zeus distribution set as `NODELIST.LHA'.
+<br>
+<br>Please take the time to read the relevant documentation for traplist and the nodelist tools within that archive for a more verbose description of nodelist technology than covered here.
+<br>
+<br>To cover briefly setting a system up for a link with your BBS system then it's just a matter of using the SetPasswd tool within the Nodelist archive like this:
+<br>
+<br> SetPassWd &#060;Session Password&#062; Address_1 Address_2 etc....
+<br>
+<br>These passwords can also be set within the traplist configuration file which will be explained later on along with an example configuration file. This is also the recommended route since the nodelist data can be damaged and lose all the password information.
+<br>
+<br>Needless to say both you, and the system(s) you are exchanging mail with will have to use the same passwords, else the link will be considered insecure and mail will not be transferred.
+<br>
+<br>Here is an example traplist configuration which will give you an idea on setting up to recieve the Zeus support echos.
+<br>
+<br><pre>ZONE 85
+
+NODELISTPATH &quot;NODELIST:&quot;
+BUFFERSIZE 65536
+REPORT &quot;Ram:Traplist.log&quot;
+NOCHECKCRC
+NODELIST &quot;ZeusNet&quot;
+PASSWORD &quot;SECRET&quot; 85:1/1.0
+DIAL &quot;44&quot; &quot;0&quot;
+</pre><br>
+<br>The entries broken down individually are :-
+<br>
+<br><u>Zone</u> - This is the network number. 85 is a unique number used by the ZeusNet. While more than one nodelist can be parsed with this single config file, you must use only one Zone line which should be the lowest network number you are on.
+<br>
+<br><u>NodelistPath</u> - This is the directory where the nodelists and nodediff files are present. You must assign Nodelist: to a directory and use that path here as in the example above.
+<br>
+<br><u>BufferSize</u> - The bigger the buffer, the quicker traplist can process the nodelists. Obviously this depends on memory restrictions with your computer.
+<br>
+<br><u>Report</u> - Path to a file to output any messages from the processing. A logfile you can refer to to check if it all worked okay.
+<br>
+<br><u>NoCheckCRC</u> - If this line is ommited then Traplist will run a crc check on the nodelists listed in the following lines and compare it to the number within the nodelist itself. This is really only of use to sysops using nodediff files for updating nodelists and for nets as small as Zeus, it's easier to just release the full nodelist and so crc checksums within the nodelist are rarely needed.
+<br>
+<br><u>Nodelist</u> - As many of these entries as you like can be configured. Each name will be checked by traplist for a nodelist &#060;name&#062;.082 for example and processing will take place if it finds a valid file. You don't need to specify an extension number on the name as traplist will do it for you, and automatically makes sure it uses the highest number.
+<br>
+<br> For example if ZeusNet.024 and ZeusNet.046 were found, *.046 would be processed.
+<br>
+<br><u>Password</u> - This is how you configure session password between systems linked to your bbs for security checks and to prevent any system polling your Mailer with the right address and stealing someone elses mail.
+<br>
+<br> For example
+<br>
+<br> PASSWORD &quot;Backyard&quot; 85:1/13.0
+<br>
+<br> This means that if system 85:1/13.0 calls your mailer then no files will be transferred unless it also sent a session password of Backyard.
+<br>
+<br><u>DIAL</u> - This is a modifier string for changing phone number formats within the nodelists as they are processed.
+<br>
+<br> For example
+<br>
+<br> DIAL &quot;44&quot; &quot;0&quot;
+<br>
+<br>means any instances of 44 at the start of a phone number for a system in the nodelist would be replaced with 0, used by British sysops as the 44 is a number used to dial outside of England which isn't normally needed. A system with the number &quot;44-4423-443533&quot; in their nodelist entry would be replaced with &quot;04423-443533&quot; when dialling out.
+<br>
+<br>
+<br>NB: This is a very brief breakdown of usage regarding Traplist and mailer technology. Refer to the full documentation within the Trapdoor archive for more detailed explanations as the above is a quick starting guide only.
+<br>
+<br>Here is an example pointlist file which you can customise to generate a list of points from which Zmailer will get their system information when a call is recieved from their address. It's not actually necessary to use a pointlist with Zeus but you will still need a password line for each point listing their session password and addresses or they will not be able to send or recieve mail. You set up a points password details within the traplist config file (as detailed above) as normal, or with the SetPasswd tool within the Trapdoor archive.
+<br>
+<br><pre>;A My Pointlist/Fakenet list -- fake crc 0 : 0&#060;Ctrl M&#062;
+;A^M
+Zone,2,-&#062;^M
+Region,254,-&#062;^M
+,255,BackYard,North_Harrow,Anthony_Brice,44-0-181-4242065,9600,HST,MO^M
+Point,1,Hell_On_Earth,North_Harrow,Anthony_Brice,UNLISTED,9600,MO^M
+Point,3,The_Garage,Rayners_Lane,Gary_Pearse,UNLISTED,9600,MO^M
+^Z
+</pre><br>
+<br>Note: The information within the &#060; &#062; brackets are control codes which need to be used when generating your own pointlist. &#060;Ctrl M&#062; means press Control and M at that point. I recommend using an editor such as CygnusEd when creating a nodelist, as that allows the insertion of such control codes, and nodelists MUST have these codes to process properly.
+<br>
+<br>The Point lines are defined as below:
+<br>
+<br>Point,&#060;PointNumber&#062;,&#060;SiteText&#062;,&#060;Location&#062;,&#060;Point Name&#062;,&#060;PhoneNumber&#062;,&#060;Baud&#062;,&#060;Flags&#062;
+<br>
+<br>
+<br><u>PointNumber</u> - Their unique number as a point.
+<br>
+<br><u>Site Name</u> - Some text describing their system.
+<br>
+<br><u>Location</u> - Their town / state.
+<br>
+<br><u>Phone number</u> - Can be set to UNLISTED as above, which means you can't use a mailer to dial them up by using their fido address as they are points and wouldn't have a mailer to answer the phone.
+<br>
+<br><u>Baud</u> - A maximum rate of 9600 due to some old nodelist processors not handling handle a five digit number.
+<br>
+<br><u>Flags</u> - Usually set to MO (Mail Only).
+<br>
+<br>
+<br><b>Setting up a simple node system</b>
+<br>
+<br>Most bulletin board's operate as &quot;nodes&quot; within the FidoNet hierarchy.
+<br>
+<br>Here is an example configuration for a FidoNet node &quot;2:888/43.0&quot; who polls an IBM system called &quot;2:888/1.0&quot;.
+<br>
+<br>
+<br><i>Addressing</i>
+<br>
+<br>A note on addressing:
+<br>
+<br>The address defined in the NODE keyword is used as the base for all the AREA, SYSTEM and ROUTE addresses so you only need to specify the parts which are different.
+<br>
+<br>Example:
+<br>
+<br><pre>NODE 85:1/1.0@zeusnet
+
+85:1/100.0@zeusnet
+85:1/100.0
+85:1/100
+1/100
+100
+</pre><br>
+<br>Are all valid ways of writing '85:1/100.0@zeusnet'
+<br>
+<br><pre>85:1/100.1@zeusnet
+85:1/100.1
+1/100.1
+100.1
+</pre><br>
+<br>Are all valid ways of writing '85:1/100.1@zeusnet'
+<br>
+<br><pre>85:1/1.1@zeusnet
+85:1/1.1
+1/1.1
+1.1
+.1
+</pre><br>
+<br>Are all valid ways of writing '85:1/1.1@zeusnet'
+<br>
+<br>
+<br><b>Structure of ZMP.cfg</b>
+<br>
+<br>This is the order of the items required for a ZMP configuration:
+<br>
+<br><pre>; Comment Lines
+
+Main Configuration Tags
+
+-&#062; Network
+NODE
+AKA
+POINTNET
+ZONES
+
+SYSTEM Lines
+AREA lines
+TICK Lines
+ROUTE Lines
+-&#062; Network
+
+Next Network...
+</pre><br>
+<br>
+<br>Configuration files are stored in Zeus:Config/ZMP.cfg
+<br>
+<br>This is the example:
+<br>
+<br><pre>
+MSGBUFFER 32768
+IDXSTORE  1024
+
+FLOCTRL
+4DFLPO
+CTRLCHAR ^
+NOCHKNETDOMAIN
+NOCHKPKTDOMAIN
+BOUNCEBADADDR
+BOUNCENOROUTE
+BOUNCENOUSER
+UNPACKDIR T:
+PACKDIR T:
+
+; FidoNet setup
+
+NODE           2:888/43.0
+AKA            0
+POINTNET       8843
+ZONES          1 2 3 4 5 6
+CREATENEW      1
+CREATELINK     1
+
+SYSTEM     1   U2YYNNNBY   ZIP   PASS   PASS   PASS   0
+
+AREA       NET888          0     1 43
+AREA       AMIGA_UK        0     1 43
+AREA       AMIGASOFT       0     1 43
+AREA       CONTROV         0     1 43
+
+ROUTE      *:*/*.*         1
+</pre><br>
+<br>For a better and more fully commented ZMP.cfg example, please see the example files installed in Zeus:Config/
+<br>
+<br>
+<br><b>Explanation of configuration tags.</b>
+<br>
+<br><u>MSGBUFFER</u> &#060;bytes&#062;
+<br>
+<br>defines the largest FTN message ZMP will be able to import. &#060;Number&#062; is the amount of bytes ZMP allocates and must be a minimum of 32768 bytes.
+<br>
+<br><u>IDXSTORE</u> &#060;records&#062;
+<br>
+<br>defines the amount of index records in ZMP.index. The more indexes, the better the dupe checking and reply linking but ZMP will use more memory, disk space and time. Each index record is 36 bytes long.
+<br>
+<br><u>FLOCTRL</u>
+<br>
+<br>makes ZMP use special characters in the .?LO flow files. Most Amiga mailers support this flag (including ZMailer), but some older ones may require NOFLOCTRL to be set.
+<br>
+<br><u>4DFLO</u>
+<br>
+<br>makes ZMP use 4 dimensional filenames in the Outbound directories. Again most Amiga mailers (including ZMailer) support this format.
+<br>
+<br><u>CTRLCHAR</u> &#060;character&#062;
+<br>
+<br>indicates that mail packet files should be prefixed with &#060;character&#062; in outgoing mail packets. The default is a ^ which means that the file should be deleted. Most Amiga mailers support these characters. Other acceptable values are:
+<br>
+<br># - Truncate this file to zero length
+<br>
+<br>^ - Delete this file (with logging)
+<br>
+<br>- - Delete this file (without logging)
+<br>
+<br>~ - Don't send this file
+<br>
+<br><u>NOCHKNETDOMAIN</u>
+<br>
+<br>When a netmail's origin and destination addresses are not in the same domain, ZMP will attempt to bounce the message back to the sender. Specifying this keyword disables this checking.
+<br>
+<br><u>NOCHKPKTDOMAIN</u>
+<br>
+<br>If ZMP detects that a message packet's origin and destination addresses are not in the same domain, it will rename it *.BAD and not process it. Specifying this keyword disables this check.
+<br>
+<br><u>BOUNCEBADADDR</u>
+<br>
+<br>If you use netmail domain checking (by not specifying NOCHKNETDOMAIN in your config) then badly addressed messages will be bounced back to the node which sent them (if possible).
+<br>
+<br><u>BOUNCENOROUTE</u>
+<br>
+<br>If a netmail is processed which is not destined for your system but ZMP is unable to route the message to another system, a message will be sent back to the sender telling them about it.
+<br>
+<br><u>BOUNCENOUSER</u>
+<br>
+<br>Specifying this keyword causes ZMP to check the To: field of every netmail that is destined for your system against your current list of users. If the recipient does not have a user record, ZMP will bounce the message with the message 'User not known at this address'.
+<br>
+<br><u>UNPACKDIR</u> &#060;directory&#062;
+<br>
+<br>The temporary directory ZMP will unpack mail bundles into. Specifying a directory in the Ram Disk (RAM:) will make importing quicker, but will cause problems if trying to import large sized message packets on a system without much free memory.
+<br>
+<br><u>PACKDIR</u> &#060;directory&#062;
+<br>
+<br>The temporary directory ZMP will pack the mail bundles from before they are put in the outbound directory. The same limitations apply here as with UNPACKDIR.
+<br>
+<br><u>ATTACHDIR</u> &#060;directory&#062;
+<br>
+<br>The directory to place any files that arrive attached to messages. If you do not use this keyword, the inbound directory will be used.
+<br>
+<br>
+<br><i>Also</i>..
+<br>
+<br><u>INBOUND</u> &#060;directory&#062;
+<br><u>OUTBOUND</u> &#060;directory&#062;
+<br>
+<br>These force ZMP to use different directories than those set in the General Paths configuration (in the Prefs/System program).  Useful if you don't want ZMP to import packets/bundles received via ZMailer, but <b>do</b> still want ZMP for other work.
+<br>
+<br>
+<br><u>NODE</u> &#060;network address&#062;
+<br>
+<br>NODE defines your address in a FTN network. The address must be at least 4d (Zone:Net/Node.Point) and preferably 5d (Zone:Net/Node.Point@Domain).
+<br>
+<br><u>AKA</u> &#060;network address&#062;
+<br>
+<br>Defines one or more AKA addresses (for netmail routing).
+<br>
+<br><u>POINTNET</u> &#060;number&#062;
+<br>
+<br>The net number defined by POINTNET will be stripped out of incoming messages and replaced with 3d control lines.
+<br>
+<br><u>ZONES</u> &#060;zone number, zone number [...]&#062;
+<br>
+<br>Defines all valid zone numbers for this domain. These are used when incoming netmail messages have no domain information. A maximum of twenty may be defined.
+<br>
+<br><u>CREATENEW</u> &#060;area&#062;
+<br>
+<br>When an echomail comes in with an unknown tag and the sending system has ALLOWNEW capabilities, ZMP will also create a message area on your board. If the given message base number is already used, ZMP will increment it until it finds an unused one.
+<br>
+<br><u>CREATELINK</u> &#060;area&#062;
+<br>
+<br>If you want to link into a pass-through area you would usually have to create the area on the board and then add your address to the appropriate AREA line. By specifying this keyword (BEFORE your AREA lines) you only need to add your address to the AREA line and ZMP will create a new area on the board while it loads its config.
+<br>
+<br>The Message Base Number works in the same way as CREATENEW.
+<br>
+<br>
+<br><u>SYSTEM</u> &#060;address&#062; &#060;flag array&#062; &#060;archiver&#062; &#060;packet password&#062; &#060;areafix password&#062; &#060;tick pw&#062; &#060;groups&#062;
+<br>
+<br>defines a known system for the current network. The arguments are:
+<br>
+<br>Address - The FTN address of this system.
+<br>
+<br>Flag Array - Nine characters together (i.e. 'U2YYNNNBY') as follows:
+<br>
+<br><pre>AreaFix Access - One of the following characters:
+
+ N No AreaFix access. All requests from this system will be ignored.
+ Y May use %LIST, %QUERY, %UNLINKED, %HELP, %PAUSE, %RESUME, %RESCAN and link/unlink into echos.
+ U As for 'Y' but AreaFix enables uplink requests. (See AreaFix section).
+ C Full AreaFix control. May create, delete and rename echos.  May also request for other systems.
+
+Control Type
+ Specifies the number of dimensions used on SEEN-BY and PATH lines.
+
+ 2 Net/Node for nodes. PointNet/Point for points.
+ 3 Net/Node for nodes. Net/Node.Point for points.
+
+Packet Change
+ Specify 'Y' to make ZMP generate the same packet header types for this system
+ as it receives. 'N' to disable.
+
+Archiver
+ Change Specify 'Y' to make ZMP change the archiver it uses on this systems mail
+ packets to match the ones it receives.  'N' to disable.
+
+Netmail FLO
+ Specifies the 'flavour' of netmail packets.
+
+ N  Normal
+ H  Hold
+ D  Direct
+ C  Crash
+
+Echomail FLO
+ Specifies the 'flavour' of echomail packets. Same options as the netmail FLO
+ flag.
+
+Tick FLO
+ Specifies the 'flavour' of *.TIC files. Same options as the netmail FLO flag.
+
+Packet header
+ Specifies the packet header type used on outgoing mail packets. May be one of:
+
+ A Basic FTS-0001 revision 15 header. No point information.
+ B FSC-0039 header. Uses four dimensional addressing.
+ C FSC-0048 header. Uses four dimensional addressing.
+ D FSC-0045 (Packet 2.2) header. Has full five dimensional addresses.
+
+Archive Netmail.
+ If this SYSTEM can handle archived netmail, set this flag
+ to 'Y', otherwise set to 'N'.
+</pre><br>
+<br>Archiver
+<br>
+<br> The name of an archiver as defined with Zeus:Prefs/Archivers. All echomail (and optionally netmail) for this system will be archived using the specified type.
+<br>
+<br>Packet Password
+<br>
+<br> For extra security, you can specify a password which will be placed in the packet header. If you do not want to use a packet password (or the system does not support them) use '-NONE-'
+<br>
+<br>AreaFix Password
+<br>
+<br> If the system has AreaFix access then you can specify a password which the system must put in the subject field of all AreaFix requests. If you don't want to use an AreaFix password then specify '-NONE'. If you want to use the packet password for areafix as well, specify two quote marks like &quot;&quot;.
+<br>
+<br>Tick Password
+<br>
+<br> The password to be used in *.TIC files sent and received to/from this system. You can disable the password by specifying '-NONE-' you can duplicate the AreaFix password by using &quot;&quot;.
+<br>
+<br>Group Number(s)
+<br>
+<br> The area group numbers that this system has access to. AreaFix uses this information when deciding what echos this system can link into.
+<br>
+<br>
+<br>
+<br><u>AREA</u> &#060;tagname&#062; &#060;group&#062; &#060;address address [...]&#062;
+<br>
+<br>This keyword defines an echomail area. The arguments are:
+<br>
+<br>TagName
+<br>
+<br> The tagname for the echo.
+<br>
+<br>Group
+<br>
+<br> A number between 0-65535. By grouping certain echos together you can easily restrict access for a system.
+<br>
+<br>Linked Systems
+<br>
+<br> A list of system addresses which are linked into this echo. If you do not specify your address, the messages will not be stored in any message base but be passed through to the other connected systems. The address may be prefixed with one of the following characters:
+<br>
+<br> '-' The system has read-only access to this echo.
+<br>
+<br> '=' The system is not linked in but if they link in using AreaFix, they will have read-only access.
+<br>
+<br> '|' The system is linked in but their feed is currently paused (using the %PAUSE areafix command).
+<br>
+<br> '#' The system is linked in but their feed is paused and when they resume the area, they will have read-only access.
+<br>
+<br>
+<br>
+<br><u>ROUTE</u> &#060;from address&#062; &#060;to address&#062;
+<br>
+<br>Specifies Netmail routing information. When Netmail's are imported to the system, their to address is compared against the &quot;from address&quot; entry of each ROUTE statement in the applicable network. If a route statement matches, then the Netmail will be routed to the &quot;to address&quot;, e.g., if a netmail addressed to 2:888/67.0 was imported to the system and the following ROUTE lines existed:
+<br>
+<br>ROUTE 40      56
+<br>
+<br>ROUTE *:*/*.* 1
+<br>
+<br>The first entry would be ignored as the to node of the message is 67, not 40.The next entry is a wildcard and all addresses will match it. Therefore the message would be routed to node 1 (2:888/1.0).
+<br>
+<br>
+<br><b>Setting up Archivers</b>
+<br>
+<br>ZMP reads the Archivers configuration file so it can pack and unpack message bundles, which are traditionally archived to save transmission time with the Mailer.
+<br>
+<br>When setting up your ZMP configuration you must make sure that all the archiver entries have the correct paths to the binaries. These archivers all available from the AmiNet.
+<br>
+<br><pre>Archiver Name             AmiNet File
+
+ARC                       util/arc/arc.lha
+LHA &amp; LZH                 util/arc/LhA_e138.run
+LZX                       util/arc/lzx121.lha
+UUENCODE                  util/arc/uuxt31.lha
+ZIP                       util/arc/Unzip512x.lha,
+                          util/arc/zip201x.lha
+ZOO                       util/arc/zoo2-0.lzh
+</pre><br>
+<br>The Archivers configuration program can be accessed from the Message-&#062;Config-&#062;Archivers menu on the Control screen, or from the Zeus:Prefs drawer.
+<br>
+<br><img src="archiverscfg.gif" alt="Archivers Config Picture">
+<br>
+<br>Each archiver has various fields to be configured:
+<br>
+<br><u>Name</u> - The descriptive name of the archiver. This field is the one used in your ZMP.cfg to define what archiver a particular node uses. It should not have spaces in it.
+<br>
+<br><u>Compress</u> - The line is expanded to make the command line used to compress one or more files into this archive type. This line takes expansion codes ~a and ~f, e.g. if we were packing a file called 00003445.pkt into a file called OUTBOUND:2.888.1.0.LHA, the compress line would be expanded to &quot;c:LHA -2 -a a OUTBOUND:2.881.1.0.LHA 00003445.pkt&quot;.
+<br>
+<br><u>Extract</u> - This line is expanded to make the archiver extract one or more files from an archive. This line takes expansion codes ~a and ~f, where ~a is the archive name to extract and ~f is an optional argument to extract one or more single files. If all the files are to be extracted then the program will not use the ~f argument.
+<br>
+<br><u>Test</u> - This line is expanded to make the archiver test the archive. This line only takes the ~a expansion code. Zeus detects whether the file tested OK by checking the result code of the archiver. If the result code is 0 then it is assumed that the archive is not corrupted.
+<br>
+<br><u>Recog</u> - This line is a hex string used to detect whether an archive to extract is of this type. For example all LHA archives start with two random characters and then the string &quot;-lh5-&quot;. We represent this with the line &quot;** ** 2D 6C 68 35 2D&quot;, where ** compares to any single character.
+<br>
+<br><u>Show User</u> - This flag determines whether the archiver will be able to be viewed by an on-line user accessing the archivers configuration, for example within Phoenix.Archivers such as &quot;UUENCODE&quot; and &quot;ZGATE&quot; should not have this flag set off.
+<br>
+<br>
+<br>
+<br><b>Other ZMP configuration tags.</b>
+<br>
+<br><u>DELFILECHAR</u> &#060;Character&#062;
+<br>
+<br>This character will be prefixed to netmail attached files in the destinations .FLO file if you have turned on FLOCTRL and DELNETATTACHED.
+<br>
+<br><u>DELNETATTACHED</u>
+<br>
+<br>When an incoming netmail, which has attached files, is not destined for your system the files will be added to the destinations FLO file with the DELFILECHAR prefixed to the file name so your mailer will deleted the file once sent. This only works in conjunction with the FLOCTRL keyword.
+<br>
+<br><u>DELNETMAIL</u>
+<br>
+<br>ZMP always imports netmails into your message base but if this keyword is used, ones that are not from or to your system will be deleted during export.
+<br>
+<br><u>ATTACHDIR</u> &#060;Directory&#062;
+<br>
+<br>Files that come in attached to messages will be put in the ATTACHDIR. When the messages are exported, ZMP will look here for attached files.
+<br>
+<br><u>AREAFMT</u> &#060;Format String&#062;
+<br>
+<br>When AreaFix adds a new area to your ZMP.cfg it uses the specified format string to make it match to your other AREA lines. You need one '%s' (for the tagname) and one '%lu' for the group number. Both are standard C formatting codes. There are two other special codes which are:
+<br>
+<br>       \t  Tab (single backslash followed by t)
+<br>
+<br>       \s  Space (single backslash followed by s)
+<br>
+<br><u>TICKFMT</u> &#060;Format String&#062;
+<br>
+<br>As for AREAFMT but this specifies the format of TICK lines. You need an extra '%lu' in the format for the file area number, but apart from that, it is the same as AREAFMT.
+<br>
+<br><u>NOAREAFIX</u>
+<br>
+<br>Disables ZMP's internal AreaFix.
+<br>
+<br><u>MINMSGS</u> &#060;Number&#062;
+<br>
+<br>Specifies the number of new messages that must be in a message base before ZMP will try to export the area. By running ZMP with the arguments EXPORT FORCE', ZMP will ignore the MINMSGS setting.
+<br>
+<br><u>NOUSERBOUNCE</u> &#060;User Name&#062;
+<br>
+<br>If you have user bouncing enabled (with BOUNCENOUSER - don't get confused!) there are some names that you might not want to cause a bounce with i.e.'SysOp'. This keyword gives you this option.
+<br>
+<br><u>NETEXEC</u> &#060;Name&#062; &#060;Password&#062; &#060;Executable&#062;
+<br>
+<br>If a netmail is received addressed to &#060;Name&#062; the given executable will be run. &#060;Name&#062; must have quotes around it if there are spaces.
+<br>
+<br>Password should be a maximum of ten characters long but may be pecified as '-NONE-' which will disable the password checking. Using NETEXEC before any NODE statements defines a global entry, you can also limit the entry to a domain by putting it after the appropriate NODE entry.
+<br>
+<br>Various control codes can be passed to the &quot;Executable&quot; line of NETEXEC to expand into data relating to the message:
+<br>
+<br>%f
+<br> Who the message is from
+<br>
+<br>%t
+<br> Who the message is to
+<br>
+<br>%s
+<br> The subject of the message (Usually password but could be other data!)
+<br>
+<br>%A
+<br> The from address of the message (Zone:Net/Node.Point)
+<br>
+<br>%D
+<br> The dest address of the message (Zone:Net/Node.Point)
+<br>
+<br>%n
+<br> The number of the saved message
+<br>
+<br>%a
+<br> The area the message was saved into
+<br>
+<br>%F
+<br> Who the message is from (with underscores)
+<br>
+<br>%T
+<br> Who the message is to (with underscores)
+<br>
+<br>%S
+<br> The subject of the message (with underscores)
+<br>
+<br>%%
+<br> A '%' character
+<br>
+<br><u>DELBADMSGID</u>
+<br>
+<br>If a message comes in with a non-FTN standard MSGID kludge it will usually be imported. Specify this flag if you want these messages to be deleted during import. Not really recommended, as there are a lot of PC packages which really mess it up.
+<br>
+<br><u>ALLOWRESCAN</u>
+<br>
+<br>By specifying this keyword, you allow systems that have AreaFix access to use the %RESCAN command.
+<br>
+<br><u>ALLOWMIXEDPKT</u>
+<br>
+<br>Special kludge which causes echomail packets to be processed in a slightly different way to support some brain-dead PC tosser software!
+<br>
+<br><u>NOECHOCREATE</u>
+<br>
+<br>Disables ZMP's auto echomail creation function.
+<br>
+<br><u>NOTICKCREATE</u>
+<br>
+<br>Disables ZMP's auto tick area creation function.
+<br>
+<br><u>TWITUSER</u> &#060;User Name&#062;
+<br>
+<br>Any messages being imported that come from &#060;User Name&#062; will be deleted.This is a global setting for all domains.
+<br>
+<br><u>HIDEARCS</u>
+<br>
+<br>When (de)archiving mail packets, the archivers will be redirected to NIL: if this keyword is set.
+<br>
+<br><u>ANNOUNCENEW</u> &#060;Message Area Number&#062;
+<br>
+<br>When a new Message or Tick echo is created automatically, a message will be posted in this message area to inform yourself and/or your users.  Placed in the global section, this will affect all areas. In the NODE section, it will affect only that network. If you have a global one, you can use &quot;ANNOUNCENEW 0&quot; in a NODE section to stop announcements for just that network.  You can, of course, also have a global config item and still have messages for some networks go to unique areas.
+<br>
+<br>
+<br>The following keywords must appear after a NODE definition:
+<br>
+<br><u>NEWTICKAREA</u> &#060;File Area Number&#062;
+<br>
+<br>When ZMP creates a new TICK area, it uses the given number as the file area for the new TICK line. ZMP does NOT create new file areas on your BBS.
+<br>
+<br><u>TICK</u> &#060;TagName&#062; &#060;Group&#062; &#060;File Area&#062; [Linked System Addresses]
+<br>
+<br>Defines a TICK file echo. The format and usage is the same as the AREA line but you need to specify a file area number so ZMP knows where to save the files. If you wish to have a pass-through area, the &#060;File Area&#062; maybe zero.
+<br>
+<br><u>FILEECHO</u> &#060;TagName&#062; &#060;FileAreaNumber&#062;
+<br>
+<br>Echomail messages may also have file attaches. This keyword links an echo tag to a file area on your BBS. Files that come attached to messages in &#060;TagName&#062; will be uploaded to area &#060;FileAreaNumber&#062;automatically.
+<br>
+<br><u>UPLINK</u> &#060;Address&#062; &#060;Password&#062;
+<br>
+<br>Specifies an uplink address for AreaFix. See AreaFix section for more information. The password should be the one you use when accessing the given systems AreaFix.
+<br>
+<br><u>ALLOWNEW</u> &#060;Address&#062; [Address...]
+<br>
+<br>When a message is received with an unknown tag ZMP will create the AREA in your ZMP.cfg only if the message came from an address defined with the ALLOWNEW keyword.
+<br>
+<br><u>AUTOECHOADD</u> &#060;Address&#062; [Address] ...
+<br>
+<br>Whenever ZMP creates a new AREA, it automatically adds the addresses specified with this keyword to the export to list. Very useful if you are a hub for a small network!
+<br>
+<br><u>AUTOTICKADD</u> &#060;Address&#062; [Address] ...
+<br>
+<br>Whenever ZMP creates a new TICK, it automatically adds the addresses specified with this keyword to the export to list.
+<br>
+<br><u>TWITUSER</u> &#060;User Name&#062;
+<br>
+<br>Any messages being imported that are from &#060;User Name&#062; will be deleted.
+<br>
+<br><u>TWITADDR</u> &#060;Address&#062;
+<br>
+<br>Any messages being imported that are addressed from &#060;Address&#062; will be deleted. &#060;Address&#062; may include wildcards.
+<br>
+<br><u>MAXPKTSIZE</u> &#060;Bytes&#062; &#060;Address&#062; [Address] ...
+<br>
+<br>Some systems cannot handle mail packets over a certain size. This keyword specifies the maximum number of bytes per packet to create for the listed systems (wildcards accepted).
+<br>
+<br><u>MAXBUNDLESIZE</u> &#060;Bytes&#062; &#060;Address&#062; [Address] ...
+<br>
+<br>More importantly, some systems cannot handle mail bundles over a certain size, usually due to memory or disk limitations. This keyword specifies the maximum number of bytes per bundle to create for the listed systems (wildcards accepted). Remember that as the packets are compressed to about a third of their usual size, so it MAXPKTSIZE is set at 256000 bytes, MAXBUNDLESIZE at 512000 is plenty!
+<br>
+<br><u>ITRANSLATION</u> &#060;Table1&#062; [Table2]
+<br>
+<br>Translation tables are stored in Zeus:Config/Translation. On import, the text is translated through &#060;Table1&#062; and then, if specified, through &#060;Table2&#062; Defined tables affect all areas after the keywords, e.g.
+<br>
+<br>ITRANSLATION ISO IBM
+<br>
+<br>OTRANSLATION IBM ISO
+<br>
+<br>AREA ...
+<br>
+<br>AREA ...
+<br>
+<br>These areas are affected by the ISO-IBM translations.
+<br>
+<br>ITRANSLATION SE7 ISO
+<br>
+<br>OTRANSLATION ISO SE7
+<br>
+<br>AREA ...
+<br>
+<br>AREA...
+<br>
+<br>These areas are affected by the SE7-ISO translation tables.
+<br>
+<br><u>OTRANSLATION</u> &#060;Table1&#062; [Table2]
+<br>
+<br>On export, the text is translated through &#060;Table1&#062; and then, if specified, through &#060;Table2&#062;. It is then exported to all connected nodes.
+<br>
+<br>
+<br><b>Uplinks</b>
+<br>
+<br>Uplinks are systems which you poll for mail, have a wider range of echos, and you have AreaFix access to.
+<br>
+<br>To setup an uplink, you need to specify them in the config with a SYSTEM line and an UPLINK line. You also need a list of echo tagnames that they carry and you have access to. This list needs to be saved in the Zeus:Config/AreaFix/ directory and the filename format is z.n.n.p.LST
+<br>
+<br>An example:
+<br>
+<br>I have an uplink at 1:234/56.0 and they carry three echos which I don't. Their names are ECHO1, ECHO2 and ECHO3. So I create a file called Zeus:Config/AreaFix/1.234.56.0.LST and in it I have the echo tagnames listed one per line, like so:
+<br>
+<br><pre>ECHO1         Example Echo #1
+ECHO2         Example Echo #2
+ECHO3         Example Echo #3
+</pre><br>
+<br>If the echo tagname is followed by a description (as in the above example) then it will be used to describe the area if a system asks for an %UPLINK list.
+<br>
+<br>When a system (with uplink access) requests ECHO2, AreaFix scans the echolist file, finds ECHO2 and sends an AreaFix request to 1:234/56.0 asking it for the echo.
+<br>
+<br>Meanwhile, the original requesting system is told that the echo has been requested from the uplink and ZMP adds a new AREA line into ZMP.cfg which sets up ECHO2 as a pass-through area. When the new echo starts flowing from the uplink, it is passed automatically to the original system and you don't need to change your configs at all!
+<br>
+<br>The uplink lists are AREAS.BBS format, if your uplink can supply them. Otherwise, an edited %LIST response could be used.
+<br>
+<br>
+<br><b>The AreaFix Help Command</b>
+<br>
+<br>The following help file is sent to the user on receipt of a %HELP command in an AreaFix request - if you would like to edit it for your own needs, it is stored in Zeus:Config/AreaFix/AreaFix.hlp
+<br>
+<br>
+<br>1. What is an AreaFix?
+<br>
+<br>   Running an AreaFix saves the SysOp of a node from the annoying business
+<br>   of adding/removing systems to/from their echomail distribution list.
+<br>
+<br>
+<br>2. Formatting your AreaFix request
+<br>
+<br>   Requests are made via netmail messages which contain specific
+<br>   information in some of the fields.  In particular, the addressee is
+<br>   always 'AreaFix' and the subject is the password assigned to you by the
+<br>   SysOp of this system.
+<br>
+<br>   For example:
+<br>
+<br>      From:     Jon Dough    (1:234/56.7)
+<br>      To:       AreaFix      (1:234/56.0)
+<br>      Subject:  Password
+<br>
+<br>   The text of the message contains one or more request commands (one per
+<br>   line) which are detailed below.
+<br>
+<br>
+<br>3. Information requests
+<br>
+<br>   You can request information from AreaFix about what echos you have
+<br>   access to and which ones are already being exported to you.
+<br>
+<br>   These are the currently supported commands:
+<br>
+<br><PRE>      %HELP      Sends this file to your system as a netmail.
+
+      %LIST      Lists all the echomail and file areas currently available
+                 from this system.  The list also shows which areas you are
+                 currently linked into.
+
+      %QUERY     Lists all the areas you are currently linked into.
+
+      %UNLINKED  Lists all the areas you are _not_ currently linked into but
+                 are available to you.
+
+      %UPLINK    Lists all the echomail areas available to you from this
+                 systems uplinks (if any).
+</PRE><br>
+<br>
+<br>4. Linking and Unlinking to areas
+<br>
+<br>   You can link into an echo by specifying it's tagname in your AreaFix
+<br>   request.
+<br>
+<br>   For example:
+<br>
+<br>      ECHONAME
+<br>
+<br>   Will link you into the echo with a tagname of 'ECHONAME'.  If the echo
+<br>   doesn't exist at this system, and you have the relevent access, the
+<br>   request will be passed to this systems uplink.
+<br>
+<br>   You can unlink from an echo by specifying a '-' before the tagname.
+<br>
+<br>   For example:
+<br>
+<br>      -ECHONAME
+<br>
+<br>   As an extension to this, you can request to be linked/unlinked to/from
+<br>   all the available echomail areas at this system.
+<br>
+<br>      %ALL
+<br>      %-ALL
+<br>
+<br>   The first command would link your system into all the echos available to
+<br>   you and the second unlinks them all.  These commands do not apply to file
+<br>   echos.
+<br>
+<br>   After any echomail link changes, AreaFix will send you a message with
+<br>   the results of the request.
+<br>
+<br>
+<br>5. %PAUSE and %RESUME
+<br>
+<br>   If you wish to temporarily disable the flow of all echomail areas
+<br>   without actually linking out of them, then send the %PAUSE command.
+<br>
+<br>   When you want to enable the echomail flow send a %RESUME command.
+<br>
+<br>   Netmails for your system are unaffected by these commands.
+<br>
+<br>
+<br>6. Rescanning
+<br>
+<br>   Sending a %RESCAN command to AreaFix will cause it to export all the
+<br>   messages you haven't seen yet from all the echos you are linked into.
+<br>
+<br>   You can rescan a single area by using:
+<br>
+<br>      %RESCAN &#060;Echo Name&#062;
+<br>
+<br>   Specifying ALL for the echoname will have the same effect as having
+<br>   no arguments.
+<br>
+<br>
+<br>7. Remote maintainance
+<br>
+<br>   If the SysOp of this system has granted you full AreaFix control then
+<br>   you have access to the following commands.
+<br>
+<br><PRE>      &amp;ECHONAME               Create a new echo with the tag name
+                              'ECHONAME'.  Your system will not be linked
+                              into the new echo.
+
+      ~ECHONAME               Delete the echo with a tag name of 'ECHONAME'
+
+      # OLD_NAME : NEW_NAME   Change an echo's tagname from 'OLD_NAME' to
+                              'NEW_NAME'.  The spaces are optional.
+
+      %FROM: 1:234/56.0       Specify that the request comes from
+                              1:234/56.0 instead of your system.  Note that
+                              the password in the subject line must be
+                              correct for your system.
+</PRE><br>
+<br>
+<br><b>Using AreaFix</b>
+<br>
+<br>AreaFix can be thought of as a robot, waiting on your system for requests from users. Each network has its own AreaFix robot. If a user wanted to receive a list of echoes which you carry in the FidoNet network, for example, they would send a netmail to the `<i>user</i>' &quot;AreaFix&quot; at your FidoNet address. In this message, they must put the command &quot;%LIST&quot;. The AreaFix is password protected however, to ensure that nobody else attaches them to any areas they don't want (imagine suddenly one day receiving several megabytes of mail when normally you'd only get a few kilobytes - this is the abuse that passwords are designed to stop). The users password must be in the subject line.
+<br>
+<br><b>Using AreaFix for remote SysOping</b>
+<br>
+<br>If you are away from your BBS computer, but can stay in touch with it (using a laptop with some terminal and pointing software and a mobile phone for example), then you can still manage your mail system!
+<br>
+<br>You must first make sure the point address you have set for yourself has SysOp access to AreaFix.  Check the relevant section in this chapter on the SYSTEM keyword.  Once done, you can perform the changes mentioned in the AreaFix help file.
+<br>
+<br>This system may also be useful if your BBS is run by many Co-SysOps. A co-SysOp can be in charge of a single network's (or more, remember that SysOp access can be set per-network) management while not actually needing to be at the BBS computer.
+<br>
+<br>Of particular note is the &quot;%FROM:&quot; keyword.  If a point or other downlink of the BBS is having trouble fixing into an echo (for example), then you, as a SysOp also pointing, can send an AreaFix with that users password from your address if you specify &quot;%FROM &#060;their address&#062;&quot;.
+<br>
+<br></body>
+</html>

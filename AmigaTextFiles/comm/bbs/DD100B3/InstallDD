@@ -1,0 +1,73 @@
+; DayDream BBS installation program!
+
+(set DDVersion "DayDream BBS 1.0 Public Beta-1")
+
+
+(message
+		"\nThis installer just copies creates the directories required for DayDream BBS to work. "
+		"Unpack the DayDream BBS distribution archive to the directory you want it to be placed in. "
+)
+
+(set DestDir (askdir	(prompt "Please Select the directory/partition where you have unpacked DayDream BBS?")
+			(help	"This directory is the home of DayDream BBS and all the subdirectories will be placed here.")
+			(default "")
+             )
+)
+(makeassign "DayDream" (DestDir))
+
+(makedir ("DayDream:Temporary"))
+(makedir ("DayDream:Users"))
+(makedir ("DayDream:Hold"))
+(makedir ("DayDream:Data"))
+(makedir ("DayDream:Batch"))
+(makedir ("DayDream:Display"))
+(makedir ("DayDream:Doors"))
+(makedir ("DayDream:Questionnaire"))
+(makedir ("DayDream:Logfiles"))
+
+(message
+		"\nAll required directories have been made!"
+)
+(copyfiles
+	(source ("DayDream:l/fifo-handler"))
+	(dest	"L:" )
+		(optional "nofail" "askuser")
+)
+(copyfiles
+
+	(source ("DayDream:libs/fifo.library"))
+	(dest	"Libs:"  )
+
+	(files)
+	(optional "nofail" "askuser")
+)
+(copyfiles
+
+	(source ("DayDream:c/DDHydra"))
+	(dest	"C:"  )
+
+	(files)
+	(optional "nofail" "askuser")
+)
+
+(startup "DayDream"
+(prompt 	"\nSeveral assignments need to be made to your S:User-Startup "
+		"file which allow DayDream to find all the files and directories "
+		"we've just installed.\n\n"
+		"In addition, other actions required by DayDream will be "
+		"added."
+	)
+	(help	"DayDream requires several assignments so that it can find "
+		"all it's files.  A couple of assign statements will be made "
+		"to your S:User-Startup file, and will also launch "
+		"several of the handlers DayDream requires."
+	)
+	(command
+	("\n"						)
+	("assign DayDream:     \"%s\"\n" (getassign "DayDream"	))
+	("assign Doors: DayDream:Doors/\n")
+	("setenv DreamUtils DayDream:Configs/\n")
+	("run <>NIL: L:FIFO-Handler\n"	 )
+	("rexxmast >NIL:\n\n"			 )
+	)
+)

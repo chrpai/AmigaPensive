@@ -1,0 +1,202 @@
+; *** HydraBBS Upgrade script ***
+;
+; This script is used to upgrade from one version of HydraBBS to another
+; It is a generic script, to be used for all future upgrades without further
+; modification.
+;
+; All that has to be done is to change the following variables:
+
+(set #requiredversion "V1.06")
+(set #requiredver 1)
+(set #requiredrev 06)
+
+(set #newversion "V1.07")
+(set #newver 1)
+(set #newrev 07)
+
+(set #testfile "HBBS:Control")
+
+; This is what the script does:
+;
+; * The script will check OS version
+; * Then it will check to see if HydraBBS is running.
+; * Then it will check the currently installed version, by checking a file
+;   that was updated by the last upgrade.
+; * Then it will recursivly copy, and overwrite destination files, from "Misc/",
+;   "Core/" to "HBBS:"
+; * If "NewConfigs/" exists and the version is *NOT* #newversion, then "NewConfigs/"
+;   will be recursivly copied to "HBBS:"
+; * If "HBBS:Developer/" exists then "Developer/" will be recursivly copied to "HBBS:"
+; * If the file HBBS:Developer/Docs/Upgrades/Dev_Changes_XX.guide exists, it will be displayed
+; * Then it displays "HBBS:Docs/Misc/Upgrades/Changes_To_XX.guide" where XX is #newversion
+;
+; Note: When this script is used to upgrade to HydraBBS V1.10 it will need to
+; be changed because of the (set #rev) command currently returns "1" instead
+; of "01" when the version is like this "V1.01".
+; To compensate for this, there are leading zero's in front of the "%ld"'s
+; where "##?rev"'s are used.
+
+(if (= @user-level 0) (set @user-level 2))
+(if (< (/ (getversion) 65536) 37) (abort "You need 2.04 or better"))
+
+(message "\n\nHydraBBS\n\nBy Dominic Clifton\n\nHydra^CRoSS POiNT")
+(message ("\n\nThis script will update a working %s installation to %s\n\nNo configuration files, data or screens will be changed\n\nIf you have been running a version of HydraBBS prior to this then study the changes carefully!" #requiredversion #newversion))
+(welcome)
+
+(set #help_continue "\n\nThis is required to perform the upgrade!")
+(set #msg_done ("HydraBBS has been upgraded ok\n\nPlease read the document:\n\nHBBS:Docs/Misc/Upgrades/Changes_To_%s.guide\n\nReboot before re-starting HydraBBS\n(very important!)\n\nIf you have any other upgrade archives then install them NOW!"#newversion))
+(set #msg_HBBSRunning "\n\nCannot perform upgrade when HydraBBS is running")
+(set #msg_neverrun "\n\n** IMPORTANT **\n\nHave you previously run HBBS ?\n\nIf not then updated example configs will be copied to your HBBS: directory, if you click YES then your configs will not be overwritten\n(click help if you're unsure)")
+(set #help_neverrun "\n\nHBBS includes example configs, if you have run a previous version of HBBS from the current HBBS: assign you don't want to have your configs overwritten (so click YES).  If you've not run HBBS from HBBS: yet then click NO, and the updated configs will be copied.")
+(if (= (exists "ENV:HBBS_ScreenName") 1)
+ (
+  (abort #msg_HBBSRunning)
+ )
+ (
+
+  (set #Target "HBBS:")
+  (set @default-dest #Target)
+
+  (if (= (exists #Target) 2)
+   (
+    (set #vernum (getversion #testfile))
+
+    (if (= 0 #vernum)
+     (
+      (abort "Could not find " #testfile "\nThis file is required to perform an upgrade\n\nIf you have moved this file somewhere else, then please move it back for the duration of the upgrade (Move, not copy!)")
+     )
+     (
+      (set #ver (/ #vernum 65536))
+      (set #rev (- #vernum (* #ver 65536) ) )
+
+      (if (or (and (= #requiredver #ver) (= #requiredrev #rev)) (and (= #newver #ver) (= #newrev #rev)))
+       (
+
+        (set #msg_continue ("\n\nContinue upgrading HydraBBS V%ld.0%ld\n in HBBS: to %s" #ver #rev #newversion))
+
+        (if (= 1 (askbool (prompt #msg_Continue) (help #help_Continue) (default 1)))
+         (
+          (if (= 2 (exists "Core"))
+           (
+
+            (complete 10)
+
+            (copyfiles (source "Core/")
+                       (dest #Target)
+                       (optional "force" "nofail")
+                       (infos)
+                       (noposition)
+                       (all)
+            )
+
+           )
+          )
+
+          (if (= 2 (exists "Misc"))
+           (
+
+            (complete 40)
+
+            (copyfiles (source "Misc/")
+                       (dest #Target)
+                       (optional "force" "nofail")
+                       (infos)
+                       (noposition)
+                       (all)
+            )
+           )
+          )
+
+          ; Only copy configs over if we're upgrading, not re-installing
+
+          (if (and (= #ver #requiredver) (= #rev #requiredrev))
+           (
+
+            (if (= 2 (exists "NewConfigs"))
+             (
+
+              (complete 75)
+
+              (copyfiles (source "NewConfigs/")
+                         (dest #Target)
+                         (optional "force" "nofail")
+                         (infos)
+                         (noposition)
+                         (all)
+              )
+
+              (if (= 1 (askbool (prompt #msg_neverrun) (help #help_neverrun) (default 0)))
+               (
+                (copyfiles (source "NewConfigs/")
+                           (dest #Target)
+                           (optional "force" "nofail")
+                           (infos)
+                           (noposition)
+                           (all)
+                )
+               )
+              )
+
+
+             )
+            )
+           )
+          )
+
+          (if (= 2 (exists "Developer"))
+           (
+
+            (complete 80)
+
+            (if (= 2 (exists (tackon #Target "Developer")))
+             (
+              (copyfiles (source "Developer/")
+                         (dest #Target)
+                         (optional "force" "nofail")
+                         (infos)
+                         (noposition)
+                         (all)
+              )
+
+              (if (= 1 (exists (tackon #Target ("Developer/Docs/Upgrades/Dev_Changes_%s.guide" #newversion))))
+               (
+                (working "Displaying Developer Documentation")
+                (run "SYS:Utilities/Multiview" (tackon #Target ("Developer/Docs/Upgrades/Dev_Changes_%s.guide" #newversion)) (safe))
+               )
+              )
+
+             )
+            )
+           )
+          )
+
+          (complete 100)
+
+          (working "Displaying Sysop Documentation")
+          (run "SYS:Utilities/Multiview" ("HBBS:Docs/Misc/Upgrades/Changes_To_%s.guide" #newversion) (safe))
+
+          (message #msg_done)
+          (exit)
+
+         )
+         (
+           (abort "User cancelled upgrade")
+         )
+        )
+       )
+       (
+        (abort
+                ("You have V%ld.0%ld, %s is required!\nYou must install *ALL* prior upgrades first" #ver #rev #requiredversion)
+        )
+
+       )
+      )
+     )
+    )
+   )
+   (
+    (abort "Can't find your HBBS: directory!")
+   )
+  )
+ )
+)

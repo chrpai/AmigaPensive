@@ -1,0 +1,195 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* |_o_o|\\ Copyright (c) 1990 The Software Distillery.  All Rights Reserved */
+/* |. o.| || This program may not be distributed without the permission of   */
+/* | .	| || the authors:			      BBS: (919) 382-8265    */
+/* | o	| ||   Dave Baker      Alan Beale	  Jim Cooper		     */
+/* |  . |//    Jay Denebeim    Bruce Drake	  Gordon Keener 	     */
+/* ======      John Mainwaring Andy Mercier	  Jack Rouse		     */
+/*	       John Toebes     Mary Ellen Toebes  Doug Walker  Mike Whitcher */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+Trademarks
+
+Amiga is a trademark of Commodore-Amiga, Inc.
+A-Talk III is a trademark of Felsina Software.
+Lattice is a trademark of Lattice, Inc.
+
+
+Introduction
+
+The XprQuickB shared library supports an external file transfer
+protocol (XPR) for Amiga programs such as VLT and A-Talk III.  It
+supports the Quick B protocol developed and used by CompuServe
+Incorporated as an enhancement of their B protocol.  Generally,
+Quick B protocol file transfers are significantly faster than
+transfers with older protocols.
+
+
+Credits
+
+The protocol support code currently used in in xprquickb.library was
+originally written by Russ Ranshaw of CompuServe. It was then rewritten
+in C by Paul M. Resch (available as QUICKB.ARC in LIB 4 of the
+AmigaTech forum on Compuserve).  Jack Rouse modified it for Lattice C
+5.04 and the XPR protocol.  Some of the supporting code was inspired by
+Rick Huebner's XPRZModem library, as was the option format. Willy
+Langveld of the Stanford Linear Accelerator Center (SLAC) developed the
+XPR interface.
+
+Any bug reports for xprquickb.library should be directed to the
+Software Distillery.
+
+
+Use
+
+To use the Quick B external protocol, you must have the file
+"xprquickb.library", which should be in this library.  This can be
+copied to one of system directories used with your communications
+program using the CLI command:
+
+	copy xprquickb.library LIBS:
+
+You must also have a communications program supporting XPR external
+protocols.   Versions of VLT since 4.036 support the XPR protocol.
+Versions of VLT since 4.226 support revision 2.0 of the XPR protocol,
+allowing downloads to be automatically initiated. The current version
+of A-Talk also supports XPR.
+
+
+You must select "xprquickb.library" from the external protocol menu of
+your communications program.  At this point, QuickB transfers can be
+initiated automatically (with communications program support) or
+manually via menu selections.  Various options are provided to control
+the operation of XprQuickB.  These are described later. The
+communications program may allow ongoing transfers to be aborted.
+
+File transfers are initiated by actions on the host system (CompuServe).
+In general, file transfer will require an eight bit data connection.
+XprQuickB will attempt to put the communications program in eight bit
+mode.
+
+The host sends a request to query file transfer capabilities and start
+the file transfer.  If the file transfer does not start automatically,
+you can request the communication program to go into file transfer
+mode.  This causes an dialog mode to be started within XprQuickB. This
+mode, provided for compatibility with older programs, is described in
+the following paragraphs.
+
+The dialog mode requires the "xpr_gets" call-back function to be
+implemented. The communication program will ask for a file name.  Once
+the filename is entered, XprQuickB assumes a dialog must be initiated
+with the host to start the transfer.  XprQuickB will request the first
+line of the dialog, with the prompt "Startup line?". The requester may
+be seeded with the commands "dow/proto:qb" or "upl/proto:qb" which will
+request CompuServe perform a file transfer. Cancel the request if no
+first line is needed.
+
+After the first line is sent, other interactions can occur with the
+host.  In particular, CompuServe will prompt for the file name on your
+computer.  XprQuickB transfers prompts (messages without line
+terminators) as communication program requesters, seeded with the
+previously entered file name.  If no host output occurs for 10 seconds,
+the transfer is aborted.
+
+
+Options
+
+The behavior of XprQuickB can be configured through the options
+interface.  The exact details of this interface depends on the
+communications program, but the essentials are described below. 
+Consult the documentation of your communications program to determine
+how to access these options.
+
+XprQuickB supports both string oriented and requester oriented option
+entry.  The string interface can be used with older programs, and to
+define default options when XprQuickB is loaded.  The requester
+interface is easier to use interactively.
+
+The string option format corresponds to the format used with XprZMODEM.
+The option string consists of a series of "words", separated by spaces
+or commas.  Case is ignored.  The first character of each word
+identifies the option.  The second and following characters define the
+option value. All of the options below except I/O buffer size use only
+the first character of the option value.
+
+The option descriptions below are headed by the option letter (in
+parenthesis), followed by the option description used with the
+requester interface.  Subheadings on the following lines describe the
+allowed option values.
+
+    (T) Text mode
+	Y
+	    Turn text character editing on.  On downloads, carriage
+	    return and line feed pairs are turned into line feeds, the
+	    standard Amiga line termination.  Also, characters following
+	    a control-Z are ignored.  On uploads, carriage returns are
+	    added before line feeds, which makes text more easily
+	    portable to other machines.
+	N
+	    Turns text character editing off.  All characters are passed
+	    through as untranslated binary.
+	C
+	    Consult the communications program to determine the text/
+	    binary status.  XprQuickB defaults to binary transfer if the
+	    communication program cannot assign a status,
+	H
+	    Use the host's suggestion.  For uploads, text or binary mode
+	    must be specified on the host command.  This is the default
+	    value of the option.
+
+    (O) Overwrite mode
+    	Y
+	    Silently overwrite existing files during downloads.
+	N
+	    Avoid overwriting existing files.  This is done by
+	    appending ".dup" or ".dupN" (for N a number from 2 to 99)
+	    to the downloaded file name.  The new name will generally
+	    appear in the file transfer status window.  If 99 ".dup"
+	    files exist, ".dup99" will be overwritten.  This is the
+	    default value of the option.
+	S
+	    This option aborts the download if the file exists.
+
+    (B) I/O buffer size (KB)
+    	nnn
+	    Here, "nnn" is a number representing the desired file buffer
+	    size in multiples of 1024 bytes (KB).  This allows the disk
+	    to be accessed less frequently.  A value of 0 disables file
+	    buffering by XprQuickB.  The default is 16 KB.  The buffer
+	    is allocated only during file transfers.  If the buffer can
+	    not be allocated, XprQuickB uses no buffering.
+
+    (A) Auto-activate transfers
+	Y
+	    Setting this option on allows file transfers to be started
+	    at the request of the host system.  This is the default.
+	N
+	    This disables host initiation of transfers.
+
+    (D) Delete after sending
+	Y
+	    Turning this option on causes an uploaded file to be deleted
+	    locally after a successful transfer.  The communication
+	    program must support the "xpr_unlink" call-back function to
+	    enable this option.
+	N
+	    Uploaded files are retained.  This is the default.
+
+    (K) Keep partial files
+	Y
+	    Setting this option on causes the incomplete file from an
+	    unsuccessful download to be retained.
+	N
+	    Setting this option off causes the incomplete file to be
+	    deleted.  The deletion occurs only if the "xpr_unlink"
+	    call-back is supported.  This is the default (if
+	    "xpr_unlink" is available).
+
+
+Compiling
+
+XprQuickB was compiled with Lattice C 5.04.  This simplifies the shared
+library interface, avoiding stub routines.  The supplied "LMKFile"
+compiles and links the library.  Note that the code must be compiled
+with the "-ml" and "-v" options.
+

@@ -1,0 +1,79 @@
+/* RawDownLoad.trans sendet jedes erreichbare File. */
+options results
+userinfo 'x'
+ansi = result
+cls
+if ansi = 'ON' then do
+   ESC = '1B'X
+   ANSI_BRIGHT = ESC||'[1m'
+   NO_ANSI = ESC||'[0m'
+   BLACK = ESC||'[30m'
+   RED = ESC||'[31m'
+   GREEN = ESC||'[32m'
+   YELLOW = ESC||'[33m'
+   BLUE = ESC||'[34m'
+   VIOLET = ESC||'[35m'
+   CYAN = ESC||'[36m'
+   WHITE = ESC||'[37m'
+end
+else if ansi = 'OFF' then do
+   ANSI_BRIGHT = ''
+   NO_ANSI = ''    
+   BLACK = ''      
+   RED = ''        
+   GREEN = ''      
+   YELLOW = ''
+   BLUE = ''
+   VIOLET = ''
+   CYAN = ''
+   WHITE = ''
+end
+transmit ''
+transmit ANSI_BRIGHT||YELLOW||'               ษอออออออออออออออออออออออออออออออออออออออออออป'||NO_ANSI
+transmit ANSI_BRIGHT||YELLOW||'               บ                                           บ'||NO_ANSI
+transmit ANSI_BRIGHT||YELLOW||'               บ         '||ANSI_BRIGHT||VIOLET||'ConsoleRawDownLoad V1.0           '||ANSI_BRIGHT||YELLOW||'บ'||NO_ANSI
+transmit ANSI_BRIGHT||YELLOW||'               บ       '||ANSI_BRIGHT||CYAN||'(c) 7/97 by Hartmut Meiering        '||ANSI_BRIGHT||YELLOW||'บ'||NO_ANSI
+transmit ANSI_BRIGHT||YELLOW||'               บ          '||ANSI_BRIGHT||GREEN||'Fido-Address 2:2476/266          '||ANSI_BRIGHT||YELLOW||'บ'||NO_ANSI
+transmit ANSI_BRIGHT||YELLOW||'               บ                                           บ'||NO_ANSI
+transmit ANSI_BRIGHT||YELLOW||'               ศอออออออออออออออออออออออออออออออออออออออออออผ'||NO_ANSI
+transmit '' 
+transmit ANSI_BRIGHT||CYAN||'       ษออออออออออออออออออออออออออออออออออออออออออออออออออออออออออป'||NO_ANSI
+transmit ANSI_BRIGHT||CYAN||'       บ                        '||ANSI_BRIGHT||YELLOW||'ACHTUNG!!                         '||ANSI_BRIGHT||CYAN||'บ'||NO_ANSI
+transmit ANSI_BRIGHT||CYAN||'       บ      '||ANSI_BRIGHT||GREEN||'Dieses Doorprogramm wird nur vom Sysop bedient!     '||ANSI_BRIGHT||CYAN||'บ'||NO_ANSI
+transmit ANSI_BRIGHT||CYAN||'       บ        '||ANSI_BRIGHT||GREEN||'Lasse bitte deine Finger von der Tastatur!        '||ANSI_BRIGHT||CYAN||'บ'||NO_ANSI
+transmit ANSI_BRIGHT||CYAN||'       บ                                                          บ'||NO_ANSI
+transmit ANSI_BRIGHT||CYAN||'       ศออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผ'||NO_ANSI
+transmit ''
+transmit ANSI_BRIGHT||GREEN||'                ษออออออออออออออออออออออออออออออออออออออออป'||NO_ANSI
+transmit ANSI_BRIGHT||GREEN||'                บ     '||ANSI_BRIGHT||RED||'Der Sysop  sucht nach dem File.    '||ANSI_BRIGHT||GREEN||'บ'||NO_ANSI
+transmit ANSI_BRIGHT||GREEN||'                บ          '||ANSI_BRIGHT||RED||'Bitte etwas Geduld.           '||ANSI_BRIGHT||GREEN||'บ'||NO_ANSI
+transmit ANSI_BRIGHT||GREEN||'                ศออออออออออออออออออออออออออออออออออออออออผ'||NO_ANSI
+transmit ''
+startdir="SYS:"
+call addlib("rexxreqtools.library", 0, -30, 0)
+titel="RawDownLoad"
+tags="rtfi_buffer = true"
+senden:
+p = max(index(startdir,':'),lastpos('/',startdir))
+file=delstr(startdir,1,p)
+dir=substr(startdir,1,p)
+filename = rtfilerequest(dir,file,titel,"OK",tags)
+if rtresult == 0 then do
+  transmit''
+  transmit ANSI_BRIGHT||CYAN||'                      Es wurde kein File angewaehlt. '||NO_ANSI
+end
+else do
+  queryy ANSI_BRIGHT||CYAN||'                         Transfer starten? '||NO_ANSI
+  if RESULT = "###PANIC" then exit 10
+  if Upper(Left(RESULT,1)) ~= "N" then do
+    PROTOCOLSEND filename
+    startdir=filename
+    transmit ''
+    queryn ANSI_BRIGHT||GREEN||'                         Noch ein File senden? '
+    if RESULT = "###PANIC" then exit 10
+    if Upper(Left(RESULT,1)) ~= "N" then call senden
+  end    
+end
+transmit ''
+transmit ANSI_BRIGHT||CYAN||'                Druecke '||ANSI_BRIGHT||YELLOW||'RETURN'||ANSI_BRIGHT||CYAN||' um ins BBS zurueckzukehren!'||NO_ANSI
+exit 0

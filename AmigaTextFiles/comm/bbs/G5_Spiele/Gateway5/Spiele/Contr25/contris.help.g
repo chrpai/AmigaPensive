@@ -1,0 +1,54 @@
+
+
+Hallo %FIRST, hier kurz eine kleine Erklaerung zum Spiel:
+
+(ich geh mal davon aus, dass jeder weiss, wie man Tetris spielt :-)
+
+Punktezaehlung : Pro Teil bekommt man mindestens 1 Punkt, wenn man
+                 es mit der Drop-Funktion fallen laesst, gibt es je
+                 nach Fallhoehe mehr Punkte.
+                 Fuer eine geloeschte Zeile gibt es 10 Punkte.
+                 Fuer zwei Zeilen auf einmal gibt es 20 Punkte.
+                 Fuer drei Zeilen auf einmal gibt es 40 Punkte.
+                 Fuer vier Zeilen auf einmal gibt es 80 Punkte.
+
+Geschwindigkeit: Mit jeder geloeschten Zeile erhoeht sich die
+                 Geschwindigkeit, bei 50 Zeilen ist das Maximum
+                 erreicht.
+
+Highscores     : es gibt 3 Highscore-Tabellen:
+
+    [A]lltimes : die besten Spieler auf der Box
+    [M]onthly  : die besten Spieler der letzten 4 Wochen
+    [W]eekly   : die besten Spieler der letzten 7 Tage
+
+    zusaetzlich hat jeder Spieler seine eigene persoenliche Liste.
+
+
+Wenn Du bei einer der 3 Highscore-Listen auf Platz 1 bist, und ein
+anderer verdraengt Dich davon, dann wird Dir das beim naechsten
+Login in Deinem Event.Log mitgeteilt :-)
+
+Deine persoenlichen Einstellungen:
+
+Mit [C]onfig kannst Du folgendes einstellen:
+
+how many Colors ?? --> wieviele Farben sollen verwendet werden (max. 8)
+stretch display ?? --> sollen fuer ein Teil-Quadrat 1 oder 2
+                       Buchstaben gesendet werden (je nach Screen
+                       sieht eins von beiden besser aus...)
+inverse character  --> soll der "Bausatz"-Buchstabe reverse
+                       hinterlegt sein ??
+which character ?? --> welches Zeichen zum darstellen der Teile ??
+
+(am besten sieht normaerweise ein inverses Space aus, aber z.B. bei
+manchen Hercules-Karten ist sowas nicht sichtbar :-)
+
+Zusaetzlich kannst Du dann noch einstellen, welche Tasten zum
+steuern benutzt werden (Standard: 4,5,6 und Space), wobei NICHT
+ueberprueft wird, ob Du mehrmals die selbe taste definierst :-)
+
+Am besten probierst Du es mal aus...
+
+So, Du hast noch %TLCALL Minuten Zeit, bevor Du rausgeschmissen
+wirst....

@@ -1,0 +1,372 @@
+
+
+
+   =====( TMP V1.10 )=============================================
+
+
+        Trion 'Mail Processor' Utility.
+
+        (c) Copyright Paul Spijkerman, '95-'98. All rights reserved.
+
+        Written for use with the Trion BBS package.
+
+
+   ===================================================================
+
+
+   The mail processor is the programm that processes echomail and
+   (routed) netmail. It supports file attaches, points (fully 4D)
+   Nodelists with points and a pointlist.
+
+   The mail processor can use any Archiver programm
+   to compress (pack or unpack) mail. There is a text
+   file where you can configure how an archiver is to be used
+   for packing and unpacking per archiver and how archive types
+   are to be recognized.
+   You can configure an archive methode for each node number.
+
+   The mail processor has an option to not touch ARJ and ARC
+   packets for security reasons.
+
+   The mail processor uses (optional) dupe checking to prevent
+   duplicate being send on.
+
+   The mail processor has an option to decode UUencoded and
+   Base64 coded files while unpacking mail.
+
+   The mail processor has an option to backup all archives and packets
+   it processes.
+
+   It produces packets up to 250 KBytes instead of the old 60 Kbytes
+   for less overhead while archiving, beter compression, more speed
+   and smaller log files.
+
+   For processing mail there is a script called 'mail' in the
+   'trion:scripts/'  directory which takes care of all processing.
+   You can use it from a shell or script , or have it
+   executed by a cron util or in a logout or incoming script.
+
+   The Mail processor (script) is startable with a hotkey.
+   (Default right-amiga-escape) installed with the
+   TrionHotkeys program.
+
+
+
+
+
+   Unpacking mail:
+   ---------------
+
+   When there are packets and mail archives in the inbound
+   directory you have to Unpack it. Usually this will be done
+   to start the mail processor in the mail script (trion:scripts/mail).
+   The default mail script will handle all the unpacking and packing
+   of mail.
+
+   Unpacking is done by calling:   "TMP U"
+
+   You might want to use the -B flag while unpacking mail to
+   backup all processed archives and packets to the mail backup
+   directory (Trion:inbound/backup/). Where you can access the
+   files when something went wrong.
+
+   You might want to use the -F flag while unpacking mail to
+   decode UUencoded or Base64 coded files from mail packets.
+   They will be stored in "Trion:inbound/decode/" by starting
+   the "MailDecode" programm in "trion:utils".
+
+   You might want to use the -C flag while unpacking to check for
+   duplicate messages. If there are messages unpacked which are
+   already in the message base they are moved to a section with
+   tagname DUPES, and if that tagname doesn't exist they are
+   moved to a section with tagname BAD.
+
+   When you call the mail processor with the -G flag it will
+   move echomail messages with no Origin, Seen-by: of path
+   lines are moved to a "BAD" section.
+
+
+
+
+
+   Packing:
+   --------
+
+   Packing is processing new messages to see if they are to be
+   send to your boss, your nodes or your points.
+   
+   Packing is done by calling:    "TMP P"
+
+
+   Archiving netmail while packing mail is optional.
+   Default it is off, when you want netmail archived
+   you have to use the -N flag at the command line.
+
+   When netmail is archived it will be in separated
+   archives from echomail.
+   This is a precaution, because how larger an archive the bigger
+   the change something goes wrong with it (and loose netmail).
+
+   Note that that LHA is the default Archiver when there is
+   no archiver mentioned in the systems.cfg because LHA
+   archives can also be processed on NON-Amiga systems unlike
+   LZX archives. So when you crashmail netmail to a PC-based
+   system the messages can be unpacked.
+
+   There is an optional flag to the mail processor to check
+   if the recipient node of netmail exists by checking all
+   node and point lists. If it doesn't exists, the netmail
+   won't be exported.
+
+   Note that the last option should only be used if you
+   have complete nodelists (like the whole fido nodelist)
+   and all your points in a pointlist.
+   And install all nodelist updates.
+
+
+   Linking:
+   --------
+
+   Linking the messages in your message base means that the mail processor
+   compares each message in an area with each other to check if the msg is
+   a reply or an original to this message.
+   This data is stored in the message base and displayed beneath messages
+   while reading the mail.
+   You can see to which message this is a reply and how many replies a
+   message has.
+   Also this data is needed for the '+'reply and 'o'original options
+   while reading mail.
+   You can run the mail processor once a nigth after all other
+   mail processing is done.
+   You can for instance let the sceduler or a cron util start it.
+
+   Linking is done by calling:    "TMP L"
+
+
+
+   Making a dupebase:
+   ------------------
+
+   When you already have messages in your messages base and you
+   want to start using dupechecking you have to make a dupebase.
+
+   If you use dupechecking and you removed old messages from the
+   messagebase .. you have to make a new dupebase so all the
+   messages that are no longer in the message base are also removed
+   from the dupebase and it doesn't grow endlessly.
+
+   Making a dupebase is done by calling:    "TMP M"
+
+   Note that there is a TrimMsgs script in "trion:scripts/" that
+   calls the RMCommander to trim msgs and calls Tmp to make
+   a new dupebase.
+
+
+
+
+
+
+   Dupe checking:
+   --------------
+
+   The trion mail processor supports (optional) dupe checking.
+   So when the mail processor while unpacking encounters a
+   message which is already on your system it is moved
+   to a BAD or DUPES area and isn't send to your nodes.
+
+   The problem with a duplicate message checking system is to 
+   considerate the loss of speed and the use of memory.
+   The more Memory use the speedier the programm.
+
+   I decided on a brute force system with maximum speed/memory
+   use. When the mail processor is started in Unpack mode it
+   loads the DupeBase in memory .. then it Unpacks and adds
+   new message to the database .. when the mail processor
+   is finished and if the DupeBase is changed it is written
+   to disk.
+
+   In an older version of the mail processor when you wanted to Use
+   dupe checking, you first had to make a DupeBase by running:  TMP M
+   Later I added some code that when the mail processor is started
+   in Upack with DupeCheck mode, and there isn't a DupeBase that
+   it will make a DupeBase)
+
+   Note that the DupeBase keeps growing, so when your system
+   discard messages (trimmsgs) .. you also have to make
+   a new DupeBase with   TMP M
+   But this is much faster than the trimming of the messagebase.
+
+   Duplicate messages are stored in an echomail area with the
+   TagName "BAD" .. unless there is an echomail area with the
+   TagName "DUPES" .. then they are stored in that area.
+
+
+   Some statistics:
+
+   (note: my system is a 68030/25Mhz/5MB one (A2000/A2630))
+
+   When i started i had about 15.000 msgs taking 38,5 MB on my HD.
+
+   But when I took most of the numbers down it was trimmed to
+   12.700 messages with 34.2 MB .. so I will only give those
+   numbers.
+
+   Messages:   12700    Taking 34.2 MegaBytes of disk space.
+
+   After a 'TMP M' the DupeDatabase on disk was  58180 bytes.
+   But the system needed 200 KB to make the database.
+   The DupeBase was made in exactly one minute and 2 seconds.
+
+   When the unpacking mode is started it took 2 seconds
+   to load the DupeBase and store it in memory.
+   It needs 160 KB in memory when loaded.
+
+   When unpacking is ready it needs about 4 seconds to store
+   the DupeBase and discard it from memory.
+
+   Note: that the amount of memory needed is proportional with
+   the number or messages on your system.
+
+   Note: that the memory use was measured in DEBUG mode, which
+   uses MORE memory and system time than normal use because it
+   checks if the memory boundaries where violated.
+
+   Note: the DupeBase takes more memory in memory than on Disk
+   because it is stored in a 'Tree' form, so it only has to
+   check a tiny amount of the list to see if the msg is in the
+   DupeBase.
+
+   Note: in the MakeDupeBase mode the DupeBase needs a little more
+   memory because it doesn't remake the list, so it doesn't
+   fragments the memory and it is fast. But the memory use is
+   only a little bit higher because of a smart way of extending
+   the lists.
+
+
+
+
+
+
+   Routing:
+   --------
+
+   If a netmail message has to be send out and there wasn't typed
+   a route address while editing the message the system checks in
+   the route.cfg if there is a node number to send it to.
+
+   When checking the route.cfg it is noted if the found route node
+   is an exact match or a matching wildcard, this is important for
+   the route function.
+
+   If the netmail message is for a node, it just gets routed with
+   a matching entry or matching wildcard in the Route.cfg.
+
+   If the netmail message is for a point, first it checks if there
+   is an exact routing match in the route.cfg, if there isn't
+   it checks if the message is for a point from this system, if it
+   is it is send directly. If there still is no route it will first
+   check if the boss is in the Route.cfg .. and if that's a negative
+   it will check if there was a matching wildcard found when checking if
+   there was an exact route match for this point number.
+
+   With this system you don't have to have any points in your
+   route.cfg , it is al done automatically for your points.
+   But if you place one of your points in the route.cfg you can
+   route the netmail for that point through other systems.
+   All netmail for points who are not yours are routed to
+   their boss, or themselfs or the best wildcard match.
+
+
+
+
+   Gating E-mail and newsgroups:
+   -----------------------------
+
+
+   It is possible to configure the mail processor so it
+   can cooperate with the AmiGate program which gates
+   newsgroups and E-mail .. AmiGate will convert the
+   fido style archives to Inet style archives and
+   put them in the UUSpool directory of the software
+   that transfers mail with your provider.
+
+   If you want to use this option all mail for the
+   link has to be Archived, so you have to use the
+   "archive netmail" option of the mail processor.
+
+   The program Amigate expects the fido style packets it needs
+   to archive with a fixed name. But the mail processor
+   makes packets and archives with a random name.
+   This can be done by changing the archive.cfg
+
+   When you add the folowing entry to the archive.cfg
+   a script will be started to process the packet instead
+   of an archiver. If you use this you have to have a
+   corresponding node in the systems.cfg with UUCP
+   as archiver instead of an archiver like LHA or LZX
+
+   Example archive entry:
+
+
+ARCHIVETYPE   "UUCP"
+EXTENSION     ""
+RECOGNIZE     FF FF FF FF
+EXTRACT       ""
+ARCHIVE       "execute trion:scripts/gatemail.scr %s"
+#
+
+
+   You also need a script in the Trion:Scripts directory
+   to start the AmiGate program.
+   What it does is renaming the packet to a fixed
+   name and starting AmiGate .. which will process
+   the packet and delete it.
+   Also the script deletes the .flo files because
+   the file would grow and never be deleted.
+
+   With this script you would have something like this in
+   you systems.cfg:
+
+   2:283/326.999  UUCP  PASSWORD     ;Gate adress
+
+   Example script:
+
+
+
+.KEY  packet
+;.DEF file=nix
+.BRA  [
+.KET  ]
+
+rename [packet] trion:outbound/2.283.326.999.GAT
+uucp:c/amigate gatepkt
+delete trion:outbound/2.283.326.999.FLO
+
+
+
+   Also you can use this system to archive all the mail for
+   one person and send it to them once in a while
+   via Inet. Don't know if there are programs to actually
+   automate the last bit but YamGate was mentioned
+   for this purpose.
+
+   Note that you need to add an entry to the archive.cfg
+   for each archive with a unique name. You could use
+   the first name of the person as archivername.
+   Also you need a separate script for each system.
+
+   A script for that use would look something like this:
+
+
+
+.KEY  packet
+;.DEF file=nix
+.BRA  [
+.KET  ]
+
+lha a trion:outbound/username.lha [packet]
+delete trion:outbound/2.283.326.100.FLO
+
+
+
+

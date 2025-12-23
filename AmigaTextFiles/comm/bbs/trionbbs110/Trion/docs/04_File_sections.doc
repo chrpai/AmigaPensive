@@ -1,0 +1,343 @@
+
+
+  Introduction
+  ------------
+
+   This chapter is a description of the Trion BBS file system.
+   The file system is what lets the user list files, mark files
+   and download or upload files.
+
+
+  File catalogue format
+  ---------------------
+
+   For the system to be able to show lists of files it needs
+   to maintain a file catalogue.
+   The file catalogue is stored (default) in the directory
+   "trion:filecat/" but this can be changed by editing the
+   TrionRM.cfg configuration file (see chapter 3).
+
+   The file catalogue actually consists of a number of files,
+   a set of files for each section and a "GlobalIndex.dat" file.
+   Each section has 3 files.
+   A "FileData.N" file, a "Description.N" file, and a "KeyIndex.N"
+   file.   (where 'N' is the number of the section)
+
+   The FileData files contain the actuall information on files,
+   like name, size, upload date, number of downloads etc.
+   All the entries in this file have the same (fixed) size,
+   this is usefull because when a file entry has to be updated
+   because it was for instance downloaded or the validated
+   flag was set only a tiny part of the file has to be changed.
+   Also this is necessary because the position of the file entry
+   can't be changed or the KeyIndex and GlobalIndex file pointers
+   are not valid anymore. This also means that there is no specific
+   order to the files, a new file is stored over deleted ones or
+   appended to the end of the file.
+
+   Because of fixed size format of the FileData files there is no
+   place for (long) descriptions .. so they are stored in the
+   Description files. The descriptions are stored in the same
+   order as the files in the FileData files. So they are
+   easy to match to the file entries. Every entry in the
+   FileData files has a "pointer" to the description file
+   so it knows where it's description is.
+   When a description file was accidently changed or edited, for instance
+   one line has gotten shorter or longer, then the pointers no longer match
+   with the descriptions in that section. This can be fixed by
+   running the "RMcommander" program.
+
+   The KeyIndex files contain the sequence of the files in Alphabetical
+   and chronological order.
+   They are needed for the BBS to know in what order to list files.
+   When you lost any KeyIndex files, you can remake them with
+   the "RMcommander" program.
+
+   Every file has an entry in the file catalogue with a lot of
+   information .. but also every file has a short entry in the
+   globalindex, this is needed for very quick access to the file
+   catalogue if it has to be downloaded or if there has to be checked
+   if a file exists yet (while uploading for instance) .. because the file
+   is sorted on name and the TrionRM has an index in memory of 
+   the characters the names start with, it can get the
+   position in the file catalogue of the file in a split second.
+   When you have lost the GlobalIndex file, or you are
+   removing file sections you have to remake the GlobalIndex with
+   the "RMcommander" program.
+
+
+
+
+
+
+  User access capabilities
+  ------------------------
+
+   The access a user has to a file section is defined in the "template"
+   that is connected to his level. Templates are defined in the
+   templates.cfg and described in chapter 3.
+
+   In a template, lines with sections ranges with the same access flags
+   are listed. Like this:
+
+    FileAccess  [VLDU---]   , 1 , 3-5 , 6-9 , 12-14 , 20-35 , 60-73
+    FileAccess  [V--U---]   , 2
+
+    (with 'All' you can use all areas with the given flags, same
+     effect as 1 - 65536)
+
+   At the moment there are 7 flags for file sections:
+
+    View List Download Upload Freedownload Edit Newfilesvisible
+
+   Where the flags have the folowing meaning:
+
+   V = View,         User sees area in Lists and can go to this area.
+   L = List,         User can Browse and FileList through this area.
+   D = Download,     User can Download from this area.
+   U = Upload,       User can Upload in this area.
+   F = Freedownload, This area is Freedownload for users with this level.
+   E = Edit,         User can Edit files in this area (FI while browsing).
+   N = NewFilesVisible, UnValidated files are visible.
+
+
+
+
+
+
+
+
+  Parameters for file transfers
+  -----------------------------
+
+   There are a number of parameters in a users template that have 
+   consequences on the number of bytes and files than can be downloaded
+   by users.
+
+   When a file is not freedownload ratios count for each file downloaded.
+   Which means that that must be a certain number of uploads for a
+   certain number of downloads. (Note that ratios are optional per template)
+
+
+   FileRatio     <= if the ratio between the number of downloaded files and
+                    uploaded files is equal or higher then this number then
+                    a user has to upload before he can download.
+                    disabled when 0 or 'Off'.
+
+   ByteRatio     <= if the ratio between the number of downloaded bytes and
+                    uploaded bytes is equal or higher then this number then
+                    a user has to upload before he can download.
+                    disabled when 0 or 'Off'.
+
+
+   Als there is an optional limit on the number of bytes a user
+   can download in a day.
+
+
+   DownloadPerDay <= Number of bytes a user can download each day.
+
+
+   There is an option to allow new users to download a number of
+   bytes and files before the ratio's kick in.
+
+
+   FreeBytes     <= Number of bytes a user can download before ratio's
+                    kick in. Note that if zero a new user first has
+                    to upload before he can download.
+
+   FreeDownloads <= Number of Files a user can download before ratio's
+                    kick in. Note that if zero a new user first has
+                    to upload before he can download.
+
+
+
+  with 'Off' you can turn off a field (same effect as value 0)
+
+  You can use 'Off' with:    FileRatio, ByteRatio, MaxBytesPerDay
+
+
+
+
+
+  Download constraints
+  --------------------
+
+   Sometimes users can't mark a file he sees in a list, this can have
+   a number of reasons.
+
+   No download access:
+
+   He needs download access to the section in the template of his level.
+   The file section itself needs to have a download flag in the
+   fileareas.cfg
+
+   File not validated:
+
+   If a file is not validated it can not be marked, unless the user
+   has the E(dit) flag in the template for this section.
+
+   Insufficient time remaining:
+
+   If a user tries to mark a file, an estimated transfer time is calculated.
+   If that time is longer than the time a user has left online that day,
+   the file is not marked.
+
+   User will Exceed daily download byte limitation:
+
+   A user can only download a number of bytes a day, which is defined
+   in a parameter in the template for his level.
+
+   User will exceed his file ratio or byte ratio:
+
+   When a file is not freedownload, (the file and the template and the
+   section has no Freedownload flag) the ratios are valid.
+   When a user has downloaded so much bytes or files that he can't
+   download anymore he first has to upload before he can download again.
+
+
+  File catalogue entry attributes
+  -------------------------------
+
+   Each file can have a few attributes or flags, at the moment there
+   are a two.
+
+   Freedownload:
+
+   When a file has the freedownload flag it has an other color in
+   the file list then other files, and it is not counted in file and
+   byte counters for ratios.
+   Note that there are separate counters for total downloaded files
+   and bytes .. and files and bytes that are not freedownload.
+
+   Validated:
+
+   When a file is not validated yet it is only shown in the filelist
+   when N(ewFilesVisible) flag in the template of the level of the user.
+   Files can be automatically validated at upload be giving the file
+   section a V(alidate) flag.
+
+
+  File area User interface
+  ------------------------
+
+   When using the default BBStext when listing files there is
+   a 2 digit number in front of each file. This number can be
+   used to mark a file instead of typing the whole name where
+   error are easily made.
+   Note the the number start with zero and go up to 99 to start
+   at zero again.
+   Note that you don't have to type the first digit if it is zero.
+
+   When searching for file wildcards such as "*", "#?" or "?" can
+   be used. Note that the system will add a '*' at both ends of
+   the search string. So you can type a part of a name like "test"
+   and the system will transform it into "*test*" to search for
+   all file names of file descriptions which contain the word "test".
+
+   When a user wants to view an archive the system will determine
+   what the type is of the archive. It does this not by looking at
+   the extension of the file but by looking at the first bytes of
+   the files. At this moment the definition of archive types is
+   internal in the BBS program, but this will probably be changed in
+   the feature to a configuration file like the archive.cfg or a
+   door.
+   The BBS program will run the "trion:scripts/viewarchive" script
+   to list the contents of the archive to a temporary file in ram:.
+
+   Note that when a file is not completely received during an
+   upload that the user is asked if the file has te be removed.
+   If the file is not removed the file upload can be resumed if
+   a protocol is used with a resume option.
+
+
+
+  File area configuration.
+  ------------------------
+
+   File areas are configured in the 'Trion:cfg/FileAreas.cfg'.
+
+   Each config line is in a specific format:
+
+
+    #area  flags  path  areaName
+
+
+    Examples:
+
+    #001  [U----]  dh1:DOWNLOADING/Upload/           Upload
+    #002  [U----]  dh1:downloading/Sysop/            Voor_Sysop
+    #009  [-FV--]  dh1:downloading/Trion/            Trion
+    #060  [---M-]  dh1:down.pc/Algemeen/             PC_Algemeen
+
+
+    Note:  Don't use area number #0
+    Note:  Don't forget a ':' or '/' at the end of a path !!
+
+    Look at the provided config for more examples of the format used.
+
+
+
+    Each area has a number of flags which decides it's characteristics.
+    Which means that those flags can not be overruled by flags in the
+    users template.
+
+     Flags:
+
+     U = Upload       , Area is open for uploads.
+     F = Freedownload , All files in this area are freedownload.
+     V = Validate     , Files area AutoValidated when Uploaded.
+     M = MS-DOS       , All names will be in the 8.3 format in this area.
+
+
+    Note that a file is freedownload if either the file has a freedownload
+    flag OR the area has a freedowload flag OR the user has a freedownload
+    flag for this area in his template.
+
+    Note that a user can Upload to an area is the Area has an Upload flag
+    AND the user has an Upload flag in his template.
+
+    Note that a user with an Edit flag can Validate files, kill files
+    and make files freedownload while browsing.
+
+
+
+    There is also a configuration file to configure from which sections
+    file requests are allowed. The configuration file is called
+    frequest.cfg and can default be found in "Trion:cfg/".
+
+    The fine exists of 2 parts.
+    The first part is a list of the sections from where freqs are
+    allowed.
+    This section is terminated with a '#' on an empty line.
+    The format of this part of the config is:
+
+    SECTIONS  <range> [, <range>]
+
+    For example:
+
+    SECTIONS    3-5 , 9 , 12-14 , 20-35
+    SECTIONS    60-73
+
+
+    In the second part of the file magic names are configured.
+    A magic name is a short fixed symbolic name which is linked
+    to a recent path and file.
+    The format of this part of the config is:
+
+    <MagicName>  <Password>  <Path/File>
+ 
+    if no password needed to freq specify NONE
+    password is 6 (or 8) characters of less
+
+    For example:
+
+    FILES       NONE      downloading:docs/allfiles.lha
+    TRION       NONE      down.amiga:bbs/TrionBBS100.LZX
+
+
+
+
+    Look for a long explanation of the filenet.cfg and filenodes.cfg
+    in the Trion:docs/tick.doc text.
+
+

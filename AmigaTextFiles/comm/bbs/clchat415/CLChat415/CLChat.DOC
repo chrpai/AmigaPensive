@@ -1,0 +1,650 @@
+CLChatSystem 4.15
+-----------------
+
+(1) Copyrights
+
+    The CLChatServer, the CLChatD, the CLCharIRCD, CLChatLink and the 
+    CLChatGUI are Copyright (C) 1994-1996 Oliver Wagner 
+    (owagner@lsd.wupper.de)
+    All Rights Reserved.
+
+    The files are freely distributable as long as no modifications are
+    made to any part of the package and all files are distributed in
+    a single archive, accompanied by this documentation file.
+
+    CLChatGUI is a MUI application. MUI is (C) 1993-1996 Stefan Stuntz.
+
+    AmiTCP is (C) 1994-95 NSDI Inc.
+
+
+(2) Overview
+
+    This is a multi-user multi-channel chat system somewhat based on
+    IRC. It can be used via TCP/IP connections or totally standalone.
+    It features:
+
+    o unlimited number of users
+    o unlimited number of channels
+    o private messaging
+    o automatic user identification
+    o NEW: private channels
+    o NEW: IRC compatibility demon to allow any IRC client to join
+      a clchat server.
+    o flood protection
+    o user banning
+    o multiple server capability with loop protection
+    o channel operator privileges for setting channel topics
+      and removing users from a channel
+    o chat operator privilege for global channel operator status
+      and removing users from chat completely
+
+    The user frontend for the chat is a comfortable GUI client
+    providing
+
+    o easy user & channel operations
+    o input history
+    o automatic notifications of certain events via Deiconification
+      or beep
+    o builtin ARexx-Port
+    o NEW: Dialog windows for direct user<->user communication
+    o NEW: direct file transfers to remote users via IP
+
+    There is also a ANSI client suitable for BBS usage:
+
+    o full ANSI/VT100 compliant text output, completely using
+      STDIO.
+    o suitable for any BBS package capable of running STDIO apps.
+    o different colors for various messages.
+
+(3) Origin
+
+    The Chatsystem is originally part of the Connectline/Amiga BBS
+    package which features an ANSI text client for online usage
+    and the possibility to login to the chat during Hydra file 
+    transfers. The standlone ChatServer and the GUI client are
+    only a subset of the whole package.
+
+    Write to Connectline@pluribus.wupper.de for more information
+    about Connectline or take a look at 
+    
+     http://www.pluribus.wupper.de/Connectline.html
+
+(4) Client installation
+
+    No installation required, simply run the Client from either
+    Shell or Workbench. It will prompt for your user information
+    and the server to connect to. See the Client guide for
+    more information about using it.
+
+(5) Server Installation (AmiTCP)
+
+    Copy CLChatServer to AmiTCP:bin
+    Copy CLChatLink to AmiTCP:bin
+    Copy SendChatNotice to AmiTCP:bin
+    Copy CLChatD to AmiTCP:serv
+    Copy CLChatIRCD to AmiTCP:serv
+
+    Add the following lines to AmiTCP:db/services:
+    clchat/5555
+    clchatirc/6667
+
+    Add the following lines to AmiTCP:db/InetD.conf:
+    clchat    stream      tcp nowait root amitcp:serv/clchatd
+    clchatirc stream      tcp nowait root amitcp:serv/clchatircd
+
+    Add the following line to AmiTCP:bin/startnet:
+    run >NIL: AmiTCP:bin/CLChatServer
+
+    Optionally create a file named AmiTCP:db/ChatServer.MOTD
+    containing a text file which will be display to each new user
+    logging into the chat.
+
+    Optionally create a file named AmiTCP:db/ChatServer.OPList
+    containing a list of users which have the "Chat Operator"
+    privilege. These users automatically receive channel operator
+    status for every channel they join and can use the hidden
+    server command "/KILL" to remove other users from the
+    chat server. They may also the "/NETINFO" command to inquiry
+    chat network information, and use the BAN commands to list,
+    add or remove user bans.
+    This file contains entries of the following form:
+    Nickname Netaddress
+    For example:
+    Olli olli@lsd.wupper.de
+
+    Optionally create a file named AmiTCP:db/ChatServer.Servers
+    containing a list of remote servers allowed to connect to your
+    server. This file contains a list of FQDN addresses or a
+    standard AmigaDOS wildcard matching FQDN addresses. If this
+    file is missing, all servers are allowed to connect.
+    If you want to ban a single server only, you can add a
+    exclusive pattern. For example, to ban server "lsd.wupper.de"
+    only, add the line
+    ~(lsd.wupper.de)
+    The first line of the file may contain a number specifying
+    the maximum number of servers to connect. This defaults to 8.
+
+    You can make CLChatD, CLChatIRCd and CLChatLink resident to 
+    increase startup speed and reduce memory usage; this might proof
+    useful if you run or accept several connections.
+
+(6) Server Installation (Standalone BBS Usage)
+
+    You need to create a directory and put an Assign AmiTCP:
+    do it (even if you don't have AmiTCP installed).
+    Then, create the directories "AmiTCP:log" and "AmiTCP:db".
+    Create a file ENV:HOSTNAME contain the name of your BBS.
+
+    Start the "CLChatServer" somewhere in your startup script
+    for the BBS.
+
+    Optionally create a file named AmiTCP:db/ChatServer.MOTD
+    containing a text file which will be display to each new user
+    logging into the chat.
+
+    Optionally create a file named AmiTCP:db/ChatServer.OPList
+    containing a list of users which have the "Chat Operator"
+    privilege. These users automatically receive channel operator
+    status for every channel they join and can use the hidden
+    server command "/KILL" to remove other users from the
+    chat server. They may also the "/NETINFO" command to inquiry
+    chat network information, and use the BAN commands to list,
+    add or remove user bans.
+    This file contains entries of the following form:
+    Nickname Netaddress
+    For example:
+    Olli olli@lsd.wupper.de
+    Note that you have to use your BBS name as the FQDN
+    part of the net address.
+
+    You'll need to add "CLChatAnsi" as a online command to your
+    BBS. How to do this depends on the BBS package you use.
+    See the CLChatAnsi-Documentation for more info about
+    using this.
+
+(7) Using the server
+
+    Using the server should be quite self-explainatory. Use the
+    command "/?" to obtain a list of available commands.
+
+    Channels are created automatically when a users joins
+    and removed when the last user leaves. There is a
+    persistant default channel called MAIN on which every
+    new users starts. The first user entering a channel
+    will obtain channel operator status. He may change
+    the topic, kick other users, give or remove channel
+    operator status from them.
+
+    Specifc users may be banned from a server using the
+    /BANADD command which is available to chat operators only.
+    Bans are stored in the file "AmiTCP:DB/ChatServer.UserBans"
+    and contain FQDN addresses or a AmigaDOS wildcard matching
+    FQDN addresses. You may want to use wildcards of the form
+    "#?@machine" because the user part of addresses is generally
+    the same as the nickname which may be set by the user.
+    For example, to ban users from lsd.wupper.de, use the
+    entry
+    #?@lsd.wupper.de
+
+    Note that adding a line "#?" will make you quite lonely
+    on your server.
+
+    The server respons to three shell signals. CTRL^C will
+    cause it to terminate instantly, CTRL^E will cause a
+    restart (with reloading the executable) and CTRL^F will
+    cause the server to output diagnostic stats into the
+    shell window.
+
+
+(8) Connecting several servers
+
+    After running your local server, use the command "CLChatLink"
+    to connect to a different server. Usage is
+    CLChatLink <remoteservername> <remoteport> [retrycount]
+
+    The retrycount is optional; if specified, CLChatLink will
+    retry a connection until the count runs out. If a already
+    successfully established connection break, retries start
+    back from 1.
+
+    Note that the server-server protocol is quite bandwidth
+    expensive, so you should *NOT* create a server for single
+    users only.
+
+    Note that nicknames must be unique on all servers; if servers
+    connect and a nick collision occurs, both users are removed
+    from their correspondending servers and a nick collision
+    message is broadcasted.
+
+    Server loops may be created; every server message carries
+    a unique messageid which will be checked by every server
+    it passes; dupes are filtered out. Server loops may raise
+    broadcast speed esspecially on slow network connections.
+    The server uses some kind of smart routing for private
+    messages: if the destination of a private message is on a
+    directly linked server, the message is send to this
+    server only. If not, it is broadcasted, so no routing
+    tables are necessary.
+
+
+(9) History:
+
+    See the CLChatGUI.(doc|guide) for more specific GUI
+    client revision information.
+
+    Release 3.0
+    -----------
+    - the server now uses smart routing for private messages;
+      if the destination server is a direct link, no broadcast
+      is produced
+    - added user banning capabilities
+    - added /NETINFO server inquiry broadcast
+    - added chat operator command output on /HELP if the
+      use is a chat operator.
+    - made /SERVERS command available to normal chat users
+    - updated CLChatLink to correctly fill in the remote
+      server name.
+    - extended server msgs with a message id tag to filter
+      message dupes produced by server loops.
+
+    Release 3.1
+    -----------
+    - everything is now compiled with SAS/C 6.55. Also added
+      server version directly compiled for 68030 CPUs.
+    - added more detailed NETINFO output.
+    - added /STAT command for chat operators. Also "/STAT *"
+      broadcasts /STAT requests via net.
+    - extended /USERS command with "S" option to display
+      users with the servers they're on.
+    - added /RESTART command for chat operators to have
+      the server restart itself. Also CTRL^E will cause
+      a restart.
+    - added CTRL^F response displaying server stats to
+      the shell.
+    - fixed CLChatLink and CLChatD to fill in the IP
+      address of remote servers for the /SERVERS command
+      output.
+    - fixed smart privmsg routing.
+    - fixed user removement for flood protection and
+      /KILL commands.
+    - fixed may GUI client bugs & quirks.
+    - GUI client now has IP file transfer option similar
+      to DCC
+    - GUI client now has a PING option to test links
+      from user to user directly
+    - fixed bug in the server which caused a stack
+      overwrite on privmsgs > 230 bytes
+    - both CLChatD and CLChatLink are now "pure" code
+      and can be made resident for more efficient memory
+      usage
+
+    Release 3.2
+    -----------
+    - fixed local /STAT output to report only local
+      users
+    - fixed server validation bug; checked IP addresse instead
+      of FQDN
+    - fixed server reject error message
+    - cleaned up GUI client scroller handling
+    - added PLUBOT sample code
+
+    Release 3.3
+    -----------
+    - CLChatLink was seriously broken; retry didn't worked
+      and broken active links causes server crashes due to
+      illegal messages.
+    - increased stacksizes or reduced stack usage in all parts
+      of the package due to frequent crashes on some setups.
+    - some GUI client cleanup.
+
+    Release 3.4
+    -----------
+    - fixed some quirks in the GUI-Client
+    - fixed time bug in the CLChatServer
+
+    Release 3.6
+    -----------
+	- did some work on the CLChatGUI-Client (see history)
+	- added MS-Windows client (clchatwi.LZH).
+    - new chat operator command /NOTICE.
+    - logfile option: if a file AmiTCP:Log/ChatServer.LOG
+      exists, the chat server will log all outgoing
+      messages with that file.
+    - cleaned up /MSG to send the acknowledge msg before
+      the destination message.
+    - fixed several typos.
+    - CLChatLink now no longer needs the port arguments,
+      but defaults to 5555.
+
+   Release 3.7
+   -----------
+   - added installer script by Robert Reiswig (rcr@netcom.com)
+
+   Release 3.8
+   -----------
+   - fixed a bug in the server connect code which caused
+     server names to be truncated at offset 19, causing trouble
+     when having a server validation list.
+
+   Release 4.0
+   -----------
+   - did some work on the CLChatGUI-Client (see history)
+   - fixed a bug in CLChatlink causing trouble with server
+     connects if "ChatServer.Servers" existed ("\r" wasn't
+     filtered correctly)
+   - several internal fixes & cleanups in the chatserver.
+
+   Release 4.1
+   -----------
+   - did some work on the CLChatGUI-Client (see history)
+   - /MSG may now be abbreviated by /M.
+   - added /QUIT command to gracefully terminate the
+     chatserver link with the possibility to give a
+     reason (CLChatD will put a net error string to
+     the reason field if the link terminates due to
+     net failure).
+   - fixed several problems with the topic update
+     upon server connects. A connecting server will
+     now obtain the topics from the server it connects to.
+     Note: This *requires* updating CLChatLink!
+   - several internal fixes & cleanups in the chatserver.
+   - removed annoying SINFO reports upon server connect.
+   - fixed a bug in CLChatD which caused users without
+     working nameservers to be logged in without any
+     hostname at all instead of their ip address.
+   - added a really cool chatbot ;-)
+
+   Release 4.2
+   -----------
+   - fixed a nasty bug in the CLChatGUI-Client (see history)
+   - added standalone ANSI terminal client for BBS usage.
+   - fixed a bug in the chat bot causing enforcer hits
+     upon executing commands without parameters.
+   - added FAQMANAGER to the bot directory.
+
+   Release 4.3
+   -----------
+   - did some work on the CLChatGUI-Client (see history)
+   - fixed a bug in Chatserver.OPList parsing causing
+     empty lines to match ANY user as an chatop.
+   - now no longer checks link access if a server link
+     is established on behalf of the local side.
+   - [UNLINK]-Message wasn't correctly distributed
+     across the server links causing clients to not
+     update their user lists.
+   - fixed a potential problem in SINQRESP-Message (for /NETINFO)
+     longer than 200 bytes
+   - added CLCHATSERVER_ADMIN environment variable, designating
+     a admin string which should contain the server operators
+     e-mail address, returned on /SERVER command and /NETINFO
+     inquiries.
+
+   Release 4.4
+   -----------
+   - did some work on the CLChatGUI-Client (see history)
+   - fixed nick changes not broadcasted correctly
+   - added private channels and the commands "/PRIVATE"
+     (ask/set/clear private mode), "/ALLOW" (list/allow
+     users) and "/DISALLOW".
+   - it's now possible to kill remote users.
+   - the standalone server now runs completely without
+     AmiTCP for BBS-only-usage.
+   - added IRC compatibility client CLChatIRCD to accept
+     standard IRC connections on TCP port 6667 (or whatever
+     you likes). It emulates most of the standard IRC
+     commands.
+
+   Release 4.5
+   -----------
+   - did some work on the CLChatGUI-Client (see history),
+     now supports DCC for IRC compatibility.
+   - fixed a severe bug in the chatserver causing sometimes
+     Exec messages to be send to non existant MsgPorts
+   - CLChatIRCD now behaves more like a "real" IRC server
+     sending faked version information on startup to fool
+     ircII into correct operation.
+   - CLChatIRCD now awaits a "JOIN :#MAIN" before sending
+     anything to the client in order to make braindamaged
+     designed IRC clients (ircII for example ;-) to not
+     choke on being magically forced into a channel.
+   - fixed various bugs with server message distribution.
+   - CLChatIRCD now properly converts CTCP VERSION and PING
+     to clchat format.
+   - various small internal cleanups & fixes.
+   - CLChatD, CLChatLink & CLChatIRCD now raise their
+     priority to 1 to avoid lagging due to the -1
+     priority normaly assigned by inetd for server
+     processes.
+   - CLChatLink no longer sends bogus link information
+     to the local server upon connect.
+   - CLChatD now has some kind of protection against
+     errneous IRC client connects; it sends the client
+     a hint to connect to the right port before terminating.
+   - updated installer script.
+
+   Release 4.6
+   -----------
+   - the CLChatIRCD now prints a message to MAIN after
+     joining to inform users that the client user is
+     not "really" on the channel.
+   - fixed a severe bug in CLChatIRCD causing the internal
+     user link in the exec Message used for communication
+     with the server to be trashed when someone /QUIT
+     while the user is still waiting to JOIN #MAIN.
+   - the CLChatIRCD now supports the WHO irc query
+     in limited form.
+   - the ChatBot now allows for autojoining a channel
+     straight after start.
+   - added /LINK & /UNLINK commands to the server for
+     creating links right out of the chat.
+   - now server disconnects give a reason.
+   - CLChatIRCD now properly converts [NICK] messages.
+   - fixed a bug in CLChatIRCD not properly terminating
+     a NAMES list.
+   - fixed a bug with server irregularly sending their
+     channel topics when a user left.
+   - now nick collisions are reported only from
+     the servers they occur on.
+   - added "/MSG ." (send to last msg's receipiant) and
+     "/MSG ," (send to last msg's sender) support.
+     Updated HELP output accordingly.
+   - cleaned up server login text; now outputs server
+     admin info after welcome.
+   - now, /NOTICE msgs are no more broadcasted to other
+     servers (this is intended behavior)
+   - the ANSI client now has a short help page
+   - did you some cleanup in the ANSI client
+   - the ANSI client now responds to VERSION, PING,
+     CLFT and DCC requests.
+   - the ANSI client now supports internal /PING
+     and /VERSION commands.
+
+   Release 4.7
+   -----------
+   - CLChatIRCD: fixed removal of first char on TOPIC.
+   - CLChatIRCD: cleaned up WHO output.
+   - Chatserver: SUSERS output changed to contain
+     userhost and realname (mainly for WHO support)
+   - Chatserver: cleaned up Server link protocol
+     to avoid user table loss during internal
+     list update.
+   - Chatserver: [ENTER] messages are now generated
+     locally so that users are informed when different
+     users are merged into the chat due to a server
+     connect.
+
+   Release 4.8
+   -----------
+   - changed server protocol to avoid "[JOIN] Everyone has
+     joined the chat" flood when a server link is split
+     somewhere.
+   - now, "/UNLINK *" works and disconnects all servers
+     currently connected.
+   - added a small utility "bin/SendChatNotice" to
+     output a /NOTICE to the server from within cron
+     jobs or so.
+
+   Release 4.9
+   -----------
+   - fixed CLChatANSI BBS client to no longer require
+     clutil.library (a code fragment from the Connectline
+     BBS version slipped in)
+   - fixed a Bug in CLChatIRC cutting of the postfixed ^A
+     on CTCP messages, effectivly preventing CTCP/DCC
+     being usable from IRC client to IRC client.
+   - fixed a bug in the Chatbot-Faqmanager with the
+     faq directory not existing.
+   - Faqmanager version tag fixed.
+   - the CLChatGUI will now properly bump nicknames upon
+     a "Nickname in Use" error to prevent login loops.
+   - ChatBot: New external command "SendChatBot" allows
+     for directly having the bot say or do something from
+     within a script or cron job. "SendChatBot" requires
+     the nickname of the Bot for identify.
+   - ChatBot: New commands, "ShutUp" and "Talk" allow to
+     externally disable pattern matching.
+   - ChatBot: fixed missing \n in Debug output.
+
+   Release 4.10
+   ------------
+   - changed directory layout a bit; now the ChatBot has it's down
+     directory.
+   - CLChatIRCD: fixed "Nick: Nick in use message"'s wrong colon
+     position.
+   - ChatBot: can now be used remotely (via a TCP link), too.
+   - ChatBot: added a nice doc for the ChatBot written by Adam Clark.
+   - ChatBot: Added "SEEN" command.
+   - ChatBot: Added "MSG" command.
+   - ChatBot: now uses less bandwidth for detecting a userhost.
+   - ChatBot: can now handle being renamed (via EMIT /NICK).
+   - ChatBot: configuration dir can now be changed. Defaults to S:.
+   - Server: will now reject multiple OP/DEOP requests.
+   - Server: Severe bug in server link protocol: C-formating
+     codes got interpreted underway (%s, %d etc.pp.)
+   - Sever: major change in the link protocol. [EXIT]
+     messages are now generated locally, too. [EXIT] is
+     now correctly generated for users which get lost
+     due to a closed server link. Overall bandwidth usage
+     reduced a lot by replacing the complete user table
+     broadcast with a REMOVE message.
+   - Server: Doubled the size of the message id cash to be able
+     to stand even *long* net delays.
+   - Server: "/MSG , " no longer addresses "<lastnick>".
+   - Server: Now keeps a log of the last nick which was addressed
+     publically with "nick:". Can be used with ": blah"
+     to prefix the text with that nick, or in "/MSG : blah"
+     to send a private message to this person.
+
+   Release 4.11
+   ------------
+   - Server: fixed a severe bug in the server causing chat msgs
+     to get trashed during forwarding, resulting in all kinds of
+     nasty effects.
+
+   Release 4.12
+   ------------
+   - did some work on the CLChatGUI-Client (see history)
+   - "Server restarting" and "Server Terminating" messages
+     didn't properly broadcast through the net.
+   - fixed several bugs with servers loosing user tables.
+   - it's now possible to /KILL chat operators which are
+     on the same server.
+   - the server now no longer reacts upon REMOVE messages for
+     local users (mainly to fix a bug in previous versions)
+   - ChatBot: Added a new external command "SendChatBotFile"
+     which allows to start a DCC.SEND externally. Requires
+     DCC.SEND.AS225 to be in the path.
+   - ChatBot: SendChatBot didn't FreeArgs() and therefore
+     eat some memory on every invocation.
+   - ChatBot: now gathers total login count and time
+     statistics for user it sees.
+   - added ChatBot.guide created by Laurence Walton from
+     ChatBot.doc.
+   - Server: forwarded privmsgs pointed to local users,
+     wasting bandwidth.
+   - CLChatIRCD: no longer outputs nonsense userhost with
+     QUIT messages.
+   - Server: now "//" can be used to output a single "/"
+     on start of a pubmsg.
+   - the BBS client now prompts for a nick name if none
+     is specified.
+
+   Release 4.13
+   ------------
+   - did some work on the CLChatGUI-Client (see history)
+   - the CLChatD didn't remove "\r" (CR) on incoming messages.
+     This caused trouble with the ANSI client, which then outputted
+     <blah><CR><DELETE-TO-EOL>...
+   - CLChatIRCD now accepts "/JOIN channel" without removing the first
+     character if it is not an '#'.
+   - CLChatIRCD now silently eats "ISON" commands to at least avoid
+     the annoying "ISON: unknown command" messages with IRC clients
+     that do ISON on a regular base.
+   - Server: fixed a nasty bug with nick collision messages not being 
+     broadcasted properly.
+   - everything recompiled with SAS/C 6.56.
+
+   Release 4.14
+   ------------
+   - did some work on the CLChatGUI-Client (see history)
+   - MODE +o/-o will now work in CLChatIRCD
+   - fixed QUIT stealing on CLChatIRCD
+   - fixed CLChatD crashing w/ messages > 255 Bytes
+   - several small cleanups
+
+   Release 4.15
+   ------------
+   - did some work on the CLChatGUI-Client (see history)
+   - fixed CLChatIRCD 312 WHOIS response.
+   - added a kludge to avoid CLChatIRCD CTCP loops.
+   - fixed a severe security hole in the bot coding when calling
+     external programs involing the pipe symbol.
+   - doubled MessageID space.
+   - user bans are now global and broadcasted via the network.
+
+(10) ARCnet
+
+    There is already a public Internet chat network based on
+    CLChat called the "ARCnet" (Amiga Relay Chat Network).
+    See the client documentation for up-to-date information
+    about this network and servers you can connect to.
+
+(11) Updates
+
+     Updates are available from Aminet, or directly from
+
+     ftp://ftp.vapor.com/support/CLChat/
+
+     You can also check out the CLChat home page, which is
+
+     http://www.vapor.com/support/CLChat/
+
+(12) Thanks must go to:
+
+     Roy Millican  - for encouragement and running the first
+                     public CLChat server on the InterNet. He also
+                     founded the ArcNet.
+
+     James Atwill, Ralf Deifel
+                   - for their help during multi server testing
+
+     Jeremiah S. Junken
+                   - for the CLChatGUI icon
+
+     Robert Reiswig
+                   - for the Installer script
+
+     Matthias Mischler
+                   - for his help with debugging the CLChatIRCD
+                     with ircII
+
+     Adam Clark
+                   - who wrote the ChatBot.DOC, and did hours and hours
+                     of bot testing.
+
+     Laurence Walton
+                   - who created the ChatBot.GUIDE, and did hours and
+                     hours of bot testing, too.
+
+     Karl Bellve
+                   - for providing the support area on wade1.ab.umd.edu

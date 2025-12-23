@@ -1,0 +1,95 @@
+; $VER: MStatusII Install Version 1.2
+;
+
+(complete 0)
+
+(set prg-version "1.2")
+
+;====================================================================
+; Einige Initialisierungen
+;====================================================================
+
+
+(set _prg				"warwall")
+
+(set _text				"warwall.guide")
+
+
+(set #intro
+(cat " Willkommen zum Installationsprogramm von WarWall "prg-version". Dieses Script kopiert die einzelenen Dateien des Packets auf ihre Festplatte."
+))
+
+
+(set #select_Hadir_help
+(cat "In diesem Menu koennen sie das Verzeichniss auswählen in das das hauptprogramm WarWall kopiert werden soll."
+))
+
+(set #select1_help
+(cat "In diesem Menu koennen sie wählen, ob sie die jeweilige version des programmteiles installieren wollen"
+))
+
+(message #intro)
+
+(complete 20)
+
+(set destdir
+	(askdir
+		(prompt "Wo soll das programm WarWall Installiert werden?\n")
+		(help #select_hadir_help)
+		(default "prometheus:extern")
+	)
+)
+
+(complete 30)
+
+(copyfiles
+          (prompt "version 1.2 der WarWall kopieren?")
+          (help #select1_help)
+          (source _prg)
+          (dest destdir)
+          (confirm)
+)
+
+(complete 40)
+
+(copyfiles
+          (prompt "version 1.2 des WarWall.guide kopieren?")
+          (help #select1_help)
+          (source _text)
+          (dest destdir)
+          (confirm)
+)
+
+(textfile
+ (append "/* */\nif ~exists('prometheus:batches/login.bat') then call open btwrite,'prometheus:batches/login.bat','W';else call open btwrite,'prometheus:batches/login.bat','A';writeln(btwrite,'#RUN "destdir"/warwall $PO');call close btwrite\n")
+ (dest "t:login.rexx")
+)
+
+(complete 50)
+
+(rexx ("t:login.rexx")
+ (prompt "Aufruf in prometheus:batches/login.bat erzeugen? (nicht bei einem Update ;)")
+ (help "--------")
+
+ (confirm)
+)
+
+(run ("delete t:login.rexx"))
+
+(complete 60)
+
+(set #instf (cat "InstallCommand BN=WarWall_Konfig A=\"run "destdir"/warwall $PO P\" SC=5 Kommentar=\"Konfig-Editor/Zensieren fuer WarWall\" SB B G=SYSOP"))
+
+(run #instf (SAFE)
+ (prompt "Befehl für den Konfigeditor erstellen ?\nWARWAll_Konfig")
+ (help "zur zeit keine hilfe verfügbar")
+
+ (confirm)
+)
+
+(set #extro
+(cat "Die Installation von WarWall "prg-Version" ist nun beendet."
+))
+
+(complete 100)
+(message #extro)

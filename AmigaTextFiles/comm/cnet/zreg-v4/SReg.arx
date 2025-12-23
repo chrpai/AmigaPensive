@@ -1,0 +1,181 @@
+/* View Registry v4.0 (C)opyright 1992 Zach Johnson, all rights reserved
+   Do not modify unless you get permission from Zachariah Johnson first!  */
+
+options results
+
+bufferflush
+
+changewhere 'View Registry'
+
+path2 = 'mail:users/'            /* <-- path for Mail dirs                 */
+ver = 'v4.0'                     /* <-- version # (do not change)          */
+
+sendstring 'View Registry 'ver': Enter the users handle.\n1\c6-\ce> \q1'
+query
+Ohandle = result
+if Ohandle = '###PANIC' then call QUIT
+if Ohandle = '' then call QUIT
+findaccount Ohandle
+Osernum = result
+if Osernum = '###PANIC' then call QUIT
+if Osernum = '' then call QUIT
+loadscratch Osernum
+getscratch 39;Ouucp = result
+getscratch 1;Ohandle = result
+if ~exists(path2||Ouucp'/_zreg') then call NOTAV
+call open(user,path2''Ouucp'/_zreg','R')
+do i=1 to 33
+	en.i=readln(user)
+	end
+call close user
+en.40=strip(en.40)
+
+EDIT:
+sendstring left(' \ce1\c6) Name/Company       -\cf 'en.1,67)
+transmit left('  \ce2\c6) Age     -\cf 'en.2,30)
+sendstring left(' \ce3\c6) City/State/Phone   -\cf 'en.3,67)
+transmit left('  \ce4\c6) B/day   -\cf 'en.4,30)
+sendstring left(' \ce5\c6) Computer Comment   -\cf 'en.5,67)
+transmit left('  \ce6\c6) Sex     -\cf 'en.6,30)
+sendstring left(' \ce7\c6) Occupation         -\cf 'en.7,67)
+transmit left('  \ce8\c6) Height  -\cf 'en.8,30)
+sendstring left(' \ce9\c6) Your Birthplace    -\cf 'en.9,67)
+transmit left(' \ce10\c6) Weight  -\cf 'en.10,30)
+sendstring left('\ce11\c6) Foreign Language   -\cf 'en.11,67)
+transmit left(' \ce12\c6) Hair    -\cf 'en.12,30)
+sendstring left('\ce13\c6) This BBS           -\cf 'en.13,67)
+transmit left(' \ce14\c6) Eyes    -\cf 'en.14,30)
+sendstring left('\ce15\c6) I Am Looking for   -\cf 'en.15,67)
+transmit left(' \ce16\c6) Race    -\cf 'en.16,30)
+sendstring left('\ce17\c6) Sexual Preference  -\cf 'en.17,55)
+transmit left(' \ce18\c6) Marital State -\cf 'en.18,42)
+sendstring left('\ce19\c6) Attractive?        -\cf 'en.19,55)
+transmit left(' \ce20\c6) Children      -\cf 'en.20,42)
+sendstring left('\ce21\c6) Intelligence       -\cf 'en.21,55)
+transmit left(' \ce22\c6) Do You Smoke  -\cf 'en.22,42)
+sendstring left('\ce23\c6) Schooling          -\cf 'en.23,55)
+transmit left(' \ce24\c6) TV Viewed     -\cf 'en.24,42)
+sendstring left('\ce25\c6) Do You Drink       -\cf 'en.25,55)
+transmit left(' \ce26\c6) Upbringing    -\cf 'en.26,42)
+sendstring left('\ce27\c6) Dating/Available?  -\cf 'en.27,88)
+sendstring left('\ce28\c6) I love...          -\cf 'en.28,88)
+sendstring left('\ce29\c6) I hate...          -\cf 'en.29,88)
+sendstring left('\ce30\c6) What type of Music do you like?  -\cf 'en.30,88)
+sendstring left('\ce31\c6) Attitude on Recreational Drugs   -\cf 'en.31,88)
+sendstring left('\ce32\c6) Activities/Interests  -\cf 'en.32,88)
+sendstring left('\ce33\c6) Summary  -\cf 'en.33,88)
+sendstring '\c6Select [\ce##\c6] of field (1-33) to edit <\ceENTER=Save/Quit\c6>\n1\ce-\c6>\q1 '
+call GETNUM
+if x = '0' then call SAVE
+call ASKONE
+en.x = ans
+call EDIT
+
+NOTAV:
+	transmit '\cb'Ohandle 'has not completed a Registry.'
+	exit
+
+ASKONE:
+	if x = 1 then transmit '\c6What is your Name / Company?                       \n1   [...............................] (33 spaces)'
+	if x = 3 then transmit '\c6What is your City / State / Phone Number?\n1   [...............................] (33 spaces)'
+	if x = 5 then transmit '\c6Describe your computer system.\n1   [...............................] (33 spaces)'
+	if x = 7 then transmit '\c6What is your current Occupation?\n1   [...............................] (33 spaces)'
+	if x = 9 then transmit '\c6Where were you born?\n1   [...............................] (33 spaces)'
+	if x = 11 then transmit '\c6What Foriegn Languages do you know?\n1   [...............................] (33 spaces)'
+	if x = 13 then transmit '\c6What do you think about this BBS?\n1   [..............................] (33 spaces)'
+	if x = 15 then transmit '\c6What are you looking for?\n1   [..............................] (33 spaces)'
+	if x = 2 then transmit '\c6How old are you?\n1   [....] (6 spaces)'
+	if x = 4 then transmit '\c6What is your Birthdate (ex: "05/17") ?\n1   [....] (6 spaces)'
+	if x = 6 then transmit '\c6Are you Male / Female / Other?\n1   [....] (6 spaces)'
+	if x = 8 then transmit '\c6How tall are you?\n1   [....] (6 spaces)'
+	if x = 10 then transmit '\c6How much do you wiegh?\n1   [....] (6 spaces)'
+	if x = 12 then transmit '\c6What color is your hair?\n1   [....] (6 spaces)'
+	if x = 14 then transmit '\c6What color are you eyes?\n1   [....] (6 spaces)'
+	if x = 16 then transmit '\c6What race do you consider yourself to be?\n1   [....] (6 spaces)'
+	if x = 17 then transmit '\c6What is your sexual preference?\n1   [...................] (21 spaces)'
+	if x = 19 then transmit '\c6Are you attractive?\n1   [...................] (21 spaces)'
+	if x = 21 then transmit '\c6Are you intellegent?\n1   [...................] (21 spaces)'
+	if x = 23 then transmit '\c6What Schooling have you had?\n1   [...................] (21 spaces)'
+	if x = 25 then transmit '\c6Do you drink?\n1   [...................] (21 spaces)'
+	if x = 18 then transmit '\c6What is your current marital status?\n1   [..........] (12 spaces)'
+	if x = 20 then transmit '\c6Do you have any children? if yes, how many?\n1   [..........] (12 spaces)'
+	if x = 22 then transmit '\c6Do you smoke?\n1   [..........] (12 spaces)'
+	if x = 24 then transmit '\c6Whats your favorite TV show?\n1   [..........] (12 spaces)'
+	if x = 26 then transmit '\c6Describe your upbringing!\n1   [..........] (12 spaces)'
+	if x = 27 then transmit '\c6Available for dating?\n1   [....................................................] (43 spaces)'
+	if x = 28 then transmit '\c6What do you love?\n1   [....................................................] (43 spaces)'
+	if x = 29 then transmit '\c6What do you hate?\n1   [....................................................] (43 spaces)'
+	if x = 30 then transmit '\c6What type of music do you like?\n1   [......................................] (39 spaces)'
+	if x = 31 then transmit '\c6What is your attitude on recreational drugs?\n1   [......................................] (39 spaces)'
+	if x = 32 then transmit '\c6What are your Activities / Interestes?\n1   [.................................................] (50 spaces)'
+	if x = 33 then transmit '\c6Please enter a brief one-line summary of yourself.\n1   [..............................................................] (62 spaces)'
+	sendstring '\c6-\ce>\q1 '
+	bufferflush
+	query
+	ans = result
+	if ans = '###PANIC' then signal SAVE
+	if ans = '' then call ASKONE
+	return
+
+DIRE:
+	transmit '\f1'
+	Sendfile (path1'ZFinger.list')
+	sendstring '\n1\caPress and key...\q1'
+	getchar
+	junk = result
+	call MAIN
+
+GETNUM:
+	bufferflush
+	receive
+	x=result
+	if x='###PANIC' then signal quit
+	if x='' then x=0
+	x=strip(x,,'%')
+	x=strip(x,,'$')
+	if datatype(x,w)~=1 then do
+	 transmit '\b1\cbWhat you tryin to pull??  Enter a REAL number!'
+	 sendstring '\c6-\ce>\q1 '
+	 call GETNUM
+	end
+	if x<0 then do
+	 transmit '\b1\cbWhat you tryin to pull??  Enter a number that is POSITIVE!'
+	 sendstring '\c6-\ce>\q1 '
+	 call GETNUM
+	end
+	if x=99 then do
+	 call MENU
+	end
+	if x>33 then do
+	 transmit '\b1\cbWhat you tryin to pull??  Enter a number LOWER than 34!'
+	 sendstring '\c6-\ce>\q1 '
+	 call GETNUM
+	end
+	return
+
+SAVE:
+	sendstring '\n1\c6Saving...\q1'
+	call open(user,path2||Ouucp'/_zreg','W')
+	do i=1 to 33
+	 writeln(user,en.i)
+	end
+	call close user
+	if ~exists(path2||Ouucp'/_zreg') then call NOTHERE
+	call open(user,path2||Ouucp'/_zreg','R')
+	do i=1 to 33
+	en.i=readln(user)
+	end
+	call close user
+	sendstring '\ce...DONE!\q1'
+	call QUIT
+
+QUIT:
+	transmit '\f1\c4<\c6<\ce< \cfZFinger 'ver' (C)opyright 1992 Zach Johnson (Avatar) \ce>\c6>\c4>\n1\c9Sysop of Purgatory BBS \ce1\c6(\ce916\c6)\ce662\c6-\ce3115 \c7300-2400 Baud Hunt\n1\c95+ lines/C-NET Support \ce1\c6(\ce916\c6)\ce662\c6-\ce2541 \c72400-14,400 HST\n1\q1'
+	transmit '\cbReturning you to 'bbs'...\q1'
+	BBSCOMMAND 'MU *'
+	EXIT
+
+EXIT:
+	BBSCOMMAND 'MU *'
+	EXIT
+

@@ -1,0 +1,128 @@
+;SkyChat 3.1
+;Copyright © 12/1996 Matthias Kaulartz
+;Installationsscript für Commodore Installer
+
+(set @default-dest "Prometheus:SkyTools")
+(transcript "Installation von SkyChat V3.1")
+
+(set sourc "install/")
+(set desti (tackon @default-dest "SkyChat"))
+(set destkonf (tackon desti "BeispielKonfig"))
+
+(message
+  "\n\n\n\nWillkommen bei der SkyChat V3.1 Installation.\n\n"
+  "Die Installation wird automatisch ausgeführt.\n"
+)
+
+(working)
+
+(if (= (exists @default-dest) 0 (makedir @default-dest (infos) )))
+(if (= (exists (tackon @default-dest "SkyChat")) 0 (makedir (tackon @default-dest "SkyChat") (infos) )))
+
+(complete 10)
+
+(copyfiles
+  (prompt "Kopiere Files...\nDer Pfadname muß beibehalten werden!")
+  (choices "SkyChat" "SkyChat.guide" "NetzAntrag.txt" "Register.txt")
+  (source sourc)
+  (dest desti)
+  (help @copyfiles-help)
+  (infos)
+  (confirm)
+)
+
+(complete 20)
+
+(copyfiles
+  (prompt "Kopiere Einstellungsprogramm...\nDer Pfadname kann geändert werden (z.B. SYS:Prefs).")
+  (choices "SkyChat-Prefs")
+  (source sourc)
+  (dest "SkyTools:SkyChat")
+  (help @copyfiles-help)
+  (infos)
+  (confirm)
+)
+
+(complete 40)
+
+(copyfiles
+  (prompt "Kopiere FastPlay...\nDer Pfadname muß beibehalten werden!")
+  (choices "FastPlay")
+  (source sourc)
+  (dest "C:")
+  (confirm)
+  (help
+    (cat "Das Programm wird standardmäßig zum Abspielen der Module gebraucht, ist aber nicht zwingend nötig.\n\n"
+         @copyfiles-help)
+  )
+)
+
+(complete 50)
+
+(copyfiles
+  (prompt "Kopiere ARexx-Skripte zur Ansteuerung von DeliTracker...")
+  (choices "DeliTracker_Start.rexx" "DeliTracker_Ende.rexx")
+  (source sourc)
+  (dest desti)
+  (confirm)
+  (help
+    (cat "Mit diesen Skripten wird DeliTracker angesteuert.\n\n" @copyfiles-help)
+  )
+)
+
+(complete 65)
+
+(copyfiles
+  (prompt "Kopiere Musik-Module...")
+  (choices "Sirene.mod" "Tatue.mod")
+  (source sourc)
+  (dest desti)
+  (confirm)
+  (help
+    (cat "Diese zwei Module liegen als Standard-Module bei.\n\n" @copyfiles-help)
+  )
+)
+
+(complete 80)
+
+(if
+  (askbool
+    (prompt "\n\n\nEs werden nun Beispielskonfigurationen in ein seperates Verzeichnis kopiert. Ihre bisherigen Einstellungen bleiben erhalten.")
+    (choices "Ja" "Nein")
+    (default 1)
+    (help "Sie sollten die Beispiel-Dateien installieren, um ihre Funktionen nachvollziehen zu können.")
+  )
+  (
+    (if (= (exists destkonf) 0 (makedir destkonf)))
+    (copyfiles
+      (prompt "Kopiere Files...")
+      (pattern "#?.cfg")
+      (source sourc)
+      (dest destkonf)
+    )
+  )
+)
+
+(complete 95)
+
+(makeassign "SkyTools" "Prometheus:SkyTools")
+
+(startup "SkyTools"
+  (prompt "\n\n\n\nDas SkyTools-Assign wird nun Ihrer User-Startup zugefügt.\n\n")
+  (help @startup-help)
+  (command "Assign SkyTools: \"" @default-dest "\"\n")
+)
+
+(complete 100)
+
+(message
+  "\n\nZur weiteren Installation und Konfiguration von SkyChat schauen Sie bitte in die Anleitung.\n\nHaben Sie bisher KFVipChatPro verwendet, rufen Sie im Prefs-Programm auf den Menüpunkt >Import< auf, um die Einstellungen zu übernehmen."
+)
+
+(message
+  "\n\n\nSkyChat ist fast Freeware! Bitte schauen Sie in die Anleitung!"
+)
+
+(Message
+  "\n\n\nFür alle SkyTools existiert ein eigenes Support-Netz, das SkyNetz, in dem Sie Informationen, Hilfestellung, Diskussionen und natürlich die neusten Versionen der Programme erhalten."
+)

@@ -1,0 +1,109 @@
+/* $VER: BBBBSdemon.baud 8.0 (11.11.94)
+
+USAGE: run rx BBBBSdemon.baud   ; run after BaudBandit is running
+
+This program handles those cases where BBBBS might fail to properly
+log-off after a disconnect during transfer or message entry.
+(The classic case is a hangup during message entry, followed by
+numerous "RING"s... The BBS sees the RING and thinks the user is
+still entering text, so it doesn't close the buffer!)
+
+Reboots after about 10 minutes (5 decreasing checks) if the user
+didn't logout (BBS_level~=''), and there is no carrier.
+
+Does nothing the 1st time, then tries closing the buffer,
+and finally, on the third check, tries CTRL-C & ESC (nasty reset!).
+
+If all this fails to reset the BBS, the program boot is
+run if is found in the C: directory.
+
+*/
+
+
+IF SHOW('P','BBBBS_DEMON') THEN EXIT
+CALL OPENPORT('BBBBS_DEMON')
+CR='0D'x
+
+chances=1
+DO WHILE chances<7              /* 6 checks */
+  CALL DELAY(50*300%chances)    /* pauses get shorter with trouble */
+  p=GETPKT('BBBBS_DEMON')       /* ANY message means time to quit */
+  IF p~='0000 0000'x THEN
+    DO WHILE p~='0000 0000'x    /* empty the port */
+      DO
+        t=REPLY(p,0)
+        p=GETPKT('BBBBS_DEMON')
+      END
+      chances=7                 /* ... and quit */
+    END
+  ELSE IF GETCLIP('BBS_level')='' THEN
+    chances=1   /* inactive bbs */
+  ELSE IF ~SHOW('P','BBBBS') THEN
+    DO
+      IF GETCLIP('BBS_level')~='' THEN
+        DO
+          CALL SETCLIP('BBS_level') /* BBBBS has crashed? restart */
+          ADDRESS AREXX bbsRestart.rexx
+        END
+      chances=1   /* bbbbs not running */
+    END
+  ELSE
+    DO
+      ADDRESS BAUD
+      dcd
+      IF RC=0 THEN
+        DO
+          chances=chances+1                   /* no carrier, so... */
+          IF chances=2 THEN      /* tell "difficult" doors to quit */
+            DO
+              Send '\r/E\r'
+              CALL DELAY(150)
+              IF GETCLIP('BBS_level')='' THEN BREAK
+              Send '\rEXIT\r'
+              CALL DELAY(150)
+              IF GETCLIP('BBS_level')='' THEN BREAK
+              Send '\rQUIT\r'
+              CALL DELAY(150)
+              IF GETCLIP('BBS_level')='' THEN BREAK
+              Send '\rQ\r'
+              CALL DELAY(150)
+              IF GETCLIP('BBS_level')='' THEN BREAK
+              Send '\rOFF\r'
+              CALL DELAY(150)
+              IF GETCLIP('BBS_level')='' THEN BREAK
+              Send '\rBYE\r'
+            END
+          IF chances=3 THEN
+            DO
+              Send '\r/E\r'   /* be sure buffer is closed */
+              IF GETCLIP('BBS_level')~='' THEN
+                DO
+                  CALL DELAY(100)
+                  Send '\ah'
+                END
+            END
+          IF chances=4 THEN Send '\e'      /* ESCape to stop transfer */
+          IF chances=5 THEN Send '\aB'     /* Tell BB to abort ARexx */
+          IF chances=6 THEN                /* time to die */
+            DO
+              SAY 'BBBBS_Demon calling reboot in 20 seconds...'
+              Send '\rBBBBS_Demon calling reboot in 20 seconds...\r'
+              chances=1
+              bbspath=GETCLIP('BBS_path')
+              IF bbspath~='' THEN
+                ADDRESS COMMAND 'date >'bbspath'Numbers/LastDemonBoot'
+              IF EXISTS(bbspath'Sounds/Alert') THEN
+                ADDRESS COMMAND 'c:sound' bbspath'Sounds/Alert 5'
+              IF EXISTS('c:boot') THEN
+                DO
+                  CALL DELAY(250)
+                  ADDRESS COMMAND boot
+                END
+            END
+        END
+      ELSE chances=1
+    END
+END
+EXIT
+
+/* BBBBSdemon.baud */

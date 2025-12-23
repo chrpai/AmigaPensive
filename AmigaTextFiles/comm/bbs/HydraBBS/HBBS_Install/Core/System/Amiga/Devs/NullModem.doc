@@ -1,0 +1,177 @@
+
+                          nullmodem.device v2.3
+
+                          (c) 1993 Iain Hibbert
+
+           nullmodem.device is a software device, that imitates
+           two modems and a phone line, on one machine. I wrote
+           it whilst looking at the WPL scripting language,  so
+           that I could play around without having to spend any
+           money on expensive  phone calls,  but it can be used
+           for testing various other programs.
+
+1. Installation
+---------------
+
+     This archive should contain two files:
+
+        nullmodem.device
+        NullModem.doc
+
+     Copy nullmodem.device to devs:nullmodem.device, and Read NullModem.doc
+
+2. Usage
+--------
+
+     There are 10 units available, connected in pairs (you will  not  likely
+ need more than one pair, but it was as easy to provide 5)
+
+                    Unit 0 <=> Unit 1
+                    Unit 2 <=> Unit 3
+                    Unit 4 <=> Unit 5
+                    Unit 6 <=> Unit 7
+                    Unit 8 <=> Unit 9
+
+     Set up your Terminal/Mailer/BBS's to use one side each of  the  device,
+ you should be able to  select  a  replacement  for  the  serial.device  and
+ alternative unit numbers easily enough in the software or config files.  In
+ use, it emulates a simple hayes modem, with a limited AT command set:
+
+    D           Dial
+
+        this command causes the other side to RING for the number of
+        seconds specified in S1 (Dial Timeout) and returns NO CARRIER
+        if there was no answer. Anything after the D is discarded
+
+    A           Answer
+
+        attempts to answer the phone, returning the CONNECT message or
+        NO CARRIER if nobody was ringing us. Anything after the A is
+        discarded
+
+    S<r>=<v>    set S register
+
+        <r> is the register number, up to 077 (octal)
+        <v> is the value to set it to, values 0-0377 (octal)
+
+        NOTE: both numbers need to be given in Octal
+
+        The S registers you can play with are:
+
+        #           Description                             Default
+
+        0       AutoAnswer after # of rings                   000
+        1       Debugging Level (see section 4 below)         000
+        2       Dial Timeout                                  020
+        3       Answer Delay                                  002
+        4       which Speed to report (section 3 below)       012
+        5       Backspace character value                     010
+        7       which Protocol to report (section 3 below)    011
+       12       Toggle local echo on/off                      001
+
+    L       List modem version information, and S Registers
+
+    Z       sets the S-Registers to their default values
+
+    Examples:
+
+        ATZS1=1S4=5S7=7D123456  ; enable debugging, set connect message to
+                                ; CONNECT 2400/REL-LAPM-COMP (v42bis), and
+                                ; dial the other unit
+
+        ATA                     ; attempt to answer
+
+3. Connect Speeds
+-----------------
+
+     The Nullmodem device doesn't have connect speeds as such, because it is
+ not connected to any hardware.. but the CONNECT  message  is  configurable,
+ via a couple of S registers.
+
+           Value          Speed (S4)          Protocol (S7)
+
+            00              none                none
+            01              103                 /NONE
+            02              V21                 /SYNC
+            03              300                 /REL
+            04              1200                /REL-MNP
+            05              2400                /REL-MNP-COMP
+            06              4800                /REL-LAPM
+            07              7200                /REL-LAPM-COMP
+            10              9600                /V32
+            11              12000               /ARQ
+            12              14400               /ARQ/HST
+            13              16800               /ARQ/HST/HST/V42BIS
+            14              19200               /ARQ/HST/HST/MNP5
+            15                                  /ARQ/V32
+            16                                  /ARQ/V32/LAPM/V42BIS
+            17                                  /ARQ/V32/LAPM/MNP
+            20                                  /ARQ/V32/LAPM/MNP5
+            21                                  /ARQ/LAPM/V42BIS
+            22                                  /V42BIS
+
+    The connect messages may be different for each side of the device
+
+4. Debug Levels
+---------------
+
+     Debugging info is sent to the internal serial port at 9600 baud, or you
+ can use Sushi to print it in a console window, debugging  levels  are  0-2,
+ from 0 = No debugging info to 2 = loads of useless junk. 1 is probably  the
+ most useful. If you have a modem on the internal serial port that you  want
+ to use while testing, do not enable debugging unless you run Sushi..
+
+5. Technical Details
+--------------------
+
+     The following device commands are not fully implemented:
+
+        CMD_RESET       ;   there is nothing to reset, I don't think
+
+        CMD_START       ;   these translate to XON/XOFF flow control,
+        CMD_STOP        ;   so you can't use that either.
+
+        SDCMD_BREAK     ;   if anybody needs this, let me know what you
+                        ;   need it to do..
+
+        SDCMD_SETPARAMS ;   there are no parameters to set
+
+        SDCMD_QUERY     ;   not fully implemented, it returns the number of
+                        ;   characters in the buffer, and Carrier Detect,
+                        ;   but nothing else
+
+
+     I have partly implemented the ASDG extension command (io_Command = 16),
+
+        ASDG_SET_CONTROL_LINES  ;   provides user control for RTS and DTR
+                                ;   currently you can only lower DTR which
+                                ;   causes the modem to hang up.
+
+     Note that the modem does not handle +++ATH type hangups, you  must  use
+ either the Commodore suggested method of closing the serial  device  for  a
+ moment, or the above ASDG extension.
+
+6. Copyright
+------------
+
+     nullmodem.device is (C) 1993 Iain Hibbert and it's freely distributable
+ as long as all of its files are included in  their  original  form  without
+ additions, deletions, or modifications of any kind, and only a nominal  fee
+ is charged for its distribution.
+
+     This software is provided "AS IS" without warranty of any kind,  either
+ expressed or implied. Reading Legal mush can turn your brain to  guacamole.
+ By using nullmodem.device you accept either the whole risk or  the  quality
+ and performance of the program.
+
+7. The Author
+-------------
+
+      Iain Hibbert           UUCP:      plunky@closet.wizdom.royle.org
+                             FidoNet:   2:255/171.33
+                             AmigaNet:  39:136/1.33
+
+     You should probably be able to reach me at one of the above  addresses,
+ if you are using Comms software regularly. Please contact me  if  you  have
+ any  problems  or  suggestions.  I  do  not  guarantee  to  implement   any
+ suggestions or fix any bugs, but it can't hurt to try.

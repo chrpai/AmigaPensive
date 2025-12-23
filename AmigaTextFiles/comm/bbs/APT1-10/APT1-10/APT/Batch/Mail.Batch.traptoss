@@ -1,0 +1,42 @@
+; This script unpacks and tosses mail and packs outgoing mail
+
+; First, I lower my task priority so I do not slow down anything else
+changetaskpri -1
+
+; Second, I make a safety backup copy of the inbound mail bundles
+copy mail:inbound/????????.((mo|tu|we|th|fr|sa|su)(0|1|2|3|4|5|6|7|8|9)|pkt) mail:bak clone
+
+; Then I call TrapToss to toss and scan mail. The NOSCANOUTBOUND and
+; NOROUTING keywords tell TrapToss that it should not mess with .FLO files
+; in the outbound directory at this time nor should it archive anything
+; yet. This is important because TrapDoor could just be trying to send an
+; archive and the two programs might conflict.
+
+failat 21
+TrapToss toss scan noscanoutbound norouting
+
+; So before I start changing archives in the outbound directory, I turn
+; off TrapDoor (i.e. I disable inbound calls)
+
+;failat 101
+;TrapTell "rings 99"
+;TrapTell "rings 99"
+;failat 21
+
+; Now I can pack the mail
+
+TrapToss scanoutbound routing
+
+; Finally, I re-enable TrapDoor
+
+;failat 101
+;TrapTell "rings 1"
+;TrapTell "rings 1"
+;failat 21
+
+ApT:ApTmail
+rx ApT:rexx/ImportTics.rexx
+
+; set task priority back to normal
+
+changetaskpri 0

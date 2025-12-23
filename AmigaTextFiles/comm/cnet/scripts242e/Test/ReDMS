@@ -1,0 +1,82 @@
+/* ReDMS by Shawn McNeece aka Powerslave */
+pragma('P',-1)	/*change task priority to not take over amiga */
+
+parse arg cliargs	/* if arguments, then pass to cliargs */
+pathf=word(cliargs,1)   /*extract path and filename from args */
+fn=word(cliargs,2)      /*extract filename with extension stripped */
+path=left(pathf,length(pathf)-length(fn)-4)  /*find current path from args*/
+rez="pipe:"||fn                              /* create a pipe: name thats orignal by using the upload file name */
+cmstr="run dms >"||rez" view "||pathf        /*build a command string to send to dos
+                                               It will end up looking like:
+	                                       run dms >pipe:filename view udbase0:Uploads/filename.dms */
+address command cmstr   /* send the string cmstr to dos */
+address command 'wait'  /* have script wait 1 second while PIPE opens */
+			/* 68030 Users may be able to delete that line*/
+rc = OPEN(res,rez,'R')  /* open pipe: for reading */
+if rc < 1 then          /*abort if PIPE: cant be opened */
+do
+say '\c2Error, \c5No Results Created.'
+close(res);
+exit
+end
+
+i=0
+do until eof(res)
+i=i+1;ln.i = READLN(res)  /* read in all of pipe:'s output */
+end			  /* place into stem varible */
+close(res)               
+Say 'Analyzing '||pathf||'...'
+tstwrd=word(ln.16,4)              /* get compression mode */
+size = word(ln.7,3)		  /* get file size in bytes */
+say 'Compression Used:' tstwrd 'Size:' size
+
+/* test compression mode and reconvert if not equal to any of these */
+if tstwrd ~="HEAVY1" & tstwrd ~="HEAVY2" & tstwrd ~="DEEP" then 
+do /* start of main DO...END*/
+
+ say 'Converting '||fn||'.dms to better compression mode'
+ cstr="dms repack "pathf" to "path||fn||"tmp.dms cmode best"
+ address command cstr
+
+ /* view new .dms file for comparison */
+ cmstr="run dms >"||rez" view "||path||fn||"tmp.dms"
+ address command cmstr
+
+ rc = OPEN(res,rez,'R')  /*open pipe: again */
+ if rc < 1 then do
+   say '\c2Error, \c5No Results Created.'
+   close(res);
+ end
+
+ i=0
+  do until eof(res)  /* read pipe again */
+     i=i+1;ln.i = READLN(res)
+  end
+ close(res)
+ size2 = word(ln.7,3)   /*get new file size */
+ tstwrd2=word(ln.16,4)  /*get new compression mode */
+ if size <=0 then size = size2+1  /*sometimes dms view will report size of 0 */
+ savings=size-size2
+ say 'Filename:      ' pathf
+ say 'Original CMODE:' tstwrd 
+ say 'New CMODE:     ' tstwrd2
+ say 'Original size: ' size 
+ say 'Converted size:' size2
+   if savings >=1 & size2 ~=0 then do
+      cstr="delete "pathf  /*delete old dms */
+        address command cstr
+           cstr="rename "||path||fn||"tmp.dms "||path||fn||".dms"
+           address command cstr	 /* rename new compressed to old filename */
+         say "Byte Savings="savings 
+       pct=left(size2 / size,4)*100
+     say "Percentage gained=" 100-pct
+   end
+  else do
+       cstr="delete "||path||fn||".dms"  /*delete new archvie just incase its */
+       address command cstr		/* bigger than the original */
+     end
+
+end /* end main DO */
+say 'Done'
+exit(0)
+

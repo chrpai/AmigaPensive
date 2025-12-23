@@ -1,0 +1,48 @@
+/* chatsound_on.apt
+**
+** $VER: chatsound_on.apt 0.01 (01.03.93)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright (c) 1993 ApT-Design All Rights Reserved,TS
+*/
+
+/* Standard ApTX header  -   Don't require the huge equates bit */
+
+options results
+
+parse arg lineno
+
+portname = 'APTREXX'lineno
+
+address value portname
+
+modname = 'bbs:modules/PFTP_guv'			/* Project/Sample file */
+
+/*------------------------------------------------------------------*/
+
+if ~show('Libraries', 'rexxsupport.library') then do
+ if ~addlib('rexxsupport.library', 0, -30, 0) then exit
+ /* Make sure you got that library eh! */
+end
+
+/*------------------------------------------------------------------*/
+
+/* If already paging then it will stop and load the module again.. */
+/* This is because the sysop may just happen to be playing something */
+/* But we will unload it anyway ;-> */
+
+if ~show('PORTS','RXTRACKER') then do;'APTXEND';exit;end/* What no MultiPlayer? */
+
+address 'RXTRACKER'
+
+'UNLOAD'
+
+'PLAY 'modname
+
+address value portname
+
+'APTXEND'			/* And leave arexx to close things itself */
+exit
+
+

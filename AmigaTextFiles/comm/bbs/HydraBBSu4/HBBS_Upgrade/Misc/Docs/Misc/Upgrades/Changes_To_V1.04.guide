@@ -1,0 +1,226 @@
+@Database Changes_To_V1.04.guide
+
+@Node Main "Changes to HydraBBS between V1.03 and V1.04"
+
+  *** Sysop Information ***
+
+  Please read *ALL* of this file, or you won't know about some of the great
+  new features of this release.
+
+  Go on, it'll only take you a couple of minutes.
+
+  This document is stored as HBBS:Docs/Misc/Upgrades/Changes_To_V1.04.Guide
+
+
+  Changes to HydraBBS between V1.03 and V1.04
+  ===========================================
+
+  * Tools!
+
+    If you look in HBBS:System/Amiga/CLI you will now find the
+    tools that I used in the default "FileID" config file that are
+    used to extract and update file id's.
+
+    I also recommend the following versions of these archivers:
+
+    LhA 2.1 (04/17/99)
+    LZX 1.20
+    UnZip 5.32 of 3 November 1997, by Info-ZIP
+    DMS 1.53 Turbo Pro, Updated 1993 by Blackhawk/PARADOX
+
+    (Any later versions should be fine, but make sure you test them,
+    also note that some versions of UnZip are case sensitive and require
+    options to make them case insensitive)
+
+    All the tools I use can be obtained from Aminet.
+
+  * Example Config Files
+
+    ** IMPORTANT ***
+
+    Oops, the example config called HBBS:Storage/Example_Configs/System/FileID
+    was telling LHA and LZX to use a temporary directory of ":T" still
+
+    But I didn't mention this in the docs, lha and lzx may not have been able to
+    update file_id.diz's in some files if you didn't have a "T" directory
+    in the root of the partition that HydraBBS was installed on.
+
+    I have removed the "-w:T" paramaters from the example config now, please
+    check to see if this is required or incorrect for your system.
+
+    Setting the -w option for LHA and LZX (or other archivers that have to update
+    very large archives) is a GOOD THING if you have a file bigger than your
+    available memory.  See the docs for LHA and LZX for more about what the -w
+    option does.
+
+  * ExtractDIZ
+
+    Internally changed to use HBBS_DosCommand() instead of HBBS_RunDOSCMD()
+
+    ** IMPORTANT **
+
+    Please modify your "HBBS:System/FileID" file and remove all occurences
+    of "<>NIL:" as the output from these commands is now handled by
+    the system.
+
+  * Adverts
+
+    Created this new system door, it's used to add adverts to files
+    based on file types.
+
+    The config file is *very* similar to the HBBS:System/FCheck config
+    file.  This door was requested by [-SPY-].
+
+    Please see @{"HBBS:Docs/Doors/Adverts.Guide" link HBBS:Docs/Doors/Adverts.Guide/MAIN}
+
+  * Check_Corrupt
+
+    Created door, please see @{"HBBS:Docs/Doors/Check_Corrupt.Guide" link HBBS:Docs/Doors/Check_Corrupt.Guide/MAIN}
+
+    HBBS:System/FileID is completely different now. see the docs.
+
+  * FreeDL
+
+    This door has been created, please see @{"HBBS:Docs/Doors/FreeDL.Guide" link HBBS:Docs/Doors/FreeDL.Guide/MAIN}
+
+  * AskConf
+
+    Updated so that you can configure the messages displayed to a user from
+    a config file.  Please see @{"HBBS:Docs/Doors/AskConf.Guide" link HBBS:Docs/Doors/AskConf.Guide/MAIN}
+
+  * Node
+
+    The LastCallers/PWFails/Pagers etc display in the info window
+    (and thus, the same data in the Control area) is now time and date-stamped.
+
+    If the user is kicked off by the sysop (via SHIFT+F10 when they're online)
+    the callers log will now have a message in it tho this effect.
+
+    Also a new action character will be added to the callers log actions
+    log: "K".
+
+  * XPR
+
+    Fixed the hanging of a node window when you cancel an XPR
+    transfer, also, when you cancel an XPR transfer now, the other
+    computer (i.e. the user's machine) receives the cancel message
+    properly.  All this happens because of an undocumented XPR
+    library feature!  Great...
+
+    Well now I've tested cancelling an xfer before the user actually
+    started receving and it doesn't lock up the node or crash it now.
+    tested using nullmodem.device and telnetd.device. both were OK..
+
+    However, when a user attempts to cancel the transfer it does not
+    regognise or acknoledge the cancel request, the xpr window
+    just sits there until the XPR transfer times out..
+
+    For your information, because the XPR and Hydra transfer doors
+    are external, they must use the already opened serial device
+    that is on-line, without using SERF_SHARED (because some devices
+    do not support that mode of working), the problem with it has
+    been releasing the serial device BACK to the node program.  I
+    think this is fixed now but it needs more people to test it and
+    let me know that it's working OK.
+
+    So please, if it works now and it didn't before then please let me
+    know what serial.device driver you're using..
+
+    The HYDRA door used an alternate method of grabbing the serial
+    port, which I've now implemented into the XPR door.
+
+  * MoveFile
+
+    It would never actually move a BAD file to the Conference's BADFiles
+    directory - fixed.
+
+    It was displayed "file moved to download path" even when the file had been
+    moved to a HOLD or BAD etc directory, now it just displays "File moved OK"
+
+    If anyone wants this door to tell the USER where the file was moved to then
+    let me know and I'll add it in (very simple)
+
+  * CheckFiles
+
+    Adjusted calling of Check_Corrupt system door, paramaters
+    re-organized and changed.  Existing doors will have to be re-coded
+
+    Now calls an "Adverts" system door at the request of [-SPY-]
+
+    Added extensive carrier loss checking, things were being written to the
+    screen after a user dropped carrier during a file check.
+
+    Added NOSYSOPTEXT system option, use in HBBS:Commands/System if you like..
+    This limits checkfile's output of the current file check progress to
+    the sysop.
+
+    See the example config file, HBBS:Storage/Example_Configs/Commands/System
+
+  * FileLister
+
+    Added option to scan the BADFILES list for a conference.
+
+    Type in "FR ?" at the command prompt
+
+  * Download
+
+    Now checks if the tagged files are valid for sysop downloads
+    (usefull if you tag files in a cd-rom conference and have a
+    different or no cd in the drive)
+
+  * HBBSNode.library and HBBSCommon.library
+
+    Libversion and Librevision were accidentally set to 17.2!
+
+    Librevision CANNOT be set to ".04", so it'll be set to "0"
+    until "V1.10".
+
+    This only affects the version command when the library is
+    in memory, as the actual $VER: string is correct, i.e. "V1.04",
+    Fortunatly this is what most things use...
+
+  * HBBSCommon.library
+
+    Added HBBS_DosCommand().  Similar to HBBS_RunDOSCMD() except that
+    it accepts flags instead of a single paramater.  You can use it
+    with RDC_#? flags in defines.h.
+
+    See HBBS:Developer/Docs/hbbscommon.library.doc for details.
+
+  * FileHistory
+
+    Removed SysopText()'s and make it use HBBS_DosCommand() instead of
+    HBBS_RunDOSCMD()
+
+    Added "-x0" to the paramaters for LHA and LZX
+
+  * CheckTags
+
+    File tags were cleared at login if user had tagged files and they dropped
+    carrier at the "Keep tagged files ?" prompt, fixed!
+
+  * LastCallers
+
+    Added an option NoScreenClear.  then the output file won't contain a
+    screen clear, so you can add headers to it!
+
+    For usage, just run "HBBS:Utils/LastCallers" with no paramaters.
+
+  * Control
+
+    Changed the "BBS Config" button to "BBSGlobal".  I might change this back
+    when there's a GUI or alternate config file editor that can be specified.
+
+  * XPR, Hydra, Node, AskDLFiles, CheckTags and Tag_File
+
+    These programs/doors have been updated to cope with free downloads.
+
+  * CmdPrompt
+
+    Now writes to the callers log when the user runs out of time.
+
+  * AddTime and AddCred
+
+    Removed a couple of old DOOR_SysopText()'s
+
+@EndNode

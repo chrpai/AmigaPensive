@@ -1,0 +1,243 @@
+@database 07c8e0f8-0
+@master //watcher/watcher.guide
+@$VER: 1.0
+@author "Case"
+@(c) "1995 Energy Telecommunications"
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+
+@node "Main" "WATCHER v1.00 by Case"
+@next "Overview"
+
+                Case of Energy Telecommunications Presents:
+
+
+                                @{b}WATCHER v1.0@{ub}
+
+
+              @{i}The C-Net/3 Subboard Activity Monitoring System@{ui}
+
+
+   Contents of this documentation:
+
+      @{"Overview    " link "Overview" 0} - What WATCHER does and what it's good for
+      @{"Installation" link "Installation" 0} - Put this here and that there to make it go
+      @{"Operation   " link "Operation" 0} - How to use WATCHER for best results
+      @{"Version Info" link "Version" 0} - When was what released and what was done.
+      @{"The Future  " link "Future" 0} - What is to come from WATCHER and Case???
+      @{"Contact Me! " link "Contact" 0} - How to get in touch with the author.
+@endnode
+
+@node "Overview" "Overview of WATCHER"
+@next "Installation"
+@prev "Main"
+
+   Most of my releases for C-Net have been to make a complex task easy to do
+and requiring little effort from the SysOp.  This comes from my own way of
+doing things, namely the LAZY WAY!  :)
+
+   WATCHER follows in this tradition, making a difficult task easy.  This time
+my utility allows you to find out at a moments notice which of your areas are
+the MOST POPULAR with your users.
+
+   While for some System Operators this may be an easy task I have found it a
+very difficult one.  When you carry a number of networks and really don't have
+the time to watch your users online it's hard to know what areas are being
+utilized and which aren't.  Sure, you can see in your logs when someone makes
+a post, but what about when the users are just READING in the area?  You are
+stuck not knowing what is going on with what.
+
+   Introduce WATCHER.  This program automatically records when users enter a
+subboard and keeps track of how popular your subboards are.  It works both
+from the new scan at logon and when users are physically in the Base area.
+WATCHER generates a graphical report that presents you three types of ways to
+check out the information it has collected.
+
+   First, it will give you a numerical figure telling you how many times the
+sub was entered by users.  Next, you get a percentage report that lets you
+know what percentage of the total entries that sub is responsible for. Finally
+you have a neato bar graph that shows how that sub compares to your most
+popular sub.
+
+   WATCHER maintains it's own data file for the most part.  It is easy to edit
+if you want to remove a sub or test something.  In addition the data file is
+only as large as the users make it.  Subs that aren't entered are not recorded
+at all in the data.
+
+   I'll save the more technical explanations of operation later on in the
+Operation section of this documentation.  Now it's on to the Installation
+portion of this thing-er-mijig!
+@endnode
+
+@node "Installation" "Installation of WATCHER"
+@next "Operation"
+@prev "Overview"
+
+   Installation of WATCHER is relatively painless as long as you follow the
+instructions carefully.  I've tried to make most of the routines as compact as
+possible to make the thing as fast as possible, so if you edit any of the
+Arexx programs please be careful with what you do!
+
+   NOTE:  The examples used are using the default of "PFILES:BBS/" so when
+          that is referenced place where YOU are installing it instead.
+
+          The { is really a CONTROL+Q, and the \ is CONTROL+Y! 
+ 
+   1. Select a place to install WATCHER's Arexx files.
+
+   If installing to PFILES:BBS/ you can skip step two and head for three!
+
+   2. Edit watcher.rexx with a text editor, and change the PATH setting
+      in the file to reflect where you want to install the files.
+
+   3. Copy watcher.rexx and watchermain.rexx to where you decided to
+      put them.
+
+   4. If you want to be able to generate a report with the command
+      WATCH, edit the BBSMENU file and add it as a Maintenance command.
+
+       Add this to your BBSMENU file:
+
+        WATCH | {#0 PFILES:BBS/watchermain.rexx SORT}
+
+   5. To generate a report nightly, add a new event to the Event scheduler
+      that is:
+
+           Command: RunArexx
+           Args: pfiles:bbs/watchermain.rexx SORT
+          Ports: Whatever port you use as your maintenance port
+           Type: Immediate--system idle or not
+           Time: Whenever you want it to run
+          Valid: 5
+       Interval: 0
+        Iterate: 1
+
+   6. Edit CNET:BBSTEXT and make the following changes:
+
+       Line 791: Add before everything, new line should be:
+        {#0pfiles:bbs/watcher.rexx}\n1\c7*%s:
+
+       Line 816: Add before everything, new line should be:
+        {#0pfiles:bbs/watcher.rexx}\n1\caLast visit was %s\n1
+
+   7. Reload the TEXT and MENUS using the pull down menu on the C-Net
+      control panel.
+
+   8. You are ready to go!
+@endnode
+
+@node "Operation" "Operation of WATCHER"
+@next "Version"
+@prev "Installation"
+
+   Operating WATCHER at current is pretty easy to do.  The program takes care
+of all files (god willing! :) so you really shouldn't have much in the way of
+maintenance to do.
+
+   There are, however, a few operation notes that you should be aware of to
+make the maximum use of WATCHER.
+
+   - WATCHER records information for users ENTERING subs.  It does not keep
+     track of posts, responses, or any of that.  You can do that with logs.
+   - Users scanning with the NS command are also counted by WATCHER, as well
+     as users entering the subs while they are in the Message Base.
+   - WATCHER launches itself into the background when a user enters a sub.
+     This way there is minimal delay while the user is online.  All updates
+     are done with the main routine.
+   - WATCHER *DOES NOT RECORD* any area a user enters that they do NOT HAVE
+     POST ACCESS FOR!  You can keep file areas from being included on your
+     list in this area if you'd like.  Just edit your file areas so that
+     no access groups have post access in them.  This was done to prevent
+     the datafile from growing out of control.
+   - To restart WATCHER, simple delete the data file which is listed below.
+     A new one will be generate the next time the program is run online.
+   - Extreme amounts of MCI commands within a subboard name might mess up
+     the display of the graph a bit.  The program attemps to strip the MCI
+     as best as I could figure out in as short as space as possible, so...
+   - The TOTAL of the PERCENTAGES sometimes will not total 100%.  This is
+     normal, as the decimal places are dropped for the display.  The output
+     of 00% is expected if you only have one sub in the database!
+   - You MUST have the AmigaDOS command "SORT" in your command path!  If you
+     don't have this, get it fast.  It is included with Workbench 2.0 so if
+     you are running C-Net you should already have this.
+
+   If you installed the BBSMENU command "WATCH" you can type this at any
+prompt to generate a new subboard activity report.  This is also done by the
+SYSTEM EVENT that is supplied in the documentation.  Both versions accomplish
+the same thing:  Generate and display the data file.
+
+   The files you should be aware of:
+
+      SYSDATA:watcher.data    <-> The data file used by WATCHER
+      SYSDATA:watcher.report  <-> The report generated by WATCHER
+      RAM:watcher.temp        <-> File for sorting/deleted after use
+
+   The "watcher.report" file is in standard MCI format so you can adopt it as
+a Gfile or whatever you would like to do with it.
+@endnode
+
+@node "Version" "Version/Release Information"
+@next "Future"
+@prev "Operation"
+
+
+ Version & Release Information
+
+
+ Version 1.00 28-Feb-1995: FIRST PUBLIC RELEASE OF WATCHER
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ - Looking forward to your comments and ideas!
+@endnode
+
+@node "Future" "The future of WATCHER"
+@next "Contact"
+@prev "Operation"
+
+   The future of WATCHER is up to you!  I have a ton of ideas for this
+program, and it can be used for a variety of functions now that the basic
+shell is done.
+
+   However, in order to make it the best for EVERYONE, I would like some
+feedback as to what you would like to see added into the program as it
+develops.
+
+   Some of my ideas:
+
+   - AUTOMATIC DELETION OF AREAS: The little accessed subs stay in the list
+     forever with this version (unless you edit the data file yourself) and
+     an automatic purge could possibly be added.
+   - SEPARATE REPORTS: How about a separate SUBBOARD, UDBASE, and PFILES
+     activity graphs?
+   - LIMITING THE DATA FILE: Allow a pre-determined amount of subs to be
+     tracked, deleting the least popular subs when a new sub comes online.
+
+   Contact me and let me know how you feel about the future!  :)
+@endnode
+
+@node "Contact" "Contacting the Author (CASE! ME!)"
+@prev "Future"
+
+   You can contact me, Case, via the following methods:
+
+   ELECTRONIC MAIL:
+
+         case@energytele.com   (Internet Mail) PREFERRED
+         case@1:129/265.0      (FidoNet Mail)
+
+   BULLETIN BOARDS:
+
+               Future World  313-255-2466  <C-Net HQ, E-Mail me at "Case">
+
+  Energy Telecommunications  412-339-0591  <My BBS! Six Nodes! 24.0k Line>
+                                           <Free INTERNET MAIL * A3000/25>
+
+
+ WATCHER v1.0 - Copyright 1995, Energy Telecommunications.  You are
+ authorized to distribute this program in it's original archive format
+ provided no modifications are made.  You are also authorized to edit the
+ copy you use personally if it is not distributed.   I will not be held
+ responsible for any loss of gravitational fields when using this program.
+
+
+ Please contact me with any suggestions or bug reports!
+@endnode
+

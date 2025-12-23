@@ -1,0 +1,329 @@
+; Installer for dCN!mULTiTOP
+; (C) 1996 by TranceTip (dCN-/F·dEZiGN)
+
+; $VER: Install dCN!mULTiTOP 2.0 (10.10.96)
+; Requires at least Installer 43.x (included)
+
+(set #appname "dCN!mULTiTOP")
+(set #destdir "FAME:Doors")
+(set #syscmddestdir "FAME:Settings/Doors/SYSCMD")
+(set #bbscmddestdir "FAME:Settings/Doors/BBSCMD")
+(set #sourcedir "Data")
+
+(set @default-dest #destdir)
+(set @app-name #appname)
+
+(set #verrev (getversion "Data/dCN!tOP/dCN!tOP"))
+
+(if #verrev
+  (
+    (set #ver (/ #verrev 65536))
+    (set #rev (- #verrev (* #ver 65536)))
+  )
+
+  (
+    (set #ver "x")
+    (set #rev "x")
+  )
+)
+
+(if (exists (tackon #destdir "dCN!tOP/dCN!tOP"))
+  (
+    (set #oldverrev (getversion (tackon #destdir "dCN!tOP/dCN!tOP")))
+
+    (if #oldverrev
+      (
+        (set #oldver (/ #oldverrev 65536))
+        (set #oldrev (- #oldverrev (* #oldver 65536)))
+      )
+
+      (
+        (set #oldver "x")
+        (set #oldrev "x")
+      )
+    )
+  )
+)
+
+
+
+(if (= @language "deutsch")
+  (
+  (set #welcometext (cat "Willkommen zum Installationsprogramm von " #appname " V" #ver "." #rev "!\n\n" #appname " ist ein Paket aus insgesamt drei Multi-Top Utilities für FAME."))
+  (set #willbecopied (cat "Das " #appname "-Programmpaket wird nun nach \"" #destdir "\" installiert. Die benötigten Verzeichnisse werden dort erstellt."))
+  (set #oldrenamed (cat "\n\nDie dort bereits existierenden Versionen " #oldver "." #oldrev " der Teilprogramme von " #appname " werden vorher umbenannt."))
+  (set #designs (cat #appname " bietet schon jetzt eine Auswahl von insgesamt %ld unterschiedlichen, chicen Designs!\n\nBitte lesen Sie den Guide und denken Sie daran, daß " #appname " Shareware ist. Schöne selbstgemachte Designs sollten an den Autor gesendet werden.\n\nDie registrierte Version bietet übrigens eine Reihe zusätzlicher Features!\n\n\nSigning off,\n\nTranceTip (dCN-/F·dEZiGN)"))
+  (set #installingfiles "Installiere benötigte Dateien...")
+  (set #installsyscmds "Jetzt werden drei SYSCMDs erstellt. Falls diese im System schon existieren, wird gefragt, ob darüber installiert werden soll.\n\nFalls nicht, wird z.B. aus \"ULSTAT\" automatisch \"ULSTAT(1,2,3...)\" etc. gemacht.")
+  (set #syscmdexists "Das SYSCMD \"%s\" existiert bereits.\n\nWollen Sie es trotzdem überschreiben oder es mit \"%s\" versuchen?")
+  (set #overwrite "Überschreiben")
+  (set #next "Nächstes")
+  (set #writesyscmd "Schreibe nun das SYSCMD \"%s\".")
+  (set #installbbscmds "Nun werden zwei BBSCMDs erstellt (\"Weektop\" und \"Conftop\").\n\nHierbei wird keine Überprüfung durchgeführt.")
+  (set #deletedatafiles (cat "Achtung!\n\n\nDiese Version von " #appname " ist von den eigenen Datenfiles her nicht mehr kompatibel zu den Vorversionen V1.0 und V1.1, da einige Optimierungen und Verbesserungen an der Datenfile-Struktur vorgenommen wurden.\n\nÜbernehmen Sie daher keinesfalls die alten .data-Files mit in die neue Version!"))
+  (set #copydatafiles (cat "Sollen die Weektop- und Conftop-Datenfiles aus der vorherigen " #appname "-Installation übernommen werden?\n\nDadurch bleiben die aktuellen Daten und auch alle Lastperiod- und Alltime-Topuser erhalten und " #appname " ist sofort wieder einsatzbereit." ))
+  (set #copyprefs "Möchten Sie Ihre alten Einstellungen übernehmen?")
+  (set #cmdsokay (cat "Da " #appname " bereits installiert war, ist anzunehmen, daß die Doors in FAME's Systemeditor noch richtig konfiguriert sind.\n\nMöchten Sie daher den Doorsettings-Part überspringen?"))
+  )
+
+  (
+  (set #welcometext (cat "Welcome to the installation script for " #appname " V" #ver "." #rev "!\n\n" #appname " is a packet of three multitop tools for FAME."))
+  (set #willbecopied (cat #appname " will now be installed to \"" #destdir "\". The required directories will be created there."))
+  (set #oldrenamed (cat "\n\nThe already existing versions " #oldver "." #oldrev " of the program parts of " #appname " will be renamed before."))
+  (set #designs (cat #appname " already features a selection of %ld different lovely designs!\n\nPlease read the guide and remember that " #appname " is Shareware. Nice selfmade designs should be sent to the author.\n\nThe registered version has some additional features, by the way.\n\n\nSigning off,\n\nTranceTip (dCN-/F·dEZiGN)"))
+  (set #installingfiles "Installing required files...")
+  (set #installsyscmds "Now three SYSCMDs will be created. If they already exist in your FAME system, you will be asked if they should be overwritten.\n\nIf not, e.g. \"ULSTAT\" will be automatically converted to \"ULSTAT(1,2,3...)\" etc.")
+  (set #syscmdexists "The SYSCMD \"%s\" already exists.\n\nWould you like to overwrite it or would you like to try installing it as \"%s\"?")
+  (set #overwrite "Overwrite")
+  (set #next "Next")
+  (set #writesyscmd "Now writing SYSCMD \"%s\".")
+  (set #installbbscmds "Now two BBSCMDs will be created (\"Weektop\" and \"Conftop\").\n\nAny already existing of these two will be overwritten.")
+  (set #deletedatafiles (cat "Warning!\n\n\nThis version of " #appname " is, concerning its own datafiles, not compatible with the previous versions V1.0 and V1.1, because some optimizations and improvements have been done to the datafile-structure.\n\nPlease do NOT use old .data-files with this version!"))
+  (set #copydatafiles (cat "Shall I copy your old Weektop/Conftop datafiles from the previous version of " #appname " to the current installation?\n\nThis will keep all of your data including the lastperiod and alltime topusers and directly makes " #appname " ready for use."))
+  (set #copyprefs "Would you like to use your old preferences?")
+  (set #cmdsokay (cat "As " #appname " had already been installed earlier, I reckon that the Doors are still configured properly in FAME's Systemeditor.\n\nWould you like to skip the Doorsettings part?"))
+  )
+)
+
+(welcome #welcometext)
+(complete 0)
+
+(if (exists (tackon #destdir "dCN!tOP"))
+  (
+    (message (cat #willbecopied #oldrenamed))
+    (delete (tackon #destdir "dCN!tOP.old" (all)))
+    (rename (tackon #destdir "dCN!tOP") (tackon #destdir "dCN!tOP.old"))
+    (set #already 1)
+  )
+
+  (message #willbecopied)
+)
+
+(if (exists (tackon #destdir "dCN!CONFTOP"))
+  (
+    (delete (tackon #destdir "dCN!cONFTOP.old" (all)))
+    (rename (tackon #destdir "dCN!cONFTOP") (tackon #destdir "dCN!cONFTOP.old"))
+    (set #already 1)
+  )
+)
+
+(if (exists (tackon #destdir "dCN!wEEKTOP"))
+  (
+    (delete (tackon #destdir "dCN!wEEKTOP.old" (all)))
+    (rename (tackon #destdir "dCN!wEEKTOP") (tackon #destdir "dCN!wEEKTOP.old"))
+    (set #already 1)
+  )
+)
+
+(complete 20)
+
+(working #installingfiles)
+
+(copyfiles
+  (source #sourcedir)
+  (dest #destdir)
+  (all)
+  (nogauge)
+  (optional force)
+)
+
+(complete 60)
+
+(set #installsettings 1)
+
+(if (= #already 1)
+  (  
+    (if (askbool (default 1) (prompt #cmdsokay) (help @askbool-help))
+       (set #installsettings 0)
+    )
+  )
+)
+
+(if (= #installsettings 1)
+  (
+    (message #installsyscmds)
+
+    (foreach "Doorsettings/SYSCMD" "#?"
+      (
+        (set #num 0)
+        (set #finished 0)
+        (set #filename (tackon #syscmddestdir @each-name))
+        (set #file #filename)
+        (while (and (not #finished) (exists #file))
+          (
+            (if (askbool (default 1) (prompt (#syscmdexists (fileonly #file) (cat (fileonly #filename) (+ #num 1)))) (choices #overwrite #next) (help @askbool-help))
+              (
+                (set #finished 1)
+              )
+
+              (
+                (set #num (+ #num 1))
+                (set #file (cat #filename #num))        
+              )
+            )
+          )
+        )
+   
+        (message (#writesyscmd (fileonly #file)))
+
+        (copyfiles
+          (source (tackon "Doorsettings/SYSCMD" @each-name))
+          (dest (pathonly #file))
+          (newname (fileonly #file))
+          (all)
+          (nogauge)
+          (optional force)
+        )
+      )
+    )
+
+    (message #installbbscmds)
+    (copyfiles
+      (source "DoorSettings/BBSCMD")
+      (dest #bbscmddestdir)
+      (all)
+      (nogauge)
+      (optional force)
+    )        
+  )
+)
+
+(complete 80)
+
+(copyfiles
+  (source "")
+  (dest (tackon #destdir "dCN!tOP"))
+  (pattern "#?.guide#?")
+  (nogauge)
+  (optional force)
+)
+
+(set a 0)
+(foreach "Data/dCN!tOP/Designs" "#?"
+  (set a (+ a 1))
+)
+
+(foreach "Data/dCN!wEEKTOP/Designs" "WeekTop_#?_D.#?"
+  (set a (+ a 1))
+)
+
+(foreach "Data/dCN!cONFTOP/Designs" "ConfTop_#?_D.#?"
+  (set a (+ a 1))
+)
+
+(set #okay 0)
+(if (= #already 1)
+  (
+    (if (not (= #oldver "x" ))
+      (
+        (if (< #oldver 2)
+          (message #deletedatafiles)
+          (set #okay 1)
+        )
+      )
+
+      (
+        (message #deletedatafiles)
+      )
+    )
+  )
+)
+
+(if (= #okay 1)
+  (
+    (if (askbool (default 1) (prompt #copydatafiles) (help @askbool-help))
+      (
+        (if (exists (tackon #destdir "dCN!wEEKTOP.old/dCN!wEEKTOP.data"))
+          (
+            (copyfiles
+              (source (tackon #destdir "dCN!wEEKTOP.old/dCN!wEEKTOP.data"))
+              (dest   (tackon #destdir "dCN!wEEKTOP"))
+              (nogauge)
+              (optional force)
+            )
+          )
+        )
+         
+        (if (exists (tackon #destdir "dCN!cONFTOP.old/Data"))
+          (
+            (copyfiles
+              (source (tackon #destdir "dCN!cONFTOP.old/Data"))
+              (dest   (tackon #destdir "dCN!cONFTOP/Data"))
+              (nogauge)
+              (pattern "#?")
+              (optional force)
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+(if (= #already 1)
+  (
+    (if (askbool (default 1) (prompt #copyprefs) (help @askbool-help))
+      (
+        (if (exists (tackon #destdir "dCN!wEEKTOP.old/dCN!wEEKTOP.cfg"))
+          (
+            (copyfiles
+              (source (tackon #destdir "dCN!wEEKTOP.old/dCN!wEEKTOP.cfg"))
+              (dest   (tackon #destdir "dCN!wEEKTOP"))
+              (nogauge)
+              (optional force)
+            )
+          )
+        )
+
+        (if (exists (tackon #destdir "dCN!wEEKTOP.old/dCN!wEEKTOP.exclude"))
+          (
+            (copyfiles
+              (source (tackon #destdir "dCN!wEEKTOP.old/dCN!wEEKTOP.exclude"))
+              (dest   (tackon #destdir "dCN!wEEKTOP"))
+              (nogauge)
+              (optional force)
+            )
+          )
+        )
+
+        (if (exists (tackon #destdir "dCN!cONFTOP.old/dCN!cONFTOP.cfg"))
+          (
+            (copyfiles
+              (source (tackon #destdir "dCN!cONFTOP.old/dCN!cONFTOP.cfg"))
+              (dest   (tackon #destdir "dCN!cONFTOP"))
+              (nogauge)
+              (optional force)
+            )
+          )
+        )
+
+        (if (exists (tackon #destdir "dCN!cONFTOP.old/dCN!cONFTOP.exclude"))
+          (
+            (copyfiles
+              (source (tackon #destdir "dCN!cONFTOP.old/dCN!cONFTOP.exclude"))
+              (dest   (tackon #destdir "dCN!cONFTOP"))
+              (nogauge)
+              (optional force)
+            )
+          )
+        )
+
+        (if (exists (tackon #destdir "dCN!tOP.old/dCN!tOP.bat"))
+          (
+            (copyfiles
+              (source (tackon #destdir "dCN!tOP.old/dCN!tOP.bat"))
+              (dest   (tackon #destdir "dCN!tOP"))
+              (nogauge)
+              (optional force)
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+
+(complete 100)
+
+(message (#designs a))

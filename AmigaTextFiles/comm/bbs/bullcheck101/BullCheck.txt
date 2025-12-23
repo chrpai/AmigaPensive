@@ -1,0 +1,276 @@
+Bulletin Check, by Todd Courtnage
+
+Version 1.0
+
+
+
+
+
+YAAAAAAAAAAA!!!!!!!!!!!!!!!
+
+My first ARexx program!!!!!!!!!!!
+
+
+
+
+
+
+
+This is an ARexx procedure, meant to be put in your logon.trans.
+
+What it does is check all the bulletins and see if any of them have
+been updated since the users last call.  If so, it will tell the user
+which ones have been updated, and ask the user to read them, because
+they may contain very important, life and death material (not likely
+tho :-).
+
+
+
+First off, since this is my first ARexx program EVER, it's very poorly
+written (but, hey, it gets the job done!  (for me anyway)).  The way
+it goes about getting the dates of the bulletin files is very, very
+crude, and could be (and will be!) optimized to make it MUCH, MUCH
+better at what it does.  If you want to learn ARexx, DON'T LOOK AT MY
+PROGRAM!!!!!!!  My baby here is probably the worst code ever written
+for any computer!!!
+
+
+
+If you want some more info as to what the program is trying to do, see
+the "The Guts of the Program and Other Horror Stories" later in this
+document.  It has a small story to tell too :-).
+
+
+
+As for using it, well I figure if your smart enuff to own ARexx, your
+smart enuff to know how to make it work :-).  Actually, there is some
+work involved in getting it set up to work with your system (unless
+you have the exact same setup as me, which is very unlikely).
+
+
+
+First off, change the "bulletindir" variable to show the file path to
+where your bulletin directory is.
+
+
+
+Second, on the line immediately below where you specify your path,
+enter the number of bulletins that you want to be checked to see if they
+have changed since the user logged on last.
+
+
+Thirdly, you have specify all the filenames of the bulletins you want
+checked.  Don't include the path, because you entered the path earlier.
+
+Note that you will probably have to adjust the number of "bull.#"
+lines to suit your setup (i.e. if you only have 9 bulletins, you will
+only have nine bull.# lines listed in the program).
+
+For Example if you have nine bulletins, the lines in the program will
+look like this:
+
+        bull.1 = "filename1"
+
+        bull.2 = "filename2"
+
+        .
+
+        .
+
+        .
+
+        bull.9 = "filename9"
+
+
+
+
+
+
+
+Fourthly, (and lastly I think) you have to enter the names of the
+bulletins (these should probably be the way they are listed in your
+bulletins.cmds file.)  The number of bulletins named here should be equal
+to the number you had above where you entered the actual filenames.
+
+
+
+That should be just about it, except you have to copy the procedure to
+your logon.trans file and make a call to the procedure somewhere in
+your logon.trans (I do it at the end).
+
+
+
+Limitations
+
+        There are limitations to this program.  First of all, the dates
+of your bulletin files should be sometime on or after Jan. 1, 1992
+(for the reason for this, see "The Guts of the program and other
+Horror Stories").  Also, this procedure will not be any good after
+this year.  That's not a big problem, because I plan on doing a better
+version within the next 8 months :-).
+
+
+
+What's in the Future
+~~~~~~~~~~~~~~~~~~~~
+
+
+        Well, first of all, clean it up A LOT!!!!!  By this I mean,
+reading in the bulletins from the bulletins.cfg file (as well as the
+number of bulletins).  Also read in the names of the bulletins from
+the bulletins.cmds file.
+
+        Find a better way to do calculations (like figure out a better
+way to get the date of a file besides the way I'm doing it right now).
+
+        Option for the user to read the bulletins right then and there.
+
+        Maybe some ANSI support.
+
+        Any other suggestions, bug fixes (which there are bound to be
+lots).
+
+
+
+The Guts of the Program and Other Horror Stories
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        As I've mentioned before this is a program from hell.  I had
+virtually no idea what I was doing when I was writing this.  The code
+is appalling, ghastly, horrendous, and any other awful words you can
+think of.
+
+        If you've looked at the code already, you probably don't
+understand any of it.  Well, here's the story of how I got from no
+code to what the code you have in front of you now.
+
+        I got the idea for this from other BBS programs that notify the
+user when a new bulletin has been added or changed.  So I figure it
+wouldn't be hard to write an ARexx program to do the same with
+TransAmiga (and I hadn't seen any around).  So I start thinking about
+it in my head.  I figure no problem.  Well, first I figure I gotta
+find out how to get the file creation date of each of the bulletin
+files.  No big deal, I thought.  I start looking for a command in the
+ARexx manual to do that, and do you think I could find one???????  No
+way!!!!  The closest command I could find was STATEF(), but according
+to the ARexx manual that only returns a files length, blocks,
+protection and comment.  I thought it was over right then and there.
+I had thoughts of maybe having a text file where you'd have to type in
+the dates of all the bulletin files, and whenever you changed a
+bulletin, you'd have to change the corresponding line in this text
+file so Bulletin Check (the name of my program) would know of the
+change.
+
+        Well, this wasn't acceptable.  So later that evening, I was
+browsing thru the Feb. 1992 issue of .info.  I happened across the
+ARexx column, and started looking at it, and after looking it over I
+realized all my problems were solved!!!!  This issue just happened to
+explain how to get the file date from a file!
+
+        A-ha!!  All my problems are solved ............. NOT!!!!!!
+
+        Well, I did what they were doing in there column to check the
+dates of files and see if the files were newer or older.  (In fact the
+column compared the two files and decided if one was newer, it would
+copy it over to another directory.  It was an updating file copier
+written in ARexx.)  Well, I was following there instructions, for
+using the STATEF() function, but was getting weird values when it came
+to the date.  I kept getting high numbers like 5177 and 5263 and I
+couldn't find ANY relationship between the dates and these numbers.  I
+spend literally HOURS trying to figure out what (I thought) I was
+doing wrong.  I made little changes here and there, and still wasn't
+getting what I was "supposed" to be getting (naturally, to make life
+even harder I kept making little mistakes that would make the program
+not function at all and that ate up even more hours of debugging).
+
+        Anyway, after hours and hours, I FINALLY found somewhat of a
+relationship between the numbers I was getting.  If I took one of the
+large numbers from one file (say 5177), and subtracted from that
+another large number (like 5123), the result was the number of days
+between the dates of the files.  Well, further investigation revealed
+that if I took the numbers and converted them to years, that these
+numbers showed the number of days between some date in 1978 (there's
+something magical about 1978 and the Amiga, but I'm still not sure
+what) and the date of the file (when the file was last changed).
+
+        So hence, maybe know you can start to understand where all those
+weird numbers in the code are coming from.  I ended up having to take
+some arbitrary date (I used Dec. 31, 1991), and from there calculate
+the number of days from that date to when the files were changed.  So,
+from that I had to calculate which month it was and which day of the
+month it was (and also assumed that the year of the file was 1992).
+(You have to remember thru all this, I'm still very much a novice at
+ARexx.  Some of you out there in TA land could probably whip up
+something like this in less than half the time it took me).
+
+        Well, anyway, that's most of the story.  Once I had the month and
+day of the file, it was relatively easy going (compared to the hell of
+figuring out the file stuff).  In fact, most of the program is about
+the file dates, and trying to figure them out!
+
+        Hmmm, not much else to tell about the program from hell.
+
+
+
+Legalities
+~~~~~~~~~~
+I take no responsibility for anything (except if it's something good
+:-)
+
+
+
+Other Stuff
+~~~~~~~~~~~
+        I really want comments and suggestions on this (especially if you
+know how to get the REAL date of a file!!!)  Anything else you want to
+see added?  I can be contacted via the following means:
+
+
+
+The ABYSS - (306)586-7279     - This is my BBS
+
+MEBBS][ BBS - (306)775-1437     - The official Canadian support BBS for
+                                                  TransAmiga.  I call here almost
+                                                  everyday, so I can be reached here.
+
+Internet:  My Internet address is courttod@max.cc.uregina.ca
+
+TransAmiga echo:  I'm always reading the TA echo, so you can send me
+                           mail thru here if you want to give suggestions or
+                           bug reports.
+
+Netmail: Todd Courtnage at 1:140/140
+
+CompuServe:  not suggested, as I hardly ever go on here (it costs a
+                   fortune to call from Canada).  But if you REALLY want to
+
+                   my usernumber is 71621,414.  There is no guarantee I'll
+                  get your message this way tho.
+
+
+
+Updates
+~~~~~~~
+        I will post updates at two locations.  On MEBBS ][, the official
+TransAmiga support BBS in Canada, and on the ab20 Internet site (in
+the incoming/amiga/TransAmiga directory).
+
+
+
+Closing Comments
+
+        Big text file for such a small program, eh? :-)  Well, this is my
+first ever program I've written and released to be freely
+distributable, so I went all out and wrote lots of stuff on it.  Now
+that I'm starting to get the hang of ARexx, I'll be getting more and
+more stuff out for TA (and maybe other ARexx programs, who knows).
+
+Anyhow, I hope you all like this, and if anyone uses it, let me know,
+I wanna know how well it's going over.  Just leave a message on the TA
+echo (if you have access to it) would probably be the easiest way.
+
+
+
+        Well, this is Todd Courtnage, closing off.
+

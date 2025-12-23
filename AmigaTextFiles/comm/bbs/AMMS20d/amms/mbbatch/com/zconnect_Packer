@@ -1,0 +1,208 @@
+;	ZConnect-Packer
+;
+;	Scriptfile zum Vorpacken neuer Nachrichten im ZConnect-Format
+;
+;	$VER: 1.00 / 18.08.1995
+;
+;       Beschreibung :
+;	Wird die Batch auf dem Port EXPORT gestartet, so werden die
+;	neusten Nachrichten im ZConnect-Format exportiert.
+;	Temporaer werden Daten im Directory MBMSG:POINT/<Portname>/
+;	gespeichert.
+;	Im Directory MBNET:EXPORT/ werden die exportierten Daten in den
+;	Dateien <USERNAME>.LHA, <USERNAME>.MSGNR und <USERNAME>.PMNR
+;	abgelegt, so dass sie von der Server bzw. der Client-Batch benutzt
+;	werden koennen.
+;	Wird die Batch nicht auf dem Port EXPORT gestartet, so wird bei
+;	Vorhandensein des Ports EXPORT ein Event ausgeloest, der den Start
+;	der Batch auf dem Port EXPORT ausloest. Existiert nicht dieser Port,
+;	so wird auf dem akt. Port das Packen ausgefuehrt.
+;	Die Batch kehrt ohne Logout oder Hangup zurueck.
+;	
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die folgende Befehle zugreifen kann !
+;
+;	ADD EVENT
+;	CHECK FILE
+;	DISK EXECUTE
+;	ECHO
+;	EXTERN
+;	GOTO
+;	IF
+;	MESSAGE
+;	ON ERROR
+;	ZCONNECT MAKEFILE
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DELETE
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	STRASSE  : @NETCALL
+;	STADT	 : Name der Domain (z.B. Fastnet.de)
+;
+;	Einrichtung eines LocalGates fuer die Einbindung eines anderen
+;	lokalen Netzwerks :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	VORNAME  : Gatename im Fastnet (z.B. Z-Netz)
+;	STRASSE  : @LOCALGATE
+;	STADT	 : Name der Domain (z.B. Z-Netz.de)
+;
+;	Einrichtung eines Gates fuer die Einbindung eines anderen
+;	globalen Netzwerks :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	VORNAME  : Gatename im Fastnet (z.B. Z-Netz)
+;	NACHNAME : Gatename im Zerberus-Netz (z.B. Fastnet)
+;	STRASSE  : @GATE
+;	STADT	 : Name der Domain (z.B. Z-Netz.de)
+;
+;
+;	Konstanten :
+;
+EXPORTPORT= "EXPORT"				; Portname fuer Export
+TMPDIR    = "mbmsg:point/'{port}'/"		; Dir fuer Tmp-Files
+EXPORTDIR = "mbnet:Export/"			; Export-Directory
+EXFTABDIR = "mbnet:ExportFTab/"			; Export-FTab-Directory
+MAXMSGLEN = 2000				; Max. Laenge der Msgs in KByte
+MAXPMLEN  = 2000				; Max. Laenge der PMs in KByte
+MSGFILE   = "'{CALLS}'.BRT"			; Oeff. Nachrichten
+PMFILE    = "'{CALLS}'.PRV"			; Private Nachrichten
+PMNRFILE  = "pmnr"				; File fuer PM-Nummern
+COPYFILE  = "'{NAME}'@ZC.lha"			; Vorgabefile (Pack-Event)
+COPYMSGNR = "'{NAME}'@ZC.msgnr"			; File fuer Msg-Nummern
+COPYPMNR  = "'{NAME}'@ZC.pmnr"			; File fuer PM-Nummern
+PACKER    = "lha -P-1 m ""'EXPORTDIR''COPYFILE'"" ""'TMPDIR''PMFILE'"" ""'TMPDIR''MSGFILE'"""
+						; Packen
+
+;
+;	Domainname holen
+;
+_on error ERROR					; Im Fehlerfall ...
+DOMAIN={CITY}					; Domainname holen
+
+;
+;	Pruefe auf normalen Netcall
+;
+
+_if {STREET} != "@NETCALL" then _goto LOCALGATE
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=0/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=0/Filter='FIL'"
+_goto START
+
+;
+;	Pruefe auf LocalGate
+;
+LOCALGATE:
+_if {STREET} != "@LOCALGATE" then _goto GATE
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=2/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=2/Filter='FIL'"
+_goto START
+
+;
+;	Pruefe auf Gate
+;
+GATE:
+_if {STREET} != "@GATE" then _goto USERPOINT
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=1/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=1/Filter='FIL'"
+_goto START
+
+;
+;	User-Point
+;
+USERPOINT:
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=3/Filter='FIL'"
+FIL=2+4+8+16+32+64
+OP_MAKEMSG="/Type=3/Filter='FIL'"
+DOMAIN="ZER"					; Domain ZER setzen
+
+;
+;	Filebrett-Konverter-Files einbinden
+;
+START:
+_check file "'EXFTABDIR''{NAME}'" NOEXPORTCVT
+OP_MAKEMSG="'OP_MAKEMSG'/FBoardlist=""'EXFTABDIR''{NAME}'"""
+NOEXPORTCVT:
+
+;
+;	Lade sprachspezifische Texte ein
+;
+
+_gosub LOADTEXT					; Texte laden
+
+;
+;	Wenn Spezial-Port, Daten sofort exportieren
+;
+
+_if EXPORTPORT == {PORT} then _goto EXPORT 	; Wenn EXPORT-Port, verzw.
+
+;
+;	Wenn Port EXPORT existiert, Export-Event starten
+;
+
+_check port "'EXPORTPORT'" EXPORT		; Wenn kein Port, verzw.
+_add event/Background "'EXPORTPORT'" 0 3 mbbatch:zconnect_export "'{NAME}'"
+_echo PORTTEXT					; Status ausgeben
+_goto END					; -> Ende
+
+;
+;	Leere TMP-Verzeichnis / Loesche alte vorgepackte Dateien
+;
+EXPORT:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_extern/q delete "'EXPORTDIR''COPYPMNR'" "'EXPORTDIR''COPYFILE'" "'EXPORTDIR''COPYMSGNR'"
+
+;
+;	PMs und Messages exportieren
+;
+
+_on error/ignore				
+_zconnect makefile'OP_MAKEPM' "'TMPDIR''PMFILE'" 'MAXPMLEN' "'TMPDIR''PMNRFILE'" "'DOMAIN'"
+_zconnect makefile'OP_MAKEMSG' "'TMPDIR''MSGFILE'" 'MAXMSGLEN' "'EXPORTDIR''COPYMSGNR'" "'DOMAIN'"
+_on error ERROR
+
+;
+;	Messages packen
+;
+
+_extern/q 'PACKER'
+
+;
+;	PMNR-File in Export-Dir kopieren
+
+_extern/q copy "'TMPDIR''PMNRFILE'" "'EXPORTDIR''COPYPMNR'"
+
+;
+;	User auf anderen Port Fertigstellung melden
+;
+
+_if EXPORTPORT != {PORT} then _goto END		; Wenn akt. Port =! EXPORT, verzw.
+_message/user "'{NAME}'" "'INFOTEXT'"		; Nachricht an User senden
+
+;
+;	Alle temporaer erzeugten Files loeschen
+;
+ERROR:						; Fehler / Ende
+END:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" ; Disk aufraeumen
+_eod
+
+; Unterroutine: Lade sprachspezifische Texte
+
+LOADTEXT:
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/zconnect_packer.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/zconnect_packer.bat"
+_return

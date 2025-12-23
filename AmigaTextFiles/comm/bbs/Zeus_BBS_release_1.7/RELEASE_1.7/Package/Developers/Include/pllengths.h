@@ -1,0 +1,15 @@
+#ifndef PL_LENGTHS_H
+#define PL_LENGTHS_H
+
+#define	PATH_LENGTH 		108
+#define	ORIGIN_LENGTH  		60
+#define	AREANAME_LENGTH		64
+#define EDITORNAME_LENGTH	64
+#define PROGRAMLENGTH		80
+
+#define	TAGNAME_LENGTH		64
+#define	FIDOADDRESS_LENGTH	40
+#define	DOMAIN_LENGTH		15
+
+
+#endif /* PL_LENGTHS_H */

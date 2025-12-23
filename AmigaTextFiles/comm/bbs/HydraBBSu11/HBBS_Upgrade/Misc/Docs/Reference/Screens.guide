@@ -1,0 +1,528 @@
+@Database Screens
+
+@Index HBBS:Docs/Misc/Index.guide/MAIN
+
+@Node Main "Screens.Guide"
+
+  Screens
+  =======
+
+  Ok, screens are text files that get displayed to the user at certain points
+  of the users on-line time.  These screens can contain ANSI escape sequences,
+  normal text and even high ascii characters.
+
+  There are also some special screens that are required for the supplied node
+  program and doors.
+
+  Screens should be saved with the default extension .TXT, but if you are
+  running a multi lingual BBS you should see @{"LanguageName_XX" link HBBS:Docs/Configuration/BBSGlobal.guide/LanguageName_XX} and LanguageExtn_XX
+
+  When screens are searched for by the bbs they are looked for in the
+  following order:
+
+  1) In the current conference's screens/special directory
+  2) In the current node's "Screens/Special" directory
+  3) In "HBBS:Screens/Special"
+
+  Also, the access level of the user is added to the end of the filename before
+  the extension.  here's a few examples of filenames..
+
+  (all the following examples assume you have the following access levels set up
+   255,200,150,50 and 10)
+
+
+  1) User with access level of 200 joins your amiga warez conference on node 2
+
+     HBBS:Conferences/Amiga/Screens/Special/ConfJoin_200.TXT
+     HBBS:Conferences/Amiga/Screens/Special/ConfJoin_150.TXT
+     HBBS:Conferences/Amiga/Screens/Special/ConfJoin_50.TXT
+     HBBS:Conferences/Amiga/Screens/Special/ConfJoin_10.TXT
+     HBBS:Conferences/Amiga/Screens/Special/ConfJoin.TXT
+     HBBS:Nodes/Node2/Screens/Special/ConfJoin_200.TXT
+     HBBS:Nodes/Node2/Screens/Special/ConfJoin_150.TXT
+     HBBS:Nodes/Node2/Screens/Special/ConfJoin_50.TXT
+     HBBS:Nodes/Node2/Screens/Special/ConfJoin_10.TXT
+     HBBS:Nodes/Node2/Screens/Special/ConfJoin.TXT
+     HBBS:Screens/Special/ConfJoin_200.TXT
+     HBBS:Screens/Special/ConfJoin_150.TXT
+     HBBS:Screens/Special/ConfJoin_50.TXT
+     HBBS:Screens/Special/ConfJoin_10.TXT
+     HBBS:Screens/Special/ConfJoin.TXT
+
+  2) Users Connects to node 3, but has not logged on or joined a conference yet.
+
+     HBBS:Nodes/Node3/Screens/Special/BBSTitle.TXT
+     HBBS:Screens/Special/BBSTitle.TXT
+
+  3) a user with the german language enabled, who has an access level of 10
+     logs off node 1 after joining the PC Warez Conference
+
+     HBBS:Conferences/PC/Screens/Special/LogOff_10.GER
+     HBBS:Conferences/PC/Screens/Special/LogOff.GER
+     HBBS:Nodes/Node1/Screens/Special/LogOff_10.GER
+     HBBS:Nodes/Node1/Screens/Special/LogOff.GER
+     HBBS:Screens/Special/LogOff_10.GER
+     HBBS:Screens/Special/LogOff.GER
+
+  From the above examples you should be able to figure out how screens are dispayed
+  quite easily.
+
+  Note 1: Users with an access level that does not exist (perhaps the sysop removed
+          an access level) get downgraded to the next lowest level at login time.
+
+  Note 2: Only Valid access levels are searched, unlike /X whch searches for ALL
+          access levels nomatter if the sysop is using them or not.
+          So if you have access levels 50 and 10, a screen with an access level
+          of 11 to 49 would not be displayed.  This is because it takes AGES to
+          search for 255 screens and doing it this way makes it ALOT quicker.
+
+  Special Screen Sequences
+  ========================
+
+  Screen commands are control sequences that are replaced by actual usefull
+  information just before the screen is displayed.  A screen that has the
+  control sequences in MUST start with @^@ as the first three characters
+  of the file.
+
+  Control Sequences take the format
+
+  <introducer>[<formatspec|command>]<name><terminator>
+
+  where
+
+  <introducer>             '@^'
+
+  <formatspec|command>     If you are using a sequence to display some data
+                           then you would use a formatspec here. this is
+                           as follows:
+
+                           FormatSpec
+                           ==========
+                           Here you *may* specify the amount of characters
+                           to be displayed, strings are padded to this amount
+                           if they are shorter then the number specified.
+                           Also format spec must end with a '^' character.
+                           If you prefix the format spec with a '-' character
+                           the string will be left justified.
+
+                           Command
+                           =======
+                           if you want to get the bbs to do something other
+                           than display data then you use a command.
+                           See @{" List Of Supported Commands " link SupportedCmds} for a list
+
+  <name>                   is where you put the item name of the value you want
+                           to display, See @{"List of Supported Items" link SupportedItems}
+
+
+  <terminator>             '@'
+
+  Here's a few examples..
+
+  Sequence                Output (note, the "'s are NOT included in the output)
+  ======================= =====================================================
+  @^Handle@               "Hydra"
+  @^20^Handle@            "               Hydra"
+  @^-20^Handle@           "Hydra               "
+
+  Say you had an item that was longer or could be longer than you wanted to
+  display:
+
+  ComputerName=Amiga,PC,PS-X,Saturn,3DO,PC-E,MD,SNES
+
+  And you only wanted to display the first 20 characters and you wanted the
+  printed string to be 20 chars long you could use the following sequences:
+
+  Sequence                Output (note, the "'s are NOT included in the output)
+  ======================= =====================================================
+  @^-20.20^ComputerName@  "Amiga,PC,PS-X,Saturn"
+  @^-20.10^ComputerName@  "Amiga,PC,P          "
+  @^20.10^ComputerName@   "          Amiga,PC,P"
+  @^-20^ComputerName@     "Amiga,PC,PS-X,Saturn,3DO,PC-E,MD,SNES"
+
+  Basically, with strings anything after the . is how many letters of the
+  string you want printed, and the number before the . is how long the string
+  should be after it has padded it with spaces.
+  If you don't have a . followed by a number the entire string is printed out.
+
+  Easy Really!  I thought it would be a good idea to have format specification
+  so that is possible to create tables.
+
+  Have a look at @{"HBBS:Screens/Example/Stats.TXT" System "Multiview HBBS:Screens/Example/Stats.TXT"} for an example.
+
+
+
+
+  Here's a list of screens that are currently used by the Node and Doors,
+  note that this is the actual order that the screens are displayed!
+
+  Login Screens
+  =============
+
+  Await
+  @{"PrivateSystem" Link PrivateSystem}
+  @{"PrivateNode" Link PrivateNode}
+  @{"Speed_Baud" Link Speed_Baud}
+  @{"BBSTitle" Link BBSTitle}
+  @{"NoNewAt_ALL" link NoNewAt_ALL}
+  @{"NoNewAt_ThisTime" link NoNewAt_ThisTime}
+  @{"NoNewAt_Baud" link NoNewAt_Baud}
+  @{"GuestLogin" Link GuestLogin}
+  @{"Joined" Link Joined}
+  @{"LoginLogo" Link LoginLogo}
+  @{"Bulletin" Link Bulletin}
+
+  Conference Screens
+  ==================
+
+  ConfLogo
+  @{"ConfBulletin" Link ConfBulletin}
+  ConfJoined
+  ConfLeft
+  ConfDownload
+  ConfUpload
+
+  Other Screens
+  =============
+
+  Download
+  Upload
+  LogOff
+
+  *U* there are many more screens which are not documented, yet, to check
+  what screens HBBS is looking for you should run SnoopDOS! Which is a great
+  program that you should have already!
+
+
+@EndNode
+
+@Node PrivateSystem "Screens/Special/PrivateSystem"
+
+  Screens/Special/PrivateSystem
+
+    This screen is displayed when a user logs onto a node with UseSysPW
+    enabled.  This will be the first thing a user sees.
+
+@EndNode
+
+@Node PrivateNode "Screens/Special/PrivateNode"
+
+  Screens/Special/PrivateNode
+
+    This screen is displayed when a user logs onto a node with UseNodePW
+    enabled.
+
+@EndNode
+
+@Node Speed_Baud "Screens/Special/Speed_Baud"
+
+  Screens/Special/Speed_Baud
+
+    This screen is displayed to a user who connected at the baud rate specified
+    in the file name,  (E.G.  Speed_2400)
+
+@EndNode
+
+@Node BBSTitle "Screens/Special/BBSTitle"
+
+  Screens/Special/BBSTitle
+
+    This screen is displayed after PrivateSystem and PrivateNode have been
+    displayed, just before the user is asked for a username and password.
+
+@EndNode
+
+@Node NoNewAt_ALL "Screens/Special/NoNewAt_ALL"
+
+  Screens/Special/NoNewAt_ALL
+
+    This screen is displayed when a user wants a new account and no new users
+    are allowed to join the system.
+
+    Note: see @{"AllowNewUsers" link HBBS:Docs/Configuration/BBSGlobal.guide/AllowNewusers} in BBSGlobal
+
+@EndNode
+
+@Node NoNewAt_ThisTime "Screens/Special/NoNewAt_ThisTime"
+
+  Screens/Special/NoNewAt_ThisTime
+
+    This screen is displayed when a user wants a new account and no new users
+    are allowed to join the system at this time
+
+@EndNode
+
+@Node NoNewAt_Baud "Screens/Special/NoNewAt_<Baud>"
+
+  Screens/Special/NoNewAt_<Baud>
+
+    This screen is displayed when a user wants a new account and they connected
+    at the baud rate specified in the filename. (E.G. NoNewAt_2400)
+
+@EndNode
+
+@Node GuestLogin "Screens/Special/GuestLogin"
+
+  Screens/Special/GuestLogin
+
+    This screen is displayed to a new user just before they are asked to
+    enter their details.
+
+@EndNode
+
+@Node Joined "Screens/Special/Joined"
+
+  Screens/Special/Joined
+
+    This screen is displayed to a new user when they have sucessfully entered
+    all their details.
+
+@EndNode
+
+@Node LoginLogo "Screens/Special/LoginLogo"
+
+  Screens/Special/LoginLogo
+
+    This screen is displayed to a user just after they typed in their user
+    name and password.
+
+    Note: This screen is NOT displayed to newusers, "GuestLogin" is displayed
+    to them instead.
+
+@EndNode
+
+@Node Bulletin "Screens/Special/Bulletin"
+
+  Screens/Special/Bulletin
+
+    This screen is displayed
+
+@EndNode
+
+@Node ConfBulletin "Screens/Special/ConfBulletin"
+
+  Screens/Special/ConfBulletin
+
+    This screen is displayed when a conference is joined.  There should be
+    one of these files in each conference's "screens/special" directory
+    except where you want to use a global bulletin for every conference.
+
+@EndNode
+
+@Node  "Screens/Special/"
+
+  Screens/Special/
+
+    This screen is displayed
+
+@EndNode
+
+
+@Node SupportedItems "List of Supported Items for Screen Sequences"
+
+  List of Supported Items for Screen Sequences
+  ============================================
+
+    Misc @^'s
+    =========
+
+      Time                 - Current Time
+      Date                 - Current Date
+      File                 - The name of the file being displayed
+      Path                 - The path of the file being displayed
+
+    BBS @^'s
+    ========
+
+      BBSName              - BBS Name, as per BBSGlobal
+      BBSLocation          - BBS Loction, as per BBSGlobal
+      BBSCountry           - BBS Country, as per BBSGlobal
+      Sysop                - Sysop's Name, as per BBSGlobal's SysopAccount option
+      BBSSerial            - As it says
+      BBSNodes             - As it says
+      TotalUsers           -
+      Conferences          - As it says
+
+      CallsToday           - As it says
+      CallsThisWeek        - As it says
+      CallsNodeToday       - Calls today on the current node.
+
+    User @^'s
+    =========
+
+      Handle               -
+      RealName             -
+      Group                -
+      GeoLocation          -
+      Country              -
+      PhoneNumber          -
+      Password             -
+      ComputerType         -
+      AccessName           -
+      LastConf             - The name of the current conference that the user
+                             is in, or if the user has not yet joined a conf
+                             it will be the name of the last conference the
+                             user was in
+      LastConfNum          - As above except it will be numeric rather than
+                             text.
+      PreferredConf        - This will be the name of the users preferred
+                             conference if they have a preferred one set.
+      PreferredConfNum     - As above except it will be numeric rather than
+                             text.
+      Access               -
+      UserID               -
+      UploadBytes          -
+      DownloadBytes        -
+      UploadFiles          -
+      DownloadFiles        -
+      A_UploadBytes        -
+      A_DownloadBytes      -
+      A_UploadFiles        -
+      A_DownloadFiles      -
+
+      BestCPSUp            -
+      BestCPSDown          -
+      CallsMade            -
+      PagesMade            -
+      MessagesWritten      -
+      BRatio               - Byte Ratio  (or Disabled!)
+      FRatio               - Files Ratio (0 if ratio is disabled)
+      LinesPerScreen       -
+      BytesAllowed         -
+      TimeAllowed          -
+      ChatAllowed          -
+      CallsAllowed         -
+      BytesUsed            -
+      TimeUsed             -
+      ChatUsed             -
+      CallsUsed            -
+      UserType             -
+      Status               -
+
+@EndNode
+
+@Node SupportedCmds "Supported Commands"
+
+  Supported Commands
+  ==================
+
+  Note: Commands *without* parameters MUST end in ^@
+
+  E.G. @^PAUSE^@ rather than @^PAUSE@
+
+
+
+
+  ANSI Animation @^'s
+  ===================
+
+    oh yes, these are KEWL.  Built in ansi animations!
+
+  <Command>                 <Parameter>
+  ------------------------- --------------------------------------------------
+
+  SCROLLFROMRIGHT           Scrolls text from the current cursor position to
+                            the left
+
+                            e.g.  say the cursor is at the right hand side of
+                            the screen use @^SCROOLFROMRIGHT^Wheeeeeeeeeeee!@
+
+                            The cursor will remain in the same position after
+                            you use this function
+
+  SCROLLFROMLEFT            Scroll text from the current cursor position to
+                            the right.
+
+  COOLTEXT                  Scroll's text from the middle of the text out to
+                            either side.  i.e.  it displays the letters in the
+                            middle string first then moves out towards the
+                            edge one character at a time.
+
+                            Note: You cannot use ANSI escape sequences in
+                            these three routines YET.  If you do it'll look
+                            VERY weird..
+
+  System Commands
+  ===============
+
+    Running doors, displaying screens etc..
+
+  <Command>                 <Parameter>
+  ------------------------- --------------------------------------------------
+
+  SYSDOOR                   <name of a system door> [<door options>]
+
+                            E.G. @^SYSDOOR^MAILSCAN QUICK@
+
+                            In the above example the word MAILSCAN is the
+                            name of the system door, and the word QUICK are
+                            the options for that door.
+
+  USERDOOR                  <name of a user door> [<door options>]
+
+                            E.G. @^USERDOOR^FR C@
+
+                            In the above example the word FR is the
+                            name of the user door, and the word C are
+                            the options for that door.
+
+                            This would be the same as typing "FR C" at the
+                            bbs command prompt.
+
+  SCREEN                    <filename>
+
+                            This command just displays another text screen
+
+                            E.G. @^SCREEN^HBBS:Screens/Misc/Userlist.txt@
+
+  SSCREEN                   <Screen Name>
+
+                            This command just displays another text screen.
+                            the difference between SCREEN and SSCREEN is that
+                            SSCREEN is LANGUAGE and LOCATION sensitive.
+
+                            E.G. @^SSCREEN^MAILSTATS@
+
+                            the example above would cause the bbs to look for
+                            the screen MAILSTATS first in the conference, then
+                            in the node and then in the hbbs:screens/special
+                            directory in that order until it found it.
+
+  Misc Commands
+  =============
+
+    Prompts, Timeouts, etc..
+
+  <Command>                 <Parameter>
+  ------------------------- --------------------------------------------------
+
+  PAUSE                     <Prompt>
+
+                            the pause command can be made to display a prompt
+                            and then waits for return to be pressed.
+                            E.G.   @^PAUSE^@
+
+                            using Pause with a bank <prompt> causes it to
+                            display the default prompt.  Note: You MUST have
+                            the two ^'s as above.
+
+                            here's another example
+
+                            @^PAUSE^Smack return!@
+
+                            This would cause pause to display the text
+                            "Smack Return!"
+
+                            Also, in the prompt string you wish to display you
+                            can use {X} sequences, See @{"{X} Sequences" link HBBS:Docs/Reference/PromptSequences.guide/MAIN} for a list.
+
+  TPAUSE                    <Timeout>
+
+                            Displays the system pause prompt for <Timeout> seconds
+
+  CLS                       <none>
+
+                            No options are valid, this just clears the screen!
+@EndNode
+
+

@@ -1,0 +1,51 @@
+/*
+** Grab script for Phoenix
+*/
+Options Results
+Parse Arg Line
+
+Call AddLib('rexxsupport.library',0,-30)
+
+ExpandCC '"%125|"'
+UsersPath = RESULT
+
+pkttp = 0
+
+PnxGetConfig 'PktType'
+If RC ~= 0 Then Do
+   PnxSetConfig 'CharSet' 0 'Archiver' 1 'PktType' 0 'MaxArea' 200 'MaxPkt' 1000
+   If RC ~= 0 Then Do
+      Write '"Error creating configuration !\n\n"'
+      Exit
+      End
+   End
+Else pkttp = RESULT
+
+ExpandCC '"%50|"'
+name = RESULT
+
+Select
+   When pkttp == 0 Then Do
+      Write '"*************************** Making QWK packet ***************************\n\n"'
+      CLIDoor '"Zeus:Bin/Phoenix/QwkExport \"'name'\""' CtrlC CtrlD
+      End
+   When pkttp == 1 Then Do
+      Write '"************************* Making BlueWave packet *************************\n\n"'
+      CLIDoor '"Zeus:Bin/Phoenix/BWExport \"'name'\""' CtrlC CtrlD
+      End
+   When pkttp == 2 Then Do
+      CLIDoor '"Zeus:Bin/Phoenix/MbbsExport \"'name'\""' CtrlC CtrlD
+      End
+   Otherwise Do
+      Write '"Unknown packet format type! Please change it.\n\n"'
+      WaitReturn
+      Exit
+      End
+   End
+
+If RC ~= 0 Then exit
+
+CLIDoor '"ZEUS:Bin/Phoenix/Pack \"'name'\""'
+If RC ~= 0 Then exit
+
+CallScript 'Phoenix/DownPkts'

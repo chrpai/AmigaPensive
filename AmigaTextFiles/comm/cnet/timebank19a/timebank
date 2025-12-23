@@ -1,0 +1,194 @@
+/* Here's my version of a TIME BANK for C-Net Amiga.    
+   It is only authorized for C-Net Amiga SysOps use    
+   and any conversion for use on the Skyline BBS        
+   software without permission of the author is prohibited.
+                                                   
+ Written by Ronald Kushner
+            11227 Brougham Drive
+            Sterling Heights, MI  48312
+
+ May 18, 1990; 6:00 PM EST - V1.0
+ May 19, 1990; 4:48 PM EST - V1.1                                      
+ May 21, 1990; 7:44 AM EST - V1.2
+ May 25, 1990; 6:41 PM EST - V1.3
+ May 26, 1990; 2:19 AM EST - V1.4
+ May 31, 1990; 2:34 AM EST - V1.5
+ May 31, 1990; 6:52 AM EST - V1.6
+ Jun  8, 1990; 2:39 PM EST - V1.7
+ Jun  8, 1990; 6:48 PM EST - V1.8
+ Jun 20, 1990; 1:12 AM EST - V1.9
+ Requires C-Net version 1.73 or greater            
+ Time Bank Version 1.9
+
+ Life In Hell BBS <--My BBS                        
+ (313) 939-6666 <--Outside 313 call                
+ (313) 801-0957#<--313 callers call unless local to
+                   313-939 or calling on PC Pursuit                        
+
+ Future World ID # 415. */
+
+
+options results
+transmit 'C-Net Amiga Time Bank V1.9'
+if ~exists('PFiles:Time.Data/ImHere!') then do
+  sendstring '\$0MakeDir > nil: Pfiles:Time.data\' /* This line makes dir if nonexistant */ 
+  call open file, ('Pfiles:Time.Data/ImHere!'),'W'  
+   call writeln file, '1.9'
+   call close file
+ end
+bad = 0
+if exists('system:pfiles.badcommands') then do
+open(badcmds,'system:pfiles.badcommands','R')
+count = 0
+do until eof(badcmds)
+count = count + 1
+bad.count = readln(badcmds)
+a = length(bad.count) 
+if a > 2 then bad.count = left(bad.count,2) 
+end
+bad = count
+close(badcmds)
+end
+Transmit 'By Ronald Kushner'
+if ~exists('RAM:Time.Data/ImHere!') then do
+ sendstring '\$0MakeDir > nil: RAM:time.data\' 
+  call open file, ('RAM:Time.Data/ImHere!'),'W'  
+  call writeln file, '1.9'
+  call close file
+ end
+reform:
+path = 'Pfiles:Time.Data/'
+tpath = 'RAM:time.data/'
+timebd = 0 
+today = 0
+maxbank = 20
+maxacct = 200
+maxwithdraw = 40
+getuser 41
+user = result
+getuser 22
+cals = result
+filename = path||user
+ramname = tpath||user
+if exists(filename) then do
+   call open file, (filename),'R'
+   timebd = readln(file)
+   call close file
+ end
+
+if exists(ramname'dep'cals) then do
+   call open ramer, (ramname'dep'cals) , 'R'
+    today = readln(ramer)
+   call close ramer
+   maxbank = today
+ end
+if timebd = maxacct then maxbank = 0 
+if maxacct < timebd + maxbank then maxbank = maxacct - timebd
+if exists(ramname'wdr'cals) then do
+   call open ramer, (ramname'wdr'cals) , 'R'
+    today = readln(ramer)
+   call close ramer
+   maxwithdraw = today
+    
+ end
+if timebd - maxwithdraw < 0 then maxwithdraw = timebd
+menu:
+transmit '\n1\c3Maximum allowed\n1in the Bank     \c1 =\cf 'maxacct
+transmit '\c3Time in Bank   \c1  =\cf 'timebd'\n1\c3Time Remaining  \c1 =\cf \vc '
+transmit '\c3Maximum Deposit \c1 =\cf 'maxbank
+transmit '\c3Maximum Withdraw \c1=\cf 'maxwithdraw
+ if maxbank = 0 & maxwithdraw = 0 then call done
+menu2:
+sendstring '\n2\cfS\q1tats, '
+if maxbank > 0 then sendstring '\cfA\q1dd, '
+if maxwithdraw > 0 then sendstring '\cfW\q1ithdraw, '
+transmit '\cfQ\q1uit'
+main:
+bufferflush
+query '\n1\c3TB:\q1 '
+ans = upper(result)
+getcarrier
+carrier = result
+if carrier = 'false' then exit
+if ans = '###PANIC' then exit
+if ans = 'S' then call menu
+if ans = 'A' then call add
+if ans = '+' then call add
+if ans = 'W' then call subtract
+if ans = '-' then call subtract
+if ans = 'Q' then exit
+if ans = '?' then call menu2
+if ans = "" then call main
+if bad ~= 0 then do
+do a = 1 to bad
+b = right(bad.a,1) ; c = left(bad.a,1)
+if left(ans,2) = bad.a then call main
+if b = c then if c = left(ans,1) then call main
+end
+end
+bbscommand ans
+call main 
+
+toomuch:
+transmit '\caSorry, you can not deposit 'ans', try a amount under 'maxbank'!\q1'
+
+add:
+taab = 0
+ans = 0
+getuser 7
+calltime = result
+of timebd = maxacct call opps
+if maxbank < 1 then call menu
+ if calltime < 20 then maxbank = calltime
+ transmit '\n2'maxbank' is the maximum deposit you can make'
+ query '\n1\c3Deposit how much time?\q1 '
+ ans = result 
+ getuser 7
+  calltime = result
+   if ans = '' then call menu
+   if ans < 1 then call menu 
+   if ans > maxbank then call toomuch
+   if ans > calltime then ans = calltime
+    maxbank = maxbank - ans
+     timebd = timebd + ans
+     if timebd > maxacct then timebd = maxacct
+     taab = taab - ans
+ addtime taab
+ call open file, (filename),'W'  
+ call writeln file, timebd
+ call close file
+ call open file, (ramname'dep'cals),'W'  
+ call writeln file, maxbank
+ call close file
+
+call reform
+
+toomucher:
+transmit '\caSorry, you can not withdraw 'ans', try a amount under 'maxwithdraw'!\q1'
+
+subtract:
+if timebd = 0 then call menu
+if maxwithdraw = 0 then call menu
+sendstring '\c1\n1You have \c5'timebd'\c1 minutes in the time bank. You can withdraw'
+transmit ' \c4'maxwithdraw'\c1 minutes on this call.\n2'
+query '\c3Withdraw how much time?\q1 '
+ans = result
+if ans = '' then call menu
+if ans > maxwithdraw then call toomucher
+timebd = timebd - ans
+maxwithdraw = maxwithdraw - ans
+addtime ans
+call open file, (filename),'W'  
+ call writeln file, timebd
+ call close file
+ call open file, (ramname'wdr'cals),'W'  
+ call writeln file, maxwithdraw
+ call close file
+call reform
+
+Done: 
+Transmit '\n2\caSorry, there is nothing more you can do with the TIME BANK on this call!\q1'
+exit
+LIH: 
+transmit '\n2\caSorry, you can not deposit more than 'maxacct' minutes in the TIME BANK!\q1'
+call menu

@@ -1,0 +1,372 @@
+Chapter 6:
+
+
+		File Transfers
+
+
+6.1.0 Overview
+
+6.2.0  The File Catalog Editor
+
+
+
+        4D-BBS FCL_ED DOCUMENTATION, (C) 1993 CornerStone Software.
+                  Written by Jeff Holden   Feb 12, 1993
+                         FCL_ED V2.65 and above.
+
+
+   4D-BBS, CLP and EIC are registered tradmarks of CornerStone Software.
+
+
+As a multi functionable executable editor, you have 4 ways of running
+this software, they are broken down into 2 catagories.
+
+1  Command mode
+2  Silent mode
+
+The editors may be run through workbench, shell/cli, script, or as a door.
+
+In command mode you are allowed to edit everything (options via keys),
+however in silent mode (NOT available if running as a door) the editor
+is not viewable, nor is keyboard input. In silent mode you pass all
+options to the editor via the command line parameters (CLP).
+
+In silent mode, options are carried out without the veiwable editor, this
+is very handy for maintenance scripts and fast updating without starting
+up the full editor.
+
+FCL_ED does not detach from the CLI when run, if you want it to (running in
+silent mode) use the 'Run >NIL: fcl_ed (options)' and your script/cli
+will continue with the editor running in the background.
+
+The following CLPS tell the editor certain specific information in which the
+editor needs to know in order to run. (In Command OR Silent mode)
+
+*** CLPS ARE CASE SENSITIVE **
+
+(# = a number)
+($ = String (filename/name/etc.)
+
+
+OPTION    Description               Supporting OPTS     DEFAULTS
+---------|-------------------------|-------------------|-------------
+ -b$      Path/assign to BBS:	      All but -f          BBS:
+ -c       Convert from old          All	but -f          Defaults to editor
+ -d$      Path/filename of datafile All	but -f          BBS:FileDefs.d
+ -r#      Rows displayable          All	but -f          10 rows (Lists)
+ -a$	     On-Line Arexx update      All but -f          NONE
+          (This tells the editor to update 4d-bbs on changes)
+ 
+If none of the above are given the defaults will be used.
+
+If running as a door, the door will tell 4d about the changes (If any).
+Door running can only be accomplished if using 4D-BBS SERIES IIA V1.00
+and above extended door protocols.
+
+If running through 4D-BBS function keys or pull down menus, WITH THE
+ONLINE UPDATE option ON, 4D will be notified of any changes via the
+arexx port name passed to the editor (-a$).
+
+Special CLPS
+
+** -s #
+To initialize a silent mode you must give the '-s' CLP followed by a #, the
+number represents the file library you wish to silently edit/change/delete.
+
+** -f $
+A generic string specifier. If changing names or overriding default filepaths 
+and etc. Use the -f (Only for silent mode use, and ONLY where the -f is 
+supported ; almost all silent mode options support the -f CLP ).
+
+** NOTE ** only do one operation (changing name or ??) per run.
+Do NOT try to pass CLPS to the editor which specify two diff tasks. EX:
+dont try to explore the catalog, and change file section twos' filename
+in the same run.  CLP conflicts may arise.
+
+The following is a list of silent mode options, ** Remember, the silent
+mode must be initiated with the -s# CLP. Options tend to follow the same
+keypresses you would have done if running in command mode.
+
+In order to jump right to the editing point, the silent mode CLPS are
+setup as a string, each character in the string has a useful function
+and directs the editor as to where to do the editing.
+
+_________________________________________________________________________
+
+-E             This initializes the GENERAL LIBRARY SECTION EDITING.
+               2 characters MAX for this CLP. EX: -Ed tells the editor
+               to DELETE the library number in -s CLP.
+
+               The second character can be one of the following:
+
+               f    This will cause the editor to re-count all the files
+                    in the sections, and place the TRUE cataloged entries
+                    in the libraries count number. It will also total all
+                    the files cataloged and place it in the system stats
+                    data file. This is very handy if you Explore/Find
+                    files, saved the catalog but forgot to save the
+                    updated library counts.
+
+               d    This will delete the library # found in the -s CLP
+                    all together, The actual files in its directory will
+                    NOT be deleted.
+     
+               END OF GENERAL LIBRARY SECTION EDITING CLPS
+_________________________________________________________________________
+
+-e ...         This initializes the specific LIBRARY SECTION EDITING.
+               2 characters MAX for this CLP. EX: -ea tells the editor
+               to change this libraries name to whatever is in the -s
+               CLP.
+
+               The second character can be one of the following:
+     
+               a    This is the new name you wish this library to be  
+                    known as. The name will be in the -f CLP.
+
+               b    This tells the editor to place the path in -f CLP
+                    as this libraries file path (Where to find files
+                    for this section, section is found in -s CLP).
+               
+               c    Tells the editor that this library has an extended
+                    description base.. The Message base number to place
+                    in this libraries base # is in the -f CLP.
+
+               d    New amount of files for this library, file count
+                    is found in the -f CLP.
+               
+               e    Status of this library in comparison to files.
+                    1 of the 2 following must be found in the -f CLP
+                    and ** ARE CASE SENSITIVE **
+                    
+                         A    Ask if file is private.
+                         P    Private library.
+
+                    If neither of the above are found, the editors assumes
+                    the library is supposed to be a public one.
+
+               f    Library opens at this hour. Ex: 6:00pm = 14, 
+                    the hour can be found in the -f CLP.
+
+               g    Library Closes at this hour. Ex: 4:00am = 4, 
+                    the hour can be found in the -f CLP.
+
+               h    Current (Right NOW) status of the library (overrides
+                    users access) and is a digit (0 through 4) found in 
+                    the -f CLP.
+                    
+                         0  Closed
+                         1  Open
+                         2  D-Load 
+                         3  U-Load
+                         4  Hide
+        
+               i    Sets the New user access level for this library to 
+                    whatever is in the -f CLP, IF the char is in 
+                    uppercase, its considered to be scanable, If in lower 
+                    case, its masked out.
+
+                    The char in -f CLP can be one of the following
+
+                    D    (Library is Download only)
+                    U    (Library is Upload only)
+                    B    (Upload and downloading available)
+                    N    (No access, closed library)
+			
+               j    Same as above (i) but effects MEMBERS.
+				       
+               k    Full path and filename of binary file catalog (where
+                    entry names and information is stored). Found
+                    in -f CLP.
+
+               END OF SPECIFIC LIBRARY SECTION EDITING CLPS.
+_________________________________________________________________________
+
+-l ...         This initializes the specific section CATALOG EDITING.
+               2 characters MAX for this CLP. EX: -lc -f3 tells the editor
+               to sort the catalog list by file name [alphabetically],
+               for whatever library section was found in the -s# CLP.
+
+               The second character can be one of the following:
+
+               f    Search for descriptionless entries and append the
+                    uploaders description file to prompt for descriptions.
+
+               c    Compare/Sort the entries (Follows 1-6 options in command
+                    mode). The -f CLP contains a number from (1 through 6)
+                    which represent:
+                    
+                    1 Newest to oldest [default]
+                    2 Oldest to newest
+                    3 By file name [alphabetically]
+                    4 By uploader [alphabetically]
+                    5 By size [smallest to largest]
+                    6 By size [largest to smallest]
+			
+               w	Write a text file of the entries in this catalog. Saves
+                    the file to whatever is in the -f CLP, if nothing it
+                    will default to (path of the Lib #)/FileList.txt
+                    ** Uploaders name will not be given.
+
+               a	Add a file to the catalog. The -f CLP will specify
+                    a file which is ** ALREADY ** in that libraries
+                    directory, and add it to the catalog with a AmigaDos
+                    Comment as the description (If one), Uploader as SYSOP
+                    and current date,size.
+
+               d	Delete an entry from this list (Will not delete file, 
+                    only catalog entry). Entry name is also found with the
+                    -f CLP.
+
+               e    Explore/Search library directory for any file not in the
+                    catalog. Defaults to adding ALL files not found in the
+                    file list, uploader name as SYSOP or whatever name
+				can be found in the -f CLP, description is
+                    AmigaDos comment (if one), current date/size.
+               
+               END OF CATALOG EDITING CLPS.
+
+
+Examples of script type/cli silent running....
+
+     A non-standard datafile (NOT filedefs.d), need to change the
+     file path for section 4
+
+     run >nil: FCL_ED -dBBS:SecretFiles.d -s4 -eb -fSecret:src/
+
+     Want to explore the directory for any files not cataloged for
+     section 82 and quickly add them to the catalog.  
+
+     run >nil: FCL_ED -s82 -le
+
+     Create a viewable text file on all the files in section 12 and save
+     the file in section 11 called S12list.text
+
+     run >nil: FCL_ED -s12 -lw -fFile:sect_12/s12list.text
+_________________________________________________________________________
+
+** REMEMBER ** NOTE ** WARNING ** Do NOT try to do two sperate options
+at the same time..
+
+EX: run >nil: FCL_ED -dBBS:SecretFiles.d -s4 -eb -lw -fSecret:src/
+                                               |   \
+                                              /     \
+     This will NOT work! The 'lw' will assume the -f CLP is the name
+     to save the file to.. If the -f was a file name, then the 'eb' would
+     use a filename as a path... So dont use two editing options at once.
+
+
+
+WorkBench execution and Icon.
+
+The Icon tool types are the same as the CLPS for 'user freindlyness'
+however a few notes are warranted..
+
+When using tool types you give the tool name then an '=' then your
+string/number.
+
+A CLP of -dbbs:Secret.d would be  d=BBS:Secret.d in workbench.
+
+The Silent mode can also be run via workbench..
+
+EX:  Want to explore the directory for any files not cataloged for
+     section 82 and quickly add them to the catalog.  
+
+     Tool Types would be
+
+     s=82
+     l=e
+
+
+     which is the same as the CLPS  -s82 -le
+
+
+
+4dbbsse1.library    
+     
+     As of 2-13-93 (V2.65) this library is not used, this library will 
+     handle most of all the editors redundant functions,  which should 
+     shrink each editor size by at least 25%.
+
+
+Enviroment variables.
+
+	Editors can be told to grab information from the Amigas environment.
+	IF you pass an 'E' as the filename in '-d' or '-b' CLPS, the editor
+	will open the env: variables to grab the filenames/paths.
+
+	The ENV: variables can be broken down into groups of the following
+
+	4D		<- First 2 chars.. Tells us its a 4D-BBS variable
+
+	The third char can be one of the following
+
+		P	<- A Path/Assign
+
+		D	<- A data file (full path and name)
+
+	The rest of the variable name is the specific option we are looking
+	for.
+
+		Rest of 4DP could be
+
+			BBS       (ENV:4DPBBS   Contains path/assign to BBS:   Dir)
+			TEXT      (ENV:4DPTEXT  Contains path/assign to TEXT:  Dir)
+			USERS     (ENV:4DPUSERS Contains path/assign to USERS: Dir)
+			MENU      (ENV:4DPMENU  Contains path/assign to MENU:  Dir)
+
+		The D options are data files for Files and Message bases.
+
+			F         (ENV:4DDF   Contains path AND name of File 
+                          definitions data file (filedefs.d)
+
+			B         (ENV:4DDB   Contains path AND name of Boards 
+                          definitions data file (boarddefs.d)		
+
+Ex:  
+
+	A non-standard datafile (NOT filedefs.d), need to change the
+     file path for section 4, Use Enviroment variable to find which
+	data file to use.
+
+     run >nil: FCL_ED -dE -s4 -eb -fSecret:src/
+
+
+Here are some example scripts..
+
+For a quick 'AddFile' type operation, you can add to your
+shell-startup this small line.
+
+alias addfile2 FCL_ED -s2 -la -f[]
+
+which will add a file to your section 2's catalog.
+
+And use in through your shell like  'addfile [filename]'
+
+
+Or if a maintenance script, And you wish to have a current file listing at all
+times.. A little script like this would do great, and QUICK!
+
+run >NIL: fcl_ed -s0 -lw
+run >NIL: fcl_ed -s1 -lw
+run >NIL: fcl_ed -s2 -lw
+run >NIL: fcl_ed -s3 -lw
+run >NIL: fcl_ed -s4 -lw
+
+This will start up 5 editors, each counting files and writing text files.
+
+As of now, each editor will need to allocate memory for the same data.
+This will be eliminated when the library is available. If you are
+very limited in ram, its best to NOT run them to the NILL, so the next
+editor will not start up until the first one is complete.. Takes longer,
+but saves some memory.
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,81 @@
+;VBBS.scp - script for dialing both of VBBS's lines automatically
+;
+;Features:
+;        - handles both lines
+;        - properly steps between lines
+;        - waits a minute if both lines are busy, before tryinng again
+;        - adjusts modems "NO CONNECT" timeout to more optimum values
+;                (this may need individual attention)
+;        - more reliable design
+;        - allows human assistance (you can hit <return> if you hear a busy
+;                signal, and your modem doesn't detect it)
+;
+;  This script works very nicely on USR modems.
+;
+;/kenw 910210
+
+print "Welcome to VBBS-TERM, the error-corrected, multiplexed, multitasking,"
+print "multiuser BBS and Terminal package for the Amiga.  With this software"
+print "you (as a BBS user) can do several things at once on the BBS.  For"
+print "example you can download, upload, read messages, chat to the sysop, and"
+print "chat to other users in the real time conference all at the same time!"
+print "This script file is set to try to dial into the VBBS system run by the"
+print "author of this package, if you do not want to do this hit the ESC key."
+delay 30
+print "--------------------------------------------------------------------------"
+print "The window you are reading this text in is the ASCII mode window, its sole"
+print "purpose is to allow you to see what is happening with the modem and to"
+print "see the initial connection sequence with the BBS."
+delay 30
+print "--------------------------------------------------------------------------"
+print "When your modem connects to a BBS running VBBS software the rest of the"
+print "connection will take place automatically, no need to hit anymore keys."
+print "This window will disappear and will be replaced by a second small one"
+print "containing the 10 buttons that let you use VBBS when connection is made."
+print "--------------------------------------------------------------------------"
+delay 30
+print "Attempting to dial out now."
+
+init
+
+  delay 15        ; make sure modem is clear
+  send +++
+  delay 20
+  send atz
+  cr
+  wait OK
+  send ats7=25    ; set fairly short "connect patience"
+  cr
+  wait OK
+
+  on CONNECT startproto  ;when we get a CONNECT we go to the startproto label
+
+line1
+  cr
+  on "NO CARRIER" line2
+  on BUSY line2
+  send atdt2842048
+  cr
+  delay 500
+  cr
+  wait OK
+
+line2
+  cr
+  on "NO CARRIER" waitaminute
+  on BUSY waitaminute
+  send atdt2845625
+  cr
+  delay 500
+  cr
+  wait OK
+
+waitaminute
+  print "Can't get through - waiting a minute..."
+  delay 600
+  goto line1
+
+startproto
+  delay 5
+  print "We have connection, starting protocol"
+  exit

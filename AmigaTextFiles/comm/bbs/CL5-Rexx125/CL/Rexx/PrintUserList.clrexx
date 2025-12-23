@@ -1,0 +1,70 @@
+/*
+**  $VER: PrintUserList.clrexx 1.0 (22 Nov 1995)
+**
+**        © 1995 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      PrintUserList.clrexx
+**
+**  FUNCTION:
+**      Gibt eine Liste der User mit Priorität, Realname, Anschrift und
+**      Telefonnummer auf dem Drucker aus.
+**
+*/
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then do
+        address command 'ASSIGN LIBS: CONNECTLINE:Libs ADD'
+        if ~addlib('connectline:libs/cl_rexx.library',0,-30,0) then exit 10
+        end
+    end
+
+
+anzahl=CLGET_UserNumberOf()
+
+do x=1 to anzahl
+    user.x=CLGET_Username(x)
+    prio.x=CLGET_UserPriority(user.x)
+    if prio.x<10 then prio.x='0'prio.x
+    real.x=CLGET_UserRealname(user.x)
+    addr.x=CLGET_UserAddress(user.x)
+    tele.x=CLGET_UserTelephone(user.x)
+    end
+
+userbreite=16
+priobreite=4
+realbreite=20
+addrbreite=20
+telebreite=18
+
+call print(center('Username',userbreite)||center('Pr',priobreite)||center('Realname',realbreite)||center('Adresse',addrbreite)||center('Telefon',telebreite)||'0a'x)
+call print(copies('=',userbreite-1) copies('=',priobreite-1) copies('=',realbreite-1) copies('=',addrbreite-1) copies('=',telebreite-1)||'0a'x)
+
+do x=1 to anzahl-1
+    call print(left(user.x,userbreite)||left(prio.x,priobreite)||left(real.x,realbreite-1)' '||left(addr.x,addrbreite-1)' '||left(tele.x,telebreite)||'0a'x)
+    if (length(real.x)>realbreite-1)|(length(addr.x)>addrbreite-1) then do
+        call print(copies(' ',userbreite) copies(' ',priobreite-1))
+        if length(real.x)<realbreite-1 then call print(copies(' ',realbreite))
+        else call print(left(right(real.x,length(real.x)-(realbreite-1)),realbreite-1))
+        if length(addr.x)<addrbreite-1 then call print(copies(' ',addrbreite)||'0a'x)
+        else call print(left(right(addr.x,length(addr.x)-(addrbreite-1)),addrbreite-1)||'0a'x)
+        end
+    call print(copies('-',userbreite-1) copies('-',priobreite-1) copies('-',realbreite-1) copies('-',addrbreite-1) copies('-',telebreite-1)||'0a'x)
+    end
+
+exit
+
+/* die eigentliche Druckroutine */
+
+print:
+parse arg druckzeile
+if ~show('F','Printer') then do
+    if ~open('Printer','PRT:') then do
+        return 'ERROR'
+        end
+    end
+return writech('Printer',druckzeile)
+
+

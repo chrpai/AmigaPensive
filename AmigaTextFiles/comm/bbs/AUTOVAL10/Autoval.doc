@@ -1,0 +1,205 @@
+Revision Date: 04-Sep-94
+
+            ***************************************************
+            *                                                 *
+            *                  Autoval v1.0                   *
+            *                                                 *
+            *        (c)1994 by Rod Schnell (1:3412/1114)     *
+            *                                                 *
+            *                for Excelsior! BBS               *
+            *                                                 *
+            ***************************************************
+
+
+An Excelsior! door to assist sysops with validating user accounts. AutoVal
+checks user account information and validates new users. It uses Caller-ID
+information from TrapDoor to do immediate validations when possible.
+
+First time callers are given the option of changing thier information when a
+problem is found. Autoval also checks previously validated users and informs
+them when a problem is found but does not allow them to change anything. Nor
+does it change a previously validated user's access. Using IPL commands it's
+possible to launch other programs from any text file and add features you
+might need (Ex: reduce access when checks fail) .
+
+Autoval has been tested on an Amiga 4000 '040 running Excelsior! BBS v1.21
+Version 1.21 is required for CallerID to work properly. It should work without
+CallerID on lower versions too but this is untested.
+
+This, the first release version has been tested with Excelsior v1.21 and up.
+The setaccess Arexx command was broken in Excelsior v1.21c-e so Autoval won't
+work properly with those versions.
+
+
+
+Features
+~~~~~~~~
+ - Checks all user accounts for:
+
+     1) Realname includes a last name.
+     2) Other accounts using the same realname.
+     3) Other accounts using the same phonenumber(s).
+     4) CallerID information (when available) matches data phonenumber.
+
+ - Automatic new user (AG 1) validation when the checks have been passed and
+   CallerId info is available. The user will not be validated if any of these
+   checks fail.
+
+ - Autocallback validation of new users when CallerId info is not available
+   and all other checks have passed.
+
+ - Automatic logging of callerID information (when available) for all callers
+   to the caller log.
+
+ - Automatic logging of information whenever a check fails.
+
+ - Autoval loads the entire Userdata file into memory for speed. Make sure you
+   have enough memory available. However if there isn't enough memory Autoval
+   will abort cleanly.
+
+ - Configuration file.
+
+
+Caller-ID Support
+~~~~~~~~~~~~~~~~~
+Autoval supports caller-ID information logged by TrapDoor v1.84 and up.
+Autoval looks for the file RAM:CallerID.# and if found uses the information
+to immediately validate new users who have passed all the checks. CallerID
+info is also logged for all users. TrapDoor must be configured to log caller
+ID to the file RAM:CallerID.# where # equals the BBS line number (NOT node
+number). See TrapDoor's manual to learn how to turn on caller-ID logging. 
+
+If any of the other checks have failed Caller-ID validation will not proceed.
+
+When run from the local console the line number returned is 0. To test
+Autoval, simply edit the phonenumber in the included CallerID.0 file and copy
+to RAM:
+
+
+
+*** IMPORTANT NOTES ***
+
+1) If there is no Caller-ID information and all other checks passed, Callback
+   validation will be initiated. Unfortunately CBV doesn't work when it has
+   been disabled! If you don't disable it then CBV will validate first time
+   callers before Autoval can check userdata. Autoval can't be run before CBV
+   for first time callers either, because the user's information hasn't been
+   saved yet.
+
+2) Autoval logging uses Excelsior! Arexx ports to access the command logentry
+   which is not otherwise available from C programs. ;-( Consequently Autoval
+   log lines will have "Arexx reports:" prepended to them.
+
+
+
+Installation
+~~~~~~~~~~~~
+- Copy all text files to the TEXT/ENGLISH directory.
+
+- Make a new directory in the BBS data path named TGData. This is where
+  autoval looks to find it's config file. This is not required if you wish to
+  use only the default settings.
+
+- Copy Autoval to BBS:c (elsewhere if you prefer) and install by putting the
+  following on the first line in your TEXT/ENGLISH/Welcome.user file.
+
+  \#2BBS:c/Autoval\
+
+  You can launch Autoval as an Excelsior! door just about anywhere you like,
+  so long as it's after the user's information has been loaded. According to
+  my tests Welcome.user is the earliest it will work. Alternately you could
+  install Autoval as a global command and run it from the default logon macro.
+
+- Make sure only level one users can edit personal data by setting extended
+  access flag "edit personal data" in all other access groups to "No". This
+  prevents users from using another phone number to validate fake accounts and
+  then changing the personal data to keep you from discovering them.
+
+- The file Ram:CallerID.# (where # = BBSline) must exist for AutoVal to use
+  CallerID info. Configure Trapdoor v1.84 to log this file. Trapdoor deletes
+  this log automatically when the session ends.
+
+
+
+Configurability
+~~~~~~~~~~~~~~~
+Most text displayed by Autoval is found in seperate text files, so it can be
+modified to suit. All "Press ANY KEY to continue" prompts and screen clears
+are contained in these files too, so you can remove the prompts and clears as
+you like. Deleting all the text files would cause Autoval to run without the
+user noticing anything other than a slight pause unless a problem is found.
+
+The actual updating of access levels is done by an Arexx script run from the
+text file "passedchecks". This makes it easy to configure access levels for
+your system and makes it possible to add additional checks if you need them.
+
+A seperate config utilitly is included which saves a configuration file in the
+BBS data path. You can set 4 options with this utility:
+
+1) Full path and name to Userdata file - default: BBS:Data/Userdata
+
+2) New user access group.              - default: 1
+
+3) Validated user access group         - default: 3
+
+4) Highest access group to check for
+   duplicate/invalid user information
+   at logon.                           - default: 2
+
+With default settings Excelsior! will validate new users to access group 2
+through auto-callback validation. Then autoval will check the user's
+information and if everything passes, will upgrade thier access to access
+group 3. Please note, the actual access updating is done by an Arexx script
+(VAL.upaccess.rexx) so if you change the Validated user access group you must
+also edit this script to setaccess properly.
+
+
+
+Text Files
+~~~~~~~~~~
+The following text files are sent by Autoval at various times if they exist in
+the BBS text path.
+
+VAL.intronew           Introduction for new users (AG = 1) only.
+VAL.introold           Introduction for previously validated (AG > 1) users.
+VAL.nolastname         Sent when Realname does not include a last name.
+VAL.dupephone          Sent when another account is using the same
+                       phonenumber(s).
+VAL.dupename           Another user is using the same realname.
+VAL.passedchecks       A new user has passed all the checks AND CallerID info
+                       matches the data phonenumber. The script
+                       VAL.upaccess.rexx is run from this file.
+VAL.cidfailed          Sent when a new user has passed all checks but CallerID
+                       information does not match the data phonenumber.
+VAL.passeddocallback   All checks have passed for a new user, no CallerID
+                       info is available, initiate callback validation.
+VAL.passednocid        All the checks have passed for a previously validated
+                       user. CallerID information is not available.
+VAL.failedcheck        Sent at the end when at least one check has failed for
+                       a new user.
+VAL.posdupe            Sent at the end when at least one check has failed for
+                       a previously validated user.
+VAL.upaccess.rexx      Arexx script to update the user's access. Modify to
+                       suit. This script is run by the file VAL.passedchecks.
+
+
+
+Future
+~~~~~~
+- I have several ideas for additions to this door, but I'd like input from
+  others too. Suggestions for additional checks are especially encouraged.
+  
+- If you translate the text files to another language please send them to me,
+  so I can include them with the next version of Autoval.
+
+
+  Please send any comments, suggestions, ideas and bug reports to:
+  
+  Rod Schnell
+
+  The Guild BBS   1-604-339-9805   28.8 V.FC    (1:3412/1114)
+                  1-604-339-9804   14.4 V32bis
+
+
+"Sysop error, that's how it's supposed to work."
+

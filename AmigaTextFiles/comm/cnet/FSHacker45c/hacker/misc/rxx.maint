@@ -1,0 +1,64 @@
+/* Hacker 4.5c Maintenance */
+
+options results
+save   = 'PFiles:Hacker/'
+play   = save'Players/'
+misc   = save'Misc/'
+mess   = save'MESSAGES/'
+bnk    = save'BANK/'
+getuser 12
+date=result
+
+SortPlayers:
+if ~exists(play"total") then do;bufferflush;exit;end
+call open file, (play'TOTAL'), 'R'
+totalusers=readln(file)
+call close file
+call open file, (play'REALNAMES'), 'R'
+     do i = 1 to TOTALUSERS
+        REALname.i = readln(file)
+     end
+call close file
+
+do i = 1 to totalusers
+   call open file, (play||REALNAME.i), 'R'
+   call open fin, (misc"rxx.maint2"),'R'
+   do until eof(fin);temp=readln(fin);interpret temp;end
+   call close fin;call close file
+   END
+
+n = totalusers-1;o = totalusers-1
+do i = 1 to n
+   do j = 1 to o
+      q = j + 1
+      if oxper.q > oxper.j then do
+         temp = oxper.j;tempname = OALIAS.j
+         oxper.j = oxper.q;OALIAS.j = OALIAS.q;oxper.q = temp;OALIAS.q = tempname
+      end
+   end
+end
+call open nfile, (play''Top15), 'W'
+call writeln nfile,'\f1 \cdTop 15 Hackers as of '||date||'...\n1'
+call writeln nfile,'  \c5#   Alias                    Experience     Level\c3'
+toloop = 15
+if totalusers < toloop then toloop = totalusers
+DO I = 1 to toloop
+   call OCONVERSION;OALIAS = left(OALIAS.i,25)
+   OEXP = left(oxper.i,15);OLEVNAME = left(OLEVNAME,30);temp=i'.'
+   call writeln nfile,'  \cb'left(temp,3)' \c3'OALIAS''OEXP''OLEVNAME
+end
+call close nfile
+bufferflush
+exit
+
+OCONVERSION:
+do x=2 to 60
+  xprmod.x=(1.2**x)*1000
+  if oxper.i < xprmod.x then do;olevel = x-1;x=61;end
+end
+call open file, (misc'rxx.oconvert'), 'R';boom=0;do until boom=1
+temp=readln(file);interpret temp;end;call close file
+do x=2 to 60
+ drop xprmod.x
+end
+RETURN

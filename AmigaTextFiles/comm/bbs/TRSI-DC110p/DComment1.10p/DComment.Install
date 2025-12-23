@@ -1,0 +1,262 @@
+;
+; $VER: DComment.Install v0.3 (19.03.1997)
+; done by ZoD/tRSi
+; Tab: 4
+;
+
+(complete 0)
+
+(if (= @language "deutsch")
+	(
+		(set #welcome			(cat	"\nWillkommen zur Installation von\n"
+										"dREAM-cOMMENT v1.10p für FAME BBS\n"
+										"Dieses Script installiert dREAM-cOMMENT\n"
+										"auf ihrem AMIGA, so das Sie das DOOR\n"
+										"direkt in Benutzung nehmen können\n"
+                                        "\n(That program is dedicated to Simona)\n"
+								)
+		)
+		(set #destdir-prompt	(cat	"Bitte wählen Sie jetzt das Verzeichnis in dem dREAM-cOMMENT installiert werden soll, eine Schublade wird erzeugt"))
+		(set #doorname-prompt	(cat 	"Bitte wählen Sie jetzt den Name unter dem das Door in der BBS aufzurufen ist"))
+		(set #level-prompt		(cat 	"Bitte wählen Sie jetzt den Accesslevel unter dem das Door in der BBS abrufbar ist"))
+		(set #cmd-prompt		(cat	"Bitte wählen Sie die Art des Commands"))
+		(set #conf-prompt		(cat	"Bitte wählen Sie die Conference Nummer"))
+
+		(set #copyfilesstr		(cat	"\nKopiere nun alle benötigten Files!\n"))
+		(set #badkick			(cat 	"\n\nSie benötigen zumindest Kickstart 2.0 oder höher um DCommment zu benutzen!"))
+		(set #nofame			(cat	"\n\nKonnte kein installiertes FAME auf Ihrem Rechner finden!\n\n"))
+        (set #nodest			(cat	"Kein Zielverzeichnis!\n"))
+
+		(set #doorconfig		(cat	"Der Installer wird nun versuchen das dREAM-cOMMENT\n"
+										"Konfigurations Door zur 'DoorConfig.lst' hinzuzufügen.\n"
+										"Bitte vergessen Sie nicht das Konfigurations Door später sofort\n"
+										"zu starten (w 14) um Probleme zu vermeiden.\n\n"
+										"Bitte geben Sie jetzt den Namen für die Door-Konfiguration ein\n"
+								)
+		)
+	)
+)
+
+(if	(=	@language "english")
+	(
+		(set #welcome			(cat	"\nWelcome to the Installation of\n"
+										"dREAM-cOMMENT v1.10p for FAME BBS\n"
+										"This program will install dREAM-cOMMENT\n"
+										"on your AMIGA, so it is ready to use after\n"
+										"this procedure\n"
+                                        "\n(That program is dedicated to Simona)\n"
+								)
+		)
+		(set #destdir-prompt	(cat	"Please select the drawer where dREAM-cOMMENT should be installed, a drawer will be created"))
+		(set #doorname-prompt	(cat 	"Please choose now the name for the door"))
+		(set #level-prompt		(cat 	"Please choose now the access-level for the door"))
+		(set #cmd-prompt		(cat	"Please select kind of command"))
+		(set #conf-prompt		(cat	"Please choose conference number"))
+
+		(set #copyfilesstr		(cat	"\nCopy now all needed files!\n"))
+		(set #badkick			(cat 	"\n\nYou need at lease Kickstart 2.0 or higher to install DComment!"))
+		(set #nofame			(cat	"\n\nCould not find an installed FAME on your system!\n\n"))
+        (set #nodest			(cat	"No Destination!\n"))
+
+		(set #doorconfig		(cat	"The installer will try now to add the dREAM-cOMMENT\n"
+										"Configuration-Door to the 'DoorConfig.lst'.\n"
+										"Please dont forget to start the Configuration door afterwards\n"
+										"to avoid any troubles and problems.\n\n"
+                                        "Please enter the door-config name now!\n"
+								)
+		)
+	)
+)
+
+
+(complete 10)
+
+(if (< (/ (getversion) 65536) 37) (abort #badkick))
+
+
+(complete 15)
+
+(set check4fame (getassign "FAME"))
+(if (= check4fame "") (abort #nofame))
+
+(message #welcome)
+
+(set destdir
+	(
+		(AskDir (prompt		#destdir-prompt)
+				(help		@askdir-help)
+				(default	"FAME:Doors/")
+		)
+	)
+)
+
+(if (= destdir "") (abort #nodest))
+
+(set destdir (tackon destdir "DComment"))
+(makedir destdir (infos))
+(set destdirbak destdir)
+
+(set guidedir (tackon destdir "Guide"))
+(makedir guidedir (infos))
+
+(set previewdir (tackon destdir "Previews"))
+(makedir previewdir (infos))
+
+
+
+(complete 20)
+
+(set cpu (database "cpu"))
+(if (= cpu 68000) (set #cpu 0))
+(if (= cpu 68020) (set #cpu 1))
+(if (= cpu 68030) (set #cpu 2))
+(if (= cpu 68040) (set #cpu 3))
+(if (> (exists ("sys:libs/68060.library")) 0) (set #cpu 4) )
+
+(set mycpu	(askchoice 	(choices "68000" "68020" "68030" "68040" "68060")
+						(prompt #askcpu)
+						(help   #askcpu)
+			       		(default #cpu)
+			)
+)
+
+
+(complete 30)
+
+(copyfiles  (prompt 	#copyfilesstr)
+			(help 		@copyfiles-help)
+			(source 	"Guide")
+            (dest 		guidedir)
+            (infos)
+			(all)
+)
+
+(complete 40)
+
+(copyfiles  (prompt 	#copyfilesstr)
+			(help 		@copyfiles-help)
+			(source 	"Designs")
+            (dest 		destdir)
+            (infos)
+			(all)
+)
+
+(complete 45)
+
+(copyfiles  (prompt 	#copyfilesstr)
+			(help 		@copyfiles-help)
+			(source 	"Previews")
+            (dest 		previewdir)
+            (infos)
+			(all)
+)
+
+
+(complete 50)
+
+(if (= mycpu 0) 	(set source1fim "bin/DComment.000"))
+(if (= mycpu 1) 	(set source1fim "bin/DComment.020"))
+(if (= mycpu 2) 	(set source1fim "bin/DComment.030"))
+(if (= mycpu 3) 	(set source1fim "bin/DComment.040"))
+(if (= mycpu 4) 	(set source1fim "bin/DComment.060"))
+(if (= mycpu 0)		(set source2fim "bin/DCommentConfig.000"))
+(if (= mycpu 1)		(set source2fim "bin/DCommentConfig.020"))
+(if (= mycpu 2)		(set source2fim "bin/DCommentConfig.030"))
+(if (= mycpu 3)		(set source2fim "bin/DCommentConfig.040"))
+(if (= mycpu 4)		(set source2fim "bin/DCommentConfig.060"))
+
+(copyfiles  (prompt 	#copyfilesstr)
+			(help 		@copyfiles-help)
+			(source 	source1fim)
+            (dest 		destdir)
+			(newname 	"DComment.fim")
+            (infos)
+)
+
+
+(complete 60)
+
+(copyfiles  (prompt 	#copyfilesstr)
+			(help 		@copyfiles-help)
+			(source 	source2fim)
+            (dest 		destdir)
+			(newname 	"DCommentConfig.fim")
+            (infos)
+)
+
+
+(complete 70)
+
+(copyfiles  (prompt 	#copyfilesstr)
+			(help 		@copyfiles-help)
+			(source 	"bin/DComment.cfg")
+            (dest 		destdir)
+            (infos)
+)
+
+
+(complete 80)
+
+(set #doorname	(askstring	(prompt 	#doorname-prompt)
+							(help		@askstring-help)
+							(default	"C")
+				)
+)
+
+(set #level		(asknumber	(prompt		#level-prompt)
+							(help		@asknumber-help)
+							(range		0 255)
+							(default	10)
+				)
+)
+
+(set #cmdtype	(AskChoice 	(prompt 	#cmd-prompt)
+                            (help		@askchoice-help)
+							(choices	"BBSCMD"
+										"CONF<x>CMD")
+				)
+)
+
+	(if (= #cmdtype 1)					; CONF<x>CMD selected
+		(
+			(set #confnum	(AskNumber 	(prompt		#conf-prompt)
+										(help		@asknumber-help)
+										(default	1)
+							)
+			)
+
+			(set #desttype ("%ld" #confnum))
+		)
+ 		(
+	        (set #desttype "B")			; Set type to BBSCMD
+		)
+	)
+
+
+(set destdirmain (tackon destdir "DComment.fim"))
+(set #mycmdline ("c/DoorHeader NAME=%s PATH=%s TYPE=%s LEVEL=%ld SERVERNAME=DComment NR NC AR AC SR SC CF RD MULTINODE INTERFACE=FIM" #doorname destdirmain #desttype #level))
+(run #mycmdline)
+
+
+
+(complete 90)
+
+(set #dcfgname	(askstring	(prompt 	#doorconfig)
+							(help		@askstring-help)
+							(default	"DComment-Config")
+				)
+)
+
+(set #level		(asknumber	(prompt		#level-prompt)
+							(help		@asknumber-help)
+							(range		0 255)
+							(default	250)
+				)
+)
+
+(set destdircfg (tackon destdir "DCommentConfig.fim"))
+(set #mycmdline ("c/DoorConfig NAME=%s PATH=%s LEVEL=%ld NR NC AR AC SR SC CF RD" #dcfgname destdircfg #level))
+(run #mycmdline)
+
+(complete 100)
+(exit)

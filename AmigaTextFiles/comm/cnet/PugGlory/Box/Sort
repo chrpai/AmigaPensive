@@ -1,0 +1,40 @@
+/*************************************************************************/
+/*                       Pugilistic Glory 2.0 Sort                       */
+/*                          AREXX Programming by                         */
+/*                          Charles A. Van Tuyl                          */
+/*                               aka Caesar                              */
+/*      $VER:Pugilistic Glory, v2.0 (02-02-97) by Charles Van Tuyl       */
+/*                            VTCaesar@aol.com                           */
+/*                    vantuyl@email.mannheim.army.mil                    */
+/*************************************************************************/
+options results
+bufferflush
+tr=transmit
+path9='Pfiles:Box/Owners/'
+call open(file,'PFILES:Box/Own.data','R'); POW=readln(file)
+call close file
+call open(sfile,'PFILES:Box/Own','R')
+call open(wfile,'PFILES:Box/tOwn','W')
+do ox=1 to POW
+null=seek(sfile,(POW-ox)*33,'B')
+inn=readln(sfile)
+name=trim(substr(inn,13,20))
+call load
+t=MONH
+string=right(t,11)||' '||left(name,20)
+writeln(wfile,string)
+end
+call close sfile
+call close wfile
+file1='pfiles:Box/tOwn'
+file2='pfiles:Box/Own'
+address command "SORT pfiles:Box/tOwn to pfiles:Box/Own"
+null=delete(file1)
+exit
+
+LOAD:
+FINDACCOUNT name;id=result
+call open(filef,path9||id,'R')
+MONH=readln(filef)
+call close(filef)
+return

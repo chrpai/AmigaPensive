@@ -1,0 +1,64 @@
+;
+;	NAME : DOWNLOAD
+;
+;	VERSION : $VER: 1.04 / 29.01.1995
+;
+;	FUNKTION : Zeigt Downloadliste an, fragt, ob Download mit
+;		   Autologout beendet werden soll und startet Download.
+;
+;	AUFRUF : DOWNLOAD
+;
+;	AUTOR : Michael Scheler
+;
+;	Diese Batchdatei benutzt folgende Befehle :
+;	-------------------------------------------
+;	BATCH DOWNLOAD
+;	EOD
+;	IFS
+;	LOGOUT
+;	MENU
+;
+;	Konstanten :
+;
+TIMEOUT	= 5				; Autologout-Timeout in Sekunden
+;
+;	Programm :
+;
+
+; Download-Liste anzeigen
+
+_batch download/list COUNT		; Download-Liste anzeigen
+_ifs/e COUNT "0" END			; Wenn kein File vorhanden, Ende
+
+; Texte einbinden
+
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/download.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/download.bat"
+
+; Abfrage nach Autologout am Ende des Downloads ...
+
+_menu "'T1'" -				; Downloadart abfragen
+ "'AUTO'"	AUTOLOGOUT -
+ "'DOWN'"	DOWNLOAD -
+ "'ABORT'"	END
+
+; Download mit anschliessenden Autologout starten ...
+
+AUTOLOGOUT:
+_batch download				; Download starten
+_menu/timeout=5/noecho "'T2'" -
+ "'ABORT'" END
+_logout/f				; Autologout
+
+; Normalen Download starten
+
+DOWNLOAD:
+_batch download				; Download starten
+
+; Ende der Batch
+
+END:
+_eod					; Batchbefehl beenden

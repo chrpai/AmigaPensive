@@ -1,0 +1,150 @@
+; DayDream BBS installation script!
+
+(set DDVersion "DayDream BBS 1.30")
+
+(complete 0)
+(message
+		"\n D a y D r e a m  B B S  1.30 beta 4\n\n"
+		"By Antti Häyrynen & Mattias Nilsson & Vladimir Petrovich\n\n"
+		"This installer script installs DayDream BBS onto your harddrive.\n\n"
+		"Unpack the DayDream BBS distribution archive to the directory you want it to be placed in.\n"
+		"\n(Obviosly you have done this already :)"
+)
+
+(set DestDir (askdir	(prompt "Please Select the directory/partition where you have unpacked DayDream BBS?")
+			(help	"This directory is the home of DayDream BBS and all the subdirectories will be placed here.")
+			(default "")
+             )
+)
+(makeassign "DayDream" (DestDir))
+
+(makedir ("DayDream:Temporary"))
+(makedir ("DayDream:Temporary/Node1"))
+(makedir ("DayDream:Users"))
+(makedir ("DayDream:Hold"))
+(makedir ("DayDream:Data"))
+(makedir ("DayDream:Batch"))
+(makedir ("DayDream:Display"))
+(makedir ("DayDream:Doors"))
+(makedir ("DayDream:Questionnaire"))
+(makedir ("DayDream:Logfiles"))
+
+
+(complete 25)
+(message
+		"All the directories requires for uploads etc. for 1 node "
+		"has been created. \n"
+		"\nNow move on to the library/handler installation.\n"
+)
+
+(complete 35)
+(copylib
+	(prompt "Copying fifo-handler to L:...\n\n"
+			"FIFO is required for remote shell and stdio doors etc."
+	)
+    (confirm)
+	(help @copylib-help)
+	(source ("DayDream:l/fifo-handler"))
+	(dest	"L:" )
+)
+
+(complete 45)
+(copylib
+	(prompt	"Copying fifo.library to Libs:...\n\n"
+			"FIFO is required for remote shell and stdio doors etc."
+	)
+	(help @copylib-help)
+	(source ("DayDream:libs/fifo.library"))
+	(dest	"Libs:"  )
+    (confirm)
+)
+
+(complete 50)
+(copylib
+	(prompt	"Copying rexxsyslib.library to Libs:...\n")
+	
+	(help @copylib-help)
+	(source ("DayDream:libs/rexxsyslib.library"))
+	(dest	"Libs:"  )
+	(confirm)
+)
+
+
+(complete 60)
+(copylib
+	(prompt "Copying DreamDoor.library to Libs:...\n\n"
+			"DreamDoor.library is required to run doors."
+	)
+	(help @copylib-help)
+	(source ("DayDream:libs/DreamDoor.library"))
+	(dest	"Libs:"  )
+    (confirm)
+)
+
+(complete 70)
+(run "c:protect DayDream:Batch/Logoff1.BAT +s")
+
+(complete 75)
+(startup "DayDream"
+(prompt 	"\nSeveral assignments need to be made to your S:User-Startup "
+		"file which allow DayDream to find all the files and directories "
+		"we've just installed.\n\n"
+		"In addition, other actions required by DayDream will be "
+		"added."
+	)
+	(help	"DayDream requires several assignments so that it can find "
+		"all it's files.  A couple of assign statements will be made "
+		"to your S:User-Startup file, and will also launch "
+		"rexxmast and fifo handler which DayDream requires.\n\n"
+		"If you already have fifo-handler and/or rexxmast installed,"
+		"Please remove those entries added by this installer from your "
+		"S:User-Startup later on."
+	)
+	(command
+	("\n"						)
+	("Assign DayDream:     \"%s\"\n" (getassign "DayDream"	))
+	("Assign Doors: DayDream:Doors/\n")
+	("SetEnv DreamUtils DayDream:Configs/\n")
+	("Run <>NIL: L:FIFO-Handler\n"	 )
+	("Path <>NIL: daydream:utils add\n"	 )
+	("RexxMast >NIL:\n\n"			 )
+	)
+)
+
+
+(complete 80)
+(run "Assign Doors: DayDream:Doors/")
+(run "Setenv DreamUtils DayDream:Configs/")
+(run "Run <>NIL: L:Fifo-handler")
+(run "Rexxmast >NIL:")
+(run "Path <>NIL: DayDream:utils/ add")
+(run "Daydream:utils/dreamconfig daydream:daydream.cfg")
+
+(complete 90)
+(message
+		"\nThe default DayDream config has now been parsed.\n\n"
+		"Please take a look in the docs to see how to edit the "
+		"config file, or use the MUI-Config program.\n"
+		"\nDayDream will now be started to create the sysop account.\n\n"
+		"\nIn order to be able to test DayDream a bit, you need a "
+		"sysop account. Select Proceed now to start DayDream and configure "
+		"the sysop account."
+)
+
+(run "run <>NIL: DayDream:Server")
+(run "DayDream:Utils/WaitForPort DD-Server")
+(run "DayDream:DayDream n1 lc")
+(run "Daydream:Utils/FixSysopAccount")
+
+(complete 100)
+(message "The sysop account should now be functional.\n\n"
+		 "Please read through the manual carefully and "
+		 "try out DayDream BBS for a while.\n"
+		 "Included in the documentation is also a FAQ for DayDream if you "
+		 "should run into problems."
+
+	     "\nHave fun! And remember: If you like it, please register."
+)
+
+(exit (quiet))
+; EOF

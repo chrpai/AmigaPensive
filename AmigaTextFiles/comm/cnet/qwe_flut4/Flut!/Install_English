@@ -1,0 +1,261 @@
+;---------------------------------------
+; $VER: Install_English for Flut! v4 1.0 (23.03.96)
+; By Michael Arlt, translation by Pieter Hollants
+
+;----------------
+; Systemvariables
+(set #ProgName "Flut! v4")
+(set #MainDisk "")
+
+;-------
+; Others
+(set #DrawerName "Flut!")
+(set #OldGames "PFiles:Flut/Flut.games")
+(set #OldFlut "PFiles:Flut")
+(set #OldProgName "Flut! v3.x")
+
+;---------
+; Messages
+
+(set #Update "Update")
+(set #Replace "Replace")
+(set #Remove "Remove")
+(set #Convert "Convert")
+(set #English "English")
+(set #German "German")
+
+(set #Continue "Yes")
+(set #Skip "Skip this part")
+
+(set #WorkingMsg (cat "Please wait...\n\nInstalling " #ProgName))
+
+(set #Location
+	(cat	"Where shall I create the drawer \n" #DrawerName "?")
+)
+
+(set #DrawerSelectMsg
+	(cat	"\nPlease choose a directory for the Flut! drawer.\n"
+			"(Don't select  \"" #DrawerName "\" !)."
+	)
+)
+
+(set #DrawerSelectHlp
+	(cat "\nie. PFiles: - if the directory Flut! does not exist, it will be created.\n"
+			"If it already exists it will be used.\n\nDon't select an already existing Flut! directory!"
+	)
+)
+
+(set #DrawerExistsMsg
+	(cat "\n \"" #DrawerName "\" already exists in the selected directory.\n\n"
+		   "Would you like to update or to replace?\n\n"
+	)
+)
+
+(set #DrawerExistsHlp
+	(cat "\n" #ProgName " already exists.\n\n"
+			"Choose \"" #Update "\" to replace it through the new version of " #DrawerName ".\n"
+			"Choose \"" #Replace "\" to replace it and erase the old game data.\n\n"
+	)
+)
+
+(set #RemoveOldMsg
+	(cat "\nShall I remove the old " #OldProgName " ?\n\n"
+	)
+)
+
+(set #RemoveOldHlp
+	(cat "\nThe new version of " #ProgName " is a major update to older v3.x versions. There is no reason to keep the old version.\n\n"
+			"Select \"" #Remove "\" to remove the entire " #OldFlut " directory.\n"
+			"Select \"" #Skip "\" if you don't want to do so.\n\n"
+	)
+)
+
+(set #ConvertOldMsg
+	(cat "\nDo you want to convert the old game data files?\n\n"
+	)
+)
+
+(set #ConvertOldHlp
+	(cat "\nThe installer has detected old game data files of " #OldProgName ".\n\n"
+			"Only games with a maximum Y-Size of 8 lines will be converted.\n"
+			"This is due to the changed maximum sizes for " #ProgName ". (" #OldProgName ": max. 11x11; " #ProgName ": max. 20x8).\n"
+	)
+)
+
+(set #TranslationMsg
+	(cat "\nWhich translation would you like to be copied as online help?\n\n"
+	)
+)
+
+(set #TranslationHlp
+	(cat "\nCopying online help\n\n"
+			"Select \"" #English "\" for the english translation or \"" #German "\" for the german translation.\n\n"
+	)
+)
+
+(set #Finish
+	(cat "If you have been running an old Flut! version and you still have the old " #OldProgName " started in your Startup-Sequence or User-Startup files, please remove this.\n"
+			#ProgName " does not require it any longer. The new server will be started and finished dynamically.\n"
+			"For further installation notes please take a look at \".../Flut!/Ansis/Sysop.readme\"."
+	)
+)
+
+
+;----------------------
+; Check the translation
+(procedure @Translation
+(
+	(set TranslationBool
+		(askchoice
+		(prompt #TranslationMsg)
+		(choices #English #German)
+		(help #TranslationHlp)
+		)
+	)
+	(working #WorkingMsg)
+	(if (= TranslationBool 0)
+	(
+		(set #DocDir "doc")
+	)
+	(
+		(set #DocDir "dok")
+	)
+	)
+	(copyfiles
+		(source #DocDir)
+		(dest (cat #DestDir "/ansis")
+			(all)
+		)
+	)
+)
+)
+
+;--------------------------------------------------
+; Check if Update, Replace or FirstTimeInstallation
+(procedure @CheckDrawer
+(
+	(set #DestDir (tackon #DestDrawer #DrawerName))
+	(set @default-dest #DestDir)
+	(if (exists #DestDir)
+	(
+		(set TypeOfInstallBool
+			(askbool
+				(prompt #DrawerExistsMsg)
+				(choices #Update #Replace)
+				(help #DrawerExistsHlp)
+			)
+		)
+		(if (= TypeOfInstallBool 1)
+		(
+			(run (cat "c:rename \"" #DestDir "/flut.games\" \"" #DestDir "/flut.merk\""))
+		)
+		)
+	)
+	(
+		(makedir #DestDir)
+	)
+	)
+)
+)
+
+;-------------------
+; Select destination
+(procedure @SelectDest
+(
+	(set #DestDrawer
+		(askdir
+			(prompt #DrawerSelectMsg)
+			(help #DrawerSelectHlp)
+			(default "Pfiles:")
+		)
+	)
+	(@CheckDrawer)
+)
+)
+
+;----------------------
+; Install program files
+(procedure @InstallProg
+(
+	(working #WorkingMsg)
+	(copyfiles
+		(source (cat "")
+		(dest #DestDir)
+		(Pattern "~(dok|doc|Convert|Install#?)")
+		)
+	)
+	(makedir (cat #DestDir "/walls"))
+	(if (= TypeOfInstallBool 1)
+	(
+		(run (cat "c:copy \"" #DestDir "/flut.merk\" \"" #DestDir "/flut.games\""))
+		(delete (cat #DestDir "/flut.merk"))
+	)
+	)
+)
+)
+
+;---------------------
+; Remove old Flut v3.x
+(procedure @RemoveOld
+(
+	(set RemoveOldBool
+		(askbool
+			(prompt #RemoveOldMsg)
+			(choices #Remove #Skip)
+			(help #RemoveOldHlp)
+		)
+	)
+	(if (= RemoveOldBool 1)
+	(
+		(working #WorkingMsg)
+		(run (cat "c:delete " #OldFlut " all"))
+	)
+	)
+)
+)
+
+;---------------------
+; Convert old gamedata 
+(procedure @ConvertOld
+(
+	(if (exists #OldFlut)
+	(
+		(set ConvertOldBool
+			(askbool
+				(prompt #ConvertOldMsg)
+				(choices #Convert #Skip)
+				(help #ConvertOldHlp)
+			)
+		)
+		(if (= ConvertOldBool 1)
+		(
+		   	(working #WorkingMsg)
+			(run "convert")
+			(run (cat "c:copy ram:flut.games \"" #DestDir "\""))
+			(delete "ram:flut.games")
+		)
+		)
+		(@RemoveOld)
+	)
+	)
+)
+)
+
+;---------
+; Main
+(complete 0)
+(welcome)
+
+(@SelectDest)
+(complete 25)
+
+(@InstallProg)
+(complete 50)
+
+(@Translation)
+(complete 75)
+
+(@ConvertOld)
+(complete 100)
+
+(exit #Finish)

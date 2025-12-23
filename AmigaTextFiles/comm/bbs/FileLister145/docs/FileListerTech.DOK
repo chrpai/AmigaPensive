@@ -1,0 +1,93 @@
+
+                      Transamiga FileLister V1.0+
+                      ---------------------------
+
+                  geschrieben 1993/94 von Mathias Supp
+              Sysop der Amiga Inside I : ++49(0)721-854112
+         Modem : ZyXEL U-1496E Plus - 1200-19200bps [V32(bis),ZyX]
+                          Ausgabe : 25.06.1994
+
+============================================================================
+
+Technisches :
+-------------
+
+Ab Version 1.0 erzeugt Filelister nach dem Erzeugen eines internen
+Indexes eine globale ENV-Variable Namens "TA.Index". Diese enthaelt, mit
+Lerrzeichen getrennt, folgende Angaben :
+1. Anzahl der Files im Index
+2. Zeiger auf den Index
+3. Anzahl der Fileareas
+4. Zeiger auf die Fileconfig-Struktur
+5. Zeiger auf die Areastrukturen
+6. Zeiger auf die nicht im Index enthaltenen Areas
+7. Anzahl der Protokolle
+8. Zeiger auf die Protokol-Strukur
+
+Alle Werte liegen als ASCII vor !
+
+Fuer Programmierer von anderen Tools, bietet sich die Nutzung dieses
+Indexes an, da er alphabetisch sortiert ist.
+
+============================================================================
+
+2.
+
+Aufbau vom Index :
+------------------
+
+Ein Feld von 1 bis "Anzahl der Files im Index". Die Elemente des Feldes
+zeigen(!) auf nullterminierte String mit folgendem Aussehen :
+Zeichen  1-23 : Dateiname
+        25-32 : Dateilaenge in Bytes
+        33-39 : Datum im Format : JJMMTT (z.B. 10.Juli 1994 = 940610)
+        40-80 : Filebeschreibung
+        81-84 : Areanummern
+
+============================================================================
+
+4.
+
+Aufbau des Fileconfig-Feldes :
+------------------------------
+
+Jedes Element sieht folgendermassen aus :
+Areaname    : 100 Bytes (0-terminierter 99-Zeichen-String)
+Pfad        : 100 Bytes (0-terminierter 99-Zeichen-String)
+Read-Access : 4 Bytes (LONG)
+Flags       : 1 Byte (BYTE)
+Lines       : 4 Bytes (LONG) Anzahl der Zeilen im Files.BBS
+ShowNew     : 1 Byte (BOOLEAN) Area beim Newfiles-Scan anzeigen ?
+InIndex     : 1 Byte (BOOLEAN) Area in Index aufnehmen ?
+
+============================================================================
+
+5.
+
+Aufbau der Areastrukur :
+------------------------
+
+Jedes Element ist 4 Bytes lang (POINTER) und zeigt(!) auf ein Feld mit
+der in "Lines" stehenden Zahl von String mit 100 Zeichen (99 Zeichen +
+0-Terminierung) Laenge. Also nichts weiter als ein Zeiger auf ein String-
+Array.
+
+============================================================================
+
+6.
+
+Aufbau der Liste mit den Areanummern die nicht im Index enthalten sind :
+------------------------------------------------------------------------
+Area        : 4 Bytes (LONG) Areanummer
+NextNumber  : 4 Bytes (POINTER) Zeiger auf die naechste Nummer
+
+Bemerkung : die Liste ist von dem ersten Zeiger aus gesehen, den man er-
+            haelt, numerisch sortiert
+
+============================================================================
+
+Damit ist es nun ENDLICH moeglich, den Speicher zwischen beliebig vielen
+laufenden Filelistern auszutauschen ! Dies ist natuerlich besonders fuer
+den Multi-Line-Betrieb, aber auch fuer das gleichzeitige Laufen von
+Modem- und Lokal-Line interessant.
+

@@ -1,0 +1,311 @@
+
+				FIFO.DOC
+
+		 Placed in the public domain by Matthew Dillon
+
+		Last maintainer:
+
+			 Jörg Höhle (Joerg.Hoehle@gmd.de)
+
+		Version 38.2
+
+
+    (1) INSTALLATION
+
+	To Install the system you must install both FIFO-HANDLER and
+	FIFO.LIBRARY.
+
+	1> lharc -r -x -a x fifolib38_1.lha
+	1> Copy l/fifo-handler l:
+	1> Copy libs/fifo.library libs:
+	1> Copy bin/RemCLI C:		(or anywhere in your path)
+
+	THERE IS NO MOUNTLIST OR MOUNT FOR FIFO: ... To start the handler
+	and make FIFO: available to programs, you must RUN it from your
+	startup-sequence.  Generally the easiest way to do this is to
+	include the following line:
+
+	run <nil: >nil: l:fifo-handler
+
+	IF YOU HAVE A FIFO: ENTRY IN YOUR MOUNTLIST, PLEASE DELETE IT TO
+	PREVENT ACCIDENTLY TRYING TO MOUNT IT.
+
+    (2) SIMPLE EXAMPLE TO GET YOU STARTED
+
+	This is a simple example to get you started.  Please refer to
+	section (3) below for a description of the options.
+
+	1> Type fifo:pipe/r
+	1> run Type s:startup-sequence >fifo:pipe/wmKe
+
+	This particular examples requires that the reader be started first
+	(due to the 'K' flag in the writer) but also allows you to ^C the
+	reader (the first Type command) without locking up the writer.
+
+    (3) USAGE FOR FIFO:
+
+	FIFO: is like PIPE: but is based on fifo.library rather than its
+	own implementation.  Full master/slave support exists.	Since FIFO:
+	uses fifo.library, programs that require non-blocking IO capability
+	can access one side of a FIFO: connection via the fifo.library
+	instead of FIFO:
+
+	The implementation of FIFO: and fifo.library is a billion times
+	better than that for my original PIPE: handler.
+
+	The primary difference with FIFO: is that it is based on a
+	MASTER-SLAVE connection.  Two MASTER-SLAVE connections going in
+	opposite directions yields a full-duplex connection.  When using
+	FIFO: to direct one program's output to another's input you must
+	explicitly specify one of the FIFO:'s to be the master and the
+	other the slave, as well as specify read & write flags.  The
+	general format for accessing the FIFO: handler is as follows:
+
+	    FIFO:<name>/<flags>
+
+    <name>:    a valid fifo name
+
+	name may be any combination of alpha numerics up to 125 chars long,
+	and is case sensitive.	FIFO: will append either "_m" or "_s" to
+	the name it supplies to fifo.library depending on whether master
+	mode or slave mode is selected.
+
+    <flags>:	a valid combination of flags
+
+	r   open for read.  Allows you to read from this fifo.
+
+	w   open for write.  Allows you to write to this fifo.
+
+	rw  open for read & write (full duplex).  This opens a
+	    full duplex connection, generally useful only in
+	    remote-shell applications.
+
+	c   open in cooked mode - must be specified on one side only,
+	    usually the slave side.  Any data received by the slave
+	    side is cooked before continuing on to the slave.  When used
+	    with the 's' flag, this allows the slave side, usually a
+	    shell and/or program, to change between cooked and raw mode
+	    with the standard SetMode() call.
+
+	e   EOF mode (when combined with 'w').  When this file handle
+	    is closed, an EOF will be sent to the other side.
+
+	    If not specified, you can cause several programs to 'append'
+	    their output onto a single FIFO all of which is read by a
+	    single program.  This can be useful in log-recorder
+	    applications, for example.
+
+	    Specifying the 'e' flag generates an EOF after the last byte
+	    of data is written to the FIFO and the writer closes it.  A
+	    reader will read the data and then receive the EOF, generally
+	    terminating reader operations.
+
+	k   KEEP mode.	If a writer opens a fifo, writes data, then
+	    closes the fifo before a reader has a chance to open the
+	    fifo, this flag prevents the data from being lost.
+
+	    If not specified, the data will be lost.  Generally you
+	    want to specify this flag.
+
+	K   READER REQUIRED mode.  When specified, any Write() operation
+	    to a fifo for which there is no reader will FAIL.  This will
+	    prevent lockups from occurring when you use FIFO: to pipe
+	    several processes together and then ^C the last one.
+
+	    ** This can be an important option to use to prevent hung
+	       processes!!! **
+
+	m   select master side (else slave).  For example, the master
+	    side writer "mw" is paired with the slave side reader "r":
+
+			mw   -> r
+			mr  <-	w
+			mrw <-> rw
+
+	    When operating a pipe where you have a writer into the fifo
+	    and then a reader from the same fifo, one of the two must
+	    be a MASTER, with the 'm' flag specified, and the other side
+	    must be a SLAVE, with the 'm' flag NOT specified, as per
+	    the example in section (2).
+
+	t   tee read.  Usually specified "rt" or "mrt" depending on what
+	    you want to monitor.  This option causes the read stream to
+	    be a copy of available read data such that it does NOT
+	    interfere with other readers.
+
+	    Otherwise this fifo will compete with other fifos for read
+	    data.  For a remote shell, tee operation is not desireable
+	    as a default but is useful to monitor the shell from an
+	    independent program.
+
+	    see the REMCLI example below.
+
+	s   SHELL mode, creates a separate message port for the handle,
+	    allowing the shell & programs to find their STDERR handle
+	    (i.e. the open-* and Console: packets work properly) and
+	    allowing the use of WaitForChar().
+
+	    WARNING: use of this option increases overhead in the FIFO:
+	    device and is generally required to be specified for the slave
+	    side of a shell (i.e. NewShell fifo:name/rwkecs)
+
+	    see the REMCLI example below.
+
+	C   Send ^C to all (slaves or masters)
+	D   Send ^D to all (slaves or masters)
+	E   Send ^E to all (slaves or masters)
+	F   Send ^F to all (slaves or masters)
+
+	    You can send one or more signal to all the slaves (or masters
+	    if 'm' is also included) using these flags.  Note that it is
+	    not necessary to open a file handle to so, specifying a
+	    string like this:
+
+		"FIFO:fubar/C"
+
+	    would result in sending a ^C to all fubar slaves even though
+	    the Open() fails due to the lack of a 'r' or 'w' in the
+	    specification.
+
+		     SEE REMCLI.C FOR EXAMPLE IMPLEMENTATION
+		     OF COOKED MODE AND SIGNALS.
+
+
+    (4) TECHNICAL, INTERACTION BETWEEN FIFO: and FIFO.LIBRARY
+
+			       LINKED FIFOS
+
+    FIFO: provides a full duplex connection using TWO fifo.library FIFOS.
+    Opening a fifo in master mode verses slave mode determines which
+    names are used for reading and writing.  You should note that when
+    a FIFO: handle is opened for both read and write, reading from the
+    handle actually accesses a different physical fifo than writing to
+    the handle.  Opening a FIFO: for only one direction ('r' *or* 'w')
+    results in a half duplex connection.  It is important to properly
+    specify the rw modes for the fifo.
+
+	     FIFO: device		     fifo.library
+
+	Open("FIFO:junk/w", 1005);              junk_s
+	Open("FIFO:junk/r", 1005);              junk_m
+	Open("FIFO:junk/rw",1005);              junk_s (w), junk_m (r)
+
+	Open("FIFO:junk/wm", 1005);             junk_m
+	Open("FIFO:junk/rm", 1005);             junk_s
+	Open("FIFO:junk/rwm", 1005);            junk_m (w), junk_s (r)
+
+    (5) REMOTE SHELL APPLICATIONS
+
+	It is extremely easy to set up a fifo to interface a program with a
+	remote shell.  The FIFO: fully supports remote shells including the
+	ability to propagate ^C through ^F and handle stderr ("*","CONSOLE:").
+
+	Not only that, but programs which need to be able to access the
+	master side of a shell in a non-blocking fashion may access the
+	master side directly through FIFO.LIBRARY calls.  See FIFOLIB.DOC
+	for the function call list, see REMCLI.C for a working example.
+
+	1> NewShell FIFO:name/rwkecs
+	1> run >nil: RemCLI name
+
+	Generally the shell is run off the slave side and the controlling
+	program is run off the master side.  The side that runs the shell
+	MUST specify the 's' option, as shown above.  Here is a description
+	of the flags used in the NewShell line:
+
+	rw  full duplex connection.  shell 'reads' from the master and
+	    'writes' results back to the master.
+
+	k   if slave side is started up first, as in the above example, any
+	    writes it does will NOT be lost.  Not really required since the
+	    slave side shell does not endcli itself.
+
+	e   when slave side closes the handle, an EOF will be sent to
+	    the master side.
+
+	c   run slave side in COOKED mode.  FIFO: will do command line
+	    editing on any data sent to the slave side.  You do not specify
+	    COOKED mode for the master side.  I repeat, do NOT specify
+	    cooked mode for the master side.  (you can't in the above
+	    example since the master is the 'RemCLI' program.
+
+	    note that in COOKED mode, FIFO: echoes characters received on
+	    the slave side back to the master, just like the console
+	    device.
+
+	s   SHELL support, required on the slave specification when run
+	    from NewShell, causes the handle to get its own message port
+	    (required to support Open("*", ...) and for WaitForChar() and
+	    SetMode() to work)
+
+	NOTE:  YOU CAN RUN 'RemCLI name' MULTIPLE TIMES SIMULTANIOUSLY
+	USING THE SAME FIFO NAME.  All RemCLI's talking to the same shell
+	will get all output from the shell and additionally be able to
+	issue commands.  This can be extremely useful as a monitoring tool.
+
+	    1> run >nil: RemCLI name
+	    1> run >nil: RemCLI name
+
+	You can also capture all shell interaction with this:
+
+	    1> copy FIFO:name/rmt t:capture
+
+	The 't' (TEE) specification is required to ensure you do not screw
+	up any other readers.  There is no limit on the number of 'readers'
+	monitoring a named fifo.  The RemCLI program uses the fifo.library
+	to access the master side and thus TEEs automatically.
+
+	If RemCLI tries to talk to a fifo that does not exist, it will
+	'freeze' until the slave side does exist.  Meaning you can run
+	RemCLI before you start up the shell.
+
+	CLOSING THE REMCLI WINDOW DOES NOT END THE SHELL.  You must type
+	'endcli' or 'endshell' to cause it to exit.  On the other hand,
+	closing the RemCLI window and then reopening will yield the
+	previous shell (which never exited).
+
+
+				PIPING
+
+    You can use the FIFO: device to pipe output from one program to the
+    input of another.  Note that you want to be sure to use the 'k' flag
+    in case the program generating the output generates only a little (and
+    is able to exit before you have a chance to start the reader).  You
+    also want to use the 'e' (EOF) option or the reader will not receive
+    an EOF, and you must make one side a master.
+
+	1> Type s:startup-sequence >FIFO:xx/wkme
+	1> Type FIFO:xx/r
+
+    Note that Type is inadequate for piping a file because it writes one
+    line at a time, increasing overhead. Prefer Copy or cat commands which
+    use larger buffers.
+
+    If you do not specify the 'e' EOF option then you can run multiple
+    programs' output through the pipe sequentially, specifying the EOF
+    option only for the last one.
+
+    WARNING:	If you ^C the reader before it gets the EOF and exits
+    on its own, and if the writer is still writing, the writer will
+    freeze up when the fifo becomes full (requiring a reader to unfreeze
+    it).  Additionally, if the 'k' option is not used, even if the writer
+    does not freeze up there may be unwanted data left in the fifo even
+    though nobody is referencing it.
+
+    To safely recover from a broken reader, the program controlling the
+    pipe must do the following steps:
+
+	(1) break the writer if it has not exited (but it may be frozen,
+	    so...)
+
+	(2) open a reader /r and a writer /wme, then immediately close
+	    the writer.
+
+	(3) read from the reader until EOF.  Even if the original writer
+	    had already exited, the fact that you open and close a dummy
+	    one will regenerate the EOF.
+
+
+    It is currently a bug that EOF is sent continuously to readers, but
+    this helps avoiding to freeze or to lock up. A future flag may be added
+    to send EOF once only, which is useful in shell applications.

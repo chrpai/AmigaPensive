@@ -1,0 +1,102 @@
+/****************************************************************************
+
+                     AutoAdd Script For DayDream BBS 1.25
+
+                              For use with AmIRC.
+
+                        Done By Mattias Nilsson 960918.
+
+*****************************************************************************
+
+
+Instructions:
+   Insert your IP/IPFilename, if no filename is specified, IP variable is used.
+   Specify the interval between adds (Normally 15-30 mins)
+   Enter your auto-add string. NOTE: Use the formatcodes.
+   Run from AmIRC or dos with 'rx AutoAnnounce.amirx'
+
+
+** Make sure both DayDream Server and AmIrc is running before running this
+   script, or it will quit immedietly.
+*/
+
+
+
+/* Specify either IP or IPADDRESSFILENAME. */
+
+/* For normal dialups using AmiTCP and ppp.device */
+ipaddressfilename	=	"ENV:ppp0iplocal"
+
+/* Handy if you have static IP. */
+/* If IPFILENAME variable is specified, this is used instead of IP variable. */
+ip = "127.0.0.1"					/* (127.0.0.1 = localhost) */
+
+
+
+/*
+The auto-add string.
+
+Format codes supported:
+	%ip = IP Address
+	%busy = Busy nodes
+	%free = Free nodes
+	%active = Active nodes
+	%interval = Interval time.
+*/
+formatstring		=	"PURE CLIMAX DayDream Development Center %ip ( %free / %active slots free)"
+
+
+/* Interval between auto-adds. */
+interval			=	10
+
+
+
+
+
+/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/**/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/
+/*/*/*/*/*/*/*/*/*/*  DON'T TOUCH ANYTHING BELOW THIS LINE  */*/*/*/*/*/*/*/*/*/
+/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/**/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/
+
+IF ipaddressfilename ~= "" then do
+	IF ~Open(file,ipaddressfilename,'R') THEN do; SAY "Error while finding your IP address.";exit;end
+	ip=readln(file)
+	Close(file)
+END
+
+continue = 1
+do While continue=1
+IF ~show(ports,"SERVER-REXX") THEN do; continue=0; Exit 0; end
+IF ~show(ports,"AMIRC.1") THEN do; continue=0; Exit 0; end
+
+ADDRESS "SERVER-REXX" 
+
+	n = 1
+	active = 0
+	busy = 0
+	do while n<64
+		if show(ports,'DD_Node_'n) then do
+			active=active+1
+			NODEINFO n 1
+			IF RC=1 THEN busy=busy+1
+		end
+		n=n+1
+	end
+
+	count = 1
+	outstr = ""
+	string = "DayDream"
+	do while string ~=""
+		string=word(formatstring,count)
+		IF string = "%ip" THEN string=ip
+		IF string = "%busy" THEN string=busy
+		IF string = "%free" THEN string=active-busy
+		IF string = "%active" THEN string=active
+		IF string = "%interval" THEN string=interval
+		outstr=outstr || string' '
+		count = count + 1
+	end
+
+	ADDRESS "AMIRC.1"
+		"SAY "outstr
+	ADDRESS COMMAND 'Wait 'interval' MINS'
+end

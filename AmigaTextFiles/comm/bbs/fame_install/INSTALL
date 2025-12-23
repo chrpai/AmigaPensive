@@ -1,0 +1,990 @@
+; $VER: FAME_INSTALL 1.1 (09.06.96) - written by Sascha "SieGeL" Pfalz
+; Installer and Installer project icon
+; (c) Copyright 1995-96 Escom AG.  All Rights Reserved.
+; Reproduced and distributed under license from Escom AG.
+;
+; V0.8 (14.02.96) - First Version, yet untested and unfinished
+; V0.9 (21.03.96) - First complete Version (FULL_INSTALL) - UNTESTED
+; V1.0 (24.03.96) - Bugfixed and finished Version.
+; V1.1 (09.06.96) - Rewritten for Installer V43.3, fixed for Disk-Install.
+;                   Uses now LHA V1.38 Evolution Version for safety install.
+;                   Also Update no longer exists, will be supplied as
+;                   seperate Script.
+
+;======================================
+;= INITIALISATION OF MAIN GLOBAL VARS =
+;======================================
+
+(set fame_search "FAME")		; FAME Searchname for Devices
+(set fame_assign "FAME:")		; FAME Assign
+(set fame_path "")					; FAME Path (if FAME exists, will be initialised!)
+(set fame_modules "")				; FAME Path to Modules directory
+(set fame_libs "")					; FAME Libraries drawer
+(set fame_mainpart "")      ; MainPart path
+(set fame_filecheck "")			; FileChecker Path
+(set fame_hydra "")					; FAME Hydra Path
+(set min_bytes 5500000)			; Minimum amount of Bytes free for Installation!
+(set writetostartup 0)			; 1 = Was written to S:user-startup, 0 = not written
+(set FIFOYES 0)							; 0 = not written to user-startup, 1 = was written
+
+;================
+;= GERMAN TEXTS =
+;================
+
+(IF (= @language "deutsch")
+	(
+	(set default_lang 2)
+	(set #bad-kick		(cat			"\nSie benötigen mindestens Kickstart V2.04 oder\n\n"
+															"höher, um das FAME-System zu benutzen !\n\n"
+															"-> Bitte updaten Sie Ihr System <-"))
+	(set #bad-installer (cat		"\nDieses Installer-Skript benötigt Installer V42\n"
+															"oder höher um korrekt zu arbeiten! Bitte\n"
+															"verwenden Sie den mitgelieferterten Installer im\n"
+															"'C/' Verzeichnis der FAME_Install Diskette !"))
+	(set #introduction (cat			"\n.:. FAME Installations-Skript .:.\n\n"
+															"Dieses Skript installiert oder aktualisiert das\n"
+															"FAME-System im logischen Assign 'FAME:'. Sollte\n"
+															"dieses die Erstinstallation sein, wird eine\n"
+															"Zuweisung für Sie erstellt.\n\n"
+															"Benutzen Sie auch den 'Hilfe...' Knopf während der\n"
+															"Installation, um detailiertere Informationen zu\n"
+															"der Installation zu erhalten."))
+	(set #FameFound (cat				"\n!!! ACHTUNG !!!\n\nDer Installer hat eine bereits installierte Version\n"
+															"der FAME entdeckt. Da dieses Skript nur die Demo-\n"
+															"Version der FAME installiert, sollten Sie nur dann\n"
+															"fortfahren, wenn Sie noch *KEINE* registrierte FAME\n"
+															"installiert haben, da sonst Ihre Vollversion mit\n"
+															"dieser Demo-Version überschrieben wird !\n\n"
+															"Möchten Sie mit der Installation fortfahren ?"))
+	(set #AskLocation (cat			"Bitte Zielverzeichnis für FAME wählen.\n"
+															"Es wird ein Verzeichnis namens FAME angelegt !"))
+	(set #AskLocHelp (cat				"Bitte wählen Sie hier das Zielverzeichnis für das\n"
+                              "FAME-System und alle benötigten Dateien. Bitte be-\n"
+															"achten Sie, das ein eigenes Verzeichnis namens FAME\n"
+															"in dem von Ihnen angegebenen Zielverzeichnis erstellt\n"
+															"wird!!\n\n"
+                              "Für die vollständige Installation von FAME sind ca.\n"
+															"5MB an Festplattenspeicher notwendig.\n\n\n\n\n\n" @askdir-help))
+  (set #NO_LOCATION (cat			"\n\nAngegebenes Zielverzeichnis für FAME ist\n\n"
+															"KEIN gültiger Amiga-DOS Pfad!!!"))
+  (set #NO_FREE_STORE (cat		"\nAusgewählter Pfad:\n\n%s:\n\nAuf dem von Ihnen ausgewählten Pfad ist nicht mehr\n"
+															"genug Platz für eine vollständige Installation !\n\n"
+															"Bitte wählen Sie ein anderes Zielverzeichnis aus;\n"
+															"für die Installation werden ca. 5MB an Platz benötigt."))
+	(set #Fame_Okay							"\nFAME wird in folgendes Verzeichnis installiert:\n\n%s\n\nMit der Installation fortfahren ?")
+	(set #Fame_Okay_Help (cat		"Wenn der eingegebene Pfad für FAME korrekt ist,\n"
+															"bestätigen Sie die Frage bitte mit 'JA'. Der \n"
+															"Installer wird daraufhin dann alle notwendigen\n"
+															"Dateien in dieses Verzeichnis kopieren.\n\n"
+                              "Sollte der Pfad nicht korrekt sein, antworten Sie\n"
+															"bitte mit 'NEIN'. Sie werden daraufhin solange nach\n"
+															"einem Pfad für die FAME gefragt, bis Sie diese Frage\n"
+															"mit 'JA' bestätigen oder die Installation abbrechen."))
+	(set #NO_ASSIGN							"\nInstaller konnte Assign FAME: nicht erzeugen !!!")
+	(set #askAssign	(cat				"Möchten Sie die Zuweisung 'FAME:' in Ihre\n"
+															"User-Startup Datei eintragen lassen, oder\n"
+                              "soll diese Zuweisung vom FAME-Server automatisch\n"
+															"beim Start erstellt werden ?"))
+	(set #AskAssignHelp (cat		"Wenn Sie die Zuweisung in Ihre User-Startup Datei\n"
+															"eintragen lassen, dann wird diese Zuweisung bei\n"
+															"jedem Systemstart automatisch mit angemeldet.\n"
+															"Wenn Sie jedoch lieber FAME automatisch die\n"
+															"Zuweisung beim Start des Servers erzeugen lassen\n"
+															"wollen, dann wählen Sie 'vom FAME Server erzeugen\n"
+															"lassen.'. Solange die FAME nicht gestartet wird,\n"
+                              "ist in diesem Fall die Zuweisung nicht vorhanden.\n\n"
+															"Das FAME: Assign ist absolut zwingend erforderlich\n"
+															"für das FAME-System, ohne dieses ist der Betrieb\n"
+															"nicht möglich !\n"
+															"Diese Zuweisung wird auch bereits während dieser\n"
+															"Installation ausgeführt, da der SystemEditor zum\n"
+															"Anlegen der Dateien diese Zuweisung benötigt.\n"
+															"Sollten Sie die Zuweisung nicht vom Installer in\n"
+															"Ihre User-Startup einfügen lassen, dann holen Sie\n"
+															"Sie dieses bitte nach der Installation nach, da\n"
+															"sonst nach einem Reset die FAME nicht mehr arbeiten\n"
+															"kann !"))
+	(set #user_startup					"Zuweisung in User-Startup eintragen.")
+  (set #auto_assign						"Zuweisung vom FAME Server erzeugen lassen.")
+	(set #nowwriting 						"\nSchreibe Zuweisung in Ihre User-Startup Datei:\n\n%s")
+	(set #AskForServerLoc (cat	"Bitte Verzeichnis für den Server angeben:"))
+	(set #AskForServerHlp (cat	"Der Server der FAME ist ein absolut notwendiges\n"
+															"Commodity, welches die komplette Kontrolle der\n"
+															"FAME ermöglicht. Ohne den Server ist der Betrieb\n"
+															"der FAME nicht möglich!!\n\n"
+															"Wenn Sie die Mailbox automatisch beim Rechner-\n"
+															"start hochfahren lassen möchten, dann lassen Sie\n"
+															"den Server vom Installer das Wbstartup/ Ver-\n"
+                              "zeichnis Ihrer BootPartition kopieren.\n\n\n\n\n" @askdir-help))
+	(set #copyserver						"Kopiere FAME Server...")
+	(set #copyserverhlp (cat		"Der FAME Server und das dazugehörige Piktogramm\n"
+															"werden in das von Ihnen festgelegte Verzeichnis\n"
+															"kopiert."))
+	(set #asklibdir 						"Bitte Verzeichnis für die\nFunktionsbibliotheken angeben:")
+	(set #asklibdirhelp (cat		"Geben Sie hier Ihr Verzeichnis der System-\n"
+															"Bibliotheken an. Normalerweise wird die logische\n"
+															"Zuweisung LIBS: verwendet, Sie können jedoch auch\n"
+															"ein anderes Verzeichnis wählen, welches dem Such-\n"
+															"pfad bekannt ist.\n\n" @askdir-help))
+	(set #famelib								"\nKopiere FAME.Library...")
+	(set #famelib_hlp		(cat		"Die FAME.Library ist absolut zwingend erforderlich,\n"
+															"da wichtige Teile der FAME in dieser Library ent-\n"
+															"halten sind. Ausserdem wird diese Library zur \n"
+															"Programmierung von FAME Doors benötigt.\n\n" @copylib-help))
+	(set #fifolib								"\nKopiere FIFO.Library...")
+	(set #fifolib_hlp   (cat		"Die FIFO (First In, First Out) Library wird ver-\n"
+															"wendet, um z.B. eine echte DOS-Shell zu realisieren,\n"
+															"die Filechecker in Echtzeit laufen zu lassen etc.\n"
+															"Auch diese Library ist absolut zwingend erforderlich.\n\n" @copylib-help))
+	(set #fifohandler						"\nKopiere fifo-handler...")
+	(set #nofifo				(cat		"\nSollten Sie FIFO: noch nicht angemeldet haben,\n"
+															"dann schreiben Sie bitte folgende Zeile in Ihre\n"
+															"S:User-Startup:\n\nrun >NIL: <NIL: L:Fifo-Handler"))
+  (set #askforfifo		(cat		"\nMöchten Sie FIFO: beim Booten starten lassen ?\n"
+                              "Der Installer würde folgende Befehlszeile in Ihre\n"
+															"S:User-Startup Datei einfügen:\n\n%s"))
+	(set #askforfifohlp	(cat		"Um das Gerät FIFO: zugänglich zu machen, muss der\n"
+															"FIFO-Handler aus dem L: Verzeichnis gestartet werden.\n"
+															"Sollten Sie bisher das FIFO: Gerät nicht installiert\n"
+															"haben, dann lassen Sie vom Installer den Start in\n"
+															"Ihre User-Startup Datei einfügen. Sollte dieser\n"
+															"Aufruf bereits vorhanden sein, dann können Sie\n"
+															"diesen Schritt natürlich überspringen."))
+	(set #writefifo 						"\nSchreibe Aufruf in Ihre User-Startup Datei:\n\n%s")
+	(set #fileidlib							"\nKopiere FileID.Library...")
+	(set #fileidlib_hlp (cat		"Die FileID.Library wird zur Identifizierung der\n"
+															"Dateiformate verwendet. Dadurch sind nur noch\n"
+															"geringe Erkennungsfehler möglich. Diese Library\n"
+															"muss installiert sein, damit FAME die Dateichecks\n"
+															"durchführen kann.\n\n" @copylib-help))
+	(set #xprzlib								"\nKopiere XprZModem.Library...")
+	(set #xprzlib_hlp 	(cat		"Die XPRZModem.Library wird benötigt um Dateien\n"
+                              "mit Hilfe des Z-Modem Protokolls senden/empfangen\n"
+															"zu können. Diese Library ist für den Betrieb von\n"
+															"FAME nicht unbedingt erforderlich, da FAME mit allen\n"
+															"XPR Transfer Libraries zusammenarbeitet.\n\n" @copylib-help))
+	(set #shellstart		(cat		"Kopiere Start-Skript für die FAME-interne\n"
+															"Shell in das S: Verzeichnis unter dem Namen\n"
+															"FAME-Startup."))
+	(set #shellstarthlp	(cat		"Die Datei FAME-Startup wird als Startskript für\n"
+															"die eingebaute Shell verwendet. Sie können in\n"
+															"diesem Skript den Shell-Prompt definieren, be-\n"
+                              "stimmte Pfade setzen etc. Weitere Informationen\n"
+															"entnehmen Sie bitte dem Amiga-DOS Handbuch."))
+	(set #insertdisk1	(cat			"\nBitte legen Sie die folgende Diskette\n"
+                              "in ein beliebiges Laufwerk:\n\n%s"))
+	(set #insertdisk1help (cat	"Sie werden vom Installer aufgefordert, die ange-\n"
+															"gebene Diskette in ein beliebiges Laufwerk zu legen.\n"
+															"Die Installation kann erst fortgesetzt werden,\n"
+															"nachdem die angeforderte Diskette eingelegt wurde.\n\n" @askdisk-help))
+	(set #ERROR 								"\n%s abgebrochen mit Fehlernummer %ld !")
+	(set #ARCHIVE1			(cat		"\n\nNotwendige Verzeichnisse und Systemdateien werden\n"
+															"jetzt in Ihr FAME-Verzeichnis entpackt.\n\n"
+															"Dies kann je nach Prozessor-Typ etwas länger dauern,\n"
+															"bsp. ein MC68000 benötigt ca. 20 min !"))
+	(set #ARCHIVE1HLP		(cat		"Der Installer entpackt nun die von FAME zum Betrieb\n"
+															"notwendigen Systemdaten und Verzeichnisse. Ausserdem\n"
+															"werden einige Voreinstellungen mitkopiert, die Sie\n"
+															"dann im SystemEditor noch nach Ihren eigenen Wünschen\n"
+															"anpassen können."))
+	(set #ARCHIVE2							"\n\nEntpacke und kopiere die Hauptprogramme der FAME...")
+	(set #ARCHIVE2HLP		(cat		"Der Installer kopiert nun die Hauptprogramme in Ihr\n"
+															"angegebenes FAME-Verzeichnis. Ohne diese Dateien ist\n"
+															"ein BBS-Betrieb nicht möglich !"))
+	(set #englishdocu						"Englische Dokumentation")
+	(set #germandocu            "Deutsche Dokumentation")
+	(set #askformisc            "Bitte wählen Sie, welche zusätzlichen FAME-\nDateien installiert werden sollen:")
+	(set #askformischelp (cat		"Die folgenden zusätzlichen Dateien können\n"
+															"installiert werden:\n\n"
+															"Englische Doku. - Aktuelle Version der FAME-\n"
+		                          "                  Dokumentation.\n"
+                              "Archiver        - Enthält die folgenden Dateien:\n"
+                              "                  ARJ, CheckExe, DMS, LHA,\n"
+															"                  DMSDescript, EXEDescript, LZX,\n"
+															"                  mULTI-cHECK, TxtExtract, UNARJ,\n"
+															"                  UNZIP, ZoomCheck.\n\n"
+															"Sie sollten die Archiver auf jeden Fall instal-\n"
+                              "lieren lassen, damit FAME in der Lage ist, neue\n"
+															"Uploads zu testen !"))
+	(set #EXTARCHIVE	(cat			"Entpacke %s, einen Moment bitte..."))
+	(set #EXTARCHIVEHELP (cat		"Das ausgewählte Archiv wird in das FAME Verzeichnis\n"
+															"entpackt. Ein eigenes Verzeichnis für die jeweiligen\n"
+															"Daten wird automatisch miterstellt."))
+	(set #resprompt (cat				"Bitte wählen Sie die Programmteile der FAME aus,\n"
+															"die Sie dauerhaft resident beim Start von FAME\n"
+															"laden lassen möchten:\n\n"
+															"Siehe 'Hilfe...' für detailierte Informationen !"))
+	(set #resprompthlp (cat			"Sie werden aufgefordert anzugegeben, welche Programme\n"
+                              "der FAME automatisch beim Starten der FAME resident\n"
+															"geladen werden sollen:\n\n"
+															"MainPart        - Hauptprogramm der FAME, sollte\n"
+															"                  IMMER resident geladen werden.\n"
+															"FAMEFileChecker - FAME Dateitest-Programm.\n"
+                              "FAMEHydra       - Das HydraTool für FAME.\n\n"
+ 															"Resident bedeutet, das diese Programme nur einmal in\n"
+															"den Speicher geladen werden. Sollte dann dieses\n"
+															"resident geladene Programm mehrere Male aufgerufen\n"
+															"werden, dann werden nur noch Kopien des im Speicher\n"
+															"befindlichen Programmes gestartet, und nicht das\n"
+															"Programm jedesmal neu von Disk geladen. Residente\n"
+															"Programme haben den Vorteil, weniger Speicher zu\n"
+															"verbrauchen und ausserdem die Arbeitsgeschwindigkeit\n"
+															"zu erhöhen.\n"
+															"Um dieses zu nutzen, müßen alle Pfadangaben zu dem\n"
+															"jeweiligen residenten Programm entfernt werden und\n"
+															"das Programm nur noch mit dem Dateinamen gestartet\n"
+															"werden. Dadurch wird das AmigaDOS veranlasst, zuerst\n"
+															"die Liste der residenten Programme zu durchsuchen.\n"
+															"Der Installer übernimmt dieses für Sie, dazu brauchen\n"
+															"Sie nur die Programme auswählen, diese werden dann\n"
+															"automatisch für Residentes Laden vorbereitet.\n\n"
+															"Weitere Informationen über residente Programme finden\n"
+                              "Sie in Ihrem AmigaDOS Handbuch."))
+	(set #writefile	(cat				"\nSchreibe folgende Zeile in Datei FAMEStart.bat:\n\n%s"))
+	(set #writefilehelp (cat		"Die aufgeführte Zeile wird jetzt in die Skriptdatei\n"
+															"FAMEStart.bat eingefügt. Weitere Informationen über\n"
+															"diese Datei finden Sie in der FAME Dokumentation."))
+	(set #systeminfotext1	(cat	"\nInstaller startet nun den SystemEditor der FAME.\n"
+                              "Dieser legt alle noch fehlenden Dateien und\n"
+															"Verzeichnisse automatisch an. Danach erscheint das\n"
+															"System Data Fenster des SystemEditors, in diesem\n"
+															"Fenster müssen Sie die notwendigen Grundeinstel-\n"
+															"lungen Ihrer BBS,wie z.B. SysOp Name, BBS-Name,\n"
+															"Verzeichnis der User.datas etc. vornehmen."))
+	(set #sysedstart1 (cat			"\nStarte SystemEditor zum Konfigurieren der\n"
+															"notwendigen Systemdateien der FAME..."))
+
+	(set #askbatch	(cat				"\nSoll der Installer die Startskripts für die\n"
+															"beiden Tools 'LASTCALLERS' und 'MULTI-TOP' jetzt\n"
+															"in das FAME:NODE0/NODEBATCHES/LOGOFFBATCHES/\n"
+															"Verzeichnis kopieren ?\n\n"
+															"Siehe 'Hilfe...' für weitere Informationen !"))
+	(set #batchhelp (cat				"LastCallers und Multi-Top sind FAME-Tools, die\n"
+															"nach dem Ausloggen eines Users gestartet werden\n"
+															"können. Wenn Sie es wünschen, dann wird der\n"
+                              "Installer jetzt zwei Scriptfiles in das Verzeichnis\n"
+															"FAME:NODE0/NODEBATCHES/LOGOFFBATCHES kopieren:\n\n"
+                              "MULTI-TOP   - Skript um Multi-Top zu starten.\n"
+                              "LASTCALLERS - Skript um LastCallers zu starten\n\n"
+															"Weiter Informationen über Logoff-Skripts ent-\n"
+															"nehmen Sie bitte der FAME-Anleitung."))
+	(set #choosebatch	(cat			"\nBitte auswählen, für welche Programme\n"
+															"Startskripts angelegt werden sollen:"))
+	))
+
+;=================
+;= ENGLISH TEXTS =
+;=================
+
+(IF (= @language "english")
+	(
+	(set default_lang 4)
+	(set #bad-kick		(cat			"\n\nYou must be using Kickstart V2.04 or higher\n\n"
+															"to use the FAME-System!\n\n"
+															"-> Please update your machine ! <-"))
+	(set #bad-installer (cat		"\nThis script requires Installer V42 or higher\n"
+															"to run correctly! Please use the Installer found\n"
+															"on the FAME_Install disk in drawer 'C/' !!"))
+	(set #introduction	(cat		"\n.:. FAME Installation-Script .:.\n\n"
+															"This script will install or update the FAME-BBS\n"
+															"to the logical Assign 'FAME:' . If this is the\n"
+															"first installation, this assign will also be\n"
+                            	"created.\n\n"
+															"Use the 'Help' Button during Installation for more\n"
+															"detailed informations about all steps!\n\n"))
+	(set #FameFound (cat				"\n!!! WARNING !!!\n\nInstaller has found an already installed Version\n"
+															"of FAME. This script install only the Demo-Version\n"
+                              "of FAME, so if you are a registered User, please\n"
+															"*DON'T* continue with this installation or your\n"
+															"registered Version of FAME will be overwritten \n"
+															"with this Demo-Version !!!\n\n"
+                              "Do you want to continue with the Installation ?"))
+	(set #AskLocation (cat			"Please select destination for FAME.\n"
+															"A drawer called FAME will be created!"))
+	(set #AskLocHelp (cat				"Please choose a destination for FAME and all needed\n"
+                              "files. Installer creates automatically a drawer\n"
+															"called FAME inside the destination path, so you\n"
+															"don't have to create it yourself!!!\n\n"
+															"Approx. 5MB of HD-Space is required for full\n"
+															"installation of FAME!\n\n\n\n\n\n\n" @askdir-help))
+	(set #NO_LOCATION	(cat			"\n\nLOCATION-PATH FOR FAME IS INVALID !"))
+  (set #NO_FREE_STORE (cat		"\nYour choice:\n\n%s:\n\nThe path you've choosen has not enough free\n"
+															"Space to install the whole system!\n\n"
+															"Please choose another path to install, and make\n"
+															"sure that you have at least 5MB free on your\n"
+															"choosen path for the installation!"))
+	(set #Fame_Okay 						"\nFAME will be installed in:\n\n%s\n\nContinue with the Installation ?")
+	(set #Fame_Okay_Help (cat   "\nIf the path for FAME is correct, answer with 'YES'\n"
+                              "and the Installer continues Installing all needed\n"
+															"files for FAME to this Location.\n\n"
+															"If the path is not correct, answer 'NO' and you\n"
+															"will be again prompted to enter a path until you've\n"
+															"answered with 'YES' or abort the Installation."))
+	(set #NO_ASSIGN 						"\nInstaller was not able to create assign FAME: !!!")
+  (set #askAssign	(cat				"Do you want to put the 'FAME:' Assign command\n"
+															"to your User-Startup file or should the FAME\n"
+                              "Server create the Assign during startup ?"))
+  (set #AskAssignHelp	(cat		"If you put the Assignment into your User-Startup\n"
+															"file, the Assign will be created everytime you\n"
+															"boot your System. If you want to create this\n"
+                              "assign only when using FAME, choose the 'Use\n"
+															"Auto-Assign Option'. The FAME Server will then\n"
+															"create the Assign FAME: during the start of server.\n\n"
+                              "This Assign is required for FAME to work, also this\n"
+                              "Assign is created during Installation, as the System-\n"
+                              "Editor of FAME requires this to create all needed\n"
+                              "Systemdirectories in the right location. If you\n"
+                              "don't want to add this Line to your User-Startup,\n"
+                              "please do it yourself after the Installation, or the\n"
+                              "FAME-System won't work anymore after a Reset!"))
+	(set #user_startup					"Put Assign into User-Startup.")
+  (set #auto_assign						"Use Auto-Assign Option.")
+	(set #nowwriting 						"\nWriting commandline to your user-startup file:\n\n%s")
+	(set #AskForServerLoc (cat	"Please choose destination for the Server:"))
+	(set #AskForServerHlp (cat	"The Server of FAME is absolutly required to\n"
+															"let FAME work, it is the main control program\n"
+															"for the FAME-System. Without it, FAME will not\n"
+                              "work!!!\n\n"
+															"If you want to Auto-Start FAME, simply copy the\n"
+															"Server and his Icon to your WBStartup directory\n"
+															"of your Boot partition. If you don't wish to\n"
+															"start it automatically, copy it to the drawer\n"
+															"FAME:Modules/.\n\n\n\n" @askdir-help))
+  (set #copyserver						"Now copying FAME Server...")
+	(set #copyserverhlp (cat		"The FAME Server and it's icon will be copied to\n"
+                              "the drawer you've specified."))
+	(set #asklibdir 						"Please specify the destination drawer where\nyou have stored your libraries:")
+	(set #asklibdirhelp (cat		"You have to specify here the drawer where you've\n"
+															"stored the libraries. Normally, this will be LIBS:,\n"
+															"but of course it could be any other path which is\n"
+															"added to the libraries search path.\n\n" @askdir-help))
+	(set #famelib								"\nNow copying FAME.Library...")
+	(set #famelib_hlp		(cat		"The FAME.library is absolutly required to let FAME\n"
+															"work, because some parts of FAME are integrated\n"
+															"into this library. Also this library is required\n"
+                              "to program additional FAME doors.\n\n" @ copylib-help))
+	(set #fifolib								"\nNow copying FIFO.Library...")
+	(set #fifolib_hlp		(cat		"FIFO (First In, First Out) library is used to allow\n"
+															"the usage of an original DOS-shell or to let the\n"
+															"filecheckers print their output in Realtime. This\n"
+															"library is also required for FAME to work !\n\n" @copylib-help))
+	(set #fifohandler           "\nNow copying fifo-handler...")
+	(set #nofifo				(cat		"\nIf you haven't mounted the FIFO: device yet,\n"
+                              "please write the following line to your User-\n"
+															"startup file:\n\nrun >NIL: <NIL: L:Fifo-Handler"))
+	(set #askforfifo		(cat		"\nDo you want to start FIFO: every time you boot ?\n"
+															"Installer will insert the following commandline\n"
+                              "in your S:User-Startup-File:\n\n%s"))
+	(set #askforfifohlp	(cat		"To use the FIFO: device, you must start the FIFO-\n"
+															"handler from the L: directory. If you haven't \n"
+                              "installed the FIFO: device until now, please let\n"
+															"the installer insert the needed commandline to\n"
+															"your User-Startup file. If it is already installed,\n"
+															"you could of course skip this part of installation."))
+	(set #writefifo							"\nWriting commandline in your User-Startup file:\n\n%s")
+	(set #fileidlib							"\nNow copying FileID.Library...")
+  (set #fileidlib_hlp	(cat		"The FileID.library will be used to identify the\n"
+															"format of uploaded files. In fact of using this\n"
+															"library, recognition errors (wrong extension i.e.)\n"
+															"are now much less than only checking the extension\n"
+															"This library is required for FAME to work!\n\n" @copylib-help))
+	(set #xprzlib								"\nNow copying XprZModem.Library...")
+	(set #xprzlib_hlp		(cat		"The XPRZModem.library is used to let users transfer\n"
+															"files with the help of the Z-Modem protocol. This\n"
+                              "library is not required, because FAME is able to\n"
+															"control all XPR Transfer libraries, and therefor\n"
+                              "it's your choice to install it or use other XPR-\n"
+															"libraries instead.\n\n" @copylib-help))
+	(set #shellstart		(cat		"Now copying the Start-Script for the internal\n"
+															"FAME Shell into your S: directory under the name\n"
+															"FAME-Startup."))
+	(set #shellstarthlp (cat		"FAME-Startup will be used as Startscript for\n"
+															"the internal Shell built into FAME. You could\n"
+                              "define the Shell-Prompt, set some pathes etc.\n"
+															"Further informations could be found in your\n"
+															"Amiga-DOS manual."))
+	(set #insertdisk1 (cat			"\nPlease insert the following disk\n"
+															"in any drive:\n\n%s"))
+	(set #insertdisk1help (cat	"You must now insert the according disk in any\n"
+															"drive to continue with the installation.\n\n" @askdisk-help))
+	(set #ERROR 								"\n%s aborted with errornumber %ld !")
+	(set #ARCHIVE1			(cat		"\n\nNow extracting some important drawers and\n"
+															"System-files to your FAME drawer.\n\n"
+															"Depending on your processor-type it may take some\n"
+															"time to extract the archive, i.e. a MC68000 CPU\n"
+															"needs about 20 mins of extracting time !"))
+	(set #ARCHIVE1HLP		(cat		"Installer will now extract some drawers and System-\n"
+                              "files required by FAME to work into your FAME\n"
+                              "drawer. Also some default settings are copied."))
+	(set #ARCHIVE2							"\n\nExtracting and copying the main programs...")
+	(set #ARCHIVE2HLP		(cat		"Installer copies now all main programs of FAME\n"
+															"to your FAME-Drawer. Without those programs, FAME\n"
+															"won't work !!!"))
+	(set #englishdocu           "English Documentation")
+	(set #germandocu						"German Documentation")
+	(set #askformisc						"Please choose the additional Parts\nof FAME to install:")
+	(set #askformischelp (cat		"The following parts may also installed:\n\n"
+															"English Docu. - Latest Version of the\n"
+		                          "                FAME-Documentation.\n"
+                              "Archivers     - Contains the following archive-\n"
+                              "                testers: ARJ, CheckExe, DMS, LHA\n"
+															"                DMSDescript,EXEDescript,LZX,\n"
+															"                mULTI-cHECK,TxtExtract,UNARJ,\n"
+															"                UNZIP,ZoomCheck.\n\n"
+                              "It's up to you to install them, at least you\n"
+															"should install the Archivers to allow FAME\n"
+															"to check all uploaded files !"))
+	(set #EXTARCHIVE 			      "Extracting %s, please be patient...")
+	(set #EXTARCHIVEHELP	(cat	"Selected archive will be extracted to your FAME\n"
+															"drawer. A drawer for the according files will be\n"
+                              "created."))
+  (set #resprompt (cat				"Please choose the Parts of FAME which you want\n"
+															"to load resident when starting the FAME:\n\n"
+															"See 'Help...' for detailed informations !"))
+	(set #resprompthlp (cat			"You where prompted to choose which parts of the\n"
+															"FAME system should be loaded resident when starting\n"
+															"FAME:\n\n"
+															"MainPart        - Mainprogram of FAME, should be\n"
+															"                  ALWAYS loaded resident !\n"
+															"FAMEFileChecker - FAME FileCheck-Tool.\n"
+                              "FAMEHydra       - The HydraTool of FAME.\n\n"
+ 															"Resident means that your choosen programs will be\n"
+															"loaded into memory only one time. If the program\n"
+															"will be started then more than one time, only copies\n"
+															"of the program are returned instead of loading the\n"
+															"program everytime new from disc. This saves memory\n"
+															"and also increase the speed of FAME.\n"
+															"To use this feature, you have to change all calls\n"
+															"to those resident loadable programs by removing the\n"
+															"path informations! Only the Filename remains, because\n"
+															"AmigaDOS then searches first in the List of resident\n"
+															"files before loading the file from disc. So make\n"
+															"sure that you call resident programs only with their\n"
+															"filename instead of using the whole path!\n\n"
+                              "More about this could be found in your ADOS manual."))
+	(set #writefile (cat				"\nWriting following line to file FAMEStart.bat:\n\n%s"))
+	(set #writefilehelp (cat		"The line written above will be added to the script\n"
+															"file called FAMEStart.bat. Detailed informations\n"
+															"about this file could be found in the FAME docu-\n"
+															"mentation."))
+	(set #systeminfotext1 (cat	"\nInstaller now starts the SystemEditor of FAME.\n"
+															"This program creates all missing datafiles and\n"
+															"directories required to run FAME. After this, a\n"
+															"window called \"SystemDatas\" appears and you\n"
+															"must now configure your BBS into this window,\n"
+                              "like the SysOp Name, BBSName, directory of the\n"
+                              "user.datas etc."))
+	(set #sysedstart1 (cat			"\nNow starting SystemEditor to configure\n"
+															"the System datas of FAME..."))
+	(set #askbatch 	(cat				"\nDo you want to install now two startscripts into\n"
+															"directory FAME:NODE0/NODEBATCHES/LOGOFFBATCHES/\n"
+															"to let 'LASTCALLERS' and 'MULTI-TOP' be started\n"
+															"automatically after someone logs out ?\n\n"
+															"See 'Help...' for further informations !"))
+	(set #batchhelp (cat				"LastCallers and Multi-Top are FAME-Tools, which\n"
+															"where started after an User logs out. If you\n"
+															"wish, Installer will create two textfiles for these\n"
+															"programs in FAME:NODE0/NODEBATCHES/LOGOFFBATCHES:\n\n"
+															"MULTI-TOP   - Script to start Multi-Top.\n"
+															"LASTCALLERS - Script to start LastCallers.\n\n"
+															"Further Informations about the Logoff-Scripts of\n"
+                              "FAME could be found in the main documentation of\n"
+	                            "FAME (FAME.guide)."))
+	(set #choosebatch (cat			"\nPlease choose for which programs the Installer\n"
+                              "should create the start-scripts:"))
+	))
+
+;=======================================================
+;= PROCEDURE TO CHECK RETURNVALUE OF EXTERNAL PROGRAMS =
+;=======================================================
+
+(procedure p_checkit #checkvalue #name
+	(
+	(if (<> #checkvalue 0)
+		(
+		(set errline (#ERROR #name @ioerr))
+		(abort errline)))
+	)
+)
+
+
+;===============================================
+;= FIRST SYSTEM-CHECKS TO DETERMINE USED AMIGA =
+;===============================================
+
+(if (< (/ (getversion) 65536) 37) ( (ABORT #bad-kick)))
+(if (< (/ @installer-version 65536) 42) (abort #bad-installer))
+
+(set used_cpu (database "cpu"))						;	CPU-Check for 020er Processors
+
+(complete 0)
+(user 2)
+(message #introduction)
+(complete 1)
+(user 1)
+(welcome)
+(complete 5)
+(set old_level @user-level)
+(set fame_path (getassign fame_search))		; Check for FAME: assign
+(if (<> fame_path "")											; Found FAME, ask if it should be
+	(																				; replaced by this new Version
+  (message #FameFound)
+	(set @default-dest fame_path)
+  (set laenge (strlen(fame_path)))
+	(set laenge (- laenge 5))
+  (set @default-dest (substr fame_path 0 laenge ))
+	))
+(complete 10)
+
+;==================================================
+;= CHECK FOR FREE SPACE AND VALID PATH TO INSTALL =
+;==================================================
+
+
+(set dirokay 0)
+(set continue 1)
+(while (= dirokay 0)
+	(
+	(set fame_path															; Get the FAME Destination
+		(askdir (prompt 	#AskLocation)
+						(help 		#AskLocHelp)
+						(default 	@default-dest)))
+	(if (= fame_path "") (abort #NO_LOCATION))	; No path given, aborting...
+	(set bytes (getdiskspace(fame_path)))
+	(set fame_path (tackon fame_path "FAME"))
+	(if (< bytes min_bytes)
+		(
+		(set checkdev (getdevice(fame_path)))
+		(if (<> checkdev "RAM")
+			(
+			(message (#NO_FREE_STORE checkdev))
+      (set dirokay 0)
+			(set continue 0)
+     	)
+			(
+			(set continue 1)
+			))
+		)
+		(
+		(set continue 1)
+		)
+	)
+	(complete 15)
+	(if (= continue 1)
+		(
+	  (set dirokay
+			(askbool (prompt (#Fame_Okay fame_path))	; Check if Drawer is okay
+		           (help #Fame_Okay_Help)
+							 (default 1)))
+		))
+	))
+
+;==========================================
+;= SET MAIN GLOBAL VARS TO CURRENT PATHES =
+;==========================================
+
+(set @default-dest fame_path)
+(set fame_modules (tackon fame_path "Modules"))
+(set fame_mainpart (tackon fame_modules "MainPart"))
+(set fame_filecheck (tackon fame_modules "FAMEFileChecker"))
+(set fame_hydra (tackon fame_path "DOORS/FAME/FAMEHydra/FAMEHydra.FIM"))
+
+;=============================================================
+;= CHECK FOR ASSIGN AND ASK HOW THE ASSIGN SHOULD BE HANDLED =
+;=============================================================
+
+(complete 20)
+
+(makedir fame_path)														; Create some dirs
+(makedir fame_modules)
+(makeassign fame_search fame_path)						; Set assign + write to the
+(set dummy (getassign fame_search))						; S:User-Startup file if needed
+(if (= dummy "") (abort #NO_ASSIGN))
+
+(complete 22)
+
+(set autoassign
+	(askchoice	(prompt	#askAssign)
+							(help		#askassignhelp)
+							(choices 	#user_startup
+												#auto_assign)
+							(default	1)))
+
+(if (= autoassign 0)
+	(
+	(complete 24)
+
+	(set commandline ("ASSIGN >NIL: FAME: %s" fame_path))
+  (startup 	"FAME-BBS"
+						(prompt	(#nowwriting commandline))
+            (help		@startup-help)
+            (command commandline))
+	(set writeit 1)
+  )
+)
+
+;===========================================================
+;= INSTALL SERVER AND IT'S ICON TO USER-DEFINABLE LOCATION =
+;===========================================================
+
+(complete 26)
+
+(set server_loc "")
+
+(while (= server_loc "")											; Check out Dest. for Server
+	(
+	(set server_loc
+		(AskDir (prompt		#AskForServerLoc)
+						(help			#AskForServerHlp)
+						(default  "Sys:WBStartup")))								; Replace Sys:WBStartup/
+	)
+)
+
+(complete 28)
+(copyfiles	(prompt #copyserver)							; Copy Server to destination
+            (help		#copyserverhlp)
+						(source "FAME_Install:bin/Server")
+						(dest		server_loc)
+						(infos))
+
+(if (= autoassign 1)
+	(
+	(complete 29)
+  (set newtt (tackon server_loc "Server"))
+	(tooltype (dest newtt)
+						(settooltype "BBSLOCATION" fame_path)
+						(settooltype "AUTOASSIGN" ""))
+	(set writeit 1)
+	)
+)
+
+;===========================================
+;= INSTALL REQUIRED LIBRARIES AND HANDLERS =
+;===========================================
+
+(complete 30)
+
+(set fame_libs																; Ask for Library Path (i.e. LIBS:)
+	(AskDir	(prompt #asklibdir)
+					(help		#asklibdirhelp)
+          (default "LIBS:")))									; Replace with LIBS:
+
+(copylib	(prompt	#famelib)										; Install FAME.library
+					(help		#famelib_hlp)
+					(source "FAME_Install:libs/FAME.library")
+					(dest		fame_libs)
+          (confirm))
+
+(complete 32)
+
+(copylib	(prompt	#fifolib)										; Install fifo.library
+					(help		#fifolib_hlp)
+					(source "FAME_Install:libs/fifo.library")
+					(dest		fame_libs)
+          (confirm))
+
+(complete 34)
+
+(copyfiles	(prompt #fifohandler)								; Install fifo-handler
+						(help		@copyfile-help)
+						(source	"FAME_Install:l/fifo-handler")
+						(dest		"l:"))
+
+(complete 36)
+
+(set commandline "run >NIL: <NIL: L:Fifo-Handler")
+(set FIFOYES
+	(askbool 	(prompt	(#askforfifo commandline))
+						(help		#askforfifohlp)
+						(default 1)))
+
+(if (= FIFOYES 1)
+	(
+	(complete 37)
+
+  (startup 	"FIFO"                            ; Write FIFO Start to User-startup
+					 	(prompt	(#writefifo commandline))
+            (help		@startup-help)
+	          (command commandline))
+	)
+)
+
+(complete 38)
+
+(copylib	(prompt	#fileidlib)                 ; Install FileID.library
+					(help		#fileidlib_hlp)
+					(source "FAME_Install:libs/FileID.library")
+					(dest		fame_libs)
+          (confirm))
+
+(complete 40)
+
+(copylib	(prompt	#xprzlib)										; Install xprzmodem.library
+					(help		#xprzlib_hlp)
+					(source "FAME_Install:libs/xprzmodem.library")
+					(dest		fame_libs)
+           (confirm))
+
+(complete 42)
+
+(copyfiles	(prompt	#shellstart)							; FAME Shell Startup -> S:
+						(help		#shellstarthlp)
+						(source	"FAME_Install:s/FAME-Startup")
+						(dest		"S:")										; Replace with S:
+						(confirm))
+
+(copyfiles  (Prompt 	"")											; Copy lha to RAM: to allow
+						(help			"")											; diskchanging while depacking
+            (source 	"FAME_Install:c/")
+						(choices 	"lha"
+											"FAMEDataPatcher"
+											"TxtAdd")
+            (dest 		"RAM:")
+						(nogauge))
+
+
+
+;===============================================================
+;= EXTRACT THE MAIN ARCHIVES COMMING FROM DISK "FAME_MAINFILES =
+;===============================================================
+
+(complete 44)
+
+(set dummy (#insertdisk1 "FAME_MainFiles:"))
+(askdisk 		(prompt dummy)										; Check for right disk to continue
+						(help		#insertdisk1help)
+						(dest		"FAME_MainFiles")
+						(assigns))
+
+(complete 50)																	; Installing FAMEMain.lha
+
+(working #ARCHIVE1)
+(set 	cmdline ("RAM:LHA -q x FAME_MainFiles:FAMEMain.lha %s" fame_assign))
+(set myerr
+	(run 	cmdline
+    	  (prompt	#ARCHIVE1)
+				(help		#ARCHIVE1HLP)))
+(p_checkit myerr "LHA")
+
+(complete 55)																	; Installing FAMEMods.lha
+
+(working #ARCHIVE2)
+(set 	cmdline ("RAM:LHA -q x FAME_MainFiles:FAMEMods.lha %s" fame_assign))
+(set  myerr
+	(run 	cmdline
+      	(prompt	#ARCHIVE2)
+				(help		#ARCHIVE2HLP)))
+(p_checkit myerr "LHA")
+
+;======================================================
+;= CHECK IF DOCS AND FILECHECKERS SHOULD BE INSTALLED =
+;======================================================
+
+(complete 56)
+
+(set miscchoice
+	(AskOptions (prompt #askformisc)
+							(help		#askformischelp)
+							(choices  #englishdocu
+												""
+												"Archiver")))
+(set dummy 0)
+
+(if (IN miscchoice 0) (set dummy 1))
+(if (IN miscchoice 2) (set dummy 1))
+
+(if (= dummy 1)
+	(
+	(set dummy (#insertdisk1 "FAME_Docs_and_Misc:"))
+	(askdisk 		(prompt dummy)										; Check for disk to continue
+							(help		#insertdisk1help)
+							(dest		"FAME_Docs_and_Misc")
+							(assigns))
+
+	(if (IN miscchoice 0)
+		(
+		(set #dummy2 (#EXTARCHIVE "FAMEDocu.lha"))
+		(working #dummy2)
+		(set #cmdline ("RAM:lha -q x FAME_Docs_and_Misc:FAMEDocu.lha %s" fame_assign))
+		(set  #myerr
+			(run 	#cmdline
+		      	(prompt	(#dummy2))
+						(help		#DOCARCHIVEHELP)))
+		(p_checkit #myerr "LHA")
+		))
+	(if (IN miscchoice 2)
+		(
+		(set #dummy2 (#EXTARCHIVE "FAMEMisc.lha"))
+		(working #dummy2)
+		(set cmdline ("RAM:lha -q x FAME_Docs_and_Misc:FAMEMisc.lha %s" fame_assign))
+		(set  #myerr
+			(run 	cmdline
+		      	(prompt	(#dummy2))
+						(help		#DOCARCHIVEHELP)))
+		(p_checkit #myerr "LHA")
+		))
+
+	))
+
+;==================================================================
+;= NOW LET THE USER CHOOSE WHICH FILES OF FAME SHOULD BE RESIDENT =
+;==================================================================
+
+(complete 60)
+
+(set	fame_set (tackon fame_path "Settings/"))
+(set resprg
+	(AskOptions	(prompt	#resprompt)							; Enter resident Programs
+							(help		#resprompthlp)
+							(choices	"MainPart        370 kb"
+												"FAMEFileChecker   5 kb"
+												"FAMEHydra        55 kb")))
+
+	(set res0 ("Resident %s PURE" fame_mainpart))
+	(set res1	("Resident %s PURE" fame_filecheck))
+	(set res2	("Resident %s PURE" fame_hydra))
+	(set bat  (tackon fame_set "FAMEStart.BAT"))
+	(set patchnode 0)
+	(set patchmods 0)
+
+(complete 62)
+
+(if (IN resprg 0)
+	(
+	(set #cmdline ("RAM:TxtAdd %s %s" bat res0))			; MainPart resident
+	(set myerr
+		(run	#cmdline
+					(prompt (#writefile res0))
+					(help		#writefilehelp)))
+	(p_checkit myerr "TxtAdd")												; Check for error
+	(set patchnode 1)
+))
+
+(complete 64)
+
+(if (IN resprg 1)
+	(
+	(set #cmdline ("RAM:TxtAdd %s %s" bat res1))			; FileChecker resident
+	(set myerr
+		(run	#cmdline
+			(prompt (#writefile res1))
+			(help		#writefilehelp)))
+	(p_checkit myerr "TxtAdd")
+	(set patchmods 1)
+))
+
+(complete 66)
+
+(if (IN resprg 2)
+	(
+	(set 	#cmdline ("RAM:TxtAdd %s %s" bat res2))	; Hydra resident
+	(set  myerr
+		(run	#cmdline
+			(prompt (#writefile res2))
+			(help		#writefilehelp)))
+	(p_checkit myerr "TxtAdd")
+))
+
+(protect bat "+s")
+
+(complete 68)
+
+(message #systeminfotext1)										; Info about SystemEditor
+
+(complete 70)
+
+(set sysedloc (tackon fame_modules "SystemEditor"))
+(set cmdline ("%s BBSLOCATION=%s CREATE JUMP=1 WINCLOSEQUIT" sysedloc fame_assign))
+(set myerr
+	(run cmdline																			; Start SystemEditor
+  	  (prompt #sysedstart1)
+			(help		#systeminfotext1)))
+(p_checkit myerr "SystemEditor")
+
+(complete 76)
+
+(if (= patchnode 1)             							; Patch Resident Mainpart
+	(
+	(set nodeloc (tackon fame_path "Settings/Node0/Node.dat"))
+	(set cmdline ("RAM:FAMEDataPatcher %s 0 MainPart" nodeloc))
+	(set myerr
+		(run cmdline
+				(prompt "Patching...")
+				(help		"Patching Node.dat...")))
+	(p_checkit myerr "FAMEDataPatcher")
+	)
+)
+
+(complete 78)
+
+(if (= patchmods 1)                           ; Patch Resident FileChecker
+	(
+	(set modsloc (tackon fame_path "Modules/FAMEModules.dat"))
+	(set cmdline ("RAM:FAMEDataPatcher %s 1 FAMEFileChecker" modsloc))
+	(set myerr
+		(run cmdline
+				(prompt "Patching...")
+				(help		"Patching FAMEModules.dat...")))
+	(p_checkit myerr "FAMEDataPatcher")
+	)
+)
+
+(complete 80)
+
+(set batchcopy																; Ask for Multi-Top/Lastcallers
+	(AskBool	(prompt #askbatch)
+						(help   #batchhelp)
+						(default	1)))
+
+(complete 82)
+
+(if (= batchcopy 1)														; Copy batchfiles
+	(
+
+	(complete 84)
+
+	(set whichone
+		(AskOptions	(prompt		#choosebatch)				; Select the Batches
+								(help			#batchhelp)
+								(choices  "Multi-Top"
+													"LastCallers")))
+
+	(set nodedir (tackon fame_path "Node0/NodeBatches/LogoffBatches/"))
+
+	(complete 86)
+
+  (if (IN whichone 0)													; Install Multi-Top
+		(
+		(set multi	(tackon nodedir "MULTI-TOP"))
+		(set entry	(tackon fame_path "Modules/ExternModules/Multi-Top"))
+		(textfile	(prompt "Creating Multi-Top script...")
+	            (help	#batchhelp)
+							(dest	multi)
+							(append entry))
+		(protect multi "+s")))
+
+		(complete 88)
+
+		(if (IN whichone 1)												; Install LastCallers
+    	(
+			(set multi (tackon nodedir "LASTCALLERS"))
+			(set entry	(tackon fame_path "Modules/ExternModules/LastCallers"))
+			(set clog	(tackon fame_path "NODE<node>/CALLERS.LOG"))
+			(set addy	(".key node\n.bra <\n.ket >\n%s %s <node> 10 BULLETINS:LASTCALLERS.TXT" entry clog))
+			(textfile	(prompt	"Creating LastCallers script...")
+								(help	#batchhelp)
+								(dest	multi)
+								(append addy))
+			(protect multi "+s")
+			))
+		))
+
+(complete 99)
+
+(delete "RAM:LHA")                            ; Clean Up after install
+(delete "RAM:FAMEDataPatcher")
+(delete "RAM:TxtAdd")
+
+(complete 100)
+
+(exit)

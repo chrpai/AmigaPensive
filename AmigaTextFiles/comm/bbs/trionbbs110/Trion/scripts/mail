@@ -1,0 +1,42 @@
+
+;;;  Script to proces mail and .TIC files.
+
+;quit
+wait 2
+
+avail flush >nil:
+stack 5000
+
+Attention -o "Mail: script started"
+trion  -max  "Mail processor is started, system can be a little slower"
+
+trion:utils/CheckInbound -q
+
+if WARN
+   Attention  "Mail: processor in PACK mode"
+   trion:utils/tmp P -d
+else
+
+   ;;;  process  .TIC files
+
+   Attention  "Mail: Processing tick files"
+   trion:utils/TrionTick  -p -b   -d
+
+   ;CD trion:inbound       ;;; to enable unpacking ARC and ARJ archives
+
+   Attention  "Mail: processor in UNpack mode"
+   trion:utils/tmp  U -c -b -f   -d
+
+   ;CD trion:              ;;; to enable unpacking ARC and ARJ archives
+
+   Attention  "Mail: Areafix started"
+   trion:utils/areafix   F -d
+
+   Attention  "Mail: processor in PACK mode"
+   trion:utils/tmp  P    -d
+
+endif
+
+Attention "Mail: script finished" -q
+trion  -m -a -x  "Mail processor is Finished !"
+

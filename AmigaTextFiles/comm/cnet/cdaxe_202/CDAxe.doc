@@ -1,0 +1,551 @@
+                                CDAxe v2.01
+                               -=-=-=-=-=-=-
+           Coded by Ray Akey (aka Heavy Metal) of Metal Software
+                 Using the SAS/C Development System v6.55
+
+
+      NOTE: Although this software is not crippled, it is SHAREWARE!
+            If you use it for more than one week, you must REGISTER
+            it!  Registration is only $20.00 U.S. or $25.00 Canadian.
+                           SUPPORT AMIGA DEVELOPERS!
+
+         Send your cheque or money order for registration to:
+
+            Ray Akey
+            411 Bridge Ave.
+            Windsor, ON
+            Canada  N9B 2M3
+
+Changes v2.02
+=============
+2. Bug fixed (hopefully!) that caused CDAxe and FPAV to not live in
+   harmony. (during archive "viewing")
+1. New format for CDAxe.userdirs allows you to restrict access groups
+   from accessing volumes/directories and also require certain flags.
+   To restrict access to a particular VOLUME, use the actual volume NAME
+   in place of a device name (ie. "Aminet7" instread of "CD0:").  If a user
+   is restricted by access or flags, he/she will not even SEE the title of
+   the volume, thereby not even knowing that it exists.  Volume names and
+   Titles that have spaces in them MUST now be enclosed in double quotes (")
+   as must description filenames if they contain spaces.
+
+
+   The new format is:
+   
+   VOLUMENAME  ACCESS   FLAGS TITLE DESCRIPTIONFILE
+
+   VOLUMENAME      - the actual physical volume name, disk name or assign
+   ACCESS          - CNet-style access range
+   FLAGS           - CNet-style flag range
+   TITLE           - the name displayed to the user.
+   DESCRIPTIONFILE - an optional file containing alternate descriptions to
+                     be used for this disk/device/volume.  Anything found in
+                     this file overrides filenotes and .readme descriptions.
+                     Only filenames are checked.  Paths do not have
+                     significance.
+
+
+   Note: an "x" is required where the user does not have to have any
+         "Files base flags" to see this volume.
+
+         Both access and flag strings accept the usual CNet access/flag range
+         formats (ie 1-5,7,9-11,21 or 1,21-31 etc,..)
+
+
+   =============> SAMPLE OF NEW SYSDATA:CDAXE.USERDIRS <============
+   CD0:  1- x  "CDRom #1" sysdata:CD1Descripts
+   CD1:  1- x  "CDRom #2" sysdata:CD2Descripts
+   CD2:  1- x  "CDRom #3" sysdata:CD3Descripts
+   LIBS: 1- x  "System Libraries"
+   SC:INCLUDE 1-  x  "SAS/C Includes"
+   DH0:QuestionableFiles   20 1-31  "Private Stock" sysdata:privatedescripts
+   ==========================================================
+
+
+
+
+Changes v2.01
+============
+3. When a file is selected into a user's select list (ie. using the SPACEBAR),
+   the pointer/selector now moves down to the next file so that multiple
+   files can be selected more quickly and with fewer keystrokes.
+2. FILEREAD argument added so as to make optional the "R" command and the
+   routines that cause a file to be read as if they are a text file.  If you
+   wish CDAxe to display text files to users when they press "R" or ENTER
+   while a file is highlighted, add the FILEREAD argument to your BBSMENU
+   command for CDAxe in addition to any other CDAxe args that you have for
+   CDAxe. An example of the FILEREAD option:
+
+      CD, CDAxe   {#2pfiles:CDAXE FILEREAD CD0:}
+
+   without the FILEREAD option, the only things that users can view are
+   those configured in your "ARCHIVERS" configuration in CNet/Config. This
+   option/argument is OFF by default.
+
+1. System requesters are now disabled so that invalid paths do not lock
+   up your port(s) (CNet really should disable requesters for P-Files, so
+   that we don't have to do it manually but c'est la vie, it's fixed anyways)
+   For other programmers that need to know, here's the C routines required to
+   disable AmigaDOS requesters that your p-files could possibly pop up:
+
+      /*
+       * These two variables must be GLOBAL
+       */
+     	struct Process *myproc=0L;
+      struct Window *OldErrorWindow=0L;
+
+      /*
+       * disables system requesters
+       */
+      void DisableRequesters( void )
+         {
+      	if(myproc = (struct Process *)FindTask(NULL))
+      		{
+      		OldErrorWindow=myproc->pr_WindowPtr;
+      		myproc->pr_WindowPtr = (APTR)-1;
+      		}
+         }
+
+      /* enables requesters again - MUST BE CALLED if DisableRequesters()
+       *  has been used previously
+       */
+      void EnableRequesters( void )
+         {
+            if(OldErrorWindow)
+               {
+         		myproc->pr_WindowPtr=OldErrorWindow;
+               OldErrorWindow=NULL;
+         		}
+         }
+
+
+
+Changes v2.0
+=============
+7. Write/delete protection of files and disks are now checked before the
+   following operations:
+
+     - File delete
+     - Filenote change
+
+6. Added capability to have an "Alias" displayed as a working title for
+   each "userdir".  The new format is as follows:
+
+   =============> SAMPLE SYSDATA:CDAXE.USERDIRS <============
+   CD0:  CDRom #1
+   CD1:  CDRom #2
+   CD2:  CDRom #3
+   LIBS: System Libraries
+   SC:INCLUDE SAS/C Includes
+   ==========================================================
+
+5. "Selected" files are now visually flagged with a "+".
+4. Added visual display of selected files vs. number of selections left.
+3. Directory reads are now abortable using the SPACE or forward slash ( / ).
+2. Reworked some hotkey assignments in preparation for future enhancements
+   - See program/onscreen menus for key changes.
+1. New keyword "USERDIRS".  The keyword USERDIRS must be either given as an
+   arg when the user runs CDAXE, or it can be FORCED in BBSMENU in either
+   of two ways:
+
+      method one (always forces CDAXE to run in "USERDIR mode") therefore
+      requiring no default device/path:
+
+         CDAXE |{pfiles:CDAXE USERDIRS}
+
+      method two (allows you to have a default "CD0:" mode and a seperate
+      "USERDIR mode").  Add the following two lines in BBSMENU, ** IN THE ORDER
+      LISTED BELOW**  The first line requires a device/path for CDAxe to read
+      since you are running it in "immediate mode" where it reads a device or
+      path as soon as the user enters "CDAXE".  The second, although it seems to
+      use the immediate CD0: given on the previous CDAXE command, actually
+      overrides it because the "USERDIRS" argument is given:
+
+         CDAXE |{pfiles:CDAXE CD0:}
+         CDLIST~CDAXE USERDIRS
+
+      .. if the above is used in your BBSMENU, the user may enter "CDAXE" and
+      get an IMMEDIATE listing of the CD in CD0:.  He may also use the
+      "CDLIST" command to get a listing of your configured "available"
+      directories/paths/CDs as listed in SYSDATA:CDAXE.USERDIRS.
+
+   The USERDIRS mode allows you to present the user a list of "available"
+   directories he/she can access (perhaps you have multiple CDROM drives
+   or wish to give the user a choice of "direct download" directories.
+   Remember, To use this option, you MUST create the file
+   SYSDATA:CDAXE.USERDIRS.  In this file, place a list (one per line) of the
+   directories/volumes/paths/devices that you want available to a user when
+   he/she runs CDAXE.  An example follows:
+
+   =============> SAMPLE SYSDATA:CDAXE.USERDIRS <============
+   CD0:
+   CD1:
+   CD2:
+   LIBS:
+   SC:INCLUDE
+   ==========================================================
+
+
+Changes v1.06
+=============
+1. Small security bug fixed where, if you had a path of DH0:LIBS
+   set as the root/do-not-regress-further-back-than-this directory,
+   (in a direct-exchange subboard so that users could get needed libraries
+   from your system) the user could enter a subdirectory and then do a
+   "parent" operation twice and get to your DH0: files.  This is DEFINITELY 
+   no longer a concern!  This was the only security problem that existed.
+2. Users may now exit the program by pressing ESCape *twice*.
+
+
+Changes v1.04
+=============
+1. Added "U" hotkey to execute a BBS "everywhere command" such as
+   WHO, etc,..
+2. Added sysop maint capability of running a CNet-C/AmigaDOS/ARexx or Paragon
+   command (P-File/Door/etc..)  The user MUST have MAINT to use this feature.
+
+
+Changes/Bug fixes v1.03/1.02
+============================
+1. NOW GLOBALLY OPTIMIZED FOR SPEED!
+2. (1.02) readme's are now "auto-selected" when a user selects a file that has
+   an existing .readme file (may be a user configurable option later).
+3. (1.02) "files.bbs" is now searched for and parsed for descriptions BEFORE
+   .readme's.  If a files.bbs description is found, no .readme is searched
+   for.
+4. "files.txt" is now searched for and parsed for descriptions BEFORE
+   .readme's but after files.bbs. If a files.txt description is found, no
+   files.bbs or .readme is seeked for that file/dir.
+5. (1.02) Added sysop feature of changing/adding a file/directory-note using
+   the "I" key combination.
+6. Added sysop feature of listing devices/volumes using the "L" key.
+
+
+Changes/Bug fixes v1.01
+=======================
+1.  FIXED! -> CDRom temp path enabled was not allowing selected files to be
+              downloaded.
+2.  Debug output text removed (oops!)
+3.  The old "AMINET" and "NOAMINET" keywords have been changed to "DIRDESC"
+    and "NODIRDESC", respectively.
+4.  New keywords "CDROM" and "NOCDROM" added for command line enable/disable
+    of CDROM Temp path.  These are MAINT keywords.  See the section of these
+    docs titled "Command Line Arguments" if you need to know about overriding
+    MAINT keywords in BBSMENU/pfile specifications.
+5.  Directory comments are now external.  Edit SYSDATA:CDAxe.DirInfo to
+    add to the included aminet directory descriptions. (see the note below)
+
+    NOTE: the directory name comparison is a right-hand compare so make sure
+          that SHORTER dir names are placed at the bottom of the file.
+          You'll notice that in the included default file, "misc" is toward
+          the bottom while "biz/misc" is higher up..  If this were not so,
+          the description for "misc" may be mistaken as a description for
+          "biz/misc" as the last four characters on the RIGHT hand end of
+          the string match that directory name.
+
+          In general, you may assume that directory names with many "levels"
+          should be at the top, while single level directory names should be
+          at the bottom so that they are checked last.
+
+          The FIRST match found will be the one used by CDAxe.
+
+          ALSO, you may be SURE that (for example) aminet directories only use
+          aminet dir names by using a more precise path.
+          ie. "aminet/biz/dbase" rather than "biz/dbase".  The more "nodes" or
+          "levels" you supply, the more picky CDAxe will be about tagging on
+          directory comments.
+
+          If you do not have Aminet CD's or an aminet style "mirror" on your
+          system, you can just delete the existing default directory
+          descriptions and create your own.  I have been told by a local beta
+          tester than he is going to use CDAxe as a replacement for CNet's
+          SCAN..  In this case, he/you would want to comment the names of your
+          CNet UDBases appropriately.  Also note that you should not have any
+          "private" directories in a "CDAxe" path as there are no restrictions
+          on "child directory" access other than what you configure in CDAxe
+          Config.
+
+          PS. The term "Child directory" refers to directories that are
+          existent in the path that you specify to be used by CDAxe, not
+          directories created for children.  8-/
+
+
+
+
+
+                                What is it?
+                                ===========
+   CDAxe is a very powerful directory/device util for CNet Amiga v3.05c.
+Although CDAxe is specifically designed to provide your users with a very
+easy way to traverse the many directories that exist on most CD-ROMs, it has
+applications in other areas as well.  Since, as is standard with MetalSoft
+programs, CDAxe is so configurable, YOU decide what path it will use as it's
+"startup directory".
+
+
+
+
+                                 Features:
+                                 =========
+   - Sysop definable number of buffered directories.
+   - Parent function will not recede further back than the "startup directory"
+     unless the user has SYSOP MAINT.
+   - Remembers the last position of the file/directory selector on buffered
+     directories so user does not lose his/her place when traversing through
+     directories.
+   - Configuration via CNet Visual Data Editor (VDE)
+   - Configurable access groups allowed to enter/use.
+   - Configurable access flags allowed to enter/use.
+   - Configurable minimum and maximum age allowed to enter/use.
+   - configurable gender allowed to enter/use.
+   - configurable file/byte percent charges (100% = charge byte per byte/file per
+     file).
+   - show or hide .info files.
+   - show or hide .readme files.
+   - choice to display DIRECTORY descriptions.
+   - read *.txt, *.doc, *.nfo, files.bbs, index files while in the CDAxe
+     interface.
+   - CNet CDRom temp path supported.
+   - capable of emulating "no maint" operation for sysop testing of how
+     CDAxe will act when a non-sysop uses it.
+   - CD "[N]ew directory" command to change directories internally as a SYSOP
+     feature, available only to maint users.
+   - COPY command to copy the currently highlighted file to another location.
+     This is a feature requiring sysop maint.
+   - MOVE command to move the currently highlighted file to another location.
+     This is a feature requiring sysop maint.
+   - MAKEDIR command to create a new directory. (requires SYSOP MAINT)
+   - DELETE command to remove files from the current directory. (requires
+     SYSOP MAINT)
+   - when the ENTER key is used to read, select or examine a file, CDAxe
+     performs actions based on file type.
+   - filetypes other than than CDAxe defined ASCII text are viewed using your
+     configured CNet ARCHIVERs.
+
+
+     Currently, the following types/extensions are recognized as readable
+     ASCII text and are displayed as such:
+
+      *.doc
+      *.nfo
+      *.txt
+      *.wri
+      *.readme
+      files.bbs
+      index
+      readme
+
+
+
+
+
+                            Basic Installation
+                            ==================
+1.  Copy CDAxe to a suitable location.  I use PFILES:.
+2.  Copy CDAxeCfg_VDE to sysdata:vde/.
+3.  Copy the contents of the HELP/ directory to SYSDATA:HELP/
+3.  Add the following text/command to your BBSMENU at the end of the section
+    titled "2; Available everywhere":
+
+         CDAXE   |#2pfiles:system/CDAxe}
+
+4.  Logon and enter "CDAXE CONFIG" to use configure CDAxe using the CNet VDE.
+
+
+
+
+                         "DIR" command replacement
+                         =========================
+If you wish CDAxe to replace your DIR command for Direct Exchange subboards,
+do the following IN ADDITION TO the steps listed in "Basic Installation".
+
+1.  Add the following two lines to your BBSMENU at the VERY END of the
+    section titled "4; ud/base":
+
+      CDAXE     |#2pfiles:system/CDAxe DIRECT}
+      DIR~CDAXE DIRDESC READMEDESC NOINFO NOSHOWREADME NOPROMPT
+
+    (see the section titled "CONFIG OPTIONS" for information about the
+     CDAxe keywords used above)
+
+2.  disable the old CNet dir command by replacing the command "DIR" (found in
+    the same section in BBSTEXT) with "!DIR"
+3.  Use the Cnet Config RELOAD TEXT menu to put these changes into effect.
+
+
+
+
+                              Config Options
+                              ==============
+This section gives some insight into some of CDAXe's configuration options.
+
+      
+
+Device/Path     : The default device/directory to read.
+Entry Access    : The access groups allowed to enter/use CDAxe.
+Entry Flags     : The Files base flags that users must have set on their account.
+Youngest/Oldest : The ages range that can access CDAxe.
+Gender          : Sex?  What's sex? ;)
+Byte Charge     : The PERCENT of the byte size to charge the user.
+                  100 = charge user full credit.  200 = charge user 2x the byte
+                  size.
+File Charge     : The PERCENT of a file credit to charge a user.  100=1 file
+                  credit,  200=2 file credits, etc,..
+CDRom Temp      : Files are copied to your CDRom temp directory as specified
+                  by your CNet configuration.
+Sort Order      : Alpha = Alphabetical file/dir sort.
+                  Chrono = sort by descending date (newest first).
+                  Rev Chrono = sort by ascending date (newest last)
+                  (note: a SIZE sort is available as a COMMAND LINE/argument)
+Show .info files: Show or hide icon (.info) files.
+Show .readme's  : Show or hide description (.readme) files.
+Desc from readme: If set to YES, CDAXe will attempt to extract the "SHORT"
+                  field from aminet description files and use that as the
+                  "filenote" that is displayed as the file comment.
+Use dir descript: If enabled, uses directory comments.
+                  (ie. comm/misc = Miscellaneous communications")
+Free Download   : If true, all files selected with CDAxe are free downloads.
+Max disk buffers: The number of directories to buffer.  if set to 10, the
+                  last ten directories you viewed/wntered are kept in RAM to
+                  reduce disk access and. ultimately, make CDAxe more
+                  efficient.
+
+
+NOTE: All options can be overridden by command line arguments, except for the
+following:
+
+   Gender
+   Youngest
+   Oldest
+   Entry Access
+   Entry Flags
+   Byte Charge
+   File Charge
+   Move to CDRom temp
+
+
+
+
+      Command Line Arguments (* denotes an arg requiring SysOp Maint)
+      ===============================================================
+PFile specification:  This term is used to differentiate between the actual
+                      pfile DEFINE and a command alias. See below.
+
+a pfile specification ->  Mycommand  |#2mycommandspec}
+another --------------->  Mycommand  |#2anothercommandspec <arg1> <arg2>}
+
+a command/alias ------->  DIR~Mycommand
+
+
+
+NOTE: arguments can be specified both on the CNet command line prompts and
+      on BBSMENU.  To FORCE a SysOp maint argument on a user that doesn't have
+      SYSOP MAINT, add it in the pfile specification rather than in the
+      CNet "replacement" command.
+
+      example 1:  to force a DIRECT EXCHANGE subboard use the "DIRECT"
+                  argument which is an argument that requires SYSOP MAINT:
+
+         CDAXE     |#2pfiles:system/CDAxe DIRECT}
+         DIR~CDAXE
+
+
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ pfile specification
+
+      rather than the following which does not work:
+
+         CDAXE     |#2pfiles:system/CDAxe}
+         DIR~CDAXE DIRECT
+
+
+      example 2.  to force a device/directory name other than that in the
+                  CDAxe configuration, place the device/pathname as a command
+                  argument in the pfile specification:
+
+         CDAXE     |#2pfiles:system/CDAxe <path>}
+         DIR~CDAXE
+
+      rather than using the following (remember! the above spec works, the one
+      below is an example of IMPROPER use of SYSOP MAINT arguments):
+
+         CDAXE     |#2pfiles:system/CDAxe}
+         DIR~CDAXE <path>
+
+
+
+
+                               Argument list
+                               =============
+( + denotes a NEW/changed keyword for this release )
+
+*CONFIG        - Set CDAxe configuration options.
+ NOMAINT       - Causes CDAxe to emulate NO MAINT operation to verify what regular
+                 users would see.
+ DIRDESC       - Causes descriptions to be tagged on directories.
+                 (previously, DIRDESC was the AMINET keyword)
+                 (define your directory descriptions in SYSDATA:cdaxe/dirinfo)
+ NODIRDESC     - Turns off directory descriptions.
+                 (previously, NODIRDESC was the NOAMINET keyword)
+*DIRECT        - used in conjunction with Direct Exchange subboards.  Causes
+                 CDAxe to use the path specified in the Subbard "EL".
+*NODIRECT      - Turns off Direct Exchange operation.
+ READMEDESC    - Causes CDAxe to use the aminet "SHORT" descriptions for filenotes.
+ NOREADMEDESC  - Turns off aminet short description capability.
+ INFO          - Causes CDAXE to SHOW .info files.
+ NOINFO        - CDAxe does not show .info files.
+ SHOWREADME    - CDAxe shows .readme files.
+ SORTCHRONO    - sorts listings by descending date (newest first)
+ SORTREV       - sorts listings by ascending date (oldest first)
+ SORTSIZE      - sorts listings by size (smallest first)
+ SORTALPHA     - sorts listings alphabetically
+ NOPROMPT      - forces CDAxe to skip the sysop "Enter a device/path" prompt.
+                 (this prompt is only available to users with SYSOP MAINT but
+                  this argument is provided for feature's sake ..)
+*CDROM         - (New for v1.01) command line enable of CD-ROM temp path.
+*NOCDROM       - (New for v1.01) command line disable of CD-ROM temp path.
+ <path>        - ANY ARGUMENT given, that is not a VALID CDAxe argument, will
+                 be assumed to be a device/path to read.  This path is only
+                 used if the user has SYSOP MAINT (OR) if the extra path
+                 argument is specified in BBSMENU in the pfile specification.
+
+
+
+
+
+NOTES: (1) files.bbs and/or files.txt must exist in the CURRENT directory (ie.
+           the directory for which the current file list is displayed) or
+           it will not be found.
+       (2) files.txt was added as a suggestion from Todd H. Knight as
+           it was found on a CD that contains .GIF pictures. It is
+           further noted that files.txt contains descriptions in the same
+           format as that of files.bbs. (ie filename <whitespace> description)
+
+
+
+
+                            KNOWN BUGS/PROBLEMS
+                            ===================
+This is really NOT a bug but it's quirky from the sysop side so..
+If a remote user is using CDAxe and his termlength is set higher than that
+of the Sysop's local screen, scrolling may APPEAR to be functioning
+improperly from the Sysop side.  To be sure that it is indeed operating
+correctly, put your local screen in FULL LACE mode and the display should then
+look ok on the sysop side.  However, for the user side, fear not, the display
+scrolls 100% according to the current user's TERMLENGTH setting in CNet's "ET"
+settings.  If your user(s) complain that the program is not operating properly
+with regard to scrolling, inform them that their "ET" SCREEN HEIGHT must be
+set to EXACTLY the number displayed at the top of his/her screen after CNet
+does it's usual count sequence when the user changes his screen height
+setting.
+
+
+Future Plans
+------------
+Support for one of the "filetype" libraries that let you performm an action
+on a file based on it's filetype.
+
+Support for non-ANSI terminals.
+
+Page up, down, home, end control.
+
+...plus more that I can't remember  right now...

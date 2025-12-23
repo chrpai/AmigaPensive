@@ -1,0 +1,100 @@
+;
+;       DELETE PORT : AMMS-Script zum Einrichten eines neuen Ports
+;
+;       VERSION : $VER: 1.02 / 10.03.1994
+;
+;       Mit diesem Script werden alle Verzeichnisse & Files von einem Port
+;       geloescht.
+;
+;
+;       Das Script sollte so eingebunden werden, dass es ueber Level und
+;       Flags auf die folgende Befehle zugreifen kann :
+;
+;	CHECK FILE
+;	ECHO
+;	EOD
+;	EXTERN
+;	GOSUB
+;	GOTO
+;	IF
+;	MENU
+;	PARSE
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	DELETE
+;
+
+; Parameter auswerten
+
+ _parse "'{COMNAME}'" P0 N/Port PORT		; Parameter auswerten
+ _if PORT == "" then _eod
+
+; Pruefe, ob Port schon existiert
+
+ _check file "amms:startup/'PORT'" UNKNOWN_PORT	; Wenn nicht vorh., verzw.
+
+; Sicherheitsabfrage !
+
+ _menu "^JPort 'PORT' wirklich loeschen ? N#left#" -
+  "N^M" END -					; Nein -> Ende
+  "JY" DELETE_PORT				; Ja -> Port loeschen
+
+; Alle Files und Directories loeschen
+
+DELETE_PORT:
+ _echo						; LF
+
+ NAME="files:uploads/'PORT'"			; Dir fuer Uploads loeschen
+ _gosub DELETE_DIR
+ NAME="mbmsg:point/'PORT'"			; Dir fuer Point loeschen
+ _gosub DELETE_DIR
+
+ NAME="amms:startup/'PORT'"			; Start-File loeschen
+ _gosub DELETE_FILE
+ NAME="mbdevs:'PORT'.set"			; Settingsfile loeschen
+ _gosub DELETE_FILE
+
+ _echo "^JFertig !"				; Endmeldung ausgeben
+ _goto END					; -> Ende
+
+
+;
+;       Unbekannter Port
+;
+UNKNOWN_PORT:
+ _echo "^JDer Port 'PORT' existiert nicht !"	; Fehlermeldung ausgeben
+
+;
+;       Ende
+;
+END:
+ _echo						; LF
+ _eod						; Batch beenden
+
+;
+;       Unterroutine zum Loeschen eines Files
+;
+DELETE_FILE:
+ _echo/nolf "Loesche File 'NAME' ... "
+ _extern/q delete "'NAME'"
+ _goto CHECK_DELETE
+
+;
+;       Unterroutine zum Loeschen eines Verzeichnisses
+;
+DELETE_DIR:
+ _echo/nolf "Loesche Directory 'NAME' ... "
+ _extern/q delete "'NAME'" all
+; _goto CHECK_DELETE
+
+;
+;	Unterroutine zum Loesch-Pruefen eines Files/Verzeichnisses
+;
+CHECK_DELETE:
+ _check file "'NAME'" CHECK_DELETE_OK
+ _echo "Fehler !"
+ _return
+CHECK_DELETE_OK:
+ _echo "Ok !"
+ _return

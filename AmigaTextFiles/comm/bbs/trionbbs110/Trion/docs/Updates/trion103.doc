@@ -1,0 +1,295 @@
+
+
+        _____     _                  _     _              _    ___
+       |_   _|_ _(_) ___  _ __      | |__ | |__  ___     / |  / _ \
+         | | | '_| |/ _ \| '_ \     | '_ \| '_ \/ __|    | | | | | |
+         | | | | | | (_) | | | |    | |_) | |_) \__ \    | |_| |_| |
+         |_| |_| |_|\___/|_| |_|    |____/|____/|___/    |_(_)\___/
+
+                        © 1994/97 by Paul Spijkerman
+                             All Rights Reserved
+
+
+
+     Well here is the third Update since the Version V1.0 archive.
+
+
+     Took some time, but I was solving some little problems
+     with the packet which wasn't always easy, and I was
+     busy with bigger things wich are not ready yet.
+
+     I was busy with Internet (have 3 books here) will try
+     to make a TCP network or something via PC's to be my
+     own Inet provider to test things.
+
+     Was busy with a 'maildoor' (probably Blue Wave because
+     Qwk was never documented by the inventer only back engineered 
+     by several people .. so every Qwk progger uses his own
+     standard).
+
+     Still busy with RIPscrip and some effects doors but 
+     spend little time with it because of above mentioned
+     items and little problems to fix and missing things
+     to add (filefix).
+
+
+
+
+     Utils:   BBS, TrionRM, tick, areafix, ViewPacket, Tmp
+              FileEd, UserEd, Maintmod, Guimod
+              LastCallers, ScanUserStats, ShowStats, TopDL
+     Docs:    Trion-Net.doc, rexxlist
+     Doors:   ReadNla.rexx
+
+
+
+   -Removed a serial-flush from the BBS to make ISDN modems work
+    better because they give response very fast.
+
+   -Added a few lines to the modem init code to check if there is
+    still a connection.
+
+   -Since the last version, sometimes on some systems Uplinks
+    where for no apparent reason stopped after 2 lines in the
+    log and the modem was iniated. After putting a serial flush back
+    in after the connect was made things started working better.
+    In the last version I removed the flush because with ISDN modems
+    the connect string came so Quick it was removed from the buffer
+    with the Flush.
+    Can't figure out why the Flush is needed .. but hee it works.
+
+   -Changed the GUI-lib a bit so the left-under corner of buttons and
+    the like are the same as in the workbench tools.
+
+   -Fixed a little problem in the new areafix, a variable had the
+    wrong init value .. so when someone disconnected a section, it
+    said it couldn't disconnect .. but is was disconnected.
+
+   -Fixed some of the texts in Areafix .. a newline was missing, when
+    you got a message with a list and you looked at it in spot there
+    was now empty line between files and messages sections.
+
+   -Added a flag to AreaFix that disables it to send messages.
+    This can be usefull if you disconnect someone from a net,
+    because he wont poll anymore and pickup the netmail.
+    Or if you should for some reason use areafix to connect your
+    boss in your mail.cfg
+
+   -Tried to add a bounce funtion (optional) to areafix.
+    If during the scanning of netmail a message which is not meant
+    for your system is found .. and if the destination node number
+    is not in a nodelist of pointlist it while send a netmail
+    back. But only if the system from which the system originates
+    is in a nodelist (or if it is a point.. if the Boss of the
+    point is in a nodelist) .. because else if both nodes are
+    not in a list Areafix is probably going to write a lot of
+    messages to itself (I think).
+
+   -Added an optional flag to the mail processor to check
+    if the recipient node of netmail exists by checking all
+    node and point lists. If it doesn't exists, the netmail
+    won't be exported.
+
+ ! -Note that the last option should only be used if you
+    have complete nodelists (like the whole fido nodelist)
+    and all your points in a pointlist.
+    And install all nodelist updates.
+
+   -Changed areafix a little so it also connects areas when
+    you don't put a '+' before the tagname.
+
+   -Added a few commands to Areafix.
+    %FILES       For a list of all file areas.
+    %MSGS        For a list of all message areas.
+    %+MSGS       To Connect all message areas.
+    %-MSGS       To Disconnect all message areas.
+    %+FILES      To Connect all file areas.
+    %-FILES      To Disconnect all file areas.
+
+   -Added %PAUSE and %RESUME commands to areafix, so a 'user'
+    can temporary disconnect hisself.
+
+    It makes a 14.103.300.0.fix type file in the trion:users/
+    dir (couldn't find a better place), i also could have
+    put an 'OFF' for all the nodenummers in the mail.cfg
+    but I understand some software filters them out, also
+    the mail.cfg would grow which makes mail processing a
+    little slower.
+
+    Could someone test this option ? :)
+
+   -Message section descriptions in a message section list from
+    areafix.
+
+    Areafix now uses the Section name from the MailAreas.cfg as a
+    sort of section description.
+
+    The Section names in the mail areas config can be 29 characters.
+    If you don't want to use '_' for spaces in the Section names in
+    the mail areas config you can place names between "", like in all
+    other Trion configuration files.
+
+    Something like this :
+
+#005  [LW-]  10  TRION:mail/       "Msgs To All"
+#119  [EW-]  40  TRION:mail/nla/   "NLA Moderators"   NLA_MODS        14:103/300
+#303  [EW-] 120  TRION:mail/fido/  "Soldeer NL"       SOLDEER.028     2:283/326.99
+#824 [EW-]  75   TRION:mail/AMY/   "GFX Boards AMY"   GFXBOARDS_AMY   39:155/300
+#828 [EW-]  75   TRION:mail/AMY/   "Programmeren AMY" PRGS_AMY        39:155/300
+#829 [EW-]  75   TRION:mail/AMY/   "Questions AMY"    QUEST_AMY       39:155/300
+#831 [EW-]  75   TRION:mail/AMY/   "Software AMY"     SOFT_AMY        39:155/300
+#834 [EW-]  75   TRION:mail/AMY/   "SySop's AMY"      SYSOP_AMY       39:155/300
+#836 [EW-]  75   TRION:mail/AMY/   "User Group's AMY" UGROUP_AMY      39:155/300
+#842 [EW-]  75   TRION:mail/AMY/   "BBS News AMY"     BBSNEWS_AMY     39:155/300
+#843 [EW-]  75   TRION:mail/AMY/   "BBS Software AMY" BBSSOFT_AMY     39:155/300
+#845 [EW-]  75   TRION:mail/AMY/   "MailManager AMY"  MM_AMY          39:155/300
+
+
+
+   -Fixed a little problem in the mail processor, when there was a
+    password in lower case in a mail packet, it would say in the
+    log the password is False even if it was Correct.
+
+   -Fixed the software version numbers in de mail processor log.
+    Because Trion TMP V1.02 was shown as V1.2 when unpacking mail
+    from a Trion system.
+
+   -Added the codes to recognize the 'F.I.P.S.' mailer processor
+    to the mail processor.
+
+   -Added auto Zmodem downloading to the terminal.
+
+   -Added ConnectSpeed and ConnectType to lastcaller data.
+    Now the TrionRM monitor shows the connect speed.
+    Also made a new Lastcallers with a new %t variable for
+    the connect speed. If you also use the new lastcallers
+    config you get the connect speed in the lastcaller screen.
+
+    There are 3 lastcaller configs suplied in this archive:
+
+    *.NoCPS    .. does the same as the 'old' one.
+    *.WithCPS  .. Compresses the info a little and adds baud rates.
+    *.NoBytes  .. same as WithCPS but without transferred bytes,
+                  so there is loads of space for name, place, CPS etc.
+
+
+   -Added (last) BaudRate and TotalMinutes (called) variables
+    to the UserDatabase data (and recompiled BBS and UserEd).
+    Note that the TotalMinutes (called) starts counting
+    with this version.
+
+   -Changed the mailer screen a bit.
+
+    The list with files to send is now shown without the path
+    but with file sizes.
+
+    The total number of files and bytes to send (except for
+    freqed bytes) is shown.
+
+
+   -Fixed a bug in the GUI FileEditor move function.
+
+    When deleting the file I needed to set a variable to zero so
+    it also is deleted from the global index. I forgot to do this
+    so I geus if you have moved files with the editor some files
+    will be twice in the Global.Index
+
+    When you run CheckFileBase I geus these files are removed
+    from the globalindex.
+    So if you have moved files this way .. I geus you have to
+    run CheckFileBase twice to remove all double entries from
+    the global index and then use bulkupload to add them again.
+
+    Maybe some one can test this.
+
+
+   -Upgraded TopDL with a few extra modes to experiment a little
+    for a complete new version.
+
+    Added a flag to exclude sysops (users with level 255).
+
+    It does the same as the old version , but it had 6 extra
+    screens with each 15 top users.
+
+
+    TrionTopDL V1.12 (c)94-97 Paul Spijkerman.
+    Use : TopDL [n] [-options] >file
+
+    Options:   -s   .. Don't use users with sysop level
+
+    n = 0 .. Top Downloads/uploads Bytes/file    (Default)
+    n = 1 .. Top Downloaded Files
+    n = 2 .. Top Downloaded Bytes
+    n = 3 .. Top Uploaded   Files
+    n = 4 .. Top Uploaded   Bytes
+    n = 5 .. Top Call number
+    n = 6 .. Top Minutes online
+    n = 7 .. Top Messages written
+
+
+   -Made a programm 'ScanUserStats' that scans the UserBase for
+    all the stats that can be displayed in topDL and saves it
+    in the Trion:data/ directory.
+
+    This is done because it takes a long time to scan the userbase
+    each time TopDL is runned, and the scan is needed once to
+    display each of stats.
+
+    So .. a future programm can make a nice screen of the stats
+    from the stats in the Trion:data/ dir without the delay.
+    You can scan the userbase once when you enter a UserStats
+    menu .. or run it by a Cron or Scheduler (maintenance script)
+    Util.
+
+
+   -Made a ShowStats programm, does the same as TopDL but uses
+    the data file created bij ScanStats. So it uses a fraction
+    of the time it is gonna take when you would make all
+    screens with TopDL.
+
+    Also it draws a border around screens 1 .. 7
+
+
+    You could use it in a menu with this piece of source :
+
+
+Cmd "0" , 0-255
+   CliDoor  "trion:utils/ShowStats 0"
+   More
+EndCmd
+
+Cmd "1" , 0-255
+   CliDoor  "trion:utils/ShowStats 1"
+   More
+EndCmd
+
+Cmd "2" , 0-255
+   CliDoor  "trion:utils/ShowStats 2"
+   More
+EndCmd
+
+Cmd "3" , 0-255
+   CliDoor  "trion:utils/ShowStats 3"
+   More
+EndCmd
+
+Cmd "4" , 0-255
+   CliDoor  "trion:utils/ShowStats 4"
+   More
+EndCmd
+
+Cmd "5" , 0-255
+   CliDoor  "trion:utils/ShowStats 5"
+   More
+EndCmd
+
+Cmd "6" , 0-255
+   CliDoor  "trion:utils/ShowStats 6"
+   More
+EndCmd
+
+Cmd "7" , 0-255
+   CliDoor  "trion:utils/ShowStats 7"
+   More
+EndCmd
+

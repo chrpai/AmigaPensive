@@ -1,0 +1,981 @@
+;
+;	$VER: AMMS Files 3.09 [Deutsch] / 03.05.1995
+;
+;
+;
+
+Bekannte Variablen im gesamten Requester :
+
+;	Var19: Anzahl der angezeigten Files
+;	Var20: Brettname
+;	Var21: Pfad+Brettname
+;	Var22: ZONE Reqester-Window
+;	Var23: ZONE Kommentar-Window
+;	Var24: SETLINE Infozeile
+;	Var25: SETPOS Infozeile (Spalte 40)
+;	Var26: SETLINE Kommentar-Window
+
+;
+; Bildschirm
+; ----------
+*
+#EOFF##RESET##RELOFF##ZONEOFF##HOME##CLS#
+Files : {var19 22}#FARBE 1,7# FILE-SYSTEM V{VERSION}.{REVISION} #RESET#
+{tab 22}[h=Hilfe]#RESET##HOME#^J
+#FARBE 7,4##INVERS# XX Filename     Dn  Laenge Sender      Datum   Kommentar                       {var24}
+                                                                                {var25}
+{limspaceon}{var21 40}#RESET#{limspaceoff}{var22}
+*
+; >>UP: 2.0
+; Hilfe: Seite 1 von 5
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 1 von 5                    #RESET#^J#CLB#
+d: Downloadfile markieren   e: Aendere Kommentar  E: Aendere beide Kommentare^J
+D: Download starten         i: Zeige Fileinfo     I: Dauer-Fileinfo an/aus^J
+l: Zeige Uebertragungszeit  k: Zeige E-Kommentar  K: Dauer-E-Kommentar an/aus^J
+u: Sende File               S: Suche ab Cursor    F: Suche ab Anfang^J
+CTRL-U: Sende File weiter   s: Suche weiter       f: Suche weiter
+{var22}
+*
+; >>UP: 2.0
+; Hilfe: Seite 2 von 5
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 2 von 5                    #RESET#^J#CLB#
+t: Zeige Textfile           r: Aendere Filename     CTRL-A: Datum/Alpha-Anzeige^J
+T: Zeige Rohtextfile        R: Aendere Sender       CTRL-O: Neu/Alle-Anzeige^J
+v: Liste Archiv             p: Aendere Privatuser   CTRL-E: Ent-/Sperre E-Kom.^J
+C: Pruefe Archiv            P: Sperre File          CTRL-D: Loesche File^J
+a: Zeige Laenge aller Files L: Erneuere Filelaenge  CTRL-I: Importiere File
+{var22}
+*
+; >>UP: 2.0
+; Hilfe: Seite 3 von 5
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 3 von 5                    #RESET#^J#CLB#
+c: Kopiere File            x: Ende / n. Brett      CTRL-F: Freedownload an/aus^J
+m: Bewege File             q: Quit / n. Brett      CTRL-T/B: Erste/Letzte Seite^J
+o: Loeschschutz an/aus     Z: Ende / l. Brett      CTRL-N/L: Seite vor/zurueck^J
+X: Ende / verlasse FILES   z: Quit / l. Brett      CTRL-XC: Erneuere Fenster^J
+Q: Quit / verlasse FILES   h: Naechste Hilfeseite  CTRL-Y : Erneuere Bildschirm
+{var22}
+*
+; >>UP: 2.0
+; Hilfe: Seite 4 von 5
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 4 von 5                    #RESET#^J#CLB#
+b: Zeige Brettinfotext     B: Zeige Info ueber Brett  CTRL-P: Locked-Sort (P)^J
+n: Setze neue Filenummer   H: Zeige HEX-Dump an       CTRL-R: Protect-Sort (L)^J
+SP: Letzte E-Kom.Seite     w: Speichere Settings      CTRL-V: Download-Sort (d)^J
+->: Naechste E-Kom.Seite^J
+<-: Vorherige E-Kom.Seite  N: Setze aeltestes nicht angezeigtes File
+{var22}
+*
+;
+; Starttext vom Filesystem
+; ------------------------
+*
+^J#VFARBE 2#{command} - FILE-SYSTEM V{VERSION}.{REVISION}#RESET#^J^J
+*
+;
+; Endtext vom Filesystem
+; ----------------------
+*
+^J#VFARBE 2#Ende vom FILE-SYSTEM !#RESET#^J^J
+*
+;
+; Anzahl der Zeilen ueber dem Requester-Window
+; --------------------------------------------
+*
+3
+*
+;
+; Uebertragungszeit fuer die Downloads
+; ------------------------------------
+;	Var3 : Laenge der Files (bytes)
+;	Var4 : Laenge der Files (Mbytes)
+;	Var27: Anzahl der Files
+;	Var28: Erwartete Uebertragungszeit
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Uebertragungszeit fuer die Downloads    #RESET#^J#CLB#^J
+Anzahl der Files : {var27}^J
+Erwartete Zeit   : {var28} Min.^J
+Laenge der Files : {var4} MByte [{var3} Bytes]
+{var22}
+*
+;
+; Infozeile : FILEINFO
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Info ...                                #RESET#
+*
+; >>UP: 2.0
+; FILEINFO
+; --------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+;	Var27-30: Sender (Username@Nodename)
+;	Var31-34: Transferboxenstring
+*
+#ZONEOFF#{var26}#CLB#
+Filename  : {var2 20}
+Laenge    : {var4 12}
+Downloads : {var10}^J
+Datum     : {var7 20}
+Filenummer: {var12}^J
+Sender    : {var27 67}^J
+{var31 79}{var22}
+*
+; >>UP: 2.0
+; FILEINFO-PRIVAT
+; ---------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+;	Var27-30: Sender (Username@Nodename)
+;	Var31-34: Transferboxenstring
+*
+#ZONEOFF#{var26}#CLB#
+Filename  : {var2 20}
+Laenge    : {var4 12}
+Downloads : {var10}^J
+Datum     : {var7 20}
+Filenummer: {var12}^J
+Sender    : {var27 67}^J
+Privat an : {var13},{var14},{var15}^J
+{var31 79}{var22}
+*
+;
+; Infozeile : E-Kommentar
+; -----------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Kommentar (                             #RESET#^J#CLB#
+*
+;
+; E-Kommentar
+; -----------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+#ZONEOFF#{var24}#RIGHT 11##FARBE 7,5##INVERS#
+{var2})            #RESET#^J#CLB#
+*
+; >>UP: 2.0
+; Endtext vom E-Kommentar/Brettinfotext
+; -------------------------------------
+*
+#RESET#{var22}
+*
+;
+; Dattyp: Gesamte Zeile
+; ---------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+^M#CL# {var1} {var2 12}{var9 4}{var3 8}{var5 10} {var6 9}{var17}
+*
+;
+; Dattyp: Gesamte Zeile (geloescht)
+; ---------------------------------
+*
+^M#CL#    <GELOESCHT>
+*
+;
+; Dattyp: Gesamte Zeile (keine neuen Files)
+; -----------------------------------------
+*
+^M#CL#    K e i n e   n e u e n   F i l e s
+*
+;
+; Dattyp: Gesamte Zeile (keine Files)
+; -----------------------------------
+*
+^M#CL#    K e i n e   F i l e s
+*
+;
+; Aendere Sender : Erneuere Zeile
+; -------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+#RESET#{limspaceon}{var5 10}{limspaceoff}
+*
+;
+; Dattyp: Kurze Zeile (erneuere XX-Flags)
+; ---------------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+ {Var1}
+*
+;
+; Dattyp: Kurze Zeile (erneuere Laenge)
+; -------------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+{tab 20}{limspaceon}{var3 8}{limspaceoff}
+*
+;
+; Cursor
+; ------
+*
+>#LEFT#
+*
+;
+; Cursor loeschen
+; ---------------
+*
+ 
+*
+;
+; unbekannter Sender
+; ------------------
+*
+Unknown
+*
+;
+; Datumsformat (Var 6)
+; --------------------
+*
+1-4-5
+*
+;
+; Datumsformat (Var 7)
+; --------------------
+*
+1-3-6
+*
+; >>UP: 2.0
+; Suche Filename
+; --------------
+*
+#FARBE 7,4##INVERS#{var25}
+Suchstring :                           #HFARBE 1#{var24}#RIGHT 53#{BORDER 26}
+*
+; >>UP: 2.0
+; Erneuere Brettname
+; ------------------
+*
+#FARBE 7,4##INVERS#{var25}{limspaceon}{var21 40}#RESET#{limspaceoff}
+*
+;
+; Status (Suche) : FILE NICHT GEFUNDEN
+; ------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File nicht gefunden !                   #RESET#
+*
+;
+; Setze Position fuer kurzen Kommentar aendern
+; --------------------------------------------
+*
+#VFARBE 2#^M#RIGHT 48#
+*
+;
+; Erneuere kurzen Kommentar
+; -------------------------
+;	Var1    : XX-flags
+;	Var2    : Filename
+;	Var3    : Filelaenge (rechtsbuendig)
+;	Var4    : Filelaenge (linksbuendig)
+;	Var5    : Sender
+;	Var6    : Datum (xx-xx-xx)
+;	Var7    : Datum (x-xx-xx)
+;	Var8    : Kommentar
+;	Var9    : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10   : Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11   : Filenummer (rechtsbuendig)
+;	Var12   : Filenummer (linksbuendig)
+;	Var13   : Privatuser 1
+;	Var14   : Privatuser 2
+;	Var15   : Privatuser 3
+;	Var16   : Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17   : Optimierte Version : {var8 30}{var16}
+;	Var27-30: Uploader (Username@Nodename)
+;	Var31-34: String of all transfer nodes
+*
+#RESET#^M#RIGHT 48#{var8}
+*
+;
+; Gib Filename ein
+; ----------------
+*
+#FARBE 7,4##INVERS#{var25}Filename :                              #HFARBE 1#
+{var24}#RIGHT 51#
+*
+;
+; Gib kurzen Kommentar ein
+; ------------------------
+*
+#FARBE 7,4##INVERS#{var25}Kommen.:                                #HFARBE 1#
+{var24}#RIGHT 49#
+*
+;
+; Status (upload,import) : KEIN PLATZ FUER FILE FREI
+; --------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Kein Platz fuer das File frei !         #RESET#
+*
+;
+; Status (import) : FILE NICHT GEFUNDEN
+; -------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Kann File nicht finden !                #RESET#
+*
+;
+; Status (upload,import) : FILE EXISTIERT BEREITS
+; -----------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File existiert bereits !                #RESET#
+*
+;
+; Verlasse FILES (Bildschirm loeschen)
+; ------------------------------------
+*
+#ZONEOFF##RESET##HOME##CLS#
+*
+;
+; Frage: Soll File geloescht werden ?
+; -----------------------------------
+*
+#FARBE 7,4##INVERS#{var25}Soll File geloescht werden (j/n) ?      {var24}#RIGHT 75#
+*
+;
+; Status (Loeschen) : FILE IST VOR LOESCHEN GESCHUETZT
+; ----------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File ist vor Loeschen geschuetzt !      #RESET#
+*
+;
+; Status (E-Kommentar) : E-KOMMENTAR IST ENTSPERRT
+; ------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}E-Kommentar ist entsperrt !             #RESET#
+*
+;
+; Status (E-Kommentar) : E-KOMMENTAR IST GESPERRT
+; -----------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}E-Kommentar ist gesperrt !              #RESET#
+*
+;
+; Starte Download
+; ---------------
+*
+#FARBE 7,5##INVERS#{var24}Download mit {limspaceon}
+{protocol 27}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Starte Upload
+; -------------
+*
+#FARBE 7,5##INVERS#{var24}Upload mit {limspaceon}
+{protocol 29}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Starte Upload-Resume
+; --------------------
+*
+#FARBE 7,5##INVERS#{var24}Upload-Resume mit {limspaceon}
+{protocol 22}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+; >>UP: 2.0
+; Status (upload) : Upload OK
+; ---------------------------
+*
+#FARBE 7,5##INVERS#{var24}Upload OK !                             #RESET#{var22}
+*
+;
+; Status (upload,download) : XPR-LIB IST NICHT VORHANDEN
+; ------------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}XPR-Library ist nicht vorhanden !       #RESET#{var22}
+*
+;
+; Status (upload) : UPLOAD ABGEBROCHEN
+; ------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Upload abgebrochen !                    #RESET#{var22}
+*
+;
+; Status (upload resume,delete) : FILE WIRD GERADE BENUTZT
+; --------------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File wird gerade benutzt !              #RESET#{var22}
+*
+;
+; Status : USER WURDE NICHT GEFUNDEN
+; ----------------------------------
+*
+#FARBE 7,1##INVERS#{var24}User wurde nicht gefunden !             #RESET#
+*
+;
+; Status (privat) : USER IST BEREITS EINGEGEBEN
+; ---------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}User ist bereits eingegeben !           #RESET#
+*
+;
+; Status (privat) : USER WURDE GEFUNDEN
+; -------------------------------------
+*
+#FARBE 7,4##INVERS#{var24}User wurde gefunden !                   #RESET#
+*
+;
+; Privatfile fuer
+; ---------------
+;	Var18: Nummer des Users (1,2 or 3)
+*
+#FARBE 7,4##INVERS#{var25}Privatfile f. ({var18}):                      #HFARBE 1#
+{var24}#RIGHT 59#
+*
+;
+; Setze Position (Aendere Filename)
+; ---------------------------------
+*
+#VFARBE 2#^M#RIGHT 4#
+*
+;
+; Erneuere Filename (Aendere Filename)
+; ----------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+#RESET#^M#RIGHT 4#{limspaceon}{var2 12}{limspaceoff}
+*
+;
+; Status : DISK ERROR
+; -------------------
+*
+#FARBE 7,1##INVERS#{var24}Fehler auf Disk ! Bitte Info an Sysop ! #RESET#
+*
+;
+; Loesche Infozeile
+; -----------------
+*
+#FARBE 7,1##INVERS#{var24}                                        #RESET#
+*
+;
+; Status (download) : KEIN RESTDOWNLOADS FREI
+; -------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Keine Restdownloads frei !              #RESET#
+*
+;
+; Status (download) : DOWNLOAD UEBERSPRUNGEN
+; ------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Downloads uebersprungen (zu wenig Zeit)!#RESET#
+*
+;
+; Status (download) : DOWNLOAD ABGEBROCHEN
+; ----------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Downloads abgebrochen !                 #RESET#
+*
+;
+; Status (download) : DOWNLOADLISTE IST VOLL
+; ------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Downloadliste ist voll !                #RESET#
+*
+;
+; Zeige Rohtext (Loesche Bildschirm)
+; ----------------------------------
+*
+#RESET##ZONEOFF##HOME##CLS#
+*
+;
+; Zeige Text (Loesche Bildschirm)
+; -------------------------------
+*
+#RESET##ZONEOFF##HOME##CLS#{moreon}
+*
+;
+; Zeige Text (Warte auf Taste Space oder Return)
+; ----------------------------------------------
+*
+^J^J#RESET##VFARBE 2#Druecke SPACE oder RETURN fuer weiter !
+*
+; >>UP: 2.0
+; Aendere Sender
+; --------------
+*
+#VFARBE 2#^M#RIGHT 28#{BORDER 10}
+*
+; >>UP: 2.0
+; Gib Zielbrett ein
+; -----------------
+*
+#FARBE 7,4##INVERS#{var25}Zielbrett :                             #HFARBE 1#
+{var24}#RIGHT 52#{BORDER 27}
+*
+;
+; Laenge aller Files
+; ------------------
+;	Var3: Laenge aller Files (Bytes)
+;	Var4: Laenge aller Files (Mbytes)
+*
+#ZONEOFF##FARBE 7,5##INVERS#
+{var24}Laenge aller Files ...                  #RESET#^J#CLB#^J
+Laenge aller Files : {var4} MByte [{var3} Bytes]{var22}
+*
+;
+; Editor Kommentar
+; ----------------
+;	Var2 : Filename
+*
+Kommentar zum File "{var2}"
+*
+;
+; TASTEN : Tasten fuer NEIN bei Frage
+; -----------------------------------
+*
+Nn
+*
+;
+; TASTEN : Tasten fuer JA bei Frage
+; ---------------------------------
+*
+JjYy
+*
+; >>UP: 2.0
+; Status (download) : Download OK
+; -------------------------------
+*
+#FARBE 7,5##INVERS#{var24}Download OK !                           #RESET#{var22}
+*
+; >>UP: 2.0
+; STATUS: Fehler beim Oeffnen eines Bretts
+; ----------------------------------------
+;	Var20: Brettname
+;	PATH : Akt. Pfad
+*
+^JFehler beim Oeffnen ---> Bitte Sysop informieren !^J
+({PATH}{VAR20})^J
+*
+; >>UP: 2.0
+; Trage Brett in Brettliste ein ?
+; -------------------------------
+;	Var20: Brettname
+*
+Trage Brett "{Path}{var20}" in Liste ein (j/n) ? 
+*
+;
+; Pfad: Filelist
+; --------------
+*
+mbbatch:filelist/
+*
+; >>UP: 2.0
+; RunFileBatch: Loesche Bildschirm
+; --------------------------------
+*
+#ZONEOFF##RESET##HOME##CLS#
+*
+; >>UP: 2.0
+; RunFileBatch: Keine Filebatch fuer Endung gefunden
+; --------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Keine Filebatch fuer Endung gefunden !  #RESET#
+*
+;
+; Pfad: Upload
+; ------------
+*
+mbbatch:upload/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 1
+; -----------------
+*
+mbbatch:filebatch1/
+*
+;
+; Pfad: Filebatch 2
+; -----------------
+*
+mbbatch:filebatch2/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 3
+; -----------------
+*
+mbbatch:filebatch3/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 4
+; -----------------
+*
+mbbatch:filebatch4/
+*
+; >>UP: 2.0
+; RunFileBatch: STATUS OK
+; -----------------------
+*
+#FARBE 7,5##INVERS#{var24}Status : OK                             #RESET#
+*
+; >>UP: 2.0
+; RunFileBatch: STATUS FEHLER
+; ---------------------------
+*
+#FARBE 7,1##INVERS#{var24}Status : FEHLER                         #RESET#
+*
+;
+; Pfad: Checkpath
+; ---------------
+*
+mbbatch:filecheck/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 5
+; -----------------
+*
+mbbatch:filebatch5/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 6
+; -----------------
+*
+mbbatch:filebatch6/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 7
+; -----------------
+*
+mbbatch:filebatch7/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 8
+; -----------------
+*
+mbbatch:filebatch8/
+*
+; >>UP: 2.0
+; Infozeile (Brettinfotext)
+; ------------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Brettinfotext ...                       #RESET#^J#CLB#
+*
+; >>UP: 2.0
+; Filename vom Brettinfo
+; ----------------------
+*
+Boardinfo
+*
+;
+; Identifizierung von Netz-Usern
+; ------------------------------
+*
+NET@**
+
+; >>UP: 2.0
+; Brettinfo (User)
+; ----------------
+;	Var1: Kommentar zum Brett
+;	Var2: Name des Brettsysops
+;	Var3: Max. KBytes
+;	Var4: Tab-filename
+;	Var5: Directory-name
+;	Var6: Hoechste Filenummer im Brett
+;	Var7: Max. Anzahl von Files im Brett
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Brettinfo ...                           #RESET#^J#CLB#
+Kommentar zum Brett : {var1}^J
+Brettsysop          : {var2}^J
+Max. kbytes         : {var3}^J
+Max. Fileanzahl     : {var7}^J
+Hoechste Filenummer : {var6}
+{var22}
+*
+; >>UP: 2.0
+; Brettinfo (sysop)
+; -----------------
+;	Var1: Kommentar zum Brett
+;	Var2: Name des Brettsysops
+;	Var3: Max. KBytes
+;	Var4: Tab-filename
+;	Var5: Directory-name
+;	Var6: Hoechste Filenummer im Brett
+;	Var7: Max. Anzahl von Files im Brett
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Brettinfo ...                           #RESET#^J#CLB#
+Kommentar zum Brett : {var1}^J
+Brettsysop          : {var2 25}Max. kbytes         : {var3}^J
+Max. Fileanzahl     : {var7 25}Hoechste Filenummer : {var6}^J
+Tabfilename         : {var4}^J
+Directoryname       : {var5}
+{var22}
+*
+;
+; Frage: SOLL FILE NEU IMPORTIERT WERDEN ?
+; ----------------------------------------
+*
+#FARBE 7,4##INVERS#{var25}Soll File neu importiert werden ?       {var24}#RIGHT 74#
+*
+;
+; Filename des Konfigurations-Files
+; ---------------------------------
+*
+{userdir}/files.cfg
+*
+;
+; Status : Alle Files ab akt. File sind als neu markiert
+; ------------------------------------------------------
+*
+#FARBE 7,5##INVERS#{var24}Markiere Files ab akt. File als neu !   #RESET#
+*
+;
+; Status : Speichere Settings
+; ---------------------------
+*
+#FARBE 7,5##INVERS#{var24}Speichere Settings ...                  #RESET#
+*
+; >>ADD: 2.0
+; Nur eine E-Kommentar-Seite
+; --------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+#RESET#{var24}#RIGHT 32##INVERS#     
+*
+; >>ADD: 2.0
+; Letzte E-Kommentar-Seite
+; ------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+#RESET#{var24}#RIGHT 32##INVERS#<<   
+*
+; >>ADD: 2.0
+; Erste E-Kommentar-Seite
+; -----------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+#RESET#{var24}#RIGHT 32##INVERS#   >>
+*
+; >>ADD: 2.0
+; Restliche E-Kommentar-Seiten
+; ----------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Sender
+;	Var6 : Datum (xx-xx-xx)
+;	Var7 : Datum (x-xx-xx)
+;	Var8 : Kommentar
+;	Var9 : Anzahl, wie oft das File gezogen wurde (rechtsbuendig)
+;	Var10: Anzahl, wie oft das File gezogen wurde (linksbuendig)
+;	Var11: Filenummer (rechtsbuendig)
+;	Var12: Filenummer (linksbuendig)
+;	Var13: Privatuser 1
+;	Var14: Privatuser 2
+;	Var15: Privatuser 3
+;	Var16: Existiert der E-Kommentar, dann ">" sonst leer
+;	Var17: Optimierte Version : {var8 30}{var16}
+*
+#RESET#{var24}#RIGHT 32##INVERS#<< >>
+*
+; >>ADD: 2.0
+; RENAME: File existiert schon
+; ----------------------------
+*
+#FARBE 7,1##INVERS#{var24}RENAME: File existiert bereits          #RESET#
+*
+; >>ADD: 2.0
+; Pfad: Download
+; --------------
+*
+mbbatch:download/
+*
+; >>ADD: 2.0
+; Hilfe: Seite 5 von 5
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 5 von 5                    #RESET#^J#CLB#
+1: File-Viewer aktivieren               5: nicht belegt^J
+2: File-Viewer aktivieren               6: E-Kommentar komplett anschauen^J
+3: nicht belegt                         7: nicht belegt^J
+4: nicht belegt                         8: File_ID.diz exportieren
+{var22}
+*

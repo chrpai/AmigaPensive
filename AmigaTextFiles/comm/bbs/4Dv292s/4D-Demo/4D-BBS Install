@@ -1,0 +1,323 @@
+; This script qinstalls 4D-BBS V2.8x+ from the factory disk or archive.
+; "4D-BBS_Install:" should either be the name of the disk containing
+; the archive, or you should assign "4D-BBS_Install:" to the directory 
+; where you unarchived 4D-BBS.
+
+; This script is Copyright © 1993 by CornerStone Software.  If you
+; change anything in this script DO NOT redistribute the script. 
+; Please contact CornerStone Software if you have any problems with
+; this script.
+
+; The following ToolTypes should be set for the icon:
+; APPNAME=4D-BBS
+; SCRIPT=4D-BBS_Install
+; PRETEND=FALSE ?
+; LOGFILE=Ram:4DInstall.Log
+
+
+(welcome "Welcome to " @appname " Installation!\n")
+
+(complete 0)
+
+(set InstSrc	"4D-BBS_Install:"	; Install From path
+	Text		"Text"
+	BBS		"BBS"
+	Menu		"Menu"
+	Users	"Users"
+	Boards	"Boards"
+	Files1	"Files"
+	Doors	"Doors"
+	Docs		"Docs"
+	Execs	"C"
+	)
+
+
+(transcript "Starting 4D-BBS Installation")
+
+(set DestDir (if (exists "4D-BBS:" (noreq))
+			  (expandpath "4D-BBS:")
+		       (@default-dest)))
+
+(set help-dest (cat "This is where you can specify the location where "
+		    @app-name " will install it's directories and files."))
+
+(set @default-dest 
+     (askdir
+		(prompt ("Select where to create %s' main directory:" @app-name))
+	     (help help-dest)
+	     (newpath)
+	     (default DestDir)))
+
+(complete 2)
+(set @default-dest (tackon @default-dest "4D-BBS"))
+
+(if (NOT (exists @default-dest))
+    (makedir @default-dest
+	     (infos)))
+
+(complete 4)
+(if (NOT (exists (tackon @default-dest BBS)))
+    (makedir (tackon @default-dest BBS)))
+
+(complete 5)
+(if (NOT (exists (tackon @default-dest Text)))
+    (makedir (tackon @default-dest Text)))
+
+(complete 6)
+(if (NOT (exists (tackon @default-dest Menu)))
+    (makedir (tackon @default-dest Menu)))
+
+(complete 7)
+(if (NOT (exists (tackon @default-dest Execs)))
+    (makedir (tackon @default-dest Execs)))
+
+(complete 8)
+(if (NOT (exists (tackon @default-dest Docs)))
+    (makedir (tackon @default-dest Docs)))
+
+(complete 9)
+(if (NOT (exists (tackon @default-dest Users)))
+    (makedir (tackon @default-dest Users)))
+
+(complete 10)
+(set help-dest (cat "This is where you can specify the directory where "
+		    @app-name " will install it's Message Files."))
+
+(set BoardsDir 
+     (askdir
+		(prompt "Select directory to store message files:" )
+	     (help help-dest)
+	     (newpath)
+	     (default (tackon @default-dest Boards))))
+
+(if (NOT (exists (tackon @default-dest Boards)))
+    (makedir (tackon @default-dest Boards)))
+
+(complete 12)
+(set help-dest (cat "This is where you can specify the directory where "
+		    @app-name " will install it's Files for Transfer sections."))
+
+(set Files1Dir 
+     (askdir
+		(prompt "Select directory to store file transfers:")
+	     (help help-dest)
+	     (newpath)
+	     (default (tackon @default-dest Files1))))
+
+(if (NOT (exists (tackon @default-dest Files1)))
+    (makedir (tackon @default-dest Files1)))
+
+(complete 14)
+(set help-dest (cat "This is where you can specify the directory where "
+		    @app-name " will install it's Doors and External programs."))
+
+(set DoorsDir 
+     (askdir
+		(prompt "Select directory to store external doors:")
+	     (help help-dest)
+	     (newpath)
+	     (default (tackon @default-dest Doors))))
+
+(if (NOT (exists (tackon @default-dest Doors)))
+    (makedir (tackon @default-dest Doors)))
+
+(complete 16)
+(if (= (exists "Envarc:4D-BBS" (noreq)) 1))
+	(rename "Envarc:4D-BBS" "Envarc:4D-BBS.Old") ;What would this be?
+
+(if (NOT (exists "Envarc:4D-BBS"))
+    (makedir "Envarc:4D-BBS"))
+
+(complete 18)
+(textfile (dest "Envarc:4D-BBS/Config")	(append "S:4D.Config" ))
+
+(textfile (dest "Envarc:4D-BBS/BBS"   )	(append (tackon @default-dest BBS      )))
+(textfile (dest "Envarc:4D-BBS/Text"  )	(append (tackon @default-dest Text     )))
+(textfile (dest "Envarc:4D-BBS/Menu"  )	(append (tackon @default-dest Menu     )))
+(textfile (dest "Envarc:4D-BBS/Users" )	(append (tackon @default-dest Users    )))
+(textfile (dest "Envarc:4D-BBS/Doors" )	(append DoorsDir ))
+
+(if (NOT (exists "Env:4D-BBS"))
+    (makedir "Env:4D-BBS"))
+(copyfiles (source "Envarc:4D-BBS") (dest "Env:4D-BBS" ) (all) )
+
+(complete 20)
+(copyfiles (prompt "Copying BBS Files...")
+		 (source (tackon InstSrc BBS))
+		 (dest (tackon @default-dest BBS))
+		 (all))
+
+(complete 24)
+(copyfiles (prompt "Copying Text Files...")
+		 (source (tackon InstSrc Text))
+		 (dest (tackon @default-dest Text))
+		 (all))
+
+(complete 28)
+(copyfiles (prompt "Copying Menu Files...")
+		 (source (tackon InstSrc Menu))
+		 (dest (tackon @default-dest Menu))
+		 (all))
+
+(complete 32)
+(copyfiles (prompt "Copying User Files...")
+		 (source (tackon InstSrc Users))
+		 (dest (tackon @default-dest Users))
+		 (all))
+
+(complete 36)
+(copyfiles (prompt "Copying Transfer Files...")
+		 (source (tackon InstSrc Files1))
+		 (dest Files1Dir)
+		 (all))
+
+(complete 40)
+(copyfiles (prompt "Copying Message Files...")
+		 (source (tackon InstSrc Boards))
+		 (dest BoardsDir)
+		 (all))
+
+(complete 44)
+(copyfiles (prompt "Copying Doors Files...")
+		 (source (tackon InstSrc Doors))
+		 (dest DoorsDir)
+		 (all))
+
+(complete 48)
+(copyfiles (prompt "Copying Fonts to Fonts: directory")
+		 (source (tackon InstSrc "Fonts"))
+		 (dest "Fonts:")
+		 (all))
+
+(complete 52)
+(copyfiles (prompt "Copying Config File to S: directory")
+		 (source (tackon InstSrc "S"))
+		 (dest "S:")
+		 (all))
+
+(complete 56)
+(copyfiles (prompt "Copying Executable Files...")
+		 (source (tackon InstSrc Execs))
+		 (dest (tackon @default-dest Execs))
+		 (all))
+
+(complete 60)
+(if (askbool
+	(prompt (cat "Are you using a high speed modem which will require 4D-BBS "
+		   "to lock the serial port at a specific baud rate the entire "
+		   "time in which the BBS is running?"))
+	(help "High speed modems normally require a constant serial rate "
+		  	   "between the computer and the modem, irrelevent of the "
+		  	   "carrier rate between the two modems.  This speed should "
+		  	   "be ATLEAST greater than the highest carrier rate your "
+		  	   "modem supports.  See your modem for the recommeneded rate."))
+
+	 (set lockbaud (askchoice
+			  (choices "9600" "19200" "38400" "57600" "76800" "115200")
+	 		  (prompt  "Please select a baud rate out of the following list, "
+					 "in which the BBS should lock the serial rate at.")
+			  (default 1)
+			  (help "High speed modems normally require a constant serial rate "
+			  	   "between the computer and the modem, irrelevent of the "
+			  	   "carrier rate between the two modems.  This speed should "
+			  	   "be ATLEAST greater than the highest carrier rate your "
+			  	   "modem supports.  See your modem for the recommeneded rate.")
+				)) ; end of set lockbaud askchoice
+	(set(lockbaud, -1)))
+
+(complete 65)
+(if (= lockbaud -1)
+	(set lbstring "")
+	(if (= lockbaud 0)
+		(set lbstring "/b9600")
+		(if (= lockbaud 1)
+			(set lbstring "/b19200")
+			(if (= lockbaud 2)
+				(set lbstring "/b38400")
+				(if (= lockbaud 3)
+					(set lbstring "/b57600")
+					(if (= lockbaud 4)
+						(set lbstring "/b76800")
+						(if (= lockbaud 5)
+							(set lbstring "/b115200"))))))))
+
+
+(copyfiles (prompt "Creating StartBBS File...")
+		 (source (tackon InstSrc "StartBBS.Info"))
+		 (dest @default-dest)
+		 )
+
+(textfile (dest (tackon @default-dest "StartBBS"))						
+		(append ("Path %s Add\n" (tackon @default-dest Execs)))
+		(append "Stack 16384\n")
+		(append ("Run >NIL: <NIL: %s/4D-BBS %s\n" (tackon @default-dest Execs) lbstring))
+		)
+		
+(complete 70)
+(message  "The Configuration editor will now be run for you to customize "
+		"the BBS.  Please refer to the manual if you have any questions "
+		"about the configuration editor")
+
+(set @execute-dir Execs)
+(run ("NewShell From %ss/CFG_ED-Startup CON:2/10/636/180/CFG_ED" InstSrc))
+
+(complete 75)
+(if (askbool
+		(prompt "Would you like to Setup the Message Bases Now?")
+		(help (cat "This will run the MB_ED program, and allow you to customize "
+				"the default message section configurations of the BBS"))
+		(choices "Setup" "Skip"))
+	(run ("NewShell From %ss/MB_ED-Startup CON:2/10/636/180/MB_ED" InstSrc))
+	(message  "You will need to run the Message Base Editor (MB_ED) in "
+			"order to customize the message base sections.")
+	)
+
+(complete 80)
+(if (askbool 
+		(prompt "Would you like to Setup the File Transfers Now?")
+		(help (cat "This will run the FCL_ED program, and allow you to customize "
+				"the default transfer section configurations of the BBS"))
+		(choices "Setup" "Skip"))
+	(run ("NewShell From %ss/FCL_ED-Startup CON:2/10/636/180/FCL_ED" InstSrc))
+	(message  "You will need to run the File Catalog Editor (FCL_ED) in "
+			"order to customize the file transfer sections.")
+	)
+
+(complete 85)
+(if (askbool
+		(prompt "Would you like to edit the user defaults Now?")
+		(help (cat "This will run the UD_ED program, and allow you to customize "
+				"the default access a new user and member will receive."))
+		(choices "Edit" "Skip"))
+	(run ("NewShell From %ss/UD_ED-Startup CON:2/10/636/180/UD_ED" InstSrc))
+	(message  "You will need to run the User Default Editor (UD_ED) in "
+			"order to customize the default access rights for users.")
+	)
+
+(complete 90)
+(if (askbool
+		(prompt "Would you like to create any user accounts Now?")
+		(help (cat "This will run the U_ED program, and allow you to customize "
+				"and create any users of the BBS, including a SysOp account."))
+		(choices "Create" "Skip"))
+	(run ("NewShell From %ss/U_ED-Startup CON:2/10/636/180/U_ED" InstSrc))
+	(message  "You will need to run the User Editor (U_ED) if "
+			"you wish to change a user's account or make yourself a SysOp")
+	)
+
+(complete 95)
+(if (askbool
+		(prompt "Would you like to Create any bulletins Now?")
+		(help (cat "This will run the B_ED program, and allow you to customize "
+				"and create bulletins which are displayed at logon."))
+		(choices "Create" "Skip"))
+	(run ("NewShell From %ss/B_ED-Startup CON:2/10/636/180/B_ED" InstSrc))
+	(message  "You will need to run the Bulletin Editor (E_ED) if "
+			"you wish to change or add any bulletins.")
+	)
+
+(complete 100)
+
+(exit (cat "\n\nTo start 4D-BBS use the 'StartBBS' script found in the "
+		@default-dest " Directory. \n\n Thank You for Supporting "
+		"CornerStone Software!"))

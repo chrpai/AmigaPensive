@@ -1,0 +1,336 @@
+=============================================================================
+
+               Networking CNet Bulletin Board Systems via UUCP
+                      By Marlin Schwanke & Lance Murphy
+
+-----------------------------------------------------------------------------
+
+  This article assumes a working knowledge of AmigaDOS, CNet/3, and Amiga
+UUCP v1.16.  I will not attempt to instruct on these basic issues, rather I
+will concentrate on the specifics of using them together to create a multiple
+site network.  Please refer to the documentation for these packages as
+necessary.
+
+  The basis for networking with the UUCP protocol is the UNIX program UUCICO.
+It handles the dialing, handshaking, and actual data transfer between two
+UNIX systems.  In fact UUCP stands for Unix to Unix CoPy.  Now I know that
+most of you do not have UNIX capability.  Neither do I.  Matt Dillon,
+legendary shareware programmer for the Amiga, has provided the Amiga user
+with a set of AmigaDOS analogs that perform the identical function.  This is
+the Amiga UUCP v1.16 package mentioned earlier.
+
+  On to networking then.  I had been connecting with a major Internet site
+for some weeks with the UUCICO program and receiving 30-40 Usenet newsgroups
+along with Internet E-Mail.  My users liked it, as did a few of the other
+local Amiga sysops.  I finally agreed to set up a feed for these other
+sysops.  At first I dedicated one phone line and serial port to the task.  I
+used GETTY, another Amiga UUCP program, to operate that line, answer the
+phone, control access, and pass control along to UUCICO.  This was certainly
+effective.  Several local BBS's would initiate calls from their machines
+using UUCICO and link up to mine several times a day to recieve the
+Internet/Usenet feed.
+
+  The problem with the setup I just described was that it did not allow my
+users to call in to CNet on that line.  Not good!  The remainder of this
+artticle will be devoted to explaining a method I developed to correct this
+situation.
+
+  The answer was obvious.  Have CNet control the line as normal, arranging
+things so that human callers wouldn't know or care about the potential for a
+UUCP linkup, but a UUCP caller would get passed to the UUCICO program.
+
+  First I created a new account group in CNet.  In my case this is #20, UUCP
+Account, I will assume this for the remainder of the article.  It is
+important to set up a few things for this account group.  In the VDE
+Privileges screen set the following:
+
+    Bypass bbsevents :  Yes
+    AutoCallBack @ logon:  No
+    TimeLock exempt :  Yes
+
+and on the Limits/Ratios screen:
+
+    Calls/day (0-999) :  0
+    Min/call (5-999) :  999
+    Mins/day (0-999) :  0
+    Mins idle (0-999) :  0
+
+or thereabouts.  These settings are intended to create an account with no
+undue limitations upon it.  The UUCICO transfer process will usually need to
+be done a number of times per day, and depending upon the data involved, just
+a bit more time than the regular user.
+
+  Now that the account group exists the login process will have to be
+modified in order to differentiate between a human caller and a UUCP caller.
+UNIX systems have a fairly standard login.  I chose to modify my CNet BBSText
+to accomodate the UUCP.  Here's the relevant lines:
+
+  Line 30 Old:
+
+    Enter your handle.n1:
+
+  Line 30 New:
+
+    n1Please Login: 1 }
+
+This is an important change.  Most UUCP's seem to be set up to scan for the
+string 'ogin:' in the input stream.  This keyword triggers the remote UUCP to
+send it's account name.
+
+  Line 37 Old:
+
+    n1Enter your password.n1:
+
+  Line 37 New:
+
+    n1Enter your password: 1 }
+
+Minor, but important change, the string being scanned for at this point is
+'sword:'.  The remote UUCP will be triggered to send it's account password
+for the BBS.
+
+  Line 62 Old:
+
+    n1@ Cleared for logonn1
+
+  Line 62 New:
+
+    #0 PFILES:BBS/UUCICO.rexx}
+
+This is the heart of it on the CNet side.  The line normally output to the
+user '@ Cleared for logon' is replaced with a call to an ARexx script that
+handles the differentiation between human and UUCP callers.  I'll present the
+script momentarily.  First let's tie up a few other CNet specific loose ends.
+You'll need to create the accounts for your UUCP callers.  For my examples I
+have created the following accounts and passwords (the passwords have been
+changed...don't even bother to try :)
+
+    AG#   Account Name   Password
+    ---   ------------   --------
+    20    cnet577        morris
+    20    cnet973        murphy
+    20    centaur        opalvision
+
+  Each of these accounts should have a few of the preferences settings
+modified:
+
+    More? mode          : No
+    Mail box open       : No
+
+These are needed as we must ensure that there are no unexpected messages, or
+more prompts displayed to a UUCP caller.  The reasons for this will become
+clear in the section on the L.sys file and the 'expect/send strings' below.
+Additionally you should edit all your bulletins, or any new ones that you
+add, so that they won't be shown to account group #20.  This is required
+because there is critical timing between the login/password exchange and the
+start of UUCICO at our end.  It wouln't hurt to keep your sys.welcome file
+short or put a bypass for our account group in it.  I simply put the fancy
+welcome files in the tt0 - tt4 versions and left the sys.welcome simple:
+
+===============================================================================
+ Digital Dreams Bulletin Board     InterNet/UseNet Site: cnet1023.cts.com
+ (619) 477-2368 Public 9600 Baud   FidoNet Hub:  1:202/1100, 1:202/1111
+ (619) 477-0246 Public 2400 Baud   AmigaNet Net: 40:406/0, 40:406/1, 40:406/10
+===============================================================================
+
+  OK, now for that script.  If our caller has gotten this far we know his
+account group, name, etc.  The script will use this information to determine
+how to proceed.  Here it is then:
+
+    /* uucico script v1.01 */
+    /* cnet uucico script */
+    /* by marlin schwanke & lance murphy */
+
+    /* setup arexx environment */
+    setup:
+    options results
+    signal on ioerr
+    signal on error
+    signal on syntax
+
+    /* get bbs data */
+    cnet:
+    getuser 15              /* Get account group number */
+    userlevel = result
+    getuser 23              /* Get port number call is on */
+    userport = result
+
+    /* check for uucp caller */
+    start:
+    if userlevel = 20 then do /* Is this caller a UUCP account? */
+      if userport = 1 then do /* Is the UUCP caller on the correct port? */
+        modem 2               /* Silence CNet and call UUCICO if so. */
+        address command 'uucico -D serial.device -U 2 -getty -7'
+        modem 1               /* Reenable CNet on the modem */
+      end
+      dropcarrier /* Hang up after transfer or if UUCP on wrong port */
+    end
+    else do       /* It's a human caller proceed normally */
+      sendstring 'n1@ Cleared for logonn1'
+    end
+
+    /* all finished */
+    done:
+    exit
+
+    /* error handler */
+    syntax:
+    error:
+    ioerr:
+    /* I omitted the error handler in this script */
+    exit
+
+  Briefly explained, at the label CNet:  I do two GetUsers, one to get the
+user's account group, and the other to obtain the port number the call is
+coming in on.  A little later at the label Start:  there is a bit of logic
+that checks this data to see if the caller is an UUCP account or not.  Human
+callers are passed straight along and have the normal '@ Cleared for logon'
+displayed and exit the script.  The first goal is accomplished therefore,
+this system is transparent to the normal user.  Now assuming we have a UUCP
+call at this point, the script checks further to see if the call is on the
+correct line.  Probably unnecessary but I do like to be thorough.  If we are
+on the correct port then we get to the meat.  First we disable CNet's use of
+the modem with the 'modem 2' command.  Following this is the _most_ important
+line in the whole package.  We call the UUCICO command to start our end of
+the transfer going.  Please note that the '-getty' option is absolutely
+required.  The other options are dependent on your installation.  If you are
+using the Amiga internal serial port just omit the '-D serial.device -U 2'
+portion of the command line.  In the case of A UUCP call or a UUCP call on
+the wrong port the next action is to drop carrier and then exit the script.
+
+  Now for a little of the UUCP nitty gritty.  As I said earlier I'm not about
+to explain the Amiga UUCP package.  I will however describe a few of the
+configuration details important to this CNet application.  So here we go:
+
+    #   UULIB:Domain    Domain data base for mailer
+    #
+
+    *                 MF UU   crash.UUCP
+    cnet577           MD UU   cnet577.UUCP
+    cnet973           MD UU   cnet973.UUCP
+    cnet577.cts.com   MD UU   cnet577.UUCP
+    cnet973.cts.com   MD UU   cnet973.UUCP
+    centaur           MD UU   cnet973.UUCP
+
+This data tells UUCP where to route E-Mail for the various addresses in our
+little network.  'crash' is the big UNIX machine that links us with the rest
+of the world.  The first line with the * and MF (Mail Forwarder) instruct
+UUCP to send all mail not otherwise routed to to crash using UUCP.  The
+remaining lines set up the routing of mail between the other three BBS's in
+the network.  Each is listed with both it's local and fully domained address
+(mail to any adjacent site is not required to use fully domained addresses).
+
+    # The Sys file lists news feed sites, our feed crash is set to all
+    # groups, only the specific newsgroups are listed for all other sites.
+    #
+
+    crash:*
+
+    cnet577:alt.best.of.internet,alt.divination,alt.dreams,alt.paranormal,\
+    alt.sex,alt.sex.masturbation,alt.sex.stories,comp.answers,\
+    rec.arts.sf.written,rec.games.frp.dnd,rec.games.frp.misc,\
+    rec.martial-arts,sci.answers
+
+    centaur:comp.sys.amiga.graphics,comp.sys.newton.announce,\
+    comp.sys.newton.misc,comp.sys.newton.programmer
+
+    cnet973:comp.sys.amiga.*,comp.unix.amiga,alt.sys.amiga.uucp.patches,\
+    alt.sex.stories,rec.bicycles,rec.bicycles.marketplace,\
+    rec.bicycles.misc,rec.bicycles.racing,rec.bicycles.rides,\
+    rec.bicycles.soc,rec.bicycles.tech,aus.bicycle,rec.audio,rec.running,\
+    rec.sport.triathlon
+
+  Finally at the remote site there is a very important configuration detail.
+The L.sys file at the calling site must be correctly set up for the incoming
+UUCICO to negotiate it's way through CNet's (new) login.  Here's an example
+from the site cnet577:
+
+# L.sys - You need an entry here for anyone you want to send news/mail to
+# wether you call them or not.
+
+# The real passwords have been overwritten with PASSWORD for security
+# reasons.
+
+crash Any SER: 19200 6373654 ogin: \ducnet ord: \dPASSWORD
+cnet577 Any SER: 19200 2324919 BBS. ..\c [NONE]: \r ogin: cnet1023 ord: PASSWORD
+cnet973 Any SER: 19200 2226474 ogin: cnet1023 ord: power
+cnet577.cts.com Any SER: 19200 2324919 BBS. ..\c [NONE]: \r ogin: cnet1023 ord: PASSWORD
+cnet973.cts.com Any SER: 19200 2226474 ogin: cnet1023 ord: PASSWORD
+centaur Any SER: 19200 13107874542 ogin: cnet1023 sword: PASSWORD
+
+  This entry is used by the remote UUCICO (cnet577) to call my board's
+UUCICO (cnet1023).  The first part is obvious, the name of the site to call
+is cnet1023, the following 'Any' and 'SER:' are unused at this point but must
+remain in place (an Amiga UUCP thing), 19200 is the baud rate that the remote
+UUCICO calls out at, '4772368' is the number to my system's port #1,
+remainder of the line is what is know as the 'expect/send strings'.  Let's go
+slow here.  The 'expect/send strings' are pairs of strings.  The first string
+in each pair is what to _expect_ from the site being called (my BBS), the
+second string is what to _send_ in response.
+
+  So the remote site initiates a UUCICO call to my system.  My BBS dutifully
+answers the phone and after a bit sends:
+
+    Press RETURN to enter system:
+
+This matches with the first expect string 'system:', the remote system
+reponds then with '\r', actually a carriage return, next my BBS sends:
+
+    Enter choice or press return for [NONE]:
+
+Which matches the second expect string.  The remote responds with a '\r'
+(carriage return) again.  Then my BBS sends:
+
+    Please Login:
+
+The 'ogin' corresponds with the third expect string and the remote systems
+replies woith it's account name 'cnet577'.  Now my BBS outputs:
+
+    Enter your password:
+
+Which matches the final expect string.  The remote sends back it's password,
+'morris', and is succesfully logged into the system.
+
+  The ARexx script described above is then executed and that's about it.  The
+UUCICO program is then in control on both ends and all the mail and articles
+are exchanged between the two systems.
+
+
+  Since the original writing of this article we have added a couple of
+'expect/send' strings to the remote hosts so that TrapDoor can also run on the
+same line!  Not much to it, so I'll leave it to your own ingenuity!
+
+
+  My thanks to my partner Lance Murphy for his many hours of help in
+development and test of this CNet-UUCP network.  I do eventually get around to
+paying attention to his 'dumb ideas' :)  It wouldn't have happened without him!
+
+
+  Please, after consulting appropriate documentation, feel free to call me
+if you are stumped by any of this.  I may be reached in a variety of ways:
+
+
+BBS:
+
+Digital Dreams
+(619) 477-2368 (14400 baud)
+(619) 477-0246 (2400 baud)
+
+Heavy Metal
+(619) 232-4919 (9600 baud)
+
+FIDO:
+
+Marlin Schwanke@1:202/1111
+Marlin Schwanke@1:202/1112
+
+AMIGANET:
+
+Marlin Schwanke@40:406/1
+
+INTERNET:
+
+marlin@cnet1023.cts.com
+marlin@cnet577.cts.com
+
+=============================================================================

@@ -1,0 +1,3259 @@
+'
+MODE 1
+DIM ansi$(10)
+DIM ln$(254)
+cr$=CHR$(13)+CHR$(10)
+de$=CHR$(8)+" "+CHR$(8)
+esc$=CHR$(27)
+versnum$="$VER: BBBase 1.7 (28-Nov-94)  "
+versnum$="1.7"
+versdate$="28-Nov-94"
+doorname$="BBBase"
+'
+ON ERROR GOSUB woops
+testingit!=FALSE
+'
+' Stuff the rego limits! Dummy it up
+'
+rego!=TRUE
+'
+RESTORE regodat
+xx%=1
+WHILE xx%<>0
+  READ xx%
+  IF xx%<>0
+    rego$=rego$+CHR$(xx%)
+  ENDIF
+WEND
+'
+regodat:
+'
+' ALL
+DATA 65,76,76,0
+'
+'
+RESTORE myselfdat
+xx%=1
+WHILE xx%<>0
+  READ xx%
+  IF xx%<>0
+    myself$=myself$+CHR$(xx%)
+  ENDIF
+WEND
+'
+myselfdat:
+'
+DATA 80,69,84,69,82,32,68,69,65,78,69,0
+'
+' Who's online and what's what?
+'
+IF EXIST("ram:userdata")
+  OPEN "I",#2,"RAM:USERDATA"
+  LINE INPUT #2,rtime$
+  LINE INPUT #2,uname$
+  LINE INPUT #2,id$
+  LINE INPUT #2,lev$
+  LINE INPUT #2,bd$
+  LINE INPUT #2,ring$
+  LINE INPUT #2,path$
+  CLOSE #2
+  tpc%=VAL(rtime$)
+  id%=VAL(id$)
+  lev%=VAL(lev$)
+  ring%=VAL(ring$)
+  bd%=VAL(bd$)
+ELSE
+  ' setup dummy names, etc
+  rtime$=STR$(maxtime%)
+  bd$="0"
+  ring$="0"
+  uname$="STANDALONE"
+  tpc%=100
+  id%=1
+  lev$="9"
+  lev%=9
+  bd%=0
+  ring%=0
+  path$=""
+ENDIF
+'
+IF uname$=myself$
+  lev%=9
+ENDIF
+'
+timeon%=CINT(TIMER/200)
+'
+IF ring%=1
+  ring!=TRUE
+ELSE
+  ring!=FALSE
+ENDIF
+'
+'
+' Investigate our working environment from the s:metro.cfg file...
+'
+IF EXIST("S:Metro.cfg")
+  config$="S:Metro.cfg"
+ELSE IF EXIST("BBS:Metro.cfg")
+  config$="BBS:Metro.cfg"
+ELSE IF EXIST("Metro.cfg")
+  config$="Metro.cfg"
+ELSE
+  config$="XXX"
+ENDIF
+'
+' Defaults
+'
+thisbbsname$="The OzMetro BBS"
+sfd$="BBS:"
+' (PS this is not looked for in s:Metro.cfg - BBS: is always used.
+'
+sysopname$="The Sysop"
+winw$="640"
+winh$="200"
+'
+IF config$<>"XXX"
+  '
+  OPEN "I",#2,config$,128
+  DO WHILE (NOT EOF(#2))
+    LINE INPUT #2,xx$
+    xx$=TRIM$(xx$)
+    xxu$=UPPER$(xx$)
+    '
+    IF xxu$="" OR LEFT$(xxu$,1)=";"
+      ' Do nothing
+    ELSE IF LEFT$(xxu$,7)="BBSNAME"
+      xx$=MID$(xx$,8,255)
+      xx$=TRIM$(xx$)
+      thisbbsname$=xx$
+    ELSE IF LEFT$(xxu$,9)="SYSOPNAME"
+      xx$=MID$(xx$,10,255)
+      xx$=TRIM$(xx$)
+      sysopname$=xx$
+    ELSE IF LEFT$(xxu$,11)="WINDOWWIDTH"
+      xx$=MID$(xx$,12,255)
+      xx$=TRIM$(xx$)
+      winw$=xx$
+    ELSE IF LEFT$(xxu$,12)="WINDOWHEIGHT"
+      xx$=MID$(xx$,13,255)
+      xx$=TRIM$(xx$)
+      winh$=xx$
+    ENDIF
+    '
+  LOOP UNTIL EOF(#2)
+  CLOSE #2
+ENDIF
+'
+'
+' find screen size required
+'
+sw%=VAL(winw$)
+sh%=VAL(winh$)
+sx%=0
+sy%=0
+'
+IF testingit!=TRUE
+  ring!=TRUE
+ENDIF
+'
+@open_screen
+@getstats
+@status_window
+@main_window
+IF ring!=TRUE
+  @open_serial
+  DELAY 1
+  @set_baud(bd%)
+ENDIF
+'
+' Get values from the config file (if one exists)
+'
+configerr!=TRUE
+'
+IF EXIST(path$+"BBBase.cfg")
+  OPEN "I",#2,path$+"BBBase.cfg",500
+  IF NOT EOF(#2)
+    LINE INPUT #2,sy$
+  ENDIF
+  IF NOT EOF(#2)
+    LINE INPUT #2,loa$
+  ENDIF
+  IF NOT EOF(#2)
+    LINE INPUT #2,hia$
+  ENDIF
+  CLOSE #2
+  sysop%=VAL(sy$)
+  loascii%=VAL(loa$)
+  hiascii%=VAL(hia$)
+  IF sysop%<>0 AND loascii%>20 AND hiascii%>123 AND loascii%<32
+    configerr!=FALSE
+  ENDIF
+ENDIF
+'
+IF configerr!=TRUE
+  ' go to defaults
+  '
+  sysop%=8
+  ' /\ level of sysop security.
+  hiascii%=255
+  loascii%=27
+  ' /\ for the modem.in routines. Sets highest ascii and lowest char avail
+  ' to the editor.  Set lower to lock out high ascii
+  '
+ENDIF
+'
+'
+rego!=TRUE
+'
+' ======================================================================
+'
+' We're in, hit em hard and good!
+'
+' reset terminal
+@killkeys
+@msend(esc$+"[0;40;37m"+CHR$(12))
+@centre("BBBase - BBS List Utility")
+@msend(cr$+centred$)
+@centre("By PFD")
+@msend(cr$+cr$+centred$)
+@centre("Version "+versnum$)
+@msend(cr$+cr$+centred$)
+@centre(versdate$)
+@msend(cr$+cr$+centred$)
+@centre("Written in GFA Basic - Compiler V 3.51")
+@msend(cr$+cr$+centred$)
+'
+@centre("Registered to: "+rego$)
+@msend(cr$+cr$+centred$+cr$+cr$)
+@killkeys
+'
+IF ring!=FALSE
+  IF configerr!=TRUE
+    @msend("Error in config (or not found). Using internal defaults."+cr$)
+  ELSE
+    @msend("Valid config file found:"+cr$)
+  ENDIF
+  @msend("Sysop level : "+STR$(sysop%)+"    <-- These details only show"+cr$)
+  @msend("Low ASCII   : "+STR$(loascii%)+"       for local logins"+cr$)
+  @msend("High ASCII  : "+STR$(hiascii%)+cr$)
+ENDIF
+'
+'
+GOSUB checkansi
+GOSUB setansi
+scrnht%=23
+abscontin!=FALSE
+'
+'
+' ensure there is a data file
+IF NOT EXIST(path$+"BBBase.dat")
+  GOSUB writerecordone
+  bbss%=1
+ELSE
+  @dbaseprep
+  @dbaseread(1)
+  CLOSE #3
+  ' .. and it hasn't been hacked!!  :-)  POWER!!
+  IF INSTR(bbsname$,"Inquestor")=0 OR INSTR(bbssysn$,"Peter Deane")=0
+    @writerecordone
+    f1$=path$+TRIM$(bbsname$)+".txt"
+    f2$=path$+"Inquestor.txt"
+    IF EXIST(f1$) AND f1$<>f2$
+      IF EXIST(f2$)
+        KILL f2$
+      ENDIF
+      NAME f1$ AS f2$
+    ENDIF
+  ENDIF
+ENDIF
+'
+' ======================================================================
+main:
+' ======================================================================
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+' ensure the # records is ALWAYS accurate regardless of what we do to variable
+'
+OPEN "I",#2,path$+"BBBase.dat",40
+bbss%=LOF(#2)/177
+CLOSE #2
+'
+@killkeys
+@msend(CHR$(12))
+@msend(cr$+ansi$(7)+"  -----------------------"+cr$)
+@msend(ansi$(3)+"  BBBase BBS List Utility"+cr$)
+@msend(ansi$(1)+"  (c) 1991-4 Peter Deane"+cr$)
+@msend(ansi$(7)+"  -----------------------"+cr$+cr$)
+@msend(ansi$(1)+"     ["+ansi$(7)+"V"+ansi$(1)+"]"+ansi$(5)+"erbose Display"+cr$)
+@msend(ansi$(1)+"     ["+ansi$(7)+"T"+ansi$(1)+"]"+ansi$(6)+"erse Display"+cr$)
+@msend(ansi$(1)+"     ["+ansi$(7)+"S"+ansi$(1)+"]"+ansi$(7)+"earch Records"+cr$)
+@msend(ansi$(1)+"     ["+ansi$(7)+"A"+ansi$(1)+"]"+ansi$(2)+"dd an Entry"+cr$)
+@msend(ansi$(1)+"     ["+ansi$(7)+"E"+ansi$(1)+"]"+ansi$(3)+"dit an Entry"+cr$+cr$)
+'
+@msend(ansi$(1)+"     ["+ansi$(7)+"H"+ansi$(1)+"]"+ansi$(5)+"elp"+cr$)
+@msend(ansi$(1)+"     ["+ansi$(7)+"C"+ansi$(1)+"]"+ansi$(6)+"hange Setup"+cr$)
+@msend(ansi$(1)+"     ["+ansi$(7)+"M"+ansi$(1)+"]"+ansi$(7)+"essage to Sysop"+cr$)
+@msend(ansi$(1)+"     ["+ansi$(7)+"Q"+ansi$(1)+"]"+ansi$(2)+"uit"+cr$+cr$)
+IF lev%>=sysop%
+  @msend(ansi$(1)+"     ["+ansi$(7)+"$"+ansi$(1)+"]"+ansi$(1)+"ysop Maintenance"+cr$+cr$)
+ENDIF
+GOSUB tchk
+@msend(ansi$(2)+"  ("+ansi$(3)+STR$(rtime%)+" min"+ansi$(2)+")"+ansi$(6)+" Your Choice: "+ansi$(6))
+@mget(0,1,0,1)
+@msend(CHR$(12))
+@killkeys
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+' ======================================================================
+'
+IF in$="Q" OR car%>0
+  GOTO bye
+ENDIF
+'
+'
+IF in$="C"
+  ' Alter config details
+  GOSUB checkansi
+  GOSUB setansi
+  IF car%>0
+    GOTO bye
+  ENDIF
+  GOSUB setpagepause
+  IF car%>0
+    GOTO bye
+  ENDIF
+  GOSUB setabscon
+  in$=""
+ENDIF
+'
+IF in$="H"
+  GOSUB help
+  in$=""
+ENDIF
+'
+IF in$="M"
+  GOSUB sysmessage
+  in$=""
+ENDIF
+'
+IF in$="T"
+  GOSUB terseoutput
+  in$=""
+ENDIF
+'
+IF in$="V"
+  GOSUB verboseoutput
+  in$=""
+ENDIF
+'
+IF in$="S"
+  GOSUB search
+  in$=""
+ENDIF
+'
+IF in$="A"
+  GOSUB addentry
+  in$=""
+ENDIF
+'
+IF in$="E"
+  GOSUB editentry
+  in$=""
+ENDIF
+'
+IF in$="$" AND lev%>=sysop%
+  GOSUB maintain
+  in$=""
+ENDIF
+'
+' ======================================================================
+'
+' ======================================================================
+' final check before looping.
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+in$=""
+GOTO main
+' ======================================================================
+'
+bye:
+'
+finish:
+'
+@msend(cr$+cr$+CHR$(12))
+@centre("BBBase was written by Peter Deane.")
+@msend(ansi$(6)+centred$+cr$)
+PAUSE 30
+@msend(CHR$(7))
+@centre("Please encourage your sysop to register this program!")
+@msend(cr$+cr$+ansi$(3)+centred$)
+PAUSE 20
+'
+IF EXIST("ram:userdata")
+  KILL "RAM:USERDATA"
+ENDIF
+@centre("Returning to "+thisbbsname$+"...")
+@msend(cr$+cr$+cr$+ansi$(2)+centred$)
+'
+IF ring!=TRUE
+  @close_serial
+  DELAY 1
+ENDIF
+END
+'
+PROCEDURE woops
+  '
+  @msend(cr$+CHR$(7)+cr$+ansi$(1)+"Woops - FATAL ERROR!!"+cr$)
+  @msend(cr$+CHR$(7)+"This will be logged for the sysop. You may even be able"+cr$)
+  @msend("to re-run the door, and have it work fine - just try to avoid what you"+cr$)
+  @msend("just did then!"+cr$)
+  @msend(cr$+cr$+"Exiting door now. Please hold")
+  DELAY 4
+  '
+  IF EXIST(path$+"Error.log")
+    OPEN "A",#50,path$+"Error.log",1024
+  ELSE
+    OPEN "O",#50,path$+"Error.log",1024
+  ENDIF
+  '
+  PRINT #50,"---------------"
+  PRINT #50,"Error occurred at ";TIME$;" on ";DATE$
+  PRINT #50
+  PRINT #50,ERR$(ERR)
+  PRINT #50
+  PRINT #50,"User online: ";uname$
+  PRINT #50
+  CLOSE #50
+  '
+  RESUME bye
+  '
+RETURN
+'
+'
+PROCEDURE open_screen
+  OPENS 1,sx%,sy%,sw%,sh%,3,32768
+  IF ring!=TRUE
+    BACKS 1
+  ENDIF
+  '
+  SETCOLOR 0,&H0
+  SETCOLOR 1,&HF11
+  SETCOLOR 2,&H1F1
+  SETCOLOR 3,&HFF1
+  SETCOLOR 4,&H55F
+  SETCOLOR 5,&HF1F
+  SETCOLOR 6,&H1FF
+  SETCOLOR 7,&HFFF
+RETURN
+'
+PROCEDURE getstats
+  IF EXIST(sfd$+"BBSFILES/stats")
+    OPEN "I",#2,sfd$+"BBSFILES/stats",512
+    LINE INPUT #2,calls$
+    LINE INPUT #2,msgs$
+    LINE INPUT #2,uls$
+    LINE INPUT #2,dls$
+    LINE INPUT #2,fdbk$
+    LINE INPUT #2,newu$
+    LINE INPUT #2,newd$
+    LINE INPUT #2,lastuser$
+    LINE INPUT #2,email$
+    CLOSE #2
+  ELSE
+    calls$="0"
+    msgs$="0"
+    uls$="0"
+    dls$="0"
+    fdbk$="0"
+    newu$="0"
+    newd$="0"
+    lastuser$="NOBODY"
+    email$="0"
+  ENDIF
+RETURN
+'
+PROCEDURE status_window
+  OPENW #1,0,(sh%-8),sw%,8,0,2304,1
+  PRINT esc$+"[35;43m"
+  PRINT AT(1,1);" CALLS:    MSG:    PMSG:    FBK:    DLS:    ULS:    NEW:    BD:      CHT:    ";
+  PRINT AT(8,1);esc$+"[34m"+calls$;
+  PRINT AT(16,1);msgs$;
+  PRINT AT(25,1);email$;
+  PRINT AT(33,1);fdbk$;
+  PRINT AT(41,1);dls$;
+  PRINT AT(49,1);uls$;
+  PRINT AT(57,1);newu$;
+  PRINT AT(64,1);bd%;
+  IF chat$="YES"
+    PRINT AT(74,1);chat$;
+  ELSE
+    PRINT AT(74,1);"NO";
+  ENDIF
+RETURN
+'
+PROCEDURE main_window
+  OPENW #2,0,11,sw%,sh%-20,0,2304,1
+  IF icon!=TRUE
+    PRINT
+    PRINT
+    PRINT ansi4$+"                        Now running in ICONISED mode"
+    PRINT
+    PRINT ansi3$+"                           NO local console output"
+    PRINT
+    PRINT ansi5$+"                       Press F3 to un-iconise the door"
+  ENDIF
+  '
+  xx$=doorname$+" V"+versnum$+"    ID#:"+STR$(id%)+" Lev:"+STR$(lev%)+" ["+uname$+"]  "
+  IF ring!=TRUE
+    xx$=xx$+"Remote"
+  ELSE
+    xx$=xx$+"Local"
+  ENDIF
+  TITLEW #1,"",xx$
+  TITLEW #2,"",xx$
+  TITLES #1,xx$
+  IF ring!=FALSE
+    ~ActivateWindow(WINDOW(2))
+  ENDIF
+  '
+RETURN
+'
+PROCEDURE help
+  '
+  helpentrance:
+  '
+  @msend(CHR$(12))
+  @msend(cr$+ansi$(2)+"Which command would you like help for? "+cr$+cr$)
+  @msend(ansi$(1)+"   ["+ansi$(7)+"V"+ansi$(1)+"]"+ansi$(5)+"erbose Display"+cr$)
+  @msend(ansi$(1)+"   ["+ansi$(7)+"T"+ansi$(1)+"]"+ansi$(6)+"erse Display"+cr$)
+  @msend(ansi$(1)+"   ["+ansi$(7)+"S"+ansi$(1)+"]"+ansi$(7)+"earch Records"+cr$)
+  @msend(ansi$(1)+"   ["+ansi$(7)+"A"+ansi$(1)+"]"+ansi$(2)+"dd an Entry"+cr$)
+  @msend(ansi$(1)+"   ["+ansi$(7)+"E"+ansi$(1)+"]"+ansi$(3)+"dit an Entry"+cr$)
+  @msend(ansi$(1)+"   ["+ansi$(7)+"C"+ansi$(1)+"]"+ansi$(5)+"hange Setup"+cr$)
+  @msend(ansi$(1)+"   ["+ansi$(7)+"P"+ansi$(1)+"]"+ansi$(6)+"rogram Author"+cr$+cr$)
+  @msend(ansi$(1)+"   ["+ansi$(7)+"Q"+ansi$(1)+"]"+ansi$(7)+"uit Help"+cr$+cr$)
+  GOSUB tchk
+  @msend(cr$+cr$+ansi$(2)+"("+ansi$(3)+STR$(rtime%)+" min"+ansi$(2)+")"+ansi$(6)+" Your Choice: "+ansi$(5))
+  in$=""
+  WHILE in$<>"V" AND in$<>"T" AND in$<>"S" AND in$<>"A" AND in$<>"C" AND in$<>"Q" AND in$<>"P" AND in$<>"E"
+    @mget(9,1,0,1)
+    EXIT IF car%>0
+  WEND
+  '
+  IF car%>0 OR in$="Q"
+    GOTO helpexit
+  ENDIF
+  @msend(CHR$(12))
+  xx$=""
+  '
+  SELECT in$
+  CASE "V"
+    @msend(ansi$(2))
+    RESTORE verbosehelp
+  CASE "T"
+    @msend(ansi$(3))
+    RESTORE tersehelp
+  CASE "S"
+    @msend(ansi$(5))
+    RESTORE searchhelp
+  CASE "A"
+    @msend(ansi$(6))
+    RESTORE addhelp
+  CASE "C"
+    @msend(ansi$(2))
+    RESTORE changehelp
+  CASE "P"
+    @msend(ansi$(5))
+    RESTORE proghelp
+  CASE "E"
+    @msend(ansi$(3))
+    RESTORE edhelp
+  ENDSELECT
+  '
+  lncount%=0
+  '
+  WHILE LEFT$(UPPER$(xx$),8)<>"END HELP"
+    '
+    INC lncount%
+    READ xx$
+    IF LEFT$(UPPER$(xx$),8)<>"END HELP"
+      @msend(xx$+cr$)
+    ENDIF
+    @mget(9,1,0,0)
+    IF lncount%>=scrnht%
+      GOSUB pagepause
+    ENDIF
+    '
+    EXIT IF car%>0
+    EXIT IF abort!=TRUE
+  WEND
+  '
+  abort!=FALSE
+  contin!=FALSE
+  @msend(ansi$(0))
+  @press
+  GOSUB tchk
+  '
+  IF car%<=0
+    GOTO helpentrance
+  ENDIF
+  '
+  helpexit:
+  '
+RETURN
+'
+PROCEDURE open_serial
+  '
+  cmd_read%=2              ! Similar to INPUT #1,
+  cmd_write%=3             ! Similar to PRINT #1,
+  cmd_clear%=5
+  sdcmd_break%=10          ! Special Serial Device commands
+  sdcmd_query%=9           ! This command polls the serial device for how many chars to read
+  sdcmd_setparams%=11      ! We will use this to adjust the buffer size **********
+  '
+  io.command%=28           ! 2 byte command to perform (see directly above)
+  io.flags%=30             ! 1 byte
+  io.error%=31             ! 1 byte error # of last command
+  io.actual%=32            ! 4 byte actual bytes read or written
+  io.length%=36            ! 4 byte length of data to read or write
+  io.data%=40              ! 4 byte address of data to send or recieve
+  io.offset%=44            ! 4 byte ???
+  io.ctlchar%=48           ! 4 byte handshaking = $11130000
+  io.rbufflen%=52          ! 4 byte suggested size of the hardware buffer (16K ?)
+  io.extflags%=56          ! 4 byte parity flags for serial port/modem
+  io.baud%=60              ! 4 byte actual baud rate to use (1200, 2400, etc.)
+  io.brktime%=64           ! 4 byte break time in micro seconds (250000 ?)
+  io.termarray%=68         ! 8 byte a list of 8 termination characters (???????)
+  io.readlen%=76           ! 1 byte # of bits per read character (7-8)
+  io.writelen%=77          ! 1 byte # of bits per write character (should be same as read)
+  io.stopbits%=78          ! 1 byte # of stop bits (1 or 2)
+  io.serflags%=79          ! 1 byte serial port flags -
+  '
+  iof_quick%=1
+  '
+  serf_7wire|=4
+  serf_eofmode|=64
+  serf_parity_odd|=2
+  serf_parity_on|=1
+  serf_queuedbrk|=8
+  serf_rad_boogie|=16
+  serf_shared|=32         !This is the flag to set at OpenDevice for shared mode
+  serf_xdisabled|=128     !this flag should also be set at OpenDevice
+  '
+  io.status%=80           ! 2 bytes set when we issue a SDCMD_QUERY
+  '                      Bit# | what its for
+  '                         0 = reserved
+  '                         1 = reserved
+  '                         2 = ring indicator on 500/2000
+  '                         3 = Data set ready      (DSR)
+  '                         4 = Clear To Send       (CTS)
+  '                         5 = Carrier Detect      (CD)
+  '                         6 = Ready to send       (RTS)
+  '                         7 = Data Terminal Ready (DTR)
+  '                         8 = Read overrun
+  '                         9 = Break sent
+  '                        10 = Break recieved
+  '                        11 = transmit x-OFFed
+  '                        12 = receive x-OFFed
+  '
+  sizeof_extserio%=82      ! The size of the ExtSerIO struct
+  '
+  '
+  ' open the modem
+  '
+  device_name$="serial.device"+CHR$(0)
+  '
+  write_port%=CreatePort(0,0)
+  write_io%=CreateExtIO(write_port%,sizeof_extserio%)
+  read_port%=CreatePort(0,0)
+  read_io%=CreateExtIO(read_port%,sizeof_extserio%)
+  '
+  ' serf_7wire| is the flag for CTS/RTS
+  '
+  POKE write_io%+io.serflags%,serf_7wire|+serf_shared|+serf_xdisabled|
+  '
+  ~OpenDevice(V:device_name$,0,write_io%,0)      ! Open the device
+  '
+  ' mbd$ is the maximum baud rate from Metro.config
+  '
+  LPOKE write_io%+io.baud%,VAL(mbd$)            ! baud rate
+  POKE write_io%+io.readlen%,8                  ! # read bits
+  POKE write_io%+io.writelen%,8                 ! # write bits
+  POKE write_io%+io.stopbits,1                  ! Stop bits - 1 please
+  LPOKE write_io%+io.ctlchar%,&H1113000         ! handshaking
+  LPOKE write_io%+io.rbufflen%,1024             ! hardware buffer size
+  DPOKE write_io%+io.command%,sdcmd_setparams%
+  ~DoIO(write_io%)
+  '
+  ' now copy the write_io request into the read_io request
+  '
+  FOR a%=20 TO sizeof_extserio%
+    POKE read_io%+a%,PEEK(write_io%+a%)
+  NEXT a%
+RETURN
+'
+PROCEDURE close_serial
+  ' close the modem
+  ~AbortIO(write_io%)
+  ~WaitIO(write_io%)
+  ~CloseDevice(write_io%)
+  '
+  ' free up the memory of the IO request structure (must be 88!)
+  '
+  ~MFREE(write_io%,88)
+  ~MFREE(read_io%,88)
+  '
+  ' Delete the message port
+  '
+  ~DeletePort(write_port%)
+  ~DeletePort(read_port%)
+RETURN
+'
+'
+PROCEDURE ser_recv1
+  ' read in data 1 byte at a time like a$=INPUT$(1,1)
+  '
+  ' first we check to see if there is any incoming data, and if so store the
+  ' number of characters waiting in the variable waiting%
+  '
+  r_data$=""
+  DPOKE read_io%+io.command%,sdcmd_query%
+  ~DoIO(read_io%)
+  waiting%=LPEEK(read_io%+io.actual%)
+  IF waiting%<>0
+    r_data$=SPACE$(1)
+    DPOKE read_io%+io.command%,cmd_read%
+    LPOKE read_io%+io.length%,1
+    LPOKE read_io%+io.data%,V:r_data$
+    ~DoIO(read_io%)
+  ENDIF
+RETURN
+'
+PROCEDURE ser_purge
+  DPOKE read_io%+io.command%,cmd_clear%
+  ~DoIO(read_io%)
+RETURN
+'
+PROCEDURE chk_car
+  ' no carrier=-1  |  valid carrier=0
+  '
+  DPOKE write_io%+io.command%,sdcmd_query%
+  ~DoIO(write_io%)
+  status&=DPEEK(write_io%+io.status%)
+  car!=BTST(status&,5)
+  IF car!=TRUE
+    car%=20
+  ENDIF
+RETURN
+'
+PROCEDURE set_baud(baud%)
+  '
+  ' baud%        = actual baud rate (300,1200,2400,etc)
+  '
+  LPOKE write_io%+io.baud%,baud%
+  DPOKE write_io%+io.command%,sdcmd_setparams%
+  ~DoIO(write_io%)
+RETURN
+'
+PROCEDURE killkeys
+  IF ring!
+    @ser_purge
+  ENDIF
+  WHILE INKEY$<>""
+  WEND
+RETURN
+'
+PROCEDURE msend(fred$)
+  '
+  ' [Sends the string out to the screen and modem if needed]
+  '
+  IF icon!=FALSE
+    PRINT fred$;
+  ENDIF
+  '
+  IF ring!=TRUE
+    @chk_car
+    IF car!=FALSE
+      ' send data string fred$ out to modem
+      DPOKE write_io%+io.command%,cmd_write%
+      LPOKE write_io%+io.length%,LEN(fred$)
+      LPOKE write_io%+io.data%,V:fred$
+      ~DoIO(write_io%)
+    ENDIF
+  ENDIF
+  fred$=""
+RETURN
+'
+PROCEDURE mget(intype%,inlength%,yesdef!,wait!)
+  '
+  ' [Usage @Mget(intype%,inlength%,yesdef!,wait!) ]
+  '
+  ' input type= 0  Hot key response. Converted to uppercase. Always 1 char
+  '           = 1  Normal Upper/Lowercase text input.
+  '           = 2  UPPERCASE only text input
+  '           = 3  Yes/No response. Will default to YES if yesdef!=TRUE
+  '           = 4  Numerical input only
+  '           = 5  For the Metro Line Editor's use
+  '           = 9  No echoing, converted to uppercase.
+  '
+  ' input length   Just how many chars you want (max)
+  '
+  ' yesdef!   = TRUE then if <rtn> pressed, default is 'YES'+cr$
+  '           = FALSE then if <rtn> pressed, default is 'NO'+cr$
+  '
+  ' wait!     = TRUE, we'll wait until something is input
+  '           = FALSE then if nothing pressed, we'll return and return
+  '             in$=""
+  '
+  '
+  LOCAL cd%,a$,key$,keyy%,b%,in1$,idle%
+  '
+  idle%=CINT(TIMER/200)
+  ' /\ can't have them taking all day!
+  '
+  key$=""
+  in$=""
+  in1$=""
+  a%=0
+  keyy!=FALSE
+  b%=0
+  car%=0
+  abort!=FALSE
+  '
+  DO
+    '
+    IF MOUSEK=3
+      ALERT 0,"REALLY kill "+doorname$+" ?",2,"Yes|No",xx%
+      IF xx%=1
+        CLOSES 1
+        IF ring!=TRUE
+          @close_serial
+        ENDIF
+        END
+      ENDIF
+    ENDIF
+    ' /\ a way out...
+    '
+    IF ring!=TRUE
+      @chk_car
+      IF car!=TRUE
+        keyy!=TRUE
+        abort!=TRUE
+        ' set all the flags for an early departure! :-)
+      ENDIF
+    ENDIF
+    '
+    key$=INKEY$
+    '
+    IF LEN(key$)>1 AND LEFT$(key$,1)=CHR$(155)
+      '
+      xx%=ASC(MID$(key$,2,1))
+      IF xx%=48         ! F1
+        ALERT 0,"Really kick em off?",2,"Yes|No",xx%
+        IF xx%=1
+          car%=20
+          keyy!=TRUE
+          abort!=TRUE
+        ENDIF
+      ENDIF
+      IF xx%=50         ! F3
+        IF icon!=TRUE
+          icon!=FALSE
+          CLOSEW #2
+        ELSE
+          icon!=TRUE
+          CLOSEW #2
+        ENDIF
+        @main_window
+        ~ActivateWindow(WINDOW(2))
+      ENDIF
+    ENDIF
+    '
+    EXIT IF car!=TRUE
+    '
+    IF ring!=TRUE AND key$=""
+      ' sep test for ring!=TRUE cos if no user - no modem!
+      @ser_recv1
+      IF r_data$<>""
+        key$=r_data$
+      ENDIF
+    ENDIF
+    '
+    IF key$=CHR$(19)
+      ' Wow, they pressed ctrl-S. Let's pause a bit.
+      pau$=""
+      hold%=CINT(TIMER/200)
+      '
+      WHILE CINT(TIMER/200)<hold%+45
+        ' pause for a MAXIMUM of /\ 45 seconds
+        pau$=INKEY$
+        IF ring!=TRUE
+          @ser_recv1
+          pau$=r_data$
+        ENDIF
+        EXIT IF pau$<>""
+      WEND
+      '
+      key$=""
+      pau$=""
+    ENDIF
+    '
+    ' This seemingly works well, but watchit if you are hotkeying a menu
+    ' and using "S" or "N" as the keypresses- Remember to reset abort!
+    ' \/ just in case it throws something a bit later on!
+    '
+    IF wait!=FALSE
+      keyy!=TRUE
+      IF key$=" " OR key$="N" OR key$="S" OR key$="n" OR key$="s" OR key$=CHR$(3)
+        abort!=TRUE
+      ENDIF
+    ENDIF
+    '
+    IF key$=""
+      GOTO getjump1
+      ' /\ not worth running through the processing any further
+    ENDIF
+    '
+    a%=ASC(key$)
+    b%=LEN(in$)
+    '
+    IF (a%=8 OR a%=127) AND LEN(in$)>=1
+      in$=LEFT$(in$,b%-1)
+      DEC b%
+      @msend(de$)
+    ENDIF
+    '
+    IF b%=inlength%
+      GOTO getjump1
+    ENDIF
+    '
+    IF intype%=0
+      IF a%>31 AND a%<126
+        key$=UPPER$(key$)
+        @msend(key$+cr$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=1 AND a%>31 AND a%<126
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=2 AND a%>31 AND a%<126
+      key$=UPPER$(key$)
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=3
+      IF a%=13 AND yesdef!=TRUE
+        @msend("YES")
+        in$="YES"
+        keyy!=TRUE
+      ELSE IF a%=13 AND yesdef!=FALSE
+        @msend("NO")
+        in$="NO"
+        keyy!=TRUE
+      ELSE IF a%=89 OR a%=121
+        @msend("YES"+cr$)
+        in$="YES"
+        keyy!=TRUE
+      ELSE IF a%=78 OR a%=110
+        @msend("NO"+cr$)
+        in$="NO"
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=4 AND a%>47 AND a%<58
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=5
+      '
+      ' DO NOT USE THIS unless using the Metro Line editor!!
+      ' this will rely on dim'ing ln$() and keeping ln% as the line #
+      '
+      IF (a%=8 OR a%=127) AND LEN(ln$(ln%))>=1
+        ln$(ln%)=LEFT$(ln$(ln%),LEN(ln$(ln%))-1)
+        @msend(de$)
+        keyy!=TRUE
+      ELSE IF a%=13
+        in$=key$
+        keyy!=TRUE
+      ELSE IF a%=9
+        @msend("        ")
+        in$="        "
+        keyy!=TRUE
+      ELSE IF a%>=loascii% AND a%<>126 AND a%<=hiascii%
+        @msend(key$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=9
+      ' no echoing of input and conversion to uppercase very handy -
+      ' won't mess up your menus, etc, if they press the wrong keys.
+      ' Remember to echo it yourself if so required... (ie @msend(in$))
+      '
+      IF a%>31 AND a%<126
+        key$=UPPER$(key$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+      ' \/ Of modem get types!
+    ENDIF
+    '
+    ' Well, if we needed to jump, come to here...
+    getjump1:
+    '
+    ' Handle our carriage returns..
+    IF a%=13
+      IF (intype%<>5 AND intype%<>9)
+        @msend(cr$)
+      ENDIF
+      keyy!=TRUE
+    ENDIF
+    ' Look after idle timer
+    '
+    IF CINT(TIMER/200)>idle%+300
+      IF lev%>=sysop% AND CINT(TIMER/200)>idle%+600
+        car%=5
+        keyy!=TRUE
+        abort!=TRUE
+      ELSE IF lev%<sysop%
+        car%=5
+        keyy!=TRUE
+        abort!=TRUE
+      ENDIF
+    ENDIF
+    '
+  LOOP UNTIL keyy!=TRUE
+  '
+RETURN
+'
+'
+PROCEDURE seq.out(file$)
+  '
+  IF NOT EXIST(file$)
+    @msend(cr$+cr$+ansi$(1)+"File Not Found..."+ansi$(7))
+    GOSUB press
+  ELSE
+    lncount%=0
+    OPEN "I",#2,file$,4096
+    '
+    DO UNTIL EOF(#2)
+      LINE INPUT #2,text$
+      INC lncount%
+      @msend(text$+cr$)
+      @mget(9,1,0,0)
+      IF lncount%>=scrnht%
+        GOSUB pagepause
+      ENDIF
+      '
+      EXIT IF (car%>0) OR abort!=TRUE
+    LOOP
+    '
+    CLOSE #2
+  ENDIF
+  '
+  IF car%<=0
+    abort!=FALSE
+    contin!=FALSE
+    @msend(ansi$(0))
+  ENDIF
+  '
+RETURN
+'
+PROCEDURE centre(some$)
+  '
+  ' [takes a string - MUST BE less than 76 chars - if not, no action]
+  ' [returns centred$]
+  IF LEN(some$)<76
+    centred$=SPACE$(38-(LEN(some$)/2))+some$
+  ELSE
+    centred$=some$
+  ENDIF
+  '
+RETURN
+'
+PROCEDURE press
+  @msend(cr$+cr$+ansi$(0)+"[Any_Key] ")
+  @mget(0,1,1,1)
+RETURN
+'
+PROCEDURE correct
+  @msend(cr$+cr$+"Sound Okay (Y/n)? ")
+  @mget(3,1,1,1)
+RETURN
+'
+PROCEDURE pagepause
+  '
+  @tchk
+  IF contin!=TRUE OR abscontin!=TRUE
+    GOTO pagepauseexit
+  ENDIF
+  abort!=FALSE
+  '
+  @msend("More (Y/n/c)?")
+  @mget(9,1,0,1)
+  IF car%>0
+    GOTO pagepauseexit
+  ENDIF
+  @msend(de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$)
+  '
+  IF in$=" " OR in$="N" OR in$="S"
+    abort!=TRUE
+  ELSE IF in$="C"
+    contin!=TRUE
+  ENDIF
+  '
+  pagepauseexit:
+  lncount%=0
+  '
+RETURN
+'
+PROCEDURE timeconv
+  '
+  time1$=TIME$
+  t.t%=VAL(LEFT$(time1$,2))
+  IF t.t%>11
+    a$=" PM"
+  ELSE
+    a$=" AM"
+  ENDIF
+  '
+  IF t.t%=0
+    t.t%=12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%<10
+    time1$="0"+RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ELSE IF t.t%>21
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%>12
+    t.t%=t.t%-12
+    time1$="0"+RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ENDIF
+  pd.time$=time1$+a$
+  '
+RETURN
+'
+PROCEDURE dateconv(pddt$)
+  '
+  ' converts date to Fido style DD-Mmm-YY
+  ' string to use is pd.date$
+  '
+  LOCAL pd.temp$,pd.date1$,pd.date2$,pd.date3$,pd.month%,pd.month$
+  '
+  ' (Only thing this returns is the pd.date$)
+  '
+  pd.date1$=LEFT$(pddt$,2)
+  pd.date2$=MID$(pddt$,4,2)
+  pd.date3$=RIGHT$(pddt$,2)
+  pd.month%=VAL(pddt$)
+  '
+  SELECT pd.month%
+    '
+  CASE 1
+    pd.month$="Jan"
+  CASE 2
+    pd.month$="Feb"
+  CASE 3
+    pd.month$="Mar"
+  CASE 4
+    pd.month$="Apr"
+  CASE 5
+    pd.month$="May"
+  CASE 6
+    pd.month$="Jun"
+  CASE 7
+    pd.month$="Jul"
+  CASE 8
+    pd.month$="Aug"
+  CASE 9
+    pd.month$="Sep"
+  CASE 10
+    pd.month$="Oct"
+  CASE 11
+    pd.month$="Nov"
+  CASE 12
+    pd.month$="Dec"
+  DEFAULT
+    pd.month$="???"
+  ENDSELECT
+  pd.date$=pd.date2$+"-"+pd.month$+"-"+pd.date3$
+  '
+RETURN
+PROCEDURE tchk
+  timenow%=CINT(TIMER/200)
+  ctime%=(timenow%-timeon%)
+  ctime%=CINT(ctime%/60)
+  rtime%=tpc%-ctime%
+  '
+  IF rtime%<=0
+    @msend(ansi$(1)+CHR$(7)+cr$+cr$+"Sorry, time limit exceeded!!"+CHR$(7))
+    DELAY 2
+    car%=2
+    timewarn1!=TRUE
+    timewarn2!=TRUE
+    timewarn5!=TRUE
+  ENDIF
+  IF rtime%>5
+    timewarn1!=FALSE
+    timewarm2!=FALSE
+    timewarn5!=FALSE
+  ENDIF
+  IF rtime%<=1 AND timewarn1!=FALSE
+    @msend(ansi$(1)+cr$+cr$+"WARNING: 1 Minute or Less Remaining This Call!"+cr$)
+    DELAY 2
+    timewarn5!=TRUE
+    timewarn2!=TRUE
+    timewarn1!=TRUE
+  ENDIF
+  IF rtime%<=2 AND timewarn2!=FALSE
+    @msend(ansi$(1)+cr$+cr$+"WARNING: 2 Minutes or Less Remaining This Call!"+cr$)
+    DELAY 1
+    timewarn2!=TRUE
+    timewarn5!=TRUE
+  ENDIF
+  IF rtime%<=5 AND timewarn5!=TRUE
+    @msend(ansi$(1)+cr$+cr$+"WARNING: 5 Minutes or Less Remaining This Call!"+cr$)
+    DELAY 1
+    timewarn5!=TRUE
+  ENDIF
+  '
+RETURN
+'
+PROCEDURE setpagepause
+  oldscrnht%=scrnht%
+  @msend(cr$+cr$+ansi$(2)+"Current Screen Height: "+ansi$(5)+STR$(oldscrnht%))
+  @msend(cr$+cr$+ansi$(3)+"Change Screen Height (y/N)? ")
+  @mget(3,1,0,1)
+  IF in$="NO" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  @msend(cr$+cr$+ansi$(2)+"New Screen Height: "+ansi$(1))
+  @mget(4,2,0,1)
+  IF in$="" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=VAL(in$)
+  @msend(cr$+cr$+ansi$(3)+"Are "+ansi$(1)+STR$(scrnht%)+ansi$(3)+" lines okay (Y/n)? ")
+  @mget(3,1,1,1)
+  IF in$="YES" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=oldscrnht%
+  @msend(cr$+cr$+ansi$(1)+"No change to screen height.")
+  '
+  pauseexit:
+RETURN
+'
+PROCEDURE checkansi
+  '
+  @msend(cr$+cr$+"Do you want ANSI (Y/n)? ")
+  @mget(3,1,1,1)
+  IF car%>0
+    GOTO checkansiexit
+  ENDIF
+  '
+  IF in$="YES"
+    ansi!=TRUE
+  ELSE
+    ansi!=FALSE
+  ENDIF
+  checkansiexit:
+  '
+RETURN
+'
+PROCEDURE setansi
+  '
+  IF ansi!=TRUE
+    ansi$(1)=esc$+"[31m"
+    ansi$(2)=esc$+"[32m"
+    ansi$(3)=esc$+"[33m"
+    ansi$(4)=esc$+"[34m"
+    ansi$(5)=esc$+"[35m"
+    ansi$(6)=esc$+"[36m"
+    ansi$(7)=esc$+"[37m"
+    ansi$(8)=esc$+"[1m"
+    ansi$(9)=esc$+"[3m"
+    ansi$(10)=esc$+"[4m"
+  ELSE
+    FOR kk%=1 TO 10
+      ansi$(kk%)=""
+    NEXT kk%
+  ENDIF
+  ' regardless of setting, this is needed for safety!
+  ansi$(0)=esc$+"[0;37;40m"
+  @msend(ansi$(0))
+RETURN
+'
+PROCEDURE setabscon
+  @msend(cr$+cr$+ansi$(2)+"Current Read Mode: "+ansi$(5))
+  '
+  IF abscontin!=TRUE
+    @msend("NO page-pausing"+cr$)
+  ELSE
+    @msend("Page-pausing on"+cr$)
+  ENDIF
+  '
+  @msend(cr$+cr$+ansi$(3)+"Toggle Read Mode (y/N)? ")
+  @mget(3,1,0,1)
+  IF in$="NO" OR car%>0
+    @msend(cr$+cr$+ansi$(6)+"No change to read mode!")
+    GOTO absconexit
+  ENDIF
+  '
+  IF abscontin!=TRUE
+    abscontin!=FALSE
+    @msend(cr$+cr$+ansi$(6)+"Page pausing now turned ON")
+  ELSE
+    abscontin!=TRUE
+    @msend(cr$+cr$+ansi$(1)+"Page pausing now turned OFF")
+  ENDIF
+  '
+  absconexit:
+  DELAY 1
+  '
+RETURN
+'
+PROCEDURE sysmessage
+  '
+  @msend(cr$+cr$+ansi$(3)+"Would you like to leave a message to "+ansi$(6)+sysopname$+ansi$(3)+" about a BBS listed"+cr$)
+  @msend(ansi$(3)+"in the database (Y/n)? ")
+  @mget(3,1,1,1)
+  IF car%>0 OR in$="NO"
+    GOTO sysmessexit
+  ENDIF
+  @msend(ansi$(5)+cr$+"Okay, then. Please include as much detail as possible."+cr$)
+  DELAY 2
+  IF ring!
+    @ser_purge
+  ENDIF
+  @lineeditor("NO","RAM:alter")
+  IF (msgaborted!=TRUE) OR (car%>0) OR (NOT EXIST("RAM:Alter"))
+    GOTO sysmessexit
+  ENDIF
+  '
+  @msend(cr$+cr$+ansi$(3)+"Posting your message in the Sysop's Mailbox..."+cr$)
+  @timeconv
+  @dateconv(DATE$)
+  IF EXIST(path$+"SysopMessages")
+    OPEN "A",#2,path$+"SysopMessages",1024
+  ELSE
+    OPEN "O",#2,path$+"SysopMessages",1024
+  ENDIF
+  PRINT #2
+  PRINT #2,"-----------------------------------------------------------------------"
+  PRINT #2
+  PRINT #2,"Message from: "+uname$+" left at: "+pd.time$+" on: "+pd.date$
+  PRINT #2
+  PRINT #2,"-----------------------------------------------------------------------"
+  '
+  PRINT #2
+  OPEN "I",#4,"RAM:Alter",1024
+  '
+  DO UNTIL EOF(#4)
+    LINE INPUT #4,xx$
+    PRINT #2,xx$
+  LOOP
+  PRINT #2
+  PRINT #2,"-----------------------------------------------------------------------"
+  PRINT #2
+  CLOSE #4
+  CLOSE #2
+  KILL "RAM:Alter"
+  '
+  sysmessexit:
+  in$=""
+  @msend(ansi$(0))
+  '
+RETURN
+'
+PROCEDURE spaceout(thing$,col%)
+  '
+  ' [Needs the string to format, and the column width it's going to]
+  ' [Returns spc% - the number of spaces required - 0 if field overflow]
+  '
+  IF LEN(thing$)>col%
+    spc%=0
+  ELSE
+    spc%=(col%-LEN(thing$))
+  ENDIF
+  '
+RETURN
+'
+PROCEDURE verboseoutput
+  '
+  @msend(CHR$(12)+cr$+cr$)
+  @msend(ansi$(2)+"There are "+ansi$(1)+STR$(bbss%)+ansi$(2)+" BBSs listed in the database."+cr$+cr$)
+  @msend(ansi$(3)+"Start your inspection at which one (outside limit aborts) ? "+ansi$(6))
+  @mget(4,4,0,1)
+  IF VAL(in$)<=0
+    in$="1"
+  ENDIF
+  IF car%>0 OR VAL(in$)>bbss%
+    GOTO verboseexit
+  ENDIF
+  '
+  k%=VAL(in$)
+  @dbaseprep
+  '
+  DO
+    dbaseread(k%)
+    @msend(CHR$(12)+cr$)
+    @msend(ansi$(1)+"Record Number: "+ansi$(7)+STR$(k%)+" of "+STR$(bbss%)+cr$+cr$)
+    @msend(ansi$(6)+"BBS Name     : "+ansi$(5)+bbsname$+cr$)
+    @msend(ansi$(6)+"Sysop Name   : "+ansi$(4)+bbssysn$+cr$)
+    @msend(ansi$(6)+"Phone Number : "+ansi$(3)+"("+bbsarea$+") "+bbsphon$+cr$)
+    @msend(ansi$(6)+"Software     : "+ansi$(2)+bbssoft$+cr$)
+    @msend(ansi$(6)+"Baud Rates   : "+ansi$(1))
+    '
+    IF bbs0300$<>"0"
+      @msend("300 ")
+    ENDIF
+    IF bbs1275$<>"0"
+      @msend("1200/75 ")
+    ENDIF
+    IF bbs1200$<>"0"
+      @msend("1200 ")
+    ENDIF
+    IF bbs2400$<>"0"
+      @msend("2400 ")
+    ENDIF
+    IF bbshigh$<>"0"
+      @msend("High Speed ")
+    ENDIF
+    @msend(cr$)
+    '
+    @msend(ansi$(6)+"Number Lines : "+ansi$(7)+bbsline$+cr$+cr$)
+    @msend(ansi$(6)+"Entered By   : "+ansi$(5)+bbsuser$+cr$)
+    @msend(ansi$(6)+"Last Revised : "+ansi$(3)+bbsdate$+cr$)
+    @msend(cr$+ansi$(2)+bbscomm$+cr$+cr$)
+    '
+    GOSUB tchk
+    EXIT IF car%>0
+    @msend(ansi$(2)+"("+ansi$(3)+STR$(rtime%)+" min"+ansi$(2)+")")
+    @msend(ansi$(1)+" [N]ext - [P]rev - [J]ump - ")
+    IF EXIST(path$+TRIM$(bbsname$)+".txt")
+      @msend("[D]etails - ")
+    ENDIF
+    @msend("[Q]uit"+cr$)
+    '
+    in$=""
+    WHILE in$<>"N" AND in$<>"J" AND in$<>"P" AND in$<>"Q" AND in$<>"D"
+      @mget(9,1,0,1)
+      EXIT IF car%>0
+    WEND
+    EXIT IF car%>0
+    xx$=in$
+    SELECT xx$
+    CASE "N"
+      INC k%
+    CASE "P"
+      DEC k%
+    CASE "J"
+      @msend(cr$+ansi$(7)+"Jump to which record number? ")
+      @mget(4,4,0,1)
+      k%=VAL(in$)
+      @msend(cr$)
+    CASE "Q"
+      k%=bbss%+20
+    CASE "D"
+      IF EXIST(path$+TRIM$(bbsname$)+".txt")
+        @msend(cr$+ansi$(6)+"The detailed entry for "+TRIM$(bbsname$)+" is as follows:"+cr$+cr$)
+        @msend(ansi$(3)+"'Space' or 'S' to ABORT - 'Ctrl-S' to PAUSE - 'Other Key' to RESTART"+cr$+cr$+cr$+ansi$(2))
+        DELAY 1
+        @seq.out(path$+TRIM$(bbsname$)+".txt")
+        @msend(ansi$(0))
+      ELSE
+        @msend(cr$+ansi$(3)+"Sorry, there is no detailed entry for "+TRIM$(bbsname$))
+      ENDIF
+      @press
+    ENDSELECT
+    '
+    EXIT IF k%>bbss% OR k%<1
+    EXIT IF car%>0
+  LOOP
+  '
+  CLOSE #3
+  '
+  verboseexit:
+  '
+RETURN
+'
+PROCEDURE terseoutput
+  '
+  @msend(CHR$(12))
+  @msend(ansi$(4)+"----------------------------------------------------------------------------"+cr$)
+  @msend(ansi$(1)+"                                                                3 1 1 2 H #"+cr$)
+  @msend(ansi$(1)+"Name of the         Name of the         Area  Phone   Software  0 2 2 4 I l"+cr$)
+  @msend(ansi$(1)+"Bulletin Board      Sysop               Code  Number  Used      0 7 0 0 G n"+cr$)
+  @msend(ansi$(1)+"                                                                  5 0 0 H s"+cr$)
+  @msend(ansi$(4)+"----------------------------------------------------------------------------"+ansi$(0)+cr$)
+  lncount%=6
+  @dbaseprep
+  FOR k%=1 TO bbss%
+    dbaseread(k%)
+    @msend(ansi$(3)+bbsname$)
+    @msend(ansi$(2)+bbssysn$)
+    @msend(ansi$(7)+"("+bbsarea$+") ")
+    @msend(ansi$(5)+bbsphon$+" ")
+    @msend(ansi$(6)+bbssoft$+" "+ansi$(3))
+    '
+    IF bbs0300$="0"
+      @msend("N ")
+    ELSE
+      @msend("Y ")
+    ENDIF
+    IF bbs1275$="0"
+      @msend("N ")
+    ELSE
+      @msend("Y ")
+    ENDIF
+    IF bbs1200$="0"
+      @msend("N ")
+    ELSE
+      @msend("Y ")
+    ENDIF
+    IF bbs2400$="0"
+      @msend("N ")
+    ELSE
+      @msend("Y ")
+    ENDIF
+    IF bbshigh$="0"
+      @msend("N ")
+    ELSE
+      @msend("Y ")
+    ENDIF
+    '
+    @msend(ansi$(1)+bbsline$+cr$)
+    INC lncount%
+    '
+    @mget(9,1,0,0)
+    IF abort!=TRUE OR car%>0
+      k%=bbss%+20
+    ENDIF
+    '
+    IF lncount%>=scrnht%
+      GOSUB pagepause
+    ENDIF
+    IF abort!=TRUE OR car%>0
+      k%=bbss%+20
+    ENDIF
+    '
+  NEXT k%
+  '
+  CLOSE #3
+  GOSUB press
+  '
+  '
+RETURN
+'
+PROCEDURE search
+  @msend(cr$+cr$+ansi$(1)+cr$+cr$+"Sorry, the search feature is not operational in the unregistered version."+cr$+cr$)
+  @msend("For a full version of the program please encourage your sysop,"+cr$)
+  @msend(ansi$(6)+sysopname$+ansi$(1)+" to send the small fee requested by the author."+cr$+cr$)
+  @msend("I'm sure you'll find it worthwhile, and the author could do with the money!"+cr$)
+  @press
+RETURN
+'
+PROCEDURE addentry
+  '
+  @msend(cr$+cr$+ansi$(3)+"You have selected to enter a new database entry."+cr$+cr$)
+  @msend(ansi$(6)+"Are you SURE you wish to add one (y/N)? "+ansi$(4))
+  @mget(3,1,0,1)
+  IF car%>0 OR in$="NO"
+    GOTO addexit
+  ENDIF
+  '
+  @msend(cr$+ansi$(5)+"Please enter all the details. If you wish to change them, you may do"+cr$)
+  @msend("so AFTER you add the record, by using the [E]dit function."+cr$+cr$)
+  @msend(ansi$(4)+"Also please note the BBS name must be 4 or more characters in length,"+cr$)
+  @msend("and should NOT contain the word 'BBS' - it will be stripped out anyway."+cr$+cr$)
+  '
+  @msend(ansi$(2)+"Record Number: "+ansi$(7)+STR$(bbss%+1)+cr$+cr$)
+  '
+  '
+  @msend(ansi$(6)+"BBS Name     : "+ansi$(7))
+  @mget(1,20,0,1)
+  IF car%>0 OR LEN(in$)<4
+    @msend(cr$+ansi$(1)+"BBS Name too short!")
+    DELAY 1
+    GOTO addexit
+  ENDIF
+  xx%=INSTR(UPPER$(in$),"BBS")
+  IF xx%>0
+    in$=TRIM$(MID$(in$,1,xx%-1))
+  ENDIF
+  in$=UPPER$(LEFT$(in$,1))+RIGHT$(in$,LEN(in$)-1)
+  '
+  xx$=in$
+  xx1$=UPPER$(MID$(xx$,2,LEN(xx$)-2))
+  '
+  @msend(ansi$(6)+"Checking     : "+ansi$(7))
+  @dbaseprep
+  dup!=FALSE
+  FOR k%=1 TO bbss%
+    IF k% MOD 5=0
+      @msend(".")
+    ENDIF
+    @dbaseread(k%)
+    IF INSTR(UPPER$(bbsname$),xx1$)>0
+      dup!=TRUE
+    ENDIF
+  NEXT k%
+  @msend(cr$)
+  CLOSE #3
+  '
+  IF dup!=TRUE
+    @msend(cr$+cr$+ansi$(1)+"I'm sorry, there is a BBS with the string '"+xx1$+"'"+cr$)
+    @msend("in the database. Maybe it's already been entered."+cr$)
+    IF lev%<sysop%
+      @press
+      GOTO addexit
+    ELSE
+      @msend(ansi$(3)+cr$+"Add the entry anyway (y/N)? ")
+      @mget(3,1,0,1)
+      IF car%>0 OR in$="NO"
+        GOTO addexit
+      ENDIF
+    ENDIF
+  ENDIF
+  '
+  bbsname$=xx$
+  '
+  addentry1:
+  '
+  @msend(ansi$(6)+"Sysop Name   : "+ansi$(7))
+  @mget(1,20,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF LEN(in$)<4
+    @msend(ansi$(1)+"Sysop name too short!"+cr$)
+    GOTO addentry1
+  ENDIF
+  in$=UPPER$(LEFT$(in$,1))+RIGHT$(in$,LEN(in$)-1)
+  bbssysn$=in$
+  '
+  addentry2:
+  '
+  @msend(ansi$(6)+"Area Code    : "+ansi$(7))
+  @mget(4,3,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF LEN(in$)<2
+    @msend(ansi$(1)+"You need 2 or 3 digits for that!"+cr$)
+    GOTO addentry2
+  ENDIF
+  bbsarea$=in$
+  '
+  addentry3:
+  '
+  @msend(ansi$(6)+"Phone Number : "+ansi$(7))
+  @mget(4,7,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF LEN(in$)<5
+    @msend(ansi$(1)+"We need at least 5 digits here!"+cr$)
+    GOTO addentry3
+  ENDIF
+  bbsphon$=in$
+  '
+  @msend(ansi$(6)+"Software     : "+ansi$(7))
+  @mget(1,9,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  ' take this one regardless - not crucial
+  bbssoft$=in$
+  '
+  @msend(ansi$(6)+"Baud Rates   : "+ansi$(7)+cr$)
+  '
+  @msend(ansi$(6)+"300 (y/N)    : "+ansi$(7))
+  @mget(3,1,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF in$="YES"
+    bbs0300$="1"
+  ELSE
+    bbs0300$="0"
+  ENDIF
+  '
+  @msend(ansi$(6)+"1200/75 (y/N): "+ansi$(7))
+  @mget(3,1,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF in$="YES"
+    bbs1275$="1"
+  ELSE
+    bbs1275$="0"
+  ENDIF
+  '
+  @msend(ansi$(6)+"1200 (y/N)   : "+ansi$(7))
+  @mget(3,1,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF in$="YES"
+    bbs1200$="1"
+  ELSE
+    bbs1200$="0"
+  ENDIF
+  '
+  @msend(ansi$(6)+"2400 (y/N)   : "+ansi$(7))
+  @mget(3,1,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF in$="YES"
+    bbs2400$="1"
+  ELSE
+    bbs2400$="0"
+  ENDIF
+  '
+  @msend(ansi$(6)+"Higher (y/N) : "+ansi$(7))
+  @mget(3,1,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF in$="YES"
+    bbshigh$="1"
+  ELSE
+    bbshigh$="0"
+  ENDIF
+  '
+  addentry5:
+  '
+  @msend(ansi$(6)+"Number Lines : "+ansi$(7))
+  @mget(4,2,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF VAL(in$)<1
+    @msend(ansi$(1)+"I think you need more than 0 lines to run a BBS!"+cr$)
+    GOTO addentry5
+  ENDIF
+  bbsline$=in$
+  '
+  bbsuser$=uname$
+  @msend(ansi$(6)+"Entered By   : "+ansi$(7)+bbsuser$+cr$)
+  @dateconv(DATE$)
+  bbsdate$=pd.date$
+  @msend(ansi$(6)+"Last Revised : "+ansi$(7)+bbsdate$+cr$)
+  '
+  addentry6:
+  '
+  @msend(ansi$(6)+"Please enter a 1-line comment : "+cr$+cr$)
+  @msend(": "+ansi$(7))
+  @mget(1,76,0,1)
+  IF car%>0
+    GOTO addexit
+  ENDIF
+  IF LEN(in$)<8
+    @msend(ansi$(1)+"You can do better than that, surely!"+cr$)
+    GOTO addentry6
+  ENDIF
+  bbscomm$=in$
+  '
+  @msend(CHR$(7)+cr$+ansi$(2)+"Here are the details you've supplied"+cr$+cr$)
+  '
+  @msend(ansi$(6)+"BBS Name     : "+ansi$(5)+bbsname$+cr$)
+  @msend(ansi$(6)+"Sysop Name   : "+ansi$(4)+bbssysn$+cr$)
+  @msend(ansi$(6)+"Phone Number : "+ansi$(3)+"("+bbsarea$+") "+bbsphon$+cr$)
+  @msend(ansi$(6)+"Software     : "+ansi$(2)+bbssoft$+cr$)
+  @msend(ansi$(6)+"Baud Rates   : "+ansi$(1))
+  '
+  IF bbs0300$<>"0"
+    @msend("300 ")
+  ENDIF
+  IF bbs1275$<>"0"
+    @msend("1200/75 ")
+  ENDIF
+  IF bbs1200$<>"0"
+    @msend("1200 ")
+  ENDIF
+  IF bbs2400$<>"0"
+    @msend("2400 ")
+  ENDIF
+  IF bbshigh$<>"0"
+    @msend("High Speed ")
+  ENDIF
+  @msend(cr$)
+  '
+  @msend(ansi$(6)+"Number Lines : "+ansi$(7)+bbsline$+cr$+cr$)
+  @msend(ansi$(6)+"Entered By   : "+ansi$(5)+bbsuser$+cr$)
+  @msend(ansi$(6)+"Last Revised : "+ansi$(3)+bbsdate$+cr$)
+  @msend(cr$+ansi$(2)+bbscomm$+cr$+cr$)
+  '
+  @msend(ansi$(1)+"Will we add this listing to the database (Y/n)? "+ansi$(4))
+  @mget(3,1,1,1)
+  IF in$="NO"
+    @msend(cr$+ansi$(3)+"Okay - addition aborted!")
+    DELAY 1
+    GOTO addexit
+  ENDIF
+  '
+  @msend(cr$+ansi$(5)+"Adding entry...")
+  @dbaseprep
+  @dbasewrite(bbss%+1)
+  CLOSE #3
+  @msend("...done!"+cr$)
+  '
+  @msend(cr$+ansi$(2)+"Do you wish to supply a detailed description (Y/n)? ")
+  @mget(3,1,1,1)
+  IF car%>0 OR in$="NO"
+    GOTO addexit
+  ENDIF
+  @lineeditor("NO",path$+TRIM$(bbsname$)+".txt")
+  '
+  addexit:
+RETURN
+'
+PROCEDURE editentry
+  '
+  '
+  @msend(cr$+cr$+ansi$(3)+"You have chosen to [E]dit an entry in our database."+cr$+cr$)
+  @msend(ansi$(6)+"Enter at least 4 chars of the BBS name: "+ansi$(5))
+  @mget(1,20,0,1)
+  IF car%>0
+    GOTO editexit
+  ENDIF
+  IF LEN(in$)<4
+    @msend(cr$+ansi$(1)+"BBS Name too short!")
+    DELAY 2
+    GOTO editexit
+  ENDIF
+  '
+  xx%=INSTR(UPPER$(in$),"BBS")
+  IF xx%>0
+    in$=TRIM$(MID$(in$,1,xx%-1))
+  ENDIF
+  in$=UPPER$(LEFT$(in$,1))+RIGHT$(in$,LEN(in$)-1)
+  '
+  xx$=in$
+  xx1$=UPPER$(MID$(xx$,2,LEN(xx$)-2))
+  '
+  @msend(cr$+ansi$(4)+"Checking "+ansi$(7))
+  @dbaseprep
+  dup%=0
+  dup!=FALSE
+  FOR k%=1 TO bbss%
+    IF k% MOD 5=0
+      @msend(".")
+    ENDIF
+    @dbaseread(k%)
+    IF INSTR(UPPER$(bbsname$),xx1$)>0
+      dup!=TRUE
+      dup%=k%
+    ENDIF
+  NEXT k%
+  @msend(cr$)
+  CLOSE #3
+  '
+  IF dup%=0 OR dup!=FALSE OR dup%>bbss%
+    @msend(ansi$(1)+cr$+"Sorry, no record contains the string '"+xx1$+"'.")
+    @press
+    GOTO editexit
+  ENDIF
+  '
+  @dbaseprep
+  dbaseread(dup%)
+  CLOSE #3
+  '
+  editlooptop:
+  '
+  IF car%>0
+    GOTO editexit
+  ENDIF
+  '
+  @msend(CHR$(12)+cr$)
+  @msend(ansi$(3)+"Here's the entry as it stands."+cr$+cr$)
+  @msend(ansi$(1)+"<-> "+ansi$(6)+"Record Number: "+ansi$(7)+STR$(dup%)+" of "+STR$(bbss%)+cr$+cr$)
+  @msend(ansi$(1)+"<1> "+ansi$(6)+"BBS Name     : "+ansi$(5)+bbsname$+cr$)
+  @msend(ansi$(1)+"<2> "+ansi$(6)+"Sysop Name   : "+ansi$(4)+bbssysn$+cr$)
+  @msend(ansi$(1)+"<3> "+ansi$(6)+"Phone Number : "+ansi$(3)+"("+bbsarea$+") "+bbsphon$+cr$)
+  @msend(ansi$(1)+"<4> "+ansi$(6)+"Software     : "+ansi$(2)+bbssoft$+cr$)
+  @msend(ansi$(1)+"<5> "+ansi$(6)+"Baud Rates   : "+ansi$(1))
+  '
+  IF bbs0300$<>"0"
+    @msend("300 ")
+  ENDIF
+  IF bbs1275$<>"0"
+    @msend("1200/75 ")
+  ENDIF
+  IF bbs1200$<>"0"
+    @msend("1200 ")
+  ENDIF
+  IF bbs2400$<>"0"
+    @msend("2400 ")
+  ENDIF
+  IF bbshigh$<>"0"
+    @msend("High Speed ")
+  ENDIF
+  @msend(cr$)
+  '
+  @msend(ansi$(1)+"<6> "+ansi$(6)+"Number Lines : "+ansi$(7)+bbsline$+cr$+cr$)
+  @msend(ansi$(1)+"<-> "+ansi$(6)+"Entered By   : "+ansi$(5)+bbsuser$+cr$)
+  @msend(ansi$(1)+"<-> "+ansi$(6)+"Last Revised : "+ansi$(3)+bbsdate$+cr$+cr$)
+  @msend(ansi$(1)+"<7> "+ansi$(6)+"Comment line : "+cr$+cr$+ansi$(2)+bbscomm$+cr$+cr$)
+  '
+  IF uname$="PETER DEANE"
+    GOTO myownjump
+  ENDIF
+  '
+  IF lev%<sysop%
+    IF INSTR(UPPER$(bbssysn$),uname$)=0 AND INSTR(bbsuser$,uname$)=0
+      @msend(ansi$(1)+"You aren't the sysop of the listed BBS, or the original poster of the entry,"+cr$)
+      @msend("so you are not permitted to edit it directly."+cr$+cr$)
+      @msend(ansi$(3)+"Would you like to leave a message to "+sysopname$+cr$)
+      @msend("about this BBS's entry in the database (Y/n)? ")
+      @mget(3,1,1,1)
+      IF car%>0 OR in$="NO"
+        GOTO editexit
+      ENDIF
+      @msend(ansi$(5)+cr$+"Okay, then. Please include as much detail as possible about the"+cr$)
+      @msend("changes. The system will already note all the above details for you,"+cr$)
+      @msend("so there is no need for you to repeat them in your message."+cr$)
+      @press
+      @lineeditor("NO","RAM:alter")
+      IF msgaborted!=TRUE OR car%>0 OR (NOT EXIST("RAM:Alter"))
+        GOTO editexit
+      ENDIF
+      '
+      @msend(cr$+cr$+ansi$(3)+"Posting your message in the Sysop's Mailbox..."+cr$)
+      @timeconv
+      @dateconv(DATE$)
+      IF EXIST(path$+"SysopMessages")
+        OPEN "A",#2,path$+"SysopMessages",1024
+      ELSE
+        OPEN "O",#2,path$+"SysopMessages",1024
+      ENDIF
+      PRINT #2
+      PRINT #2,"-----------------------------------------------------------------------"
+      PRINT #2
+      PRINT #2,"Message from: "+uname$+" left at: "+pd.time$+" on: "+pd.date$
+      PRINT #2
+      PRINT #2,"-----------------------------------------------------------------------"
+      PRINT #2,"Record Number: "+STR$(dup%)
+      PRINT #2,"BBS Name     : "+bbsname$
+      PRINT #2,"Sysop Name   : "+bbssysn$
+      PRINT #2,"Phone Number : "+"("+bbsarea$+") "+bbsphon$
+      PRINT #2,"Software     : "+bbssoft$
+      PRINT #2,"Baud Rates   : ";
+      '
+      IF bbs0300$<>"0"
+        PRINT #2,"300 ";
+      ENDIF
+      IF bbs1275$<>"0"
+        PRINT #2,"1200/75 ";
+      ENDIF
+      IF bbs1200$<>"0"
+        PRINT #2,"1200 ";
+      ENDIF
+      IF bbs2400$<>"0"
+        PRINT #2,"2400 ";
+      ENDIF
+      IF bbshigh$<>"0"
+        PRINT #2,"High Speed ";
+      ENDIF
+      PRINT #2
+      PRINT #2,"Number Lines : "+bbsline$
+      PRINT #2
+      PRINT #2,"Entered By   : "+bbsuser$
+      PRINT #2,"Last Revised : "+bbsdate$
+      PRINT #2,
+      PRINT #2,bbscomm$
+      PRINT #2,"-----------------------------------------------------------------------"
+      PRINT #2
+      OPEN "I",#4,"RAM:Alter",1024
+      '
+      DO UNTIL EOF(#4)
+        LINE INPUT #4,xx$
+        PRINT #2,xx$
+      LOOP
+      PRINT #2
+      PRINT #2,"-----------------------------------------------------------------------"
+      PRINT #2
+      CLOSE #4
+      CLOSE #2
+      KILL "RAM:Alter"
+      GOTO editexit
+      '
+    ENDIF
+  ENDIF
+  '
+  myownjump:
+  '
+  in$=""
+  @msend(ansi$(3)+"Edit which part (1-7, 0=SAVE/EXIT) ? ")
+  @mget(0,1,0,1)
+  @msend(cr$)
+  IF car%>0
+    GOTO editexit
+  ENDIF
+  '
+  '
+  IF INSTR(UPPER$(bbssysn$),uname$)>0
+    bbsuser$=uname$
+  ENDIF
+  '
+  ed%=VAL(in$)
+  '
+  IF ed%=0
+    GOTO editjump
+  ENDIF
+  '
+  IF ed%=1
+    '
+    @msend(ansi$(6)+"BBS Name     : "+ansi$(7))
+    @mget(1,20,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF LEN(in$)<4
+      @msend(cr$+ansi$(1)+"BBS Name too short!")
+      DELAY 2
+      GOTO editlooptop
+    ENDIF
+    '
+    xx%=INSTR(UPPER$(in$),"BBS")
+    IF xx%>0
+      in$=TRIM$(MID$(in$,1,xx%-1))
+    ENDIF
+    in$=UPPER$(LEFT$(in$,1))+RIGHT$(in$,LEN(in$)-1)
+    '
+    xx$=in$
+    xx1$=UPPER$(MID$(xx$,2,LEN(xx$)-2))
+    '
+    @msend(cr$+ansi$(4)+"Checking     : "+ansi$(7))
+    @dbaseprep
+    dup!=FALSE
+    FOR k%=1 TO bbss%
+      IF k% MOD 5=0
+        @msend(".")
+      ENDIF
+      GET #3,k%
+      xx2$=bnm$
+      IF INSTR(UPPER$(xx2$),xx1$)>0
+        dup!=TRUE
+      ENDIF
+    NEXT k%
+    @msend(cr$)
+    CLOSE #3
+    '
+    IF dup!=TRUE
+      @msend(cr$+cr$+ansi$(1)+"I'm sorry, there is already a BBS with the string '"+xx1$+"'"+cr$)
+      @msend("in the database. Name not changed."+cr$)
+      DELAY 2
+      GOTO editlooptop
+    ENDIF
+    '
+    f1$=path$+TRIM$(bbsname$)+".txt"
+    f2$=path$+TRIM$(xx$)+".txt"
+    IF EXIST(f1$)
+      IF EXIST(f2$)
+        KILL f2$
+      ENDIF
+      NAME f1$ AS f2$
+    ENDIF
+    bbsname$=xx$
+    '
+  ENDIF
+  '
+  '
+  IF ed%=2
+    '
+    @msend(ansi$(6)+"Sysop Name   : "+ansi$(7))
+    @mget(1,20,0,1)
+    IF LEN(in$)<4
+      @msend(ansi$(1)+"Sysop name too short!"+cr$)
+      DELAY 2
+      GOTO editlooptop
+    ENDIF
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    in$=UPPER$(LEFT$(in$,1))+RIGHT$(in$,LEN(in$)-1)
+    '
+    bbssysn$=in$
+  ENDIF
+  '
+  '
+  IF ed%=3
+    '
+    @msend(ansi$(6)+"Area Code    : "+ansi$(7))
+    @mget(4,3,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF LEN(in$)<2
+      @msend(ansi$(1)+"You need 2 or 3 digits for that!"+cr$)
+      DELAY 2
+      GOTO editlooptop
+    ENDIF
+    bbsarea$=in$
+    '
+    '
+    @msend(ansi$(6)+"Phone Number : "+ansi$(7))
+    @mget(4,7,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF LEN(in$)<5
+      @msend(ansi$(1)+"We need at least 5 digits here!"+cr$)
+      DELAY 2
+      GOTO editlooptop
+    ENDIF
+    bbsphon$=in$
+    '
+  ENDIF
+  '
+  '
+  IF ed%=4
+    '
+    @msend(ansi$(6)+"Software     : "+ansi$(7))
+    @mget(1,9,0,1)
+    ' take this one regardless - not crucial
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    bbssoft$=in$
+    '
+  ENDIF
+  '
+  '
+  IF ed%=5
+    '
+    @msend(ansi$(5)+"Baud Rates   : "+ansi$(7)+cr$)
+    '
+    @msend(ansi$(6)+"300 (y/N)    : "+ansi$(7))
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF in$="YES"
+      bbs0300$="1"
+    ELSE
+      bbs0300$="0"
+    ENDIF
+    '
+    @msend(ansi$(6)+"1200/75 (y/N): "+ansi$(7))
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF in$="YES"
+      bbs1275$="1"
+    ELSE
+      bbs1275$="0"
+    ENDIF
+    '
+    @msend(ansi$(6)+"1200 (y/N)   : "+ansi$(7))
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF in$="YES"
+      bbs1200$="1"
+    ELSE
+      bbs1200$="0"
+    ENDIF
+    '
+    @msend(ansi$(6)+"2400 (y/N)   : "+ansi$(7))
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF in$="YES"
+      bbs2400$="1"
+    ELSE
+      bbs2400$="0"
+    ENDIF
+    '
+    @msend(ansi$(6)+"Higher (y/N) : "+ansi$(7))
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF in$="YES"
+      bbshigh$="1"
+    ELSE
+      bbshigh$="0"
+    ENDIF
+    '
+  ENDIF
+  '
+  IF ed%=6
+    '
+    @msend(ansi$(6)+"Number Lines : "+ansi$(7))
+    @mget(4,2,0,1)
+    IF car%>0
+      GOTO editexit
+    ENDIF
+    IF VAL(in$)<1
+      @msend(ansi$(1)+"I think you need more than 0 lines to run a BBS!"+cr$)
+      DELAY 1
+      GOTO editlooptop
+    ENDIF
+    '
+    bbsline$=in$
+    '
+  ENDIF
+  '
+  '
+  IF ed%=7
+    '
+    @msend(ansi$(6)+"Please enter a 1-line comment : "+cr$+cr$)
+    @msend(": "+ansi$(7))
+    @mget(1,76,0,1)
+    IF car%>0
+      GOTO editloopexit
+    ENDIF
+    IF LEN(in$)<8
+      @msend(ansi$(1)+"You can do better than that, surely!"+cr$)
+      DELAY 1
+      GOTO editlooptop
+    ENDIF
+    '
+    bbscomm$=in$
+    '
+  ENDIF
+  '
+  GOTO editlooptop
+  '
+  editjump:
+  '
+  @msend(cr$+cr$+ansi$(1)+"Save the new version of this entry (Y/n)? "+ansi$(4))
+  @mget(3,1,1,1)
+  '
+  IF car%>0
+    GOTO editexit
+  ENDIF
+  '
+  IF in$="NO"
+    @msend(cr$+ansi$(3)+"Okay - changes aborted!"+cr$+cr$)
+  ELSE
+    '
+    @msend(cr$+ansi$(5)+"Rewriting entry...")
+    @dateconv(DATE$)
+    bbsdate$=pd.date$
+    @dbaseprep
+    @dbasewrite(dup%)
+    CLOSE #3
+    @msend("...done!"+cr$)
+    '
+  ENDIF
+  '
+  @msend(cr$+ansi$(2)+"Do you wish to edit (or add) the detailed description (Y/n)? ")
+  @mget(3,1,1,1)
+  IF car%>0 OR in$="NO"
+    GOTO editexit
+  ENDIF
+  IF EXIST(path$+TRIM$(bbsname$)+".txt")
+    @lineeditor(path$+TRIM$(bbsname$)+".txt",path$+TRIM$(bbsname$)+".txt")
+  ELSE
+    @lineeditor("NO",path$+TRIM$(bbsname$)+".txt")
+  ENDIF
+  '
+  editexit:
+  '
+RETURN
+'
+PROCEDURE maintain
+  '
+  maintentrance:
+  '
+  IF lev%<sysop% OR car%>0
+    GOTO maintexit
+  ENDIF
+  PRINT CHR$(27)+"[1 p"
+  '
+  @msend(CHR$(12)+cr$)
+  @killkeys
+  @msend(cr$+ansi$(7)+"-----------------------"+cr$)
+  @msend(ansi$(3)+"   Sysop Maintenance"+cr$)
+  @msend(ansi$(7)+"-----------------------"+cr$+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"C"+ansi$(3)+">"+ansi$(4)+"heck User Messages"+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"F"+ansi$(3)+">"+ansi$(5)+"iles List"+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"V"+ansi$(3)+">"+ansi$(6)+"iew a File"+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"B"+ansi$(3)+">"+ansi$(7)+"ackup a File"+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"D"+ansi$(3)+">"+ansi$(2)+"elete a File"+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"R"+ansi$(3)+">"+ansi$(4)+"ename a File"+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"T"+ansi$(3)+">"+ansi$(5)+"ext Editor"+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"E"+ansi$(3)+">"+ansi$(6)+"rase Database Entry"+cr$)
+  @msend(ansi$(3)+"<"+ansi$(1)+"K"+ansi$(3)+">"+ansi$(7)+"ill Entire Database"+cr$)
+  @msend(cr$+ansi$(3)+"<"+ansi$(1)+"Q"+ansi$(3)+">"+ansi$(2)+"uit Maintenance"+cr$+cr$)
+  '
+  GOSUB tchk
+  @msend(ansi$(2)+"("+ansi$(3)+STR$(rtime%)+" min"+ansi$(2)+")"+ansi$(1)+" Yeah, boss? "+ansi$(6))
+  @mget(0,1,0,1)
+  IF car%>0 OR in$="Q"
+    GOTO maintexit
+  ENDIF
+  '
+  IF in$="F"
+    @msend(ansi$(2)+cr$+cr$+"Files in the directory: "+ansi$(6)+path$+cr$+cr$+ansi$(5))
+    FILES path$ TO "RAM:bbbase.temp"
+    seq.out("RAM:BBBase.temp")
+    @press
+    IF EXIST("ram:BBBase.temp")
+      KILL "RAM:BBBase.temp"
+    ENDIF
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  IF in$="V"
+    @msend(cr$+cr$+ansi$(3)+"View a file."+cr$+cr$+"WARNING: Do not use for binary files!"+cr$+cr$)
+    @msend(ansi$(6)+"Input filename to view: "+ansi$(7))
+    @mget(2,32,0,1)
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    f1$=path$+in$
+    '
+    IF (NOT EXIST(f1$)) OR (in$="")
+      @msend(cr$+cr$+ansi$(1)+"File not found!!")
+      @press
+      IF car%>0
+        GOTO maintexit
+      ELSE
+        in$=""
+        GOTO maintentrance
+      ENDIF
+    ENDIF
+    '
+    @msend(cr$+cr$)
+    @seq.out(f1$)
+    @press
+    '
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  '
+  IF in$="T"
+    @msend(cr$+cr$+ansi$(3)+"Call text editor on a file."+cr$+cr$+"WARNING: Do not use for binary files!"+cr$+cr$)
+    @msend("Also if the file is more than 250 lines long, [A]bort it immediately!"+cr$+"Do NOT [S]ave it!!"+cr$+cr$)
+    @msend(ansi$(6)+"Input filename to edit: "+ansi$(7))
+    @mget(2,32,0,1)
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    f1$=path$+in$
+    '
+    IF (NOT EXIST(f1$)) OR (in$="")
+      @msend(cr$+cr$+ansi$(1)+"File not found!!")
+      @press
+      IF car%>0
+        GOTO maintexit
+      ELSE
+        in$=""
+        GOTO maintentrance
+      ENDIF
+    ENDIF
+    '
+    @msend(cr$+cr$)
+    lineeditor(f1$,f1$)
+    @press
+    '
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  '
+  IF in$="B"
+    @msend(cr$+cr$+ansi$(3)+"Backup a file."+cr$+cr$)
+    @msend(ansi$(6)+"Input source filename: "+ansi$(7))
+    @mget(2,32,0,1)
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    f1$=path$+in$
+    '
+    IF (NOT EXIST(f1$)) OR (in$="")
+      @msend(cr$+cr$+ansi$(1)+"File not found!!")
+      @press
+      IF car%>0
+        GOTO maintexit
+      ELSE
+        in$=""
+        GOTO maintentrance
+      ENDIF
+    ENDIF
+    '
+    EXEC "SYS:C/copy "+CHR$(34)+f1$+CHR$(34)+" to "+CHR$(34)+f1$+".bak"+CHR$(34),-1,-1
+    @msend(cr$+cr$+ansi$(2)+"File backed up to "+ansi$(5)+f1$+".bak")
+    DELAY 2
+    '
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  IF in$="R"
+    @msend(cr$+cr$+ansi$(3)+"Rename a file."+cr$+cr$)
+    @msend(ansi$(6)+"Input source filename: "+ansi$(7))
+    @mget(2,32,0,1)
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    '
+    IF (NOT EXIST(path$+in$)) OR (LEFT$(in$,4)="DOOR") OR (in$="")
+      @msend(cr$+cr$+ansi$(1)+"File not found!!")
+      @press
+      IF car%>0
+        GOTO maintexit
+      ELSE
+        in$=""
+        GOTO maintentrance
+      ENDIF
+    ENDIF
+    '
+    f1$=path$+in$
+    '
+    @msend(cr$+ansi$(6)+"Input destination filename: "+ansi$(7))
+    @mget(2,32,0,1)
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    '
+    IF EXIST(path$+in$) OR in$=""
+      @msend(cr$+cr$+ansi$(1)+"Destination file already exists!! You'll have to [D]elete it first.")
+      @press
+      IF car%>0
+        GOTO maintexit
+      ELSE
+        in$=""
+        GOTO maintentrance
+      ENDIF
+    ENDIF
+    '
+    f2$=path$+in$
+    NAME f1$ AS f2$
+    f1$=""
+    f2$=""
+    @msend(cr$+cr$+ansi$(2)+"File renamed.")
+    DELAY 2
+    '
+    in$=""
+  ENDIF
+  '
+  '
+  IF in$="D"
+    @msend(cr$+cr$+ansi$(3)+"Delete a file."+cr$+cr$)
+    @msend(ansi$(6)+"Input kill filename: "+ansi$(7))
+    @mget(2,32,0,1)
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    '
+    IF (NOT EXIST(path$+in$)) OR (LEFT$(in$,4)="DOOR") OR (in$="")
+      @msend(cr$+cr$+ansi$(1)+"File not found!!")
+      @press
+      IF car%>0
+        GOTO maintexit
+      ELSE
+        in$=""
+        GOTO maintentrance
+      ENDIF
+    ENDIF
+    '
+    f1$=path$+in$
+    @msend(CHR$(7)+cr$+ansi$(3)+"Are you sure you wish to delete "+ansi$(6)+f1$+ansi$(3)+" (y/N)? ")
+    @mget(3,1,0,1)
+    '
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    '
+    IF in$="YES"
+      KILL f1$
+      @msend(cr$+cr$+ansi$(6)+"File deleted.")
+      DELAY 2
+    ELSE
+      @msend(cr$+cr$+ansi$(6)+"Okay, it's still there!")
+    ENDIF
+    '
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  '
+  IF in$="C"
+    IF EXIST(path$+"SysopMessages")
+      seq.out(path$+"SysopMessages")
+      IF car%>0
+        GOTO maintexit
+      ENDIF
+      @msend(cr$+cr$+ansi$(1)+"Delete the messages (y/N)? ")
+      @mget(3,1,0,1)
+      IF in$="YES"
+        KILL path$+"SysopMessages"
+      ENDIF
+    ELSE
+      @msend(ansi$(1)+cr$+"No messages today! Hmph!")
+      @press
+    ENDIF
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    in$=""
+  ENDIF
+  '
+  IF in$="E"
+    @msend(cr$+cr$+ansi$(2)+"You have chosen to erase an entry in our database."+cr$+cr$)
+    @msend(ansi$(6)+"Please enter the name (full or partial) of the BBS to kill: "+ansi$(5))
+    @mget(1,20,0,1)
+    IF car%>0
+      GOTO maintexit
+    ENDIF
+    IF LEN(in$)<4
+      @msend(cr$+ansi$(1)+"BBS Name too short!")
+      DELAY 2
+      GOTO maintentrance
+    ENDIF
+    '
+    xx%=INSTR(UPPER$(in$),"BBS")
+    IF xx%>0
+      in$=TRIM$(MID$(in$,1,xx%-1))
+    ENDIF
+    in$=UPPER$(LEFT$(in$,1))+RIGHT$(in$,LEN(in$)-1)
+    '
+    xx$=in$
+    xx1$=UPPER$(MID$(xx$,2,LEN(xx$)-2))
+    '
+    @msend(cr$+ansi$(4)+"Checking "+ansi$(7))
+    @dbaseprep
+    dup%=0
+    dup!=FALSE
+    FOR k%=1 TO bbss%
+      IF k% MOD 5=0
+        @msend(".")
+      ENDIF
+      @dbaseread(k%)
+      IF INSTR(UPPER$(bbsname$),xx1$)>0
+        dup!=TRUE
+        dup%=k%
+      ENDIF
+    NEXT k%
+    @msend(cr$)
+    CLOSE #3
+    '
+    IF dup%=0 OR dup!=FALSE OR dup%>bbss%
+      @msend(ansi$(1)+cr$+"Sorry, no record contains the string '"+xx1$+"'.")
+      @press
+      IF car%>0
+        GOTO maintexit
+      ENDIF
+      GOTO maintentrance
+    ENDIF
+    '
+    @dbaseprep
+    dbaseread(dup%)
+    CLOSE #3
+    '
+    @msend(CHR$(12)+cr$)
+    @msend(ansi$(3)+"Here's the entry as it stands."+cr$+cr$)
+    @msend(ansi$(6)+"Record Number: "+ansi$(7)+STR$(dup%)+" of "+STR$(bbss%)+cr$+cr$)
+    @msend(ansi$(6)+"BBS Name     : "+ansi$(5)+bbsname$+cr$)
+    @msend(ansi$(6)+"Sysop Name   : "+ansi$(4)+bbssysn$+cr$)
+    @msend(ansi$(6)+"Phone Number : "+ansi$(3)+"("+bbsarea$+") "+bbsphon$+cr$)
+    @msend(ansi$(6)+"Software     : "+ansi$(2)+bbssoft$+cr$)
+    @msend(ansi$(6)+"Baud Rates   : "+ansi$(1))
+    '
+    IF bbs0300$<>"0"
+      @msend("300 ")
+    ENDIF
+    IF bbs1275$<>"0"
+      @msend("1200/75 ")
+    ENDIF
+    IF bbs1200$<>"0"
+      @msend("1200 ")
+    ENDIF
+    IF bbs2400$<>"0"
+      @msend("2400 ")
+    ENDIF
+    IF bbshigh$<>"0"
+      @msend("High Speed ")
+    ENDIF
+    @msend(cr$)
+    '
+    @msend(ansi$(6)+"Number Lines : "+ansi$(7)+bbsline$+cr$+cr$)
+    @msend(ansi$(6)+"Entered By   : "+ansi$(5)+bbsuser$+cr$)
+    @msend(ansi$(6)+"Last Revised : "+ansi$(3)+bbsdate$+cr$+cr$)
+    @msend(ansi$(6)+"Comment line :"+cr$+cr$+ansi$(2)+bbscomm$+cr$+cr$)
+    '
+    @msend(ansi$(3)+"Kill this entry (y/N)? ")
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO maintexit
+    ELSE IF in$="NO"
+      GOTO maintentrance
+    ENDIF
+    @msend(CHR$(7)+ansi$(5)+"Are you sure (y/N)? ")
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO maintexit
+    ELSE IF in$="NO"
+      GOTO maintentrance
+    ENDIF
+    '
+    @dbaseprep
+    '
+    OPEN "R",#4,path$+"bbbase.new",177
+    FIELD #4,20 AS nbnm$,20 AS nbsy$,25 AS nbus$,9 AS nbdt$,3 AS nbar$,7 AS nbph$,9 AS nbso$,1 AS nb30$,1 AS nb75$,1 AS nb12$,1 AS nb24$,1 AS nbhi$,2 AS nbli$,77 AS nbco$
+    '
+    k%=0
+    WHILE k%<bbss%
+      INC k%
+      GET #3,k%
+      IF k%<>dup%
+        LSET nbnm$=bnm$
+        LSET nbsy$=bsy$
+        LSET nbus$=bus$
+        LSET nbdt$=bdt$
+        LSET nbar$=bar$
+        LSET nbph$=bph$
+        LSET nbso$=bso$
+        LSET nb30$=b30$
+        LSET nb75$=b75$
+        LSET nb12$=b12$
+        LSET nb24$=b24$
+        LSET nbhi$=bhi$
+        LSET nbli$=bli$
+        LSET nbco$=bco$
+        IF k%<dup%
+          PUT #4,k%
+        ELSE IF k%>dup%
+          PUT #4,k%-1
+        ENDIF
+      ENDIF
+      '
+      '
+    WEND
+    '
+    CLOSE #3
+    CLOSE #4
+    '
+    KILL path$+"BBBase.dat"
+    NAME path$+"BBBase.new" AS path$+"BBBase.dat"
+    in$=""
+    GOTO maintexit
+  ENDIF
+  '
+  IF in$="K"
+    @msend(CHR$(7)+cr$+cr$+ansi$(1)+"Kill the entire database!!!"+cr$+cr$)
+    @msend(ansi$(3)+"This is pretty drastic - and if you do so, you will have"+cr$)
+    @msend("to quit the door immediately and re-enter."+cr$+cr$)
+    @msend(ansi$(5)+"Are you sure you are in sound mind and body (y/N)? ")
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO maintexit
+    ELSE IF in$="NO"
+      GOTO maintentrance
+    ENDIF
+    @msend(cr$+cr$+CHR$(7)+ansi$(6)+"Final chance - are you sure you wanna kill it all (y/N)? ")
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO maintexit
+    ELSE IF in$="NO"
+      GOTO maintentrance
+    ENDIF
+    IF EXIST(path$+"BBbase.killed")
+      KILL path$+"BBBase.killed"
+    ENDIF
+    NAME path$+"BBBASE.dat" AS path$+"BBBase.killed"
+    @msend(cr$+cr$+ansi$(2)+"File renamed in directory (you might want it back later) !!")
+    @press
+    @msend(cr$+cr$+ansi$(4)+"Bye-Bye!")
+    PAUSE 30
+    car%=99
+    GOTO maintexit
+    in$=""
+  ENDIF
+  '
+  '
+  GOTO maintentrance
+  '
+  maintexit:
+  PRINT CHR$(27)+"[0 p"
+  in$=""
+  '
+RETURN
+'
+PROCEDURE dbaseprep
+  OPEN "R",#3,path$+"bbbase.dat",177
+  FIELD #3,20 AS bnm$,20 AS bsy$,25 AS bus$,9 AS bdt$,3 AS bar$,7 AS bph$,9 AS bso$,1 AS b30$,1 AS b75$,1 AS b12$,1 AS b24$,1 AS bhi$,2 AS bli$,77 AS bco$
+RETURN
+'
+PROCEDURE dbaseread(record%)
+  GET #3,record%
+  bbsname$=bnm$
+  bbssysn$=bsy$
+  bbsuser$=TRIM$(bus$)
+  bbsdate$=bdt$
+  bbsarea$=bar$
+  bbsphon$=bph$
+  bbssoft$=bso$
+  bbs0300$=b30$
+  bbs1275$=b75$
+  bbs1200$=b12$
+  bbs2400$=b24$
+  bbshigh$=bhi$
+  bbsline$=bli$
+  bbscomm$=TRIM$(bco$)
+  '
+RETURN
+'
+PROCEDURE dbasewrite(record%)
+  LSET bnm$=bbsname$
+  LSET bsy$=bbssysn$
+  LSET bus$=bbsuser$
+  LSET bdt$=bbsdate$
+  LSET bar$=bbsarea$
+  LSET bph$=bbsphon$
+  LSET bso$=bbssoft$
+  LSET b30$=bbs0300$
+  LSET b75$=bbs1275$
+  LSET b12$=bbs1200$
+  LSET b24$=bbs2400$
+  LSET bhi$=bbshigh$
+  LSET bli$=bbsline$
+  LSET bco$=bbscomm$
+  PUT #3,record%
+RETURN
+'
+PROCEDURE writerecordone
+  '
+  GOSUB dbaseprep
+  LSET bnm$="Inquestor"
+  LSET bsy$="Peter Deane"
+  LSET bus$="PETER DEANE"
+  @dateconv(DATE$)
+  LSET bdt$=pd.date$
+  LSET bar$="049"
+  LSET bph$="721647"
+  LSET bso$="OzMetro"
+  LSET b30$="1"
+  LSET b75$="1"
+  LSET b12$="1"
+  LSET b24$="1"
+  LSET bhi$="1"
+  LSET bli$="1"
+  LSET bco$="+61-49-721647. Newcastle, Australia. OzMetro/TrapLand support"
+  PUT #3,1
+  CLOSE #3
+  '
+RETURN
+'
+PROCEDURE lineeditor(infile$,outfile$)
+  msgaborted!=FALSE
+  GOSUB tchk
+  IF car%>0
+    GOTO textedexit
+  ENDIF
+  '
+  maxlines%=250
+  maxlength%=70
+  '
+  FOR k%=0 TO maxlines%+2
+    ln$(k%)=""
+  NEXT k%
+  ln%=0
+  '
+  filein!=FALSE
+  '
+  IF UPPER$(infile$)<>"NO"
+    IF EXIST(infile$)
+      filein!=TRUE
+      @msend(cr$+ansi$(1)+"Reading input file: "+ansi$(2)+infile$+cr$)
+      OPEN "I",#2,infile$,1024
+      xx%=1
+      WHILE xx%<maxlines%-1 AND NOT EOF(#2)
+        LINE INPUT #2,ln$(xx%)
+        INC xx%
+      WEND
+      ln%=xx%
+      CLOSE #2
+      @msend(cr$+ansi$(5)+"Read in "+STR$(ln%)+" lines from the input file."+cr$+cr$)
+      @msend(ansi$(3)+"Please [L]ist the file to see what you've got so far.")
+      @press
+      IF car%>0
+        GOTO textedexit
+      ENDIF
+    ENDIF
+  ENDIF
+  '
+  in$=""
+  @centre("Percy's Line Editor. Based on Metro BBS's Editor by Percy L Broadnax.")
+  @msend(CHR$(12)+ansi$(5)+centred$+cr$+cr$)
+  @centre("Maximum number of lines "+STR$(maxlines%)+".  "+STR$(maxlength%)+" characters per line.")
+  @msend(ansi$(2)+centred$+cr$+cr$)
+  @centre("Enter a Carriage Return on a blank line to exit Editor.")
+  @msend(ansi$(6)+centred$+ansi$(0))
+  ' Turn on local cursor
+  PRINT CHR$(27)+"[1 p"
+  '
+  IF filein!=TRUE
+    GOTO text5
+  ENDIF
+  '
+  text1:
+  IF in$=CHR$(13) OR in$=CHR$(10) OR in$=CHR$(32)
+    in$=""
+  ENDIF
+  INC ln%
+  @spaceout(STR$(ln%),3)
+  @msend(cr$+SPACE$(spc%)+STR$(ln%)+": "+in$)
+  ln$(ln%)=ln$(ln%)+in$
+  '
+  text2:
+  @mget(5,1,0,1)
+  IF car%>0
+    GOTO textedexit
+  ENDIF
+  '
+  IF in$=CHR$(13)
+    IF LEN(ln$(ln%))=0
+      DEC ln%
+      GOTO text5
+    ELSE
+      GOTO text4
+    ENDIF
+  ENDIF
+  '
+  ln$(ln%)=ln$(ln%)+in$
+  IF LEN(ln$(ln%))<maxlength%
+    GOTO text2
+  ENDIF
+  '
+  in$=""
+  i%=LEN(ln$(ln%))
+  match%=RINSTR(ln$(ln%)," ")
+  IF match%=0
+    GOTO text4
+  ENDIF
+  '
+  text3:
+  in$=RIGHT$(ln$(ln%),(i%-match%))
+  ln$(ln%)=LEFT$(ln$(ln%),match%)
+  FOR k%=1 TO LEN(in$)
+    @msend(de$)
+  NEXT k%
+  '
+  text4:
+  IF ln%=maxlines%-4
+    @msend(cr$+ansi$(1)+"Only 3 lines left!"+ansi$(7))
+  ELSE IF ln%=maxlines%-1
+    @msend(cr$+ansi$(1)+"This is your last line."+ansi$(7))
+  ENDIF
+  '
+  IF ln%<maxlines%
+    GOTO text1
+  ENDIF
+  '
+  '
+  text5:
+  @msend(cr$+cr$+ansi$(7)+"[S]ave - [R]esume - [E]dit - [D]elete - [I]nsert")
+  @msend(" - [C]enter - [L]ist - [A]bort"+cr$+cr$+"Enter Command: ")
+  @mget(0,1,0,1)
+  IF car%>0
+    GOTO textedexit
+  ENDIF
+  IF in$="S"
+    IF ln%<1
+      @msend(cr$+cr$+ansi$(1)+"This text is EMPTY! - Not saving!")
+      DELAY 1
+      messageaborted!=TRUE
+      GOTO textedexit
+    ENDIF
+    @msend(cr$+cr$+ansi$(3)+"Saving text...")
+    OPEN "O",#30,outfile$,4096
+    FOR k%=1 TO ln%
+      PRINT #30,ln$(k%)
+    NEXT k%
+    @msend("...done!"+cr$)
+    CLOSE #30
+    GOTO textedexit
+  ELSE IF in$="R"
+    in$=""
+    GOTO text4
+  ELSE IF in$="E"
+    edlabel:
+    @msend(cr$+cr$+ansi$(3)+"Enter Line # To Edit: "+ansi$(7))
+    @mget(4,3,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    IF VAL(in$)=0
+      GOTO text5
+    ELSE
+      eline%=VAL(in$)
+    ENDIF
+    IF eline%<1 OR eline%>ln%
+      GOTO edlabel
+    ENDIF
+    @spaceout(STR$(eline%),3)
+    @msend(cr$+SPACE$(spc%)+STR$(eline%)+": "+ln$(eline%))
+    @msend(cr$+ansi$(3)+"Enter New Line"+ansi$(7)+cr$+"  : ")
+    @mget(1,65,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    '
+    IF in$=""
+      @msend(cr$+ansi$(1)+"No Change!"+ansi$(7))
+    ELSE
+      ln$(eline%)=in$
+    ENDIF
+    GOTO text5
+    '
+  ELSE IF in$="D"
+    dellabel1:
+    @msend(cr$+cr$+ansi$(1)+"Start Delete At Line #: "+ansi$(7))
+    @mget(4,3,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    IF in$=""
+      GOTO text5
+    ELSE
+      sline%=VAL(in$)
+    ENDIF
+    IF sline%<1 OR sline%>ln%
+      GOTO dellabel1
+    ENDIF
+    '
+    dellabel2:
+    @msend(cr$+ansi$(1)+"End Delete At Line #: "+ansi$(7))
+    @mget(4,3,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    IF in$=""
+      GOTO text5
+    ELSE
+      eline%=VAL(in$)
+    ENDIF
+    IF eline%<sline% OR eline%>ln%
+      GOTO dellabel2
+    ENDIF
+    '
+    dline%=eline%-sline%+1
+    FOR k%=sline% TO ln%-dline%
+      ln$(k%)=ln$(dline%+k%)
+    NEXT k%
+    WHILE k%=<250
+      ln$(k%)=""
+      INC k%
+    WEND
+    ln%=ln%-dline%
+    GOTO text5
+  ELSE IF in$="C"
+    centlabel:
+    @msend(cr$+cr$+ansi$(2)+"Enter Line # To Center: "+ansi$(7))
+    @mget(4,3,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    IF in$=""
+      GOTO text5
+    ELSE
+      cline%=VAL(in$)
+    ENDIF
+    '
+    IF cline%<1 OR cline%>ln%
+      GOTO centlabel
+    ENDIF
+    xx$=ln$(cline%)
+    IF LEN(xx$)<64
+      xx$=SPACE$(32-(LEN(xx$)/2))+xx$
+    ENDIF
+    ln$(cline%)=xx$
+    GOTO text5
+  ELSE IF in$="L"
+    lislabel1:
+    @msend(cr$+cr$+ansi$(5)+"Start List At Line # (Return = 1): "+ansi$(7))
+    @mget(4,3,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    IF in$=""
+      sline%=1
+    ELSE
+      sline%=VAL(in$)
+      IF sline%<1 OR sline%>ln%
+        GOTO lislabel1
+      ENDIF
+    ENDIF
+    '
+    lislabel2:
+    @msend(cr$+ansi$(6)+"End List At Line # (Return = To End): "+ansi$(7))
+    @mget(4,3,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    IF in$=""
+      eline%=ln%
+    ELSE
+      eline%=VAL(in$)
+      IF eline%<sline% OR eline%>ln%
+        GOTO lislabel2
+      ENDIF
+    ENDIF
+    '
+    @msend(cr$)
+    FOR k%=sline% TO eline%
+      @spaceout(STR$(k%),3)
+      @msend(cr$+SPACE$(spc%)+STR$(k%)+": "+ln$(k%))
+    NEXT k%
+    GOTO text5
+    '
+  ELSE IF in$="I"
+    inslabel:
+    @msend(cr$+cr$+ansi$(2)+"Enter Line # To Insert: "+ansi$(7))
+    @mget(4,3,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    IF in$=""
+      GOTO text5
+    ELSE
+      iline%=VAL(in$)
+    ENDIF
+    '
+    IF iline%<1 OR iline%>ln%
+      GOTO inslabel
+    ENDIF
+    INC ln%
+    IF ln%>249
+      DEC ln%
+      @msend(cr$+ansi$(1)+"Sorry, this message is FULL!!"+ansi$(7))
+      GOTO text5
+    ENDIF
+    FOR k%=ln% DOWNTO iline%+1
+      ln$(k%)=ln$(k%-1)
+    NEXT k%
+    ln$(iline%)=""
+    @spaceout(STR$(iline%),3)
+    @msend(cr$+SPACE$(spc%)+STR$(iline%)+": "+ln$(iline%))
+    @msend(cr$+"Enter New Line"+cr$+"  : ")
+    @mget(1,65,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    ln$(iline%)=in$
+  ELSE IF in$="A"
+    @msend(cr$+cr$+CHR$(7)+ansi$(1)+"Are you sure you want to abort (y/N)? "+ansi$(7))
+    @mget(3,1,0,1)
+    IF car%>0
+      GOTO textedexit
+    ENDIF
+    IF in$="NO"
+      GOTO text5
+    ENDIF
+    FOR k%=0 TO 251
+      ln$(k%)=""
+    NEXT k%
+    @msend(cr$+ansi$(1)+"Text editor ABORTED - Not Saving."+ansi$(7))
+    DELAY 1
+    msgaborted!=TRUE
+    GOTO textedexit
+  ENDIF
+  '
+  GOTO text5
+  '
+  textedexit:
+  '
+  ' free our memory buffer
+  FOR k%=1 TO maxlines%
+    ln$(k%)=""
+  NEXT k%
+  '
+  PRINT CHR$(27)+"[0 p"
+  '
+RETURN
+'
+verbosehelp:
+DATA ""
+DATA "Verbose Database View"
+DATA "---------------------"
+DATA ""
+DATA "The verbose display lists Bulletin Boards, one at a time, with all the"
+DATA "essential details a BBS connoiseur will need."
+DATA ""
+DATA "These details are stored for each BBS:"
+DATA ""
+DATA "BBS Name"
+DATA "Sysop"
+DATA "Phone number (including area code)"
+DATA "BBS Software in use"
+DATA "Baud Rates supported"
+DATA "Number of lines"
+DATA "Original poster of the entry"
+DATA "Date the record was last modified"
+DATA "A comment line - which may contain anything"
+DATA ""
+DATA "Also, if available, a textfile with detailed information about the BBS"
+DATA "is supported. If the poster of the entry saw fit, he/she may have included"
+DATA "a free-form text of up to 250 lines about the BBS."
+DATA ""
+DATA "Note that while the textfile is being printed, you can press either the"
+DATA "Spacebar or 'S' key to abort the send. A Ctrl-S will Pause, and any other key"
+DATA "will re-start. This applies to all text output from this program."
+'
+DATA "END HELP"
+'
+tersehelp:
+DATA ""
+DATA "Terse Database View"
+DATA "-------------------"
+DATA ""
+DATA "The terse listing simply summarises the information from the database with"
+DATA "1 line per BBS in a chart form. It does not contain all the information we"
+DATA "have, but it presents it in an easy-to-read, fast-to-list manner."
+DATA ""
+DATA "This is also useful to quickly see which BBSs are in the database in case"
+DATA "you wish to add a BBS to the records."
+DATA ""
+DATA "Note that while the terse display is being printed, you can press either the"
+DATA "Spacebar or 'S' key to abort the send. A Ctrl-S will Pause, and any other key"
+DATA "will re-start. This applies to all text output from this program."
+'
+DATA "END HELP"
+'
+searchhelp:
+DATA ""
+DATA "Searching The Database"
+DATA "----------------------"
+DATA ""
+DATA "You can search any of a number of fields for a match for the string you"
+DATA "enter. This can be useful. For instance, if you wish to display all the"
+DATA "BBSs in your local area, do a search of the area code field for your own"
+DATA "code. If you wish to search for BBSs running Metro, search the software"
+DATA "field for 'Metro'."
+DATA ""
+DATA "When you enter a string to match, ANY occurence of it will be found. It"
+DATA "is NOT case-sensitive. Wildcards are NOT valid. You should simply enter"
+DATA "a search string that can be as general or specific as you like."
+DATA ""
+DATA "As a hint, try to make your search string as general as possible, and"
+DATA "omit special characters such as '*', '/' and '$', etc."
+DATA ""
+DATA "The search feature is NOT operational in the unregistered version."
+'
+DATA "END HELP"
+'
+addhelp:
+DATA ""
+DATA "Add Database Entry"
+DATA "------------------"
+DATA ""
+DATA "This will allow you to input a BBS into the database. You will be asked"
+DATA "for all the information given in the Verbose listing, plus you may also"
+DATA "add a free-form message about the BBS if you wish. You will NOT be"
+DATA "permitted to add a BBS which is already in the list."
+DATA ""
+DATA "The original poster of the BBS entry becomes the 'owner' of that entry."
+DATA "Only the sysop (of this BBS), the poster of the entry and (if the username"
+DATA "matches) the sysop of the listed BBS is able to edit an entry once it has"
+DATA "been added. However, you may still leave a message to the sysop (see the help"
+DATA "file for [E]diting the entries for more info on this)."
+DATA ""
+DATA "If you plan on entering a BBS to the list, it is strongly recommended you"
+DATA "read the help screen for the [V]erbose view, as that will tell you what items"
+DATA "of information we need."
+DATA ""
+DATA "If you make an error entering one of the fields, save the entry, anyway. You"
+DATA "can always go back and use the [E]dit feature at any time later on."
+DATA "END HELP"
+'
+changehelp:
+DATA ""
+DATA "Changing Your Settings"
+DATA "----------------------"
+DATA ""
+DATA "The door allows you to toggle ANSI on and off, change your screen height"
+DATA "setting, and select if you want page-pausing or not."
+DATA ""
+DATA "The door asks you whether you would like ANSI (colour) on entry, however"
+DATA "the screen height defaults to 23 lines, with page pausing ON."
+DATA ""
+DATA "If these settings are not to your liking, PLEASE CHANGE THEM!"
+DATA "END HELP"
+'
+edhelp:
+DATA ""
+DATA "Editing an Entry"
+DATA "----------------"
+DATA ""
+DATA "If you are either the sysop of the BBS in the database (and your username"
+DATA "on this BBS matches that in the entry) or the original poster of the entry,"
+DATA "you can change any of the info for that BBS, including the long description"
+DATA "(if one is available)."
+DATA ""
+DATA "If you aren't the original poster or the sysop of the BBS, you can still use"
+DATA "the [E]dit entry command. Simply enter the BBS name you wish to edit, and"
+DATA "you will be able to leave a message to the sysop with your info. Please make"
+DATA "this as detailed as possible. When the sysop gets a chance he will edit the"
+DATA "entry for you."
+DATA ""
+DATA "This option will also allow you to edit the long description for the BBS (if"
+DATA "one exists). If one doesn't exist, then this function facilitates the"
+DATA "creation of a new one."
+DATA ""
+DATA "Please try to keep our records up-to-date, particularly with regard to the"
+DATA "phone numbers. There's nothing worse for a poor unsuspecting member of the"
+DATA "community to have his/her phone number listed as a BBS, with resultant modem"
+DATA "calls at all hours of the day and night!"
+DATA "END HELP"
+'
+proghelp:
+DATA ""
+DATA "About the Programmer"
+DATA "--------------------"
+DATA ""
+DATA "This program was written by Peter Deane in September 1991. It is written"
+DATA "in GFA-BASIC (V 3.51E). Peter is Metro BBS's most prolific door-writer"
+DATA "and has produced about 15 doors at this stage. If you would like to"
+DATA "contact him, his BBS is called 'Inquestor' and is in Newcastle Australia."
+DATA "Phone (049) 72-1647 from Australia or 011-61-49-721647 from USA. Inquestor"
+DATA "is available 24 hrs a day at up to 19200 baud (V32b/V42b/MNP)."
+DATA ""
+DATA "Inquestor is contactable at Fido 3:622/401 or AmigaNet 41:200/401."
+DATA ""
+DATA "Like most of Peter's doors, this version is shareware. If you like the"
+DATA "door, please leave a message to your sysop asking him to register the"
+DATA "program, and encourage more doors for Metro (& other BBS) users."
+DATA ""
+DATA "END HELP"
+'
+'
+'
+'

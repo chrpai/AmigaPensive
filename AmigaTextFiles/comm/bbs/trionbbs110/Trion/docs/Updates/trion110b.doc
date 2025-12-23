@@ -1,0 +1,264 @@
+
+
+        _____     _                  _     _              _    ___
+       |_   _|_ _(_) ___  _ __      | |__ | |__  ___     / |  / _ \
+         | | | '_| |/ _ \| '_ \     | '_ \| '_ \/ __|    | | | | | |
+         | | | | | | (_) | | | |    | |_) | |_) \__ \    | |_| |_| |
+         |_| |_| |_|\___/|_| |_|    |____/|____/|___/    |_(_)\___/
+
+                        © 1994/98 by Paul Spijkerman
+                             All Rights Reserved
+
+
+     Update from V1.10 to V1.10b
+
+
+     This is the remainder of the changes to the complete
+     version V1.10
+
+     Before this update I finished a TrionInfo110.lha archive
+     which has found it's way to Aminet.
+
+     This update contains updated docs from this archive like
+     the features doc and hopefully a complete rewrite of
+     the main docs (a more or less complete Trion manual).
+
+     Also some updated programs.     
+
+
+
+     Utils:   Areafix, MailEd, FileEd, UserEd, BBS, freq, Poll
+              Tmp, TrionTick, SyncClock
+     Doors:   
+     Scripts: 
+     Cfg:     
+
+
+    -Fixed a little bug in BBS, when you would use the online user
+     editor (not the current user editor but the other one) the system
+     got unstable because it allocated to few bytes for the user structure.
+     This was done because it got the size from the bbs.key (a sort of
+     security mesure) but a short time ago the user data size increased
+     with speed and total minutes data, and I forgot I had to change
+     the memory allocate code by hand.
+
+    -Fixed the MailEditor, when you double clicked on a place low in the
+     list you could edit a section. But when you got back you where
+     back at the beginning of the list. But the scroller was at tbe
+     correct position. Now the list position is where you left it.
+
+    -Noticed that that MailEd has some drawbacks in handling when
+     you want to change things in a lot of sections. Because
+     for instance you had to click on every section to select it.
+     That was the major thing that annoyed me .. so I changed
+     the GUI lib so you can select a whole net by one click
+     and a mouse move. (Als changed it in UserEd and MailEd).
+
+
+     Can think of a little more improvements, like when you move
+     the mouse real quick over entries it misses a few, but when
+     you move back it is selected. When you have removed a number that
+     selected sections are still selected to add a new number. And
+     a "none" and "all" button , to remove a point from all sections
+     but that is something for when V1.10 is "on the net".
+
+    -Added an option to use "NONE" as archiver in the systems.cfg.
+     If you use it for a node no (echo or net)mail will be compressed.
+
+     This is usefull if you use an external reader like spot on your
+     system. Mail does not have to be compressend and decompressed.
+
+    -Changed the mail processor so it will set flags in messages
+     with problems while importing them.
+
+    -Changed the BBS so it will display in RED under a message
+     while reading what is wrong with them.
+     (So all these message probably end up in "BAD" or "DUPES")
+
+    *It can display if the message is a duplicate (when you have
+     no Dupes section, but you have a bad section, then you
+     can see the message is actually a dupe).
+
+    *It can display if there is no echomail section for this message
+     on your system.
+
+     Note: if one of above mentioned problems occur than automatically
+     the Control lines for THIS message are shown so you can see
+     the tagname of the section it was supposed to go.
+
+    *It can display if the Origin of a message was missing.
+
+    *It can display if Seen-by: lines in a message are missing.
+
+    *It can display if path: lines in a message are missing.
+
+
+     Note: Only works with messages imported with this version.
+
+
+    -Changed areafix so it can't react to message written BY areafix if
+     it was scanning for messages TO areafix ... because it could
+     get really messy with certain configuration types where Areafix
+     could reply to it's own messages. In extreem cases you could
+     create a loop.
+
+    -Also changed areafix a little so it will check if it actually got
+     a section it claimed after it just read it from the list.
+     This because areafix got in a sort of weird loop one time, it
+     kept scanning all netmail sections. Also changed Areafix so it
+     would break the loop eventually with a counter. Because resetting
+     in such cases could get messy.
+
+    -In the description editor of the file editor where 4 buttons
+     which didn't work. This is now fixed.
+
+    -Changed the mail processor so you can use a %n variable in
+     the archive.cfg while packing. The %n variable is the nodenumber
+     of the system the packet is for.
+
+    -Fixed the mailer, there was a komma after the 8N1 link code
+     but no following code.
+
+    -Changed the mailer so it is more compatibel with other
+     (read Trapdoor) mailers. It interpretes the special
+     characters that may precede a file in a .FLO file
+     differently. So you can in theorie use Trapdoor with Trion.
+
+     From trapdoor doc:
+     ------------------
+
+       Flow files store the path and name of files that should be
+     sent to the other system. Each line in the flow file refers to
+     one file. Additionally, there may be one of the following
+     special characters at the first position in the line, indicating
+     that the file needs special processing after sending.  
+
+       Valid special characters: 
+
+          # ... Truncate this file to zero length
+          ^ ... Delete this file (with logging)
+          - ... Delete this file (without logging)
+          ~ ... Don't send this file (has been sent previously)
+
+
+     In Trion:
+     ---------
+
+     '#' means truncate the file to 0 length (why ??)
+     '^' means DELETE the file after sending (with logging)
+     '-' means delete the file after sending (WITHOUT logging)
+     '@' means NO special processing after sending
+     '~' means DON'T send this file (it has already been sent
+
+     Note that if a file has a '~' for it and it is not send it is
+     deleted from the .FLO file after the session.
+     With all the other characters the file is not deleted from
+     the .FLO file .. don't know if this is 100% correct but there
+     was nothing about this in the trapdoor.manual
+
+     Note:  What normally was a '#' now has to be '^' (Delete after send)
+            What normally was a '-' or "no special character" now has to
+            be a "@" or "no special character".
+
+     Note:  The truncate part of the '#' is disengaged or you would
+            end up after this update with some file with
+            zero size in the outbound because during the upgrade
+            there maybe .FLO files with '#' in them.
+            Anyway .. I wrote the code so the file would be deleted
+            and then the file would be openend and closed again
+            what would result in a file with 0 bytes.
+            The open en close part is removed IN THIS VERSION, which
+            shouldn't be a problem because there is no use for it at
+            this moment.
+
+     Note:  If you use some "pktshovel" (Arexx) script to get mail to
+            your external reader (spot) then your probably have to
+            change it so don't looks at '#' but at a '-'.
+
+     This is NOT an encouragement to start using Trapdoor !!
+     When using trapdoor things just start geting more complicated
+     with double configuration files, double logs and spawning the
+     BBS program. However if for whatever reason you wanted to use
+     trapdoor it should work.
+     This change is made to have more options in .FLO files and to 
+     have .FLO files that are more compatible so maybe you can use
+     third party programs like Gates, Tick processors or other
+     programs that for instance add messages packets with file lists
+     to .FLO files.
+
+
+    -Changed Freq so it would put a '-' for the freq file in the
+     .FLO file instead of a '#'.
+
+    -Changed Poll so it would put a '-' for the packet in the
+     .FLO file instead of a '#'.
+
+    -Changed the mail processor so it puts a '-' for packets and
+     archives instead of a '#' .. and nothing for files that
+     don't have to be deleted like file attaches.
+
+    -Changed Tick so it uses '-' for files that have to be deleted
+     instead of '#' and still nothing for files that don't have to
+     be deleted.
+
+    -Changed the mailer so it not only recognizes .FLO files
+     but also other ones.
+
+          #?.FLO ... Normal, meaning that this flow file hasn't been
+                     processed further. If left unprocessed, it will
+                     be treated the same as a .DLO flow file.  
+          #?.HLO ... Hold these files for pickup by the remote
+                     system.  
+          #?.CLO ... The other system can receive Continuous Mail.  
+          #?.DLO ... Direct, meaning the other system can NOT receive
+                     Continuous Mail.  
+
+     This means that when you call a node all the files in the
+     .FLO .CLO and .DLO files are send. The files in the .HLO
+     files are only send when someone is picking up mail at your
+     system.
+     I'm not sure where exactly the .CLO and .DLO files are meant
+     for. 
+     Continuous mail means the system has a CM flag in the nodelist
+     and is 24 hours a day reachable and the phone number is in the
+     nodelist (not a private system).
+
+     So .. I guess if a system has no "Continous Mail" flag files
+     should be listed in a .HLO file.
+
+     So at this moment only the .FLO and .HLO are used,
+     this is important because the system will only "poll" if there
+     is mail for the remote system. Which means there is a .FLO file
+     for the system. So if there is only a .HLO file (or .CLO or .DLO file)
+     the system doesn't call out .. unless you have made a poll packet
+     with the poll command.
+
+     Also the CheckIfMail program will only look at .FLO files.
+
+     The .HLO type maybe implemented in the mail processor in the Future.
+     Probably with a "SEND" or "HOLD" flag in the systems.cfg
+     When the system get's a hold flag is has to call you to get
+     the mail. If you call the system it is not send.
+
+    -Fixed a copyright notice in "BBS" from 94-97 to 94-98
+     and changed the mailer so in sends the name of the registered
+     person with the key number.
+
+    -Fixed a misaligned file comment of tick files in the outbound
+     directory in the tick processor.
+
+    -Added an option to synchronize the clock of your computer with
+     an other computer by using the mailer.
+
+     Just call a BBS with the mailer and then type:
+
+     SyncClock <NodeNumber>
+
+     Where the nodenumber is the number that is in LastCaller list,
+     probably the main node number of an incoming call and the
+     number you used to call out.
+     There are a couple of things you have to look out for.
+
+     This only works if the mailers have made a successfull uplink.
+     Else nothing will happen.
+

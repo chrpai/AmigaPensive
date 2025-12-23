@@ -1,0 +1,47 @@
+.key OUTPUTFILE,DIRECTORY,PATTERN,EXECUTE,ALL/S,CRUNCH/S
+
+; $VER: MakeSFX 1.2 (16.08.98)
+
+if "<OUTPUTFILE>" eq ""
+  set out make.exe
+else
+  set out <OUTPUTFILE>.exe
+endif
+
+if "<PATTERN>" eq ""
+  set pat <DIRECTORY> <ALL> FILES
+else
+  set pat <DIRECTORY> p=<PATTERN> <ALL> FILES
+endif
+
+echo "Making self-extracting archive of directory *"<DIRECTORY>*" to *"$out*"... "
+list $pat lformat "(%8l) %p%n"
+
+echo "Generating source"
+echo >>t:make<$$>.asm "m macro*n move.l \1,\2*n endm*nj macro*n jsr \1*n endm*n m 4,a6*n lea d(pc),a1*n m #33,d0*n j -552(a6)*n tst.l d0*n bne o*n m #20,d0*n rts*no m d0,a6*n m sp,a5*n lea x(pc),a4*n m #0,d7*n bsr s"
+if "<EXECUTE>" not eq ""
+  echo >>t:make<$$>.asm " lea p(pc),a0*n m a0,d1*n m #0,d2*n m #0,d3*n j -222(a6)"
+endif
+echo >>t:make<$$>.asm " bra e*nx m (a3),a2*na tst.b (a2)*n beq b*n cmp.b #47,(a2)*n bne n*n clr.b (a2)*n m (a3),d1*n m #-1,d2*n j -84(a6)*n m d0,d1*n bne c*n m (a3),d1*n j -120(a6)*nc move.b #47,(a2)*n m d0,d1*n beq f*n j -90(a6)*nn add #1,a2*n bra a"
+echo >>t:make<$$>.asm "b m (a3)+,d1*n m #1006,d2*n j -30(a6)*n m d0,d5*n beq f*n m d5,d1*n m (a3)+,d2*n m (a3)+,d3*n j -48(a6)*n m d0,d4*n m d5,d1*n j -36(a6)*n cmp.l #-1,d4*n beq f*n rts*nf m #20,d7*ne m a6,a1*n m 4,a6*n j -414(a6)*n m a5,sp*n m d7,d0"
+echo >>t:make<$$>.asm " rts*nd dc.b 'dos.library',0"
+if "<EXECUTE>" not eq ""
+  echo >>t:make<$$>.asm "p dc.b '<EXECUTE>',10,0"
+endif
+echo >>t:make<$$>.asm " even*ns"
+list >>t:make<$$>.asm $pat lformat "f%k lea .f(pc),a3*n jsr (a4)*n jmp .j *n.f dc.l .n,.d,.e-.d*n.n dc.b '%p%n',0*n.d incbin '%f%n'*n.e dc.b 0*n even*n.j"
+echo >>t:make<$$>.asm " rts"
+
+
+echo "Creating executable file"
+PhxAss t:make<$$>.asm to $out quiet opt *
+delete t:make<$$>.asm quiet
+
+if <CRUNCH>
+  echo "Crunching output"
+  stc -fe -o0 $out
+endif
+
+echo "All done."
+unset pat
+unset out

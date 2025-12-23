@@ -1,0 +1,540 @@
+@database OMaps.guide
+
+@node Main "ANUBIS OMaps - Dokumentation"
+----------------------------------------------------------------------------
+                              T.O.M. Software
+
+               #####  ###    ## ###   ### ######  ####  ######
+              ##:::##: ###   ##: ##:  ##:: ##::##  ##::##::::#:
+              ##:  ##: ####  ##: ##:  ##:  ##: ##: ##: ##:
+              #######: ##:## ##: ##:  ##:  #####:: ##:  #####
+              ##:::##: ##: ####: ##:  ##:  ##: ##  ##:   :::##:
+              ##:  ##: ##:  ###: ##:  ##:  ##: ##: ##: #    ##:
+             ###:  ### ##:   ##:  #####:: ######::#### ######::
+              :::   ::: ::    ::   :::::   ::::::  :::: :::::: 
+
+        Allgemeines Nachrichten - und Binär - Informations - System
+
+-----------------------------------------------------------------------------
+                            ANUBIS OMaps V 0.61
+                   ©1995; Oliver Graf - T.O.M. Software
+-----------------------------------------------------------------------------
+
+   @{" Einleitung          " link EINLEITUNG}	Was macht OMAPS ?
+   @{" Installation        " link INST}	Einbindung von OMAPS ins System
+   @{" Parameter           " link PARAM}	Commandline Parameter
+   @{" Arbeitsweise        " link FUNKTION}	So funktioniert es
+   @{" Befehlsübersicht    " link BEFEHLE}	Das kann OMAPS alles
+   @{" Benutzeroberfläche  " link GUI}	das grafische Sysopinterface
+   @{" Versionsübersicht   " link VERSIONEN}	bisherige Versionen
+
+-----------------------------------------------------------------------------
+                            25.05.95 * 15:03:07
+-----------------------------------------------------------------------------
+@endnode
+
+@node EINLEITUNG "Einleitung"
+Die Aufgabe von OMAPS ist es, eine Schnittstelle zwischen dem Pointuser und
+dem Mailboxprogramm zu bilden , um Arbeitsgänge wie das Brett-Bestellen zu
+automatisieren und es dem Pointuser ermöglichen, verschiedene Aufgaben
+zu erledigen, so daß er sich nicht in die Box einloggen muß.
+
+OMAPS ist ein Ersatz des Vorläufer Programms 'MAPS'. Es wurde von Grund
+auf neu programmiert und ist kompatibel zu dem ZConnect-MAPS Standard,
+der auf dem Z-Netz-Treffen Hamburg '94 entwickelt wurde.
+
+OMAPS benötigt MUI 2.3 (Library Version 10) zum Arbeiten.
+@endnode
+
+@node INST "Installation"
+OMAPS ist so konzipiert, daß es direkt nach dem Logoff des Points die
+aufgespoolten Nachrichten zu bearbeiten.
+
+Dazu wird das Programm im NachLogoff Batch von ANUBIS eingebunden.
+
+Üblicherweise sollten die folgenden Zeilen ins NachLogoff Batch eingebunden
+werden :
+
+If Exists Anubis:Spool/Maps/Index
+ OMaps LOGFILE
+EndIf
+
+Dies sollte @{u}hinter@{uu} dem Aufruf von ZSort und @{u}vor@{uu} dem Aufruf von ZSamm ge-
+schehen.
+
+Außerdem muß der Hilfstext für MAPS ins Directory "Anubis:Hilfstexte"
+kopiert werden.
+
+Sollten Sie von der alten MAPS-Version (1.31) auf dieses neue Programm
+umsteigen, sollten Sie Ihren Pointusern den Text "MAPSHinweise" zu-
+gänglich machen, um sie über die Änderungen zu informieren. Desweiteren
+können Sie die alten MAPS-Hilfstexte löschen.
+@endnode
+
+@node PARAM "Commandline Parameter"
+Folgende Parameter können beim Aufruf von OMAPS übergeben werden :
+
+ LOGFILE	- schaltet in den LogFile Modus um. Alle Aktionen durch
+		  die Points werden im File "Anubis:Statistik/MAPS.log"
+		  protokolliert. Dies ist vor allem für die Fehler-
+		  suche nützlich.
+
+ GUI		- startet die grafische {"Benutzeroberfläche" link GUI} von OMAPS,
+		  mit deren Hilfe Sie verschiedene Aktionen per Mausklick
+		  steuern können.
+
+@endnode
+
+@node FUNKTION "Arbeitsweise von OMAPS"
+Kommt eine Nachricht an OMAPS an, werden die Nachrichten von ZSort im Ver-
+zeichnis "Anubis:Spool/MAPS" aufgespoolt.
+
+OMAPS arbeitet dann alle Nachrichten der Reihe nach ab und zeigt den
+momentanen Programmstand im "Arbeitsfenster" an. Für jede Nachricht
+grundsätzlich eine Antwort an den Pointuser verschickt, entweder mit
+dem korrekten Ergebnis des Befehls oder einer Fehlermeldung. Die
+jeweiligen Meldungen werden (bis auf per @{"REQUEST" link BEF.REQUEST} angeforderte Files)
+ins normale Mail-Spool-Verzeichnis geschrieben.
+
+Die Befehle stehen im Betreff, evtl. nötige Parameter stehen im
+Nachrichtentext. Bei unbekannten Befehlen schickt OMAPS automatisch
+den Hilfstext an den Point zurück.
+
+Während der Arbeit zeigt OMaps in einem MUI Fenster den aktuellen Arbeits-
+status an, so daß der Sysop weiß, was gerade im System passiert.
+@endnode
+
+@node BEFEHLE "Befehlsübersicht"
+Folgende Befehle sind zur Zeit in OMAPS implementiert :
+
+ @{" add      " link BEF.ADD}	Bestellen von Brettern
+ @{" del      " link BEF.DEL}	Abbestellen von Brettern
+ @{" delpm    " link BEF.DELPM}	Nachrichten in der Online-PM löschen
+ @{" files    " link BEF.FILES}	Files bestellen
+ @{" help     " link BEF.HELP}	Hilfstexte verschicken
+ @{" index    " link BEF.INDEX}		Index von Brettern generieren
+ @{" inhalt   " link BEF.INHALT}	Inhaltsliste von Brettern generieren
+ @{" list     " link BEF.LIST}	Brettliste anfordern
+ @{" passwort " link BEF.PASSWORT}	Passwort des Points ändern
+ @{" request  " link BEF.REQUEST}	Nachrichten bestellen
+ @{" set      " link BEF.SET}	Point-Paramter ändern.
+
+@endnode
+
+@node BEF.ADD "OMAPS Befehl : ADD"
+Mittels ADD kann ein Point Bretter, aus denen er Nachrichten beziehen will,
+bestellen.
+
+Dabei kann der User nur Bretter bestellen, auf die er aufgrund seines
+Levels und seiner Gruppen im Pointeintrag Zugriff hat.
+
+Im Nachrichtentext stehen zeilenweise die Bretter, die bestellt werden
+sollen. Alle Brettnamen beginnen in der ersten Spalte mit einem Slash '/'.
+
+Im Gegensatz zum ZConnect-MAPS Standard erlaubt es OMAPS auch, mit
+Wildcards zu arbeiten. Um komplette Brettgruppen zu bestellen, steht
+in der Zeile dann einfach "/<gruppe>/*", dann werden alle Bretter,
+die in der Brettgruppe liegen, bestellt, soweit der Point Zugriff
+hat.
+
+Als Antwort erhält der Pointuser eine Liste der bestellten (oder nicht be-
+stellten) Bretter im standarisierten @{"LIST" link BEF.LIST}-Format.
+@endnode
+
+@node BEF.DEL "OMAPS Befehl : DEL"
+Über DEL kann ein Point Bretter, die er bezieht, abbestellen.
+
+Im Nachrichtentext stehen zeilenweise die abzubestellenden Bretter,
+beginnend mit einem Slash '/' in der ersten Spalte.
+
+Wie bei @{"ADD" link BEF.ADD} sind auch hier Wildcards erlaubt, um komplette Brett-
+gruppen auf einmal abbestellen zu können.
+
+Als Antwort erhält der Pointuser eine Liste der abbestellten Bretter im
+standarisierten @{"LIST" link BEF.LIST}-Format.
+@endnode
+
+@node BEF.LIST "OMAPS Befehl : LIST"
+Über diesen Befehl kann ein Pointuser eine Liste aller Bretter im System
+anfordern, auf die er Zugriff hat.
+
+Als Antwort erhält der User eine Liste der Bretter mit folgendem, fest-
+definierten Format :
+
+Pro Zeile steht ein Brett, jede Zeile hat folgendes Format
+
+       Pos. 1:         Steuerzeichen
+       Pos. 2:         ASCII 32
+       Pos. 3ff:       Brettname bis zum CR/LF oder White Space.
+                       White Space dient als Trenner für die
+                       optionale Brettbeschreibung.
+
+       Die Länge einer Zeile ist nicht begrenzt!.
+
+       Steuerzeichen:  '+'     Brett ist derzeit bestellt.
+                       '-'     Brett ist nicht bestellbar.
+                       ' '     Brett ist nicht bestellt, bestellbar.
+                       '!'     Brett ist bestellt, kann aber nicht
+                               abbestellt werden (Zwangsanschluß).
+                       ';'     Zeile enthält einen Kommentar.
+@endnode
+
+@node BEF.HELP "OMAPS Befehl : HELP"
+Dieser Befehl sendet den Hilfstexte "Anubis:Hilfstexte/MAPS" an den
+Pointuser zurück.
+
+Aus Kompatibilitätsgründen kann dieser Befehl auch über das Schlüssel-
+wort "HILFE" ausgelöst werden.
+@endnode
+
+@node BEF.REQUEST "OMAPS Befehl : REQUEST"
+Über diesen Befehl kann der Pointuser Nachrichten bestellen.
+
+Dieser Befehl ist im ZC-MAPS Standard nicht definiert.
+
+Zeilenweise stehen die angeforderten Files mit folgendem Syntax :
+
+<brettname> <file1> [<file2> ...]
+
+<brettname> ist der Name des Brettes, in dem die Nachricht liegt, beginnend
+mit einem '/'.
+Danach folgt ein Space (ASCII-32).
+
+<filex> sind, durch Leerzeichen (ASCII-32) voneinander getrennt, die Nach-
+richten, die bestellt werden sollen. Dabei kann <filex> aus folgenden
+Werten bestehen :
+
+  MsgID   - die sicherste Methode, da hierdurch das File eindeutig
+	    identifiziert werden kann.
+
+  Betreff - wird der Betreff einer Nachricht angegeben, wird das erste
+	    File, das diesen Betreff hat, zurückgeliefert.
+
+  MsgNr   - ist die die Nummer der Nachricht im Brett bekannt, kann auch
+	    darüber bestellt werden, allerdings kann sich diese Nummer
+	    durch das Crunchen ändern.
+
+Die bestellten Nachrichten werden direkt an den Pointpuffer angehängt,
+um Plattenplatz zu sparen. Außerdem wird eine Nachricht an den Point-
+user verschickt, in der das Ergebnis der verschiedenen Requests ver-
+zeichnet ist.
+@endnode
+
+@node BEF.DELPM "OMAPS Befehl : DELPM"
+Pointuser, die für ihre OnlinePM eine Kopie aller PMs generieren lassen,
+können über diesen Befehl hin und wieder die PM löschen, ohne sich
+einzuloggen.
+
+Als Antwort erhält er dann eine Nachricht mit der Anzahl der gelöschten
+Nachrichten.
+
+Dieser Befehl kann aus Kompatibilität auch über CLEARPM ausgelöst werden.
+@endnode
+
+@node BEF.PASSWORT "OMAPS Befehl : PASSWORT"
+Will der Pointuser das Passwort seines Points ändern, schickt er diesen
+Befehl an OMAPS.
+
+Im Nachrichtentext steht in den beiden ersten Zeilen das neue Passwort.
+Stimmen die Zeilen nicht überein, wird das Passwort nicht geändert.
+@endnode
+
+@node BEF.INHALT "OMAPS Befehl : INHALT"
+Mit Hilfe dieses Befehls kann der Pointuser den Inhalt eines oder
+mehrere Bretter auflisten lassen.
+
+Im Nachrichtentext stehen zeilenweise die Bretter, deren Inhalte er
+sehen will, beginnend mit einem Slash '/'.
+Der Inhalt von Brettern, auf die der Point aufgrund seines Levels oder
+seiner Gruppenbits keinen Zugang hat, wird nicht generiert.
+
+Als Antwort bekommt der User eine Textnachricht mit allen Inhaltslisten
+der Bretter.
+
+Der Befehl INHALT ist nicht standarisiert, er ist aus Kompatibilität
+zum alten ANUBIS MAPS implementiert.
+@endnode
+
+@node BEF.INDEX "OMAPS Befehl : INDEX"
+Ähnlich wie @{"INHALT" link BEF.INHALT} listet INDEX den Inhalt eines Brettes auf. INDEX
+generiert dabei aber die ZConnect Header für jede Nachricht im Brett,
+sofern sie vom momentanen ANUBIS System unterstützt werden.
+
+Im Nachrichtentext stehen zeilenweise die Bretter, deren Inhalte er
+sehen will, beginnend mit einem Slash '/'.
+Der Inhalt von Brettern, auf die der Point aufgrund seines Levels oder
+seiner Gruppenbits keinen Zugang hat, wird nicht generiert.
+
+Als Antwort bekommt der User eine Textnachricht mit allen Inhaltslisten
+der Bretter.
+@endnode
+
+@node BEF.FILES "OMAPS Befehl : FILES"
+Über FILES kann ein Pointuser, ähnlich wie über @{"REQUEST" link BEF.REQUEST}, ein oder mehrere
+Nachrichten über OMAPS anfordern. Allerdings gibt es dabei einige Unter-
+schiede, die beachtet werden müssen.
+
+Im Nachrichtentext stehen die Filenamen der angeforderten Nachrichten zeilen-
+weise untereinander.
+
+Gesucht wird dann immer über die FileRequest Liste, d.h. Nachrichten, die
+in Brettern stehen, die nicht mit dem FileRequest Flag versehen sind, können
+nicht angefordert werden. Außerdem können aufgrund dieser Tatsache nur
+Binärnachrichten angefordert werden.
+
+Es wird empfohlen, immer den Befehl REQUEST zu benutzen, sofern sich dies
+machen lässt, da FILES nur aus Gründen der allgemeinen Kompatibilität
+eingebaut wurde.
+@endnode
+
+@node BEF.SET "OMAPS Befehl : SET"
+Über das Kommando SET kann der Pointuser die Parameter für seinen Point
+ändern.
+Typische Änderungen sind die Installation neuer Packer oder Protokolle
+in der Box und im Point. Damit der User nicht unbedingt den Sysop nerven
+muß, kann er dieses Kommando verwenden.
+
+Im Nachrichtentext steht die Liste der Parameter, die verändert werden
+sollen. Über verschiedene Schlüsselworte werden diese angesteuert, mit einem
+Gleichheitszeichen '=' werden diese vom neuen Wert des Parameters getrennt.
+
+Folgende Schlüsselworte werden zur Zeit unterstützt :
+
+ packer=<packer>	Verändern des Packereintrags für den Point. Der ange-
+			gebene Packer <packer> muß in der Konfig-Datei
+			"Anubis:Daten/Packer" vorhanden sein und als Netz-
+			packer ausgelegt sein.
+			Hinweis : Dieses Schlüsselwort ist wegen Synchroni-
+			satationsproblemen zur Zeit nicht belegt, daher
+			kann ein Point den Packer nicht per OMaps ändern.
+
+ protokoll=<proto>	Verändern des Übertragungsprotokolls für den Point.
+			Das angegebene Protokoll <proto> muß in der Datei
+			"Anubis:Daten/Protokoll" definiert sein. Die
+			Optionen für die XPR-Lib werden automatisch über-
+			nommen.
+
+ setuserdate=Ja|Nein	Verändern des Flags "Userdatum setzen". Wird der
+			Wert "Ja" angegeben, so wird in Zukunft bei jedem
+			Pointcall das Userdatum des entsprechenden Users
+			verändert.
+
+ sendstat=Ja|Nein	Verändern des Flags "Statistik senden". Wird der
+			Wert "Ja" angegeben, verschickt ZSort in Zukunft
+			bei jedem einsortierten Puffer des Systems seine
+			Statistik an den Point.
+
+Als Antwort erhält der Point ein Protokoll über alle durchgeführten Ände-
+rungen oder Fehler.
+@endnode
+
+@node GUI "grafische Benutzeroberfläche"
+Nach dem Aufruf von OMAPS mit dem Parameter "gui" wird ein Window geöffnet,
+das aus zwei Listview Gadgets und einigen Aktionsgadgets am oberen
+Rand besteht.
+Am unteren Window-Rand befindet sich eine Status-Anzeige, die Programm-
+meldungen und kurze Hilfstexte zu den Gadgets ausgibt, wenn der Maus-
+zeiger darüber steht.
+
+In der linken Liste werden die in der Box eingetragenen Points und Systeme
+dargestellt. Klicken Sie auf einen Eintrag, wird die MAPSListe für diesen
+Point geladen und im rechten Listview dargestellt.
+In der rechten Liste können Sie dann ein oder mehrere Bretter auswählen.
+Diese Liste dient für die Auswahl der zu löschenden Bretter und als Anzeige,
+welche Bretter das ausgewählte System bestellt hat.
+
+Die Funktionsgadgets :
+
+ @{" Quit   " link GUI.QUIT}	GUI beenden
+ @{" Add    " link GUI.ADD}	Bretter per Requester bestellen
+ @{" Del    " link GUI.DEL}	bestellte Bretter austragen
+ @{" Prüfen " link GUI.CHECK}	MAPSListen überpüfen
+
+@endnode
+
+@node GUI.QUIT "GUI-Befehl: Quit"
+Über dieses Gadget verlassen Sie das Programm. Sind Änderungen an der aktuel-
+len Point-MAPSListe vorgenommen worden, so wird die Liste vorher gespeichert.
+
+Diese Funktion kann auch über das Closing-Gadget des Fensters ausgelöst
+werden.
+@endnode
+
+@node GUI.DEL "GUI-Befehl: Del"
+Die Funktion "Del" dient dazu, bestellte Bretter für das aktuelle System
+wieder abzubestellen.
+
+Gehen Sie dazu wie folgt vor :
+
+Markieren Sie alle Bretter, die Sie für das System abbestellen wollen, in
+dem linken Listview, in dem die Bretter des Systems dargestellt werden.
+Sie können mehrere Bretter markieren, indem Sie eine Shifttaste während
+des Klickens mit der Maus gedrückt halten.
+
+Sind Sie damit fertig, betätigen Sie das Gadget "Del" und OMaps beginnt,
+das System aus dem Brettmapslisten auszutragen. Dies können Sie dadurch
+verfolgen, das die selektierten Bretter hintereinander aus der Brettliste
+verschwinden.
+@endnode
+
+@node GUI.ADD "GUI-Befehl: Add"
+Nach der Betätigung des Gadgets "Add" erscheint ein Requester, in dem alle
+Bretter angezeigt werden, die das ausgewählte System noch nicht bestellt
+hat. Diese Anzeige ist unabhängig vom Level und den Gruppen, d.h. es stehen
+wirklich alle Bretter in dieser Liste.
+
+Wählen Sie nun alle Bretter aus, die Sie für dieses System bestellen
+wollen. Auch hier können Sie per MultiSelect mit der gedrückten Shift-Taste
+mehrere Bretter auswählen.
+
+Wenn Sie das Gadget "Bestellen" betätigen, wird in alle MAPSListen der
+ausgewählten Brettern das aktuelle System eingetragen und die MAPSListe
+des Systems im Speicher aktualisiert. Im Hauptwindow wird das gerade be-
+tellte Brett direkt eingetragen.
+Hat das System auf ein Brett keine MAPS-Berechtigung, erscheint ein Requester,
+der Sie von diesem Vorfall informiert. Sie haben dann drei Möglichkeiten,
+weiterzumachen :
+
+ "bestellen"	- Obwohl das System keine Berechtigung hat, wird das Brett
+		  bestellt (ist manchmal wichtig).
+ "nonstop"	- Treten weitere Bretter auf, für das keine MAPS-Berechtigung
+		  besteht, erscheint kein Requester mehr und das ent-
+		  sprechende Brett wird ohne Nachfrage eingetragen.
+ "lassen"	- Das Brett wird nicht bestellt.
+
+@endnode
+
+@node GUI.CHECK "GUI-Befehl: Prüfen"
+Diese Funktion dient dazu, alle MAPSListen des Systems auf ihre Korrektheit
+zu überprüfen.
+Im Prüf-Window können Sie alles einstellen, was Sie überprüfen lassen wollen.
+Alle Vorgänge sind gegen den MultiTasking Betrieb abgesichert, so daß Sie
+den Prüfvorgang parallel zu ANUBIS oder ZSort starten können.
+
+Folgende Einstellungsmöglichkeiten sind zur Zeit vorhanden :
+
+ @{" MAPSListen prüfen von " link CHECK.1}	welche Listen sollen überprüft werden ?
+ @{" doppelte Einträge     " link CHECK.2}	alle doppelten Zeilen raus
+ @{" Existenz              " link CHECK.3}	Existiert System/Brett noch ?
+ @{" Syntax                " link CHECK.4}	ist der Syntax einer Zeile richtig ?
+ @{" Plausibilität         " link CHECK.5}	Stimmen Point-/Brettlisten überein ?
+ @{" Start                 " link CHECK.6}	Starten der Überprüfung
+ @{" Abbruch               " link CHECK.7}	Abbrechen der Aktion
+
+Hinweis : Je nach Einstellungen und Anzahl der Bretter/Points kann das ganze sehr
+lange dauern !
+@endnode
+
+@node CHECK.1 "MAPSListen prüfen von"
+In diesem Cycle Gadget stellen Sie ein, welche MAPSListen geprüft werden
+sollen. Dies sind entweder die Listen der Points oder die der Bretter Ihres
+Systems.
+@endnode
+
+@node CHECK.2 "doppelte Einträge"
+Wenn Sie alle doppelten Einträge aus den MAPSListen der Bretter/Points ent-
+fernen wollen, wählen Sie dieses Flag aus.
+
+Im Prüfvorgang werden dann zu jeder Zeile geprüft, ob sie ggf. erneut in der
+MAPSListe vorkommen. Ist das der Fall, werden alle überschüssigen Zeilen
+entfernt und nur eine einzige Zeile mit diesem Eintrag zurückgeschrieben.
+@endnode
+
+@node CHECK.3 "Existenz"
+Wenn Sie prüfen wollen, ob zu den Einträgen in der MAPSListe das ent-
+sprechende System oder Bretter noch in der Point- oder Brettliste
+existieren, wählen Sie dieses Flag.
+
+Zu jeder Zeile in einer MAPSListe wird in der jeweiligen Systemliste
+geprüft, ob ein Brett oder ein Point noch darin existieren. Ist das nicht
+der Fall, wird die Zeile entfernt.
+@endnode
+
+@node CHECK.4 "Syntax"
+Über dieses Flag können Sie einen Syntaxcheck jeder Zeile auslösen.
+
+Es wird dann für jede Zeile geprüft, ob nur erlaubte Zeichen dort stehen oder
+bestimmte Notierungsregeln eingehalten werden. Ist das nicht der Fall, wird
+die Zeile entfernt.
+
+Diese Funktion ist zur Zeit noch nicht implementiert.
+@endnode
+
+@node CHECK.5 "Plausibilität"
+Dies ist das aufwendigste Prüfverfahren. Es überprüft, ob die MAPSListen
+der Points mit denen der Bretter abgeglichen sind und umgekehrt.
+
+Für jeden Point wird geprüft, ob in den MAPSListen der Bretter, die in
+der MAPSListe stehen, auch der Pointname auftaucht. Ist das nicht der
+Fall, wird die Brett-MAPSListe korrigiert.
+Da diese Funktion sehr viele Plattenzugriffe benötigt, ist sie auch sehr
+langsam !
+
+Diese Funktion ist zur Zeit noch nicht implementiert.
+@endnode
+
+@node CHECK.6 "Start"
+Wie nicht anders zu erwarten war, wird der Überprüfungsvorgang mit diesem
+Gadget gestartet.
+
+Es wird zuerst ein Window mit einem Listview-Gadget geöffnet, in dem die
+Prüfroutine seine Meldungen schreibt. Auf diese Weise sind Sie ständig
+informiert, was OMaps gerade tut. Dann werden der Reihe nach alle Points
+oder Bretter (je nach Modus) durchgegangen und deren MAPSListen nach
+Ihren Einstellungen geprüft.
+
+Der Prüfvorgang ist zur Zeit noch nicht abbrechbar !
+@endnode
+
+@node CHECK.7 "Abbruch"
+Eigentlich unnötig zu beschreiben, aber mit diesem Gadget gelangen Sie aus
+dem Prüfwindow wieder zurück zum Hauptwindow.
+
+Diese Funktion kann auch durch das Closing-Gadget im Window-Rahmen ausge-
+löst werden.
+@endnode
+
+@node VERSIONEN "Versionsübersicht"
+@{u}Version Datum           Anmerkung                      @{uu}
+0.18	12.02.95	erste Beta-Test Version mit den Standard Befehlen,
+			Logfileausgabe und Progress-Window.
+0.23	13.02.95	Kommando @{"FILES" link BEF.FILES} ist implementiert.
+0.24	14.02.95	Der Absender für die Replies ist jetzt immer "MAPS".
+			Im Hilfstext fehlten bei FILES die Keywords ALLFILES
+			und HELP.
+0.25	14.02.95	Point-MAPSListe wird gegen doppelten Zugriff abge-
+			sichert.
+			ADD und DEL für die Brett-MAPSListen umgeschrieben und
+			auf AutoMaps vorbereitet.
+0.26	14.02.95	CLEARPM Kommando als Alias für DELPM
+0.27	16.02.95	Suchen des Absende Systems verbessert.
+			Altes Work-Dir wird vor dem Umbenennen sicherheitshalber
+			gelöscht.
+0.28	16.02.95	Im @{"LIST" link BEF.LIST}-Format werden Infozeilen für Bretter durch
+			formatierte Spaces abgesetzt, so daß das ganze ein
+			wenig menschenlesbarer wird.
+0.29	18.02.95	Absender für den Hilfstext ist jetzt auch "maps".
+0.32	19.02.95	Neues Kommando : @{"SET" link BEF.SET}
+0.36	27.02.95	Neuer Commandline-Parameter : @{"gui" link PARAM}
+0.41	28.02.95	grafische @{"Benutzeroberfläche" link GUI} für ADD und DEL
+0.42	28.02.95	Absicherung des SET Vorgangs
+			Beim Umsetzen des Packers wird ein evtl. vorhandenes
+			Archiv umgepackt.
+0.43	28.03.95	Bei ADD wurde ein Slash an den Beginn der MAPSListe
+			für den Point geschrieben.
+0.44			Bei SET ist das Ändern des Packers wegen Problemen
+			nicht mehr möglich, bis ein vernünftiges und einfaches
+			Verfahren dafür gefunden wird.
+0.45	29.03.95	Befehle mit einem Space ' ' werden als fehlerhaft behandelt.
+0.54	15.04.95	@{"Prüfen" link GUI.CHECK} implementiert.
+0.57	09.05.95	Alle MAPSListen werden vor dem Speichern alphabetisch
+			sortiert.
+0.58	13.05.95	Fehlerhaftes Suchen von Points ausgebaut.
+0.59	16.05.95	Der Hilfstext wurde bei Boxen immer an den lokalen SYSOP
+			geschickt.
+0.60	16.05.95	evtl. angegebene Parameter im Betreff wurden nicht ig-
+			noriert, sondern als unbekanntes Kommando interpretiert.
+0.61	25.05.95	Die MAPSListen werden nur noch dann sortiert, wenn es
+			nötig ist (nämlich nach ADD).
+			erster Release für alle Sysops.
+@endnode

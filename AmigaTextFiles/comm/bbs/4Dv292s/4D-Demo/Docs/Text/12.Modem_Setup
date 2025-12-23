@@ -1,0 +1,430 @@
+Chapter 12:  Modem Setup
+
+
+
+
+12.1 Overview
+
+	In order for 4D-BBS to operate correctly, it must interact with your
+modem correctly.  This includes configuring 4D-BBS to know what commands to
+send to your modem, and what commands your modem returns.  If these two
+options are not setup correctly, 4D-BBS will not be able to accept calls.
+
+	This chapter is set up into two parts.  The first part is a
+terminology section designed to give novice users information about modem
+terms and operations.  The second section goes into detail applying these
+terms to 4D-BBS and explaining what the requirements for a modem are and
+how it should be setup.
+
+	If you are familiar with modems, you may wish to skip the first
+section, and go directly to section 12.4, which is the first section
+specific to 4D-BBS.
+
+12.2 Modems and Terminology
+
+	The word modem is an abbreviation of "MOdulator-DEModulator", and
+stands for the action of taking data, changing it into an audible signal,
+and then reconverting it back into data.  This is a, of course, a simple
+overview of what a modem really does.
+
+	There are several different types of modems available today.  Although
+most modems are compliant with the original Hayes "AT" command set, there
+are several modems which use a derivative of the "AT" command set or use
+their own proprietary method.  Because of this when a command is talked
+about in this chapter, both the long description and the "AT" equivalent
+will be given.  You may have to look up the appropriate command in your
+modem's manual if it differs from the "AT" command given.
+
+12.2.1 Speeds
+
+	There are basically two classifications of modems used today.  A modem
+of 9600 baud or faster is considered a "high speed" modem, whereas a modem
+less than 9600 baud is considered a normal modem.  Although this is
+certainly not a clear line between the two, the major determining factor is
+the speed at which the modem and computer communicate with each other.
+
+	There are two types of speeds (or data transfer rates) which need to
+be clarified.  The first is called the "serial" rate.  This is the
+communication rate at which the modem and computer talk to each other.  The
+other rate is called the "carrier" rate, and is the communication rate at
+which the modem talks to the other modem.  The two rates do NOT have to be
+the same, and as we will see later, normally the serial rate must be faster
+than that carrier rate when using advanced features of your modem.
+
+	As mentioned above, the two modem classifications are not clearly
+defined.  They can overlap, with the main determining factor being whether
+the serial rate and the carrier rate are required to be the same.  For high
+speed modems, the serial rate is normally "locked" (or set to and never
+changed) at a rate which is faster than the highest possible carrier rate.
+With earlier modems, the serial rate had to "float" or change whenever the
+carrier rate changed.  Since this meant that the computer and modem had to
+be constantly switching the rate at which they were communicating data, it
+was easy to get them communicating at different rates causing a BBS not to
+work properly.
+
+	Some modems however have the ability to work both ways.  If they
+receive a call at 2400 baud or less, the modem can change the serial rate
+to the incoming baud rate.  If the modem receives an incoming call above
+2400, it will keep its serial rate locked at a designated rate.  As a
+result of this the user will see a more responsive system.
+
+	Another point to make is when two computers are connected using
+modems, the serial rate of one computer can be different than the serial
+rate of another computer (assuming high speed modems are being used).  It
+is the modem's responsibility to act as a transport between the computer
+and the other modem.
+
+	Below is a chart of common serial and carrier baud rates.  Note that
+after 9600, the rates differ.  This is roughly the distinction of the high
+speed modem.  The third column below shows the CCITT designated name for
+that CARRIER rate.
+
+	Serial	Carrier 	CCITT
+	
+	300		300		
+	1200		1200		V.22
+	2400		2400		V.22bis
+	4800		4800
+	9600		9600		V.32
+
+	19,200	12,000
+			14,400	V.32bis
+			16,800	(ZyXEL/HST)
+			19,200	(ZyXEL)
+
+	38,400	28,800	V.Fast
+	57,600
+	76,800
+	115,200
+
+
+
+	The CCITT protocols run the SAME speed on both channels the modem can
+communicate on.  Theoretically, this means that a bi-directional transfer
+could send up to 14.4kbits/second each way when using V.32bis.  Of course
+these are in theory and actual transfer speeds would be lower.
+
+	It should also be noted that several modems offer a faster or
+different carrier rate then those mentioned above.  This is because there
+are several proprietary protocol modems available.  Some of these include
+ZyXEL, USR, Compucom, Telebit, and Telcor.
+
+	Normally these modems will only communicate with each other using the
+CCITT 2400 baud protocol, unless they also support a faster CCITT standard
+or they are connecting with another modem made by the same manufacturer.
+
+	For example, an HST modem by USR can connect to a ZyXEL only at 2400
+baud, but can connect to another HST using the HST protocol at 9600 or
+14.4k/sec.  A USR Dual standard can connect to a ZyXEL at 9600 or
+14.4k/sec, since it supports either the V.32 or V.32bis protocol (depending
+on the model of the Dual Standard).
+
+	An interesting note on the HST protocol is how it is designed.  The
+CCITT V.32 and V.32bis protocols, as a noted above, can transfer at full
+speed BOTH WAYS.  The HST protocol can only send full speed ONE WAY, while
+the other channel is only able to send data at 450bits/second.  This is a
+definite caveat to the HST protocol.  On the other hand, some protocols,
+like the ZyXEL protocol can transfer on both channels (like the CCITT
+protocols).  A ZyXEL modem using the ZyXEL 19.2k protocol can transfer
+information at 19.2kbits/second BOTH ways.
+
+	Please consult your modem's user guide for information on which
+protocols it supports and which modems it can connect to.
+
+12.2.2 Error Correction and Data Compression
+
+	There are several different types of error correction techniques used
+by modems today.  The most common two are MNP2-4 and LAP-M.  One of the
+main advantages of using error correction is that by itself it can give you
+a faster transfer rate.  The normal way of transferring information
+requires two extra bits besides the normal 8 bits for the data to handle
+error detection.  Since the modems themselves handle the error correction,
+these extra two bits are not needed any more and stripped by the modems.
+This means a theoretical 20% increase in transfer speed.
+
+	Similar to error correction, there are several different types of data
+compression used in today's modems.  These vary by the maker, but usually
+offer similar throughput.  Since data compression and error correction are
+normally bundled together (most data compression modes require an error
+correction mode to be enabled in order for data compression to operate).
+We will discuss them together in their CCITT proposals.
+
+	MNP2-4 was the first error correction protocol to be widely accepted.
+It was mostly used with 2400-9600 baud modems.  Together with MNP2-4, was
+MNP5.  MNP5 is a data compression technique which allows up to a 2:1
+compression ratio.  MNP5 does not have the ability to detect data which is
+already compressed, and can result in a degradation of throughput when
+transferring pre-compressed data.  These two together are called by CCITT
+"v.42".
+
+	LAP-M was the next error correction protocol to be adopted by the
+CCITT.  It had better detection and correction methods than MNP.  It also
+has data compression capabilities of up to 4:1.  This is twice that of
+MNP5, and LAP-M is intelligent enough to detect a stream of compressed
+information and not try and compress it any further.  When CCITT adopted
+LAP-M, they packaged it together with V.42, calling it V.42bis.  V.42bis
+includes BOTH LAP-M and MNP2-4.  The preferred protocol to use when two
+V.42bis modems connect is LAP-M (because of its better features and high
+intelligence), but this is normally configurable in the modem.
+
+12.3 Computer-and-Modem Operations
+
+	The folloiwng mainly covers high speed modems which are utilizing data
+compression.  If you are using a non-high speed modem, you may skip this
+section.
+
+	Now that you understand some of the different speeds and protocols,
+let's talk about what this all means to the computer.  Earlier it was noted
+that the computer can talk to the modem at a DIFFERENT rate than the modem
+is actually talking to the other modem.  There is a definite reason why
+this is needed.
+
+	When a modem is using a data compression technique, its needs to get
+information from the computer FASTER than it is sending it out to the
+modem.  This is only obvious when you think about what data compression
+means.  If the computer is NOT getting data faster than it is sending it to
+the other modem, then data compression is useless.
+
+	Lets look at the below illustration for example:
+
+   __________                                         _____________
+             \                                       /
+              \_____________________________________/
+ 
+   Computer 1   Modem 1 -> Carrier Width <- Modem 2    Computer 
+               _____________________________________
+              /                                     \
+   __________/                                       \_____________
+
+
+	Now let's pretend the above is a water pipe, and you are trying to get
+the maximum amount of water through the pipe.  In order to get the maximum
+amount of flow, you would have to AT LEAST have the same amount of pressure
+in the area where Computer 1 is, as is allowed to travel through the
+carrier width.  If you do not, then you are not fully utilizing the maximum
+bandwith of the carrier.
+
+	What does this all mean when related to modems?  Computer 1 must be
+able to send information to modem 1 FASTER than modem 1 can send
+information to modem 2.  This way modem 1 has a chance to COMPRESS the
+data, and send it to modem 2.  When modem 2 gets the information, it will
+UNCOMPRESS the data, giving computer 2 information FASTER than the allowed
+carrier bandwidth.  This same process can be reversed to show information
+flow from computer 2 to computer 1.
+
+	What will happen if the computer-to-modem speed is the same as the
+modem-to-modem speed?  If data compression is not being used, this will not
+cause a problem.  If data compression IS being used, then some conflicts
+can arise.
+
+	First of all, if the computer only sends data to the modem at the rate
+the modem is able to transfer it to the other modem, no problems arise.
+But what about when only ONE computer's serial rate is faster than the
+carrier rate, or when another's serial rate and carrier rate are the same?
+An overrun will occur on the computer which has its serial rate the same as
+the carrier rate (again, assuming data compression is being used).  This is
+where flow control comes into effect.
+
+12.3.1 Flow Control
+
+	Flow control is the action of being able to start and stop the flow of
+data between to communication devices.  Here we will talk about flow
+control and how it affects modem-to-computer and modem-to-modem
+communications.
+
+	When a computer is sending information to the modem faster than the
+modem can send it out to the other modem (even if data compression is being
+used) then the possible situation of the modem's buffer getting full can
+occur.  If the computer is not told to stop sending information until the
+modem is able to send data out to the other modem, then data can be lost.
+This situation can also be reversed to describe the flow of data from the
+modem to the computer.
+
+	There are two types of common flow control.  The first is called
+Xon/Xoff and the other is called RTS/CTS.  Xon/Xoff flow control is two
+characters, specifically Control-Q and Control-S.  When a device wants the
+other device to stop sending information, they will send an Xoff to that
+device.  The device who receives the Xoff will stop sending data until it
+receives an Xon.  This method works well in environments which do not have
+extra cabling to handle hardware hand-shaking, as we will see below.  A
+problem to this method is that it is possible to get garbage characters,
+and misinterpret an Xon or Xoff character, causing flow control to not work
+properly.  Futhermore, when transferring binary files, it is required by
+the transfer protocol to escape or change these characters, so that they
+are not misinterpretted.  This means extra overhead for the protocol.
+
+	Since Xon/Xoff has some draw backs, a new flow control method was
+designed.  This method used two wires in the cable between the two devices
+to signal when a device was able to receive information.  This is commonly
+called "hardware" flow control.  The two signals which go between the two
+devices are labeled Read To Send and Clear To Send (RTS and CTS).  When
+talking about computer-to-modem communications, the RTS signal is high when
+the computer wants to send to the modem, and the CTS signal is high when
+the modem is ready to accept data.  So when the modem's buffer fills up, it
+sets the CTS pin to low, temporarily stopping the computer from
+transmitting.  Since RTS/CTS is hardware based, protocols do not need to
+escape the Xon/Xoff characters (which are normally ignored by the hardware
+when RTS/CTS is enabled).
+
+	There is one more thing to remember when talking about flow control.
+All devices must be using the SAME type of flow control.  It IS possible to
+have both RTS/CTS and Xon/Xoff enabled, but this is not normally needed.
+If one device is using JUST RTS/CTS and another is using Xon/Xoff flow
+control will NOT work.  Not only does this apply to your computer and
+modem, is also applies to the OTHER computer and modem you wish to connect
+to.  For example:
+
+Computer 1 <---> Modem 1 <----------> Modem 2 <---> Computer 2
+
+RTS/CTS          RTS/CTS              RTS/CTS        RTS/CTS
+
+	If just Computer 1 and Modem 1 are using RTS/CTS, then it's possible
+for Computer 2 and Modem 2 to loose information.
+
+	If a user calls your BBS with a 2400 baud modem, and you have a 14.4k
+modem, they MUST be using some type of hand-shaking if your are locking
+your serial rate.  Why would this be?  Your computer is sending information
+at 19.2k (assuming your serial rate is locked at 19.2k) to your modem.
+Your modem can only send information to the other modem at 2400.  If the
+other modem can not tell your modem to pause, then your modem will overrun
+the other modem.
+
+	If you are running a high speed modem, a nice bulletin warning your
+users they need to use RTS/CTS is very helpful to prevent data loss.
+
+
+12.4 Modem Requirements
+
+	Below are some of the requirements of a modem in order for it to
+operate with 4D-BBS properly.  This is assuming the modem can connect to
+the Amiga (whether via the serial port or internal) and either works with
+the "serial.device", or has its own "serial.device" compatible device
+driver (i.e.  "supra.device", "gvpser.device", etc.).
+
+	* Must support the AT command set, or at least the ATA command to
+answer the modem.
+
+	* Must be able to return the following result codes:
+
+		RING				When a call is coming in.
+		CONNECT XXXXX		Connection to another modem.
+		NO CARRIER		Aborted connect.
+
+	* Should be able to report the CARRIER speed when reporting the
+connect string (i.e.  CONNECT 14400, not CONNECT 19200).
+
+	* Must be able to report via the DCD pin whether a carrier is present
+or not.
+
+	* Should be able to drop carrier when the DTR pin goes high-to-low or
+be able to hangup using the "+++,,,ATH" command.
+
+	* Should be able to support RTS/CTS hardware hand-shaking.
+
+	* Should be able to return verbose commands, not terse.
+
+	* Should be able to not echo commands sent to it.
+	
+12.5 Configuring the Modem
+
+	The first step is to configure how 4D-BBS will interact with your
+modem.  There are several settings which can be altered, along with
+different options you may select.
+
+	In the Configuration Editor on the Modem Setup screen, there are 13
+settings which need to be talked about.  They are as listed below:
+
+High Baud:  This is the highest possible serial rate both your computer and
+the modem can handle.  This is also the baud rate at which the BBS will
+initially setup the modem.  If your modem has non-volatile memory and you
+are saving settings to your modem for the BBS, then you should have your
+terminal set at this baud rate before you save the settings into the
+modem's memory.  This is also the baud rate the BBS will try to
+re-initialize the modem at after every call.  If the reset baud option is
+set to Yes (see below) then this is the baud rate which the BBS will try
+and reset to.
+
+			The default for this depends on your modem.  A high speed
+modem should use 19200 or 38400, while a 2400 should use 2400.
+
+Low Baud:  This is the lowest available baud rate which the BBS supports.
+If a connection comes in slower than this rate, the BBS will simply hangup
+and go back to the wait screen.
+
+Ser Device:  This is the serial device driver which the BBS will try and
+use.  This file must exist in your "Devs:" directory.  The default for this
+is "serial.device".
+
+Auto Detect:  When the auto detect mode is enabled, the BBS will expect to
+receive standard verbose information from your modem.  The two main result
+codes are "RING" for an incoming call and "OK" when a good command was
+sent.
+
+Drop DTR:  The BBS and your modem must be setup to support the same mode
+for hanging up.  There is three different settings for this:
+
+		0 The BBS will not try to hangup the modem.  This should only be
+used inconjunction with the "/o" parameter, to allow the calling program to
+either continue using the current connection, or allow the calling program
+to hang up the modem itself.
+
+		1 The BBS will close the serial device, pause, and then re-open
+the serial device in order to drop the DTR.
+
+		2 The BBS will use the escape sequence method of "+++", 2 second
+pause, "ATH" in order to hangup the phone.
+
+		The default for this is 1.
+
+Local Off:  When you log onto the BBS with either the F1 or F10 keys (or
+equivalent pull down menu options) this option will instruct the BBS to
+send a "ATH1" option, to send the modem off-hook.  This will give your BBS
+a busy signal while you are on the BBS.  You can also run a second copy of
+the BBS to logon, in order to avoid this.  The default is No.
+
+Reset Baud:  When the "/b" command line parameter is NOT given to the BBS,
+its serial rate will "float" to match the incoming carrier rate.  Set this
+option to Yes if you want to have your modem return to the serial rate
+specified by the high baud option above.  If you wish for your modem to
+stay at the incoming caller's baud rate until a new incoming call changes
+it, specify No here.  The default is No.
+
+Ser Unit:  This is the unit of the serial device specified in the "Ser
+Device" option which the BBS will use.  The default is 0.
+
+Connect Str:  If the Auto Detect option is turned on, this is the string
+the BBS will look for to determine when a connection has been made.  Your
+modem must return this as the FIRST part of the connect string.  The BBS
+will parse the number IMMEDIATELY following the string and assume that is
+the carrier rate.  The default for this is "CONNECT".
+
+Buffer Size:  This is the buffer size for the serial port.  Normally a
+buffer size of 4k is sufficient.  High speed modems might want to use a
+larger buffer size to make transfers less choppy.  The default is 4096.
+
+ARQ Str:  When a reliable connection is made, the BBS needs to know this in
+order to calculate transfer times accurately.  This string can appear
+ANYWHERE in the string which begins with the connect string specified
+above.  The default is "ARQ".
+
+Fax String:  If your modem has fax capabilities and is able to distinguish
+between a fax and a data call, set this to the string which your modem will
+return when it detects an incoming fax.  This is NOT the complete string,
+and the BBS will search for this string inside of the result string.  The
+default is "FAX".
+
+Init String:  This is the string which the BBS will send out to the modem
+when starting up, and after each call.  The BBS expects to receive either
+an "OK" or a "0" back from the modem after sending this string.
+
+		Certain characters in this string are translated by the BBS.
+They are:
+
+		~ Pause for 1.5 seconds
+		| Send a Return
+		^ Hangup the modem (Defined by drop DTR setting)
+
+The default string is "~|AT|" (Wait 1.5 seconds, send a return, AT, and
+another return).
+
+12.6 YSMTG (Yet Still More TO Go!)

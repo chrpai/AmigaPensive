@@ -1,0 +1,804 @@
+Chapter 8:  Menus and Menu Commands
+
+
+
+
+8.1 Overview
+
+	The menus are the heart of the BBS.  They direct the user around the
+BBS and act as a guide.  Whether the menus are simple and plain, or
+complicated and fancy, the SysOp has complete control over every aspect of
+the menus.  This is a powerful feature enabling the SysOp to personalize
+and create a BBS which is very unique.
+
+8.2.1 Menu Formats
+
+	All menu files are plain ASCII files located in the MENU:  directory.
+Editing and creating menus should be done with a text editor of your
+choice.
+
+	The first line of the menu file should be the help file for the menu.
+This filename is appended either as .ASCII or .ANSI automatically by the
+BBS, depending on the on-line user's mode.
+
+	The second line is the prompt for the menu.  This can include EIC
+codes and color codes.  If color codes are encountered and the user is in
+ASCII mode, they will simply be ignored.  There is a maximum of 80
+characters.
+
+	The third line is the type of entry for the menu as listed below.
+
+	TYPE DESCRIPTION
+
+	0 Hotkey:  User enters one character without entering return.
+
+	#>0 User can enter UP TO # characters, and must press Return at end
+(i.e.  10 means the user can enter up to 10 characters.)
+
+	 # The number sign means that a user can enter one character without
+having to press Return or enter up to a 3 digit number and must press
+return.  This is most often used in a menu to allow the user to enter
+hotkeys, and full numbers (i.e.  in a message base menu to change sections.
+
+	-1 No user entry for this menu, and the first command will be executed
+automatically, irrelevant of the keypress code.  If the following commands
+also have the same keypress, they will be executed also.  This mode is
+designed for Command Menus.(Refer to section 8.4.1)
+
+	From the fourth line on, each line represents one function.
+Everything on the line before the ":" represents the keypress for that
+function, everything on the right side of the colon is assumed to be the
+command.  The command can be split up into 1 to 4 parts separated by
+spaces.
+
+	If a keystroke has more characters than allotted in line three, the
+function WILL NOT be accessible by the user.  Multiple lines CAN HAVE the
+same keystroke, in which case all lines will be executed BUT they must ALL
+be consecutive lines in the menu file.
+
+	An example line would be:
+
+	p:p p 0
+
+	This means the keystroke is a single "p", and the command is ":p" with
+parameters of "p 0".  An example of multiple lines would be:
+
+	o:2 TEXT:LOGOFF.TXT
+	o:0 q
+
+	This would display the file "TEXT:LOGOFF.TXT" to the user, then do a
+quick logoff.  The following would NOT execute the third line:
+
+	o:2 TEXT:LOGOFF.TXT
+	o:2 TEXT:LEAVE.TXT
+	p:p p 0
+	o:0 q
+
+	In this example, the BBS would execute the first two commands, but
+upon seeing that "p" (line 4) is different from the "o" (line 2) the BBS
+would return to the prompt, and NOT execute the fourth line.
+
+8.2.1 Layouts
+
+	4D-BBS uses menu locks to control user access to menus.  These menu
+locks can be unique to each user, and are system specific.  When designing
+your menus, it is best to first list all menus which you will be using, and
+give a unique lock to each menu.  If some menus are similar in function,
+you can give the same lock to them to cut down on the number of menu locks
+used.  (Refer to section 8.5.1 for more information.)
+
+	There are two types of menu layouts which can be used.  The first is a
+hierachy method which means a menu is called, and when finished, the
+calling menu regains control.  You can stack menus in this method up to 16
+times, so keep this in mind when designing your menus.
+
+	The second method is a basic goto or jump.  In this method, the
+calling menu is NOT remembered.  This is ideal if you wish to setup a maze
+or theme type, BBS since menus do not have to be remembered.
+
+	Below are two examples of menus:
+
+                                     Main Menu
+                    _____________|___________________
+                   |                          |                                       |
+        Message Bases      File Transfers                 Game Room
+                   |
+        Electronic Mail
+
+	In the above setting, a user starts out at the Main Menu, and can go
+to one of the 3 menus.  If they choose the Message Bases, they can not go
+into the Game Room unless they exit the Message Bases and go back to the
+Main Menu.  If they are in the File Transfers, and want to go to Electronic
+Mail, they must go to the Main Menu, then the Message Bases, then finally
+to Electronic Mail.
+
+
+                      +-  Main Menu     -+
+                     /        |           \
+      Message Bases +---------+------------+-  Game Room
+        |            \        |           /
+      E-Mail          +- File Transfers -+
+
+	In the above example, a user can jump from any section they wish to,
+EXCEPT for the E-Mail section.  To go to or from the E-Mail section, they
+must go through the Message Bases.
+
+	Remember the above are ONLY examples, and the SysOp can setup the BBS
+using one of them, a combination, or design their own layout.
+
+8.2.2 Menu Move Commands
+
+	The "0" and "1" menu command cover most basic menu move operations.
+They are as follows:
+
+	COMMAND DESCRIPTION
+
+	0 e Exits the current menu, and returns to the calling menu.  Can only
+be used if the calling menu used the "1" command.
+
+	0 M Returns to the main menu and clears all hierarchy stacks.
+
+	0 * NAME Enters a new menu WITHOUT saving the previous menu.  The "*"
+is the lock for the new menu.  The new menu does NOT know who the calling
+menu was.
+
+	1 * Name Enter a name menu saving the previous menu.  The "*" is the
+lock for the new menu.  The new menu DOES know who the calling menu is and
+can use the "0 e" command to return to the calling menu.
+
+	The two basic commands for moving between menus can be mixed, as in
+the second example of section 8.2.1, but caution should be exercised when
+doing so.  A loop like this can cause stack limit problems:
+
+         Menu --+
+          |     |
+      Sub-Menu  |
+          |     |
+     Sub-Menu2 -+
+
+	If a jump was used to go from Sub-Menu2 back to Menu, the stack would
+not be cleared.  Doing this too many times would bring upon a maximum
+sub-menus encountered error to the user.
+
+
+
+8.3 Menu Commands
+
+	When a user presses a menu key the BBS will scan the menu file to see
+if any matching keypresses are found.  If none are found and the menu is in
+Hotkey mode, nothing will happen and the BBS will accept another character.
+If the menu is multi-character input and the BBS does not find a match, it
+will display "Unknown menu function" and redisplay the prompt.
+
+	If the BBS does find a match, it will execute the command after the
+":" in the line, and then check if the next line is the same.  If it is,
+then that line will also be executed and this cycle is continued until
+either a match is not found or the last command is executed.
+
+	Once a command is finished the BBS displays the prompt again and
+starts this process over again.  If the command which was executed goes to
+another menu, this process is continued on THAT menu.  If the command logs
+the user off, the process stops.
+
+8.4 Types of Menus
+
+	Currently there are 4 types of menus which you can setup.  These are:
+Command, Personal, Access, Global and Default Menus.
+
+8.4.1 Command Menus
+
+	A Command Menu is a menu that directly executes the first command
+without displaying the logon/stats screen or bulletins.  An example of
+using this type of menu would be if you wanted to spawn a serial based
+program when a certain account logged on.  UUCP's UUCICO could be used this
+way.
+
+	The format for this type of menu is the "Cmd." plus the account name
+plus ".menu".  So, if you were running UUCP, and your feeds logon account
+was called UUCP, you would make a menu called "Cmd.UUCP.Menu", which is a
+normal menu with the first command as "a:4 UUCICO" and the second command
+as "a:q".  Although the keypress for the commands are irrelevant, they MUST
+be the same.
+
+8.4.2 Personal Menus
+
+	A Personal Menu is the same as a main menu, except it is used INSTEAD
+of the Default, Access or Main Menu.  This allows you to give a different
+menu set to a certain user.  The filename is comprised of putting the
+user's names between "main." and ".menu" (i.e.:  "Main.John_doe.Menu").
+
+	The difference between a Command menu and a Personal menu is that a
+Personal menu will display the logon/stats screens and check for new
+bulletins.
+
+8.4.3 Access Menus
+
+	You can create a different MAIN menu for each access group.  These
+replace the default main.menu, and are only used if found.  The filename
+format of these menus are MAIN.[ACCESS GROUP].Menu.  Valid filenames are:
+
+	Main.NoAccess.Menu
+	Main.NewUsers.Menu
+	Main.Members.Menu
+	Main.Sysop.Menu.
+
+8.4.4 Default Menus
+
+	If none of the menu commands listed in sections 8.4.1 through 8.4.3
+are found, then the Default menu ("Main.Menu") will be used.
+
+8.4.5 Global Menus
+
+	If all of your menus have one same function, instead of having to
+define it for every menu, you could define it only once by entering it into
+"global.menu"!  Below is an example:
+
+	!:0 H ; Logs off
+	X:A ; Toggle the expert mode
+	A:B ; Toggle the ANSI mode
+	=:0 M ; Returns to the main menu
+
+	The 4 functions defined above would work in ALL menus on the system.
+
+	The format of "global.menu" is just like a regular menu but without
+the first three lines.  In other words, no display file, no prompt or input
+type lines.
+
+	Note that if there is already a keystroke defined in a regular menu,
+the function associated with that keystroke will override the one defined
+in the file "global.menu." For example, if the key "!" is set in
+"global.menu" to log off the user, but in the current menu it is defined to
+read mail, if the user hits "!" they would read mail instead of being
+logged off.
+
+8.5 Function Locks
+
+	Any function in 4D-BBS can be "locked" from a user.  For example, if a
+user has a lock of "T", this means that the user can not use function "T"
+(the file downloading function).  If a user has a lock string of "tuvwxyz",
+then the user can not use the following functions:  "T", "U", "V", "W",
+"X", "Y", and "Z".
+
+8.5.1 Menu Locks
+
+	It is also possible to lock a user from a menu.  The menu functions (0
+and 1) have a parameter which determine which locks the menu uses.  Those
+lock characters are ", !, @, #, $, %, ^, &, *, (, and )".  If a menu uses a
+lock of "$", and a user has that lock in his lock string, then he will not
+be able to enter that menu.  Example:  "f:1 $ file.menu".  If a menu uses
+"^", and the user doesn't have that in his lock string, then he WILL be
+able to enter that menu.
+
+8.6 An Example Menu
+
+	Below is an example of a Menu File, called "main.menu":
+
+	mainmenu.txt
+	MAIN MENU:
+	0
+	?:0 ?
+	o:1 !  off.menu
+	z:0 q
+	m:1 % base.menu
+	d:1 $ file.menu
+	y:3 echo "^GChat requested!!!"
+	u:5 a 0
+	w:5 s 0
+	l:6
+	e:7
+	x:a
+	j:q
+	v:v
+	f:1 % feed.menu
+	r:m r 0
+	s:m s 0
+	!:m m 0
+	g:j 0 0
+	a:d a
+	b:d s
+	p:b
+	{:1 ^ sysop.menu
+
+	The first line of the above example is the name to use for the display
+file.  There are two versions of the display file, one with the extension
+".ansi" for the ANSI version, and one with the extension ".ascii" for the
+ASCII version.  For the above example, there would be two files called
+"mainmenu.txt.ansi" and "mainmenu.txt.ascii".
+
+	The second line contains a string (up to 80 characters long) that will
+be used as the menu prompt.  It may contain ANSI sequences or embedded
+codes.  The third is the input type.  A "0" here in this example indicates
+hotkeys.  The rest is the actual menu.  The keys before the ":" will
+execute the function listed after ":".
+
+8.7 Menu Functions
+
+	Functions listed in a Menu File must follow a strict format.  This
+format is as follows:  the first character of a line is the keypress or
+word (depending on the third line #) that you want to represent that
+function.  The second character is a delimiter and can be anything except a
+RETURN.  The above example uses a":" for this.  The third character in a
+line is the actual function call itself.  The available functions are
+listed below.
+
+	Some functions require 1 or 2 parameters.  Each parameter must be
+separated by at least a space.  A few functions require a string as the
+parameter, this is anything immediately after the function and a space, and
+ended by a Return.
+
+	NOTE:  If you plan on using a control character like Ctrl-M (Enter
+key) for your hotkey identifier (i.e.  if user presses enter, Ctrl-M, your
+menu option could be "^M:0 ?" to show the menu again).  You need to place
+this someplace HALFWAY in your menu.  If you have this command at the end
+of your menu you may get a menu read error warning.  This is not critical
+and will not happen if it's in the middle of your commands list.
+
+	Here is a list of all available 4D-BBS functions and a description of
+each:
+
+	FUNCTION DESCRIPTION
+
+	0 ?  $ This function requires one of the following parameters:
+
+			H Send the "logoff.txt" file and then hang up.
+
+			Q QUICK LOGOFF and DO NOT send the "logoff.txt" message.
+
+			E Exit to the menu which called this menu.  If this is
+placed in the main menu, or no menu called the current menu, the effect is
+the same as the "Q" option.
+
+			?  Display the help file pointed to by the first line of the
+menu.
+
+			M Return to the main menu from anywhere in the menu system
+and clear the list of menus.
+
+If the secondary parameter is a menu lock (refer to section 8.5.1 for
+parameters), followed by the name of a menu, the BBS will call up a new
+menu WITHOUT saving the current menu.  Please use this with caution,
+because if the function "0 E" was executed from such a menu, it would have
+unpredictable results.  (See function "1" for more information.)
+
+Examples:
+
+"g:0 h" ; log off normally with the "g" key "z:0 q" ; Instant logoff "?:0
+?" ; Show the current menu "=:0 M" ; Return to the main menu "t:0 %
+new.main" ; Jump to new menu
+
+	1 ?  $ This function forces the BBS to call up a new menu file.  The
+previous menu is saved, so when the user exits the new menu the user will
+be returned to the previous menu.
+
+A menu lock parameter is given to prevent some users from accessing this
+menu.  (See Section 6.3 for more information on locks.)
+
+The second parameter is the name of the new menu which will be called from
+the MENU:  directory.
+
+Examples:
+
+"f:1 ^ file.menu" ; Load and use file.menu "m:1 & mbases" ; Load and use
+mbases
+
+	2 $ Sends a text file with page breaks.  The parameter here is the
+name of the file to be sent.  You need to use the file's full path name
+here.  If a "0" is given instead, the user will be prompted for the name of
+a file.  It's a good idea to keep this use of the "0" out of most users'
+reach, since you may not want them to "spy" everything on your disks.  This
+is intended mostly for SysOps' use.
+
+
+For example:
+
+		"t:2 TEXT:readme.doc"
+
+	3 $ Pages the SysOp for chat.  If a command is given after the 3 it
+will execute this command.  This command can be used to alert the SysOp of
+a chat request, including audio or visual notifications.  However, if the
+SysOp is not available for chatting, this command won't be executed,
+instead the user will get a message stating that the SysOp isn't available
+for chatting.  If the string parameter has been left out, nothing will
+happen except that the status window will state that the user has requested
+a chat.
+
+
+	4 $ Executes an external DOS command.  It requires a string containing
+a DOS command as its parameter.
+
+Example:
+
+			"e:4 dh0:term/term"
+
+The above example will cause the BBS to execute the DOS command
+"dh0:jrcomm/jrcomm" just as if it were typed from the CLI.  The BBS will
+remain dormant until the execution of this command is complete, unless it's
+pointed to the "NIL:".  (Note:  if the parameter is "0", the user will be
+prompted to enter a DOS command.)
+
+	5 ?  $ Shows the user list.
+
+			A Show entire user list.
+
+			S Prompt user for a search string.  This string will be
+checked with each entry in the user list, if a match is found that entry
+will be shown.
+
+		W Prompt user for a user name.  The profile of that user (name,
+phone number, interests, etc.) will be displayed.  (Note:  It will not be
+display users who have their data set as private.)
+
+This function requires a second parameter, which is either a "0" (which
+will prompt the user to enter a string) or a string.  If the string is
+used, only entries consisting of that string will be used.
+
+Examples:
+
+	"s:5 s 0" ; Allows you to enter the string "s:5 s WA" ; Automatically
+search for "WA" "s:5 w Sysop" ; Displays profile of "Sysop" "u:5 A" ;
+Complete user list No "0"
+
+	6 This function will show the daily user log.  No parameters needed.
+Example:  "1:6".
+
+	7 Activates the User Editor to allow user to modify his own personal
+data.  Not to be confused with the SysOp User Editor accessible from the
+waiting screen.  No parameters needed here.
+
+Example:
+
+"e:7" ; Edit a users stats
+
+
+	8 Shows the current time and date.
+
+			Example:
+
+			"t:8" ; Show the current time and date
+
+	9 Displays the bulletins.  Bulletins are automatically displayed upon
+each user's login, but this function is provided here in case the user
+wishes to see the bulletins again.  No parameters needed.
+
+Example:
+
+"b:9" ; Show the bulletins
+
+	A Toggles a user's EXPERT mode either ON or OFF.  No parameters used.
+
+Example:
+
+"x:a" ; Xpert menu toggle
+
+	B Toggles the ANSI mode.  If a user has the ANSI mode toggled to OFF,
+all ANSI color codes will be filtered out and the altername ".ASCII" menus
+will be shown.  No parameters needed.
+
+Example:
+
+"a:b" ; Toggle ansi filter on/off
+
+	C ?  $ With only one other parameter which does not fall into one of
+the below categories, this function executes a Paragon compatible door from
+the "DOORS:" directory.  It takes a string, the path and name of the door
+relative to the "DOORS:" directory, as its parameter.  (Refer to Chapter 10
+for more information on Ddoor, ARexx and FIFO information.)
+
+			P Execute a Paragon Compatible door program.  The command
+following the "P" will be run relative to the "DOORS:" directory.  This is
+exactly the same as if only one parameter is given as stated above.
+
+			A Execute an ARexx script.  The command following the "A"
+can include spaces and EIC codes.  The command path must be a full path and
+will be parsed for any EICs.  Then it is sent to DOS with the "RX Command"
+notation.  The BBS will go into a server mode waiting for ARexx commands
+until the script instructs to quit.
+
+			F Execute a DOS/CLI command with redirected input and
+output.  The command following the "F" will be executed as a DOS command,
+with its input and output controlled by the BBS.  Like the ARexx command
+above, this command must also be given in a full path.  In the special case
+of the command being "4D-SHELL", the BBS will spawn a shell as if the user
+had typed "newshell" at a CLI prompt.  To exit this special mode, type
+"ENDCLI" as you would do to exit any normal shell.
+
+	"a:c adv/adv" ; Run a game called "adv"
+	"a:c p adv/adv ; Same as above command
+	"w:c A rexx:4DWhosOn.rexx" ; Runs ARexx script
+	"d:c F dir dh0:" ; Directory of Dh0:
+	"s:c F 4D-SHELL" ; Spawn a Shell from BBS
+
+	D ?  This function deals with the online BBS listing.
+
+			A Add a BBS entry to the BBS list.
+
+			S Show entire BBS list.
+	
+Examples:
+
+	"s:d s" ; Show the BBS list
+	"a:d a" ; Add a new entry to the list
+
+	E $ Displays a line of text.
+
+			Example:
+
+"z:e Hiya world!" ; Displays "Hiya world!"
+
+	f $ Allows you to edit a text file using the built-in text editor.  It
+is a very good idea to keep this function out of your normal users' reach.
+This function is intended mostly for SysOps' use in case they log on their
+BBS remotely and need to edit or create a file.  For example:
+
+"e:f 0" ; Prompts the user for filename "e:f text:junk.txt" ; Edits the
+file named "text:junk.txt"
+
+	G $ A logging function that you can put anywhere in a menu function.
+It adds a user's name and time to the file.
+
+For example:
+
+"C:G text:log.txt" "C:1 % new.menu"
+
+In the above example, each user who goes to the menu "new.menu" will be
+recorded in the file "log.txt".  (NOTE:  this file can get BIG if updated
+many times, so be sure to delete it periodically.)
+
+	H $ Prompts the user for a password.  The string parameter is the
+actual password.  If the password that the user types in does not match
+this, the BBS will skip all the subsequent functions associated with that
+keystroke.  The password is case insensitive.  For example:
+
+"x:h EXOTIC" ; Prompts the user for password "x:1 % adult.menu" ; If the
+password is correct then user goes to this menu
+
+	I # Allows you to change the current file library.
+
+	G The current section will become "ALL".  This is good for a search of
+all file transfer sections instead of only the current file transfer
+section.
+
+If any other number from 0 to 99 is given, the current file library is
+changed to that number.
+
+Note:  In the special case of the "##:" keypress explained in section
+3.3.x, you do NOT put a parameter after the "I".  The BBS itself will
+append a space and the number the user entered.  This alleviates you from
+having to put in a menu command for every section you want to use with this
+command.  Remember, in order for this to work the menu type for this
+command MUST be a "#" (the third line of the menu file).
+
+Examples:
+
+"a:i G" ; Now in "ALL" "12:i 12" ; change to sub 12 "##:i" ; Change to sub
+number user entered
+
+	J Starts a "Global Q-Scan" of non-masked message sub-boards.  No
+parameters needed.
+
+Example:
+
+"g:j" ; Will global scan ALL bases
+
+	K Changes the current message sub-board.  It works just like the
+function "I".  However the "G" parameter will not work in this function.
+The special case of the "##:" keypress is also valid for this command.
+
+	L Shows a listing of all available message sub-boards.  If a parameter
+of "0" is given, then the entire list will be shown.  If a number of 1 to
+99 is given, then ONLY that sub-board will be listed.
+
+Examples:
+	
+"l:l 0" ; list all subs "l:l 23" ; list only sub 23
+
+	M ?  $ Electronic-Mail function.  These functions are ONLY maintained
+for compatibility with earlier versions of 4D-BBS.  E-Mail should be sent
+on sub-board 0.
+
+	S SEND mail to a user.  If the string is "0" the user will be prompted
+for the name of the recipient.
+
+	R READ a user's mail.  If the second parameter is "0" then the user
+will be prompted to enter the name of the user who's mail they wish to
+read.  Otherwise, the name given as the string parameter will be used.
+Note:  A user with SysOp status is able to read any user's E-Mail.
+
+If a name is given in the string parameter of the READ mail function, the
+user will be able to READ another user's private E-Mail.  Therefore it is
+suggested that this feature not be accessible to the general user.
+
+	S SEND mail to the SysOp.  This is the same as the ":m s" function,
+except the recipient is the predefined SysOp account.  This is commonly
+called Feedback.
+
+Examples:
+
+"s:m s 0" ; Send mail, prompt for name "s:m s John Doe" ; Send mail to John
+Doe "r:m r 0" ; Read Some else's Mail "r:m r John Doe" ; Read E-mail to
+John Doe
+
+	N # Displays the file catalog.  If the current file section is global
+or all, then all files in all sections can be shown.
+
+			0 Prompt user for a search string.  The BBS will then show
+only files which have filenames or file descriptions that contain a match
+to the given search string.
+
+	1 Show all files in the current category shown.
+
+	2 Show all files that have been uploaded since the user's last call.
+
+Examples:
+
+"l:n 0" ; List whole file catalog "l:n 1" ; Prompt for keyword "l:n 2" ;
+List new files
+
+	O Displays all the available file sub-directories.  No parameters
+needed.
+
+Example:
+ 
+"l:o" ; List subs
+
+	P ?  # Allows you to post, read and scan messages.
+
+P POST a message.
+
+R READ messages.
+
+S SCAN messages.
+
+A second parameter is required for all of the above listed first
+parameters.  Normally, "0" is used for the current message board.  But if a
+number from 1 to 99 is given then the function will be performed on the
+board of that number only.  Note:  A "P" may be given to have the function
+performed on the mail sub-board, 0.
+
+Examples:
+
+"p:p p 0" ; Post on current sub.  "r:p r 0" ; Read on current sub.  "r:p r
+23" ; Read on sub 23 only.  "s:p s 3" ; Scan sub 3.  "s:p s 0" ; Scan the
+current sub.
+
+	Q Invokes the MACRO editor.  No parameters needed.
+
+Example:
+
+"m:q" ; Edit your macros.
+
+	R ?  Allows the user to mask out any message sub-board or file library
+from the Global Q-Scan.
+
+M Message Base sub-boards mask editor.
+
+F File Transfer sections mask editor.
+
+If no parameter is given the user will be prompted for one.
+
+Example:
+
+"y:r f" ; Files mask editor.  "m:r" ; Prompt.
+
+	T # $ Allows a user to DOWNLOAD a file.
+
+1 XMODEM protocol will be used.
+
+2 YMODEM protocol will be used.
+
+3 ZMODEM protocol will be used.
+
+0 Prompts the user for which protocol they would
+	like to use.
+
+	This function requires a second parameter.  If the second parameter is
+a "0", the user will be prompted to enter one or more filenames, which
+should be available in the current file library.  On the other hand, if the
+parameter is a filename (can be any path name on any device, it does not
+need to be in the file libraries, that file will be downloaded.
+
+	Examples:
+
+	"d:t 3 0" ; Download using zmodem
+	"d:t 2 file:demo.arc" ; Download with ymodem, demo.arc
+	"d:t 0 0" ; Prompts user for protocol
+
+	U This function will allow a user to UPLOAD a file to the current file
+library.  This function works exactly the same as the T function mentioned
+above (except that the ASCII protocol isn't supported).
+
+1 XMODEM protocol will be used.
+
+2 YMODEM protocol will be used.
+
+3 ZMODEM protocol will be used.
+
+0 Prompts the user for which protocol they would
+	like to use.
+
+	V This has to do with the users ability to Mark, View, and Clear file
+lists.  It needs to have a second parameter.
+
+	A Add a name to the mark list.
+
+	C Mark list will be cleared.  "C" alone will ask the user what to
+clear.  "V C A" will clear all marked files without querying the user.
+
+	G User is prompted for filenames to mark.
+
+	L Mark names will be listed.
+
+	D User is prompted to enter the descriptions for files which they
+uploaded, but did not give a description for when they uploaded.
+
+	Examples:
+
+"c:v c" ;Clear "h:v l" ;List "y:v a" ;Prompt for name "f:v g" ;Prompt for
+LOTS of names "d:v d" ;Prompt for descriptions
+
+	W File Catalog Editor
+
+Example:
+
+"f:w"
+
+	X User Editor.  No parameters needed.
+
+Example:
+
+"u:x" ; Edit a user
+
+	Y Allows you to edit system defaults.  If you give a second parameter,
+you may enter many editors.  If there is no second parameter you will be
+prompted for which editor you wish to run.
+
+
+B Message Base Editor.
+
+F File Catalog Editor.
+
+S System Configuration Editor.
+
+U User Defaults Editor.
+
+Example:
+
+"s:y" ; Prompts for editor "d:y b" ; Enter the Message Base Editor
+
+	Z BULLETINS editor.  No parameters needed.
+
+Example:
+
+"b:z" ;Edit the bulletin information.
+
+	!  ?  $ Allows the loading of alternate data files.  If a second
+parameter is not given, the default filename will be used.  Otherwise the
+second parameter is assumed to be the filename of the alternate data file
+to load.
+
+B Message Bases Data.
+
+D Paths File (like the "-D" CLP switch).
+
+F File Transfers Data.
+
+G Global.Menu File.
+
+S System Data.
+
+U User Defaults.
+
+W Def_Say.t File.
+
+Example:
+
+"f:!  w BBS:Startrek.t" ;load the new strings "f:!  d BBS:Startrek.paths"
+;load new paths "g:!  g" ;load global menu
+
+If you changed the global menu or ANY data file and would like the BBS to
+recognize the change immediately, you can use these menu commands and the
+pull-down menus to do this.
+
+	@ This will toggle the QuickListing status from quick to long
+descriptions in the file transfer area.  (See the "L" menu function.)
+

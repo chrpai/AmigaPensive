@@ -1,0 +1,23 @@
+;
+;	ZConnect-Login-Datei
+;
+;	$VER: 2.00 / 04-08-95
+;
+break off					; Kein Abbruch zulassen
+i=0						; LOGIN-Zaehler initialisieren
+on error LOGIN_ERROR				; Im Fehlerfall verzweigen
+
+POINT_RETRY:
+input SYSNAME "Systemname: "			; Systemnamen holen
+if SYSNAME == "" then _goto POINT_RETRY		; Leereingabe -> wiederholen
+if/p SYSNAME == "(ZERBERUS|JANUS|GAST)" then _goto POINT_RETRY ; wenn Fehler, nochmal
+i=i+1						; LOGIN-Zaehler erhoehen
+login "'SYSNAME'"				; Login fuer System
+
+zerberus server					; Server-Batch
+
+LOGIN_ERROR:
+if/i i < 3 then _goto POINT_RETRY		; Noch Versuche frei ? Ja
+logout/fast					; Logout
+LOGIN_ERROR_1:
+goto LOGIN_ERROR_1				; Bei Fehler Endlos-Schleife

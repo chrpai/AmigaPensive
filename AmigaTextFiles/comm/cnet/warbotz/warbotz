@@ -1,0 +1,1790 @@
+/* 
+
+Started 12-15-90 at 8:32 pm
+VERY special thanx to Brazilian for all his help!
+You may use this file under the following conditions:
+1. It must be run only on authorized C-Net BBS
+2. If you change the file in any way, leave all credits intact!
+3. Never redistribute changed versions.
+4. Do NOT change the main title screen!!!
+
+*/
+
+options results; signal on syntax; signal on error; signal on ioerr; signal on halt
+numeric digits 10
+getuser 1 ; handle = result
+filename = handle'.bot'
+pathname = 'pfiles:botz/'
+turns = 0
+logentry "\v2 played \z6\c2WARBOTZ\q1"
+sendfile 'pfiles:botz/botzscreen'
+if ~exists(pathname'last') then do;call open file, (pathname'last'), 'W'
+do i = 1 to 10;call writeln file, "Last 10 Empty!";end;call close file;end
+/* MAKE THE DIRECTORY IF IT DOESNT EXIST */
+if ~EXISTS(pathname) then do                
+ pathlength = length(pathname)              
+ pathlength = pathlength - 1                
+ pathname2 = left(pathname,pathlength)      
+ transmit "\$0makedir >nil: "pathname2"\"   
+ end
+/* IF NEW USER MAKE FILENAME */
+if ~exists(pathname'Total') then do;call open file, (pathname'Total'), 'W'
+call writeln file, 0;call close file;end
+
+if ~EXISTS(pathname||filename) then do
+   call NEWUSER                         
+end
+/* LOAD THE USERS DATA */                 
+signal off error                          
+call OPEN(userfile,pathname||filename,'R')
+money            = readln(userfile)       
+stamina          = readln(userfile)       
+bankmon          = readln(userfile)       
+weaponstrength   = readln(userfile)       
+weaponname       = readln(userfile)
+damage           = readln(userfile)       
+botname          = readln(userfile)
+wins             = readln(userfile)
+losses           = readln(userfile)
+runaway          = readln(userfile)
+surrender        = readln(userfile)
+fixme            = readln(userfile)
+call CLOSE(userfile)
+signal on error                      
+if exists(pathname||botname'.mes') then do;transmit '\n1\c3You have mail waiting!\n1'
+sendfile pathname||botname'.mes';transmit '\n1Press return:\i1'
+address command 'delete "'pathname||botname'.mes"'
+end
+/* MAIN MENU */
+MAINMENU:
+if turns = 30 then do
+   transmit "\n2That's enough turns for one day."
+   call SAVESTATS
+   exit
+end
+if money < 0 then do
+   money = 0
+end
+if damage > stamina then do
+   damage = stamina
+end
+call open file, (pathname'Total'), 'R';totplayers=readln(file);call close file
+transmit "\F1\n1"                                                    
+transmit "                                  \c6WARBOTZ"           
+transmit "                                 \c7Main Menu"          
+transmit ""                                                    
+transmit "                          \c1[\c2L\c1]  \c7Last 10 Battles"
+transmit "                          \c1[\c2A\c1]  \c7Attack Other User"    
+transmit "                          \c1[\c2B\c1]  \c7Bank"
+transmit "                          \c1[\c2C\c1]  \c7Attack Computer Robot"
+transmit "                          \c1[\c2W\c1]  \c7Enter Weapons Shop"   
+transmit "                          \c1[\c2R\c1]  \c7Enter Robot Shop"     
+transmit "                          \c1[\c2S\c1]  \c7Spy On Other User"    
+transmit "                          \c1[\c2V\c1]  \c7View Status"          
+transmit "                          \c1[\c2P\c1]  \c7List Players"   
+transmit "                          \c1[\c2M\c1]  \c7Send User Message"    
+transmit "                          \c1[\c2Q\c1]  \c7Quit \c1(\c7At Any Prompt\c1)"
+transmit "                          \c1[\c2!\c1]  \c7Start Over"
+transmit ""
+sendstring "                       \c5 Choice ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'A' then call ATTACKUSER
+if command = 'C' then call ATTACKCOMP
+if command = 'W' then call WEAPONS
+if command = 'R' then call SHOP
+if command = 'L' then call LAST10
+if command = 'S' then call SPY
+if command = 'V' then call STATS
+if command = 'B' then call BANK
+if command = 'P' then call LIST
+if command = 'M' then call MESSAGE
+if command = '!' then do
+   sendstring "\n2 \c1Do you really want to start all over? (y/\c2N\c1)" ; getchar ; command = upper(result)
+   call CARRIER
+   if command = 'Y' then do
+   money = 10000           
+   stamina = 0        
+   bankmon = 0        
+   weaponstrength = 0 
+   weaponname = 'None'
+   damage = 0         
+   call deleterobot
+   botname = 'None'   
+   wins = 0           
+   losses = 0
+   runaway = 0
+   surrender = 0
+   fixme = 2      
+   call open(file,('pfiles:BOTZ/'filename),'W')
+   call writeln(file,money)                       
+   call writeln(file,stamina)                     
+   call writeln(file,bankmon)                     
+   call writeln(file,weaponstrength)              
+   call writeln(file,weaponname)                  
+   call writeln(file,damage)                      
+   call writeln(file,botname)                     
+   call writeln(file,wins)                        
+   call writeln(file,losses)
+   call writeln(file,runaway)
+   call writeln(file,surrender)
+   call writeln(file,fixme)                      
+   call close(file)
+   call open file, (pathname'Total'), 'W';totplayers=totplayers-1;call writeln file, totplayers
+   call close file;call mainmenu;end
+end
+if command = 'Q' then do
+   sendstring "\n2Are you sure? (y/N)" ; getchar ; command = upper(result)
+   if command = 'Y' then do
+      call SAVESTATS
+      exit
+   end
+   call MAINMENU
+end
+call MAINMENU
+/* Save money in bank */
+BANK:
+turns = turns + 1
+transmit "\f1\n1"
+transmit "                               \c6Bank"
+transmit ""
+transmit "                         \c1[\c2D\c1] \c7Deposit Money"
+transmit "                         \c1[\c2W\c1] \c7Withdraw Money"
+transmit ""
+sendstring "                           \c5Choice ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'Q' then call MAINMENU
+if command = 'D' then do
+   if money < 1 then do
+      transmit "\n2You are broke!"
+      transmit "\n2\c1Press any key...\g1"
+      call BANK
+   end
+   query "\n2\c1How much money do you wish to deposit (Money = $"money") ?\c2";amount=result
+   if amount > money then do
+      transmit "\n2You don't HAVE that much!"
+      transmit "\n2\c1Press any key...\g1"
+      call BANK
+   end
+   if amount='' then call bank
+   if amount = ' ' then call bank
+   bankmon=bankmon+amount
+   money = money - amount
+   transmit "\n1\c1$"amount" deposited.  You now have $"bankmon" in the bank."
+   transmit "\n2\c1Press any key...\g1"
+end
+if command = 'W' then do
+   if bankmon < 0 then do
+      transmit "\n2\c1You have no money in the bank!"
+      transmit "\n2\c1Press any key...\g1"
+      call BANK
+   end
+   transmit "\n2\c1You currently have $"bankmon" in the bank"
+   query "\n1\c1How much money do you wish to withdraw ?\c2" ; withdraw = upper(result)
+   if withdraw = '' then call BANK
+   if withdraw = ' ' then call BANK
+   if withdraw < 0 then do
+      transmit "\n1\c2You must enter a positive amount!"
+      transmit "\n2\c1Press any key...\g1" ; call BANK
+   end
+   if withdraw > bankmon then do
+      transmit "\n2You don't have that much in the bank!"
+      transmit "\n2\c1Press any key...\g1"
+      call BANK
+   end
+   bankmon = bankmon - withdraw
+   money = money + withdraw  
+   transmit "\n1\c1You now have $"money" in hand and $"bankmon" in the bank."
+   transmit "\n2Press any key...\g1"
+end
+if command = '' then call BANK
+call BANK
+/* Send other user message */
+MESSAGE:
+turns = turns + 1
+query "\n2\c1Who do you wish to send a message to (L=List) ?" ; command = upper(result)
+call totpl
+if command = 'L' then do
+   call LIST
+   call MESSAGE
+end
+if command = 'Q' | goahead=1 then call MAINMENU
+if command = '' then call MESSAGE
+call open(file,('pfiles:botz/players'),'R')
+do i = 1 to (command-1) * 2                
+ puke = readln(file)                       
+end                                        
+player = readln(file)                      
+oname = readln(file)                       
+call close file
+if EXISTS('Pfiles:botz/'player'.mes') then do
+   transmit "\n1\c2His mailbox is full\c1.  Sorry!"
+   transmit "\n1\c1Press any key...\g1"
+   call MAINMENU
+end
+if player=botname then do;transmit '\n1You can''t send a message to yourself.\n1\w2';call mainmenu;end
+transmit "\n1\c1Enter your message to "player". (3 lines Maximum)"
+do i = 1 to 3
+   query'' ; mes.i = result
+end
+call open file, ('Pfiles:botz/'player'.mes'),'W'
+call writeln file, '\c2Message from 'botname':\c7\n1'
+do i = 1 to 3
+call writeln(file,mes.i)
+end
+call close(file)
+transmit "\n2\c5Mail sent\c1!"
+transmit "\n2\c1Press any key...\g1" 
+call MAINMENU
+/* NEW USER SHIT */
+NEWUSER:
+money = 10000
+stamina = 0
+bankmon = 0
+weaponstrength = 0
+weaponname = 'None'
+damage = 0
+botname = 'None'
+wins = 0
+losses = 0
+runaway = 0
+surrender = 0
+fixme = 2
+call open(file,('pfiles:BOTZ/'filename),'W')
+call writeln(file,money)         
+call writeln(file,stamina)       
+call writeln(file,bankmon)      
+call writeln(file,weaponstrength)
+call writeln(file,weaponname)
+call writeln(file,damage)
+call writeln(file,botname)       
+call writeln(file,wins)          
+call writeln(file,losses)
+call writeln(file,runaway)
+call writeln(file,surrender)
+call writeln(file,fixme)
+call close(file)
+if ~exists('pfiles:BOTZ/players') then do 
+ call open file, ('pfiles:Botz/Players'), 'W';call close file
+end
+return
+
+LIST:
+transmit "\n3"
+call open(file,('pfiles:botz/players'),'R')
+i = 0
+do until EOF (file) = 1
+ i = i + 1
+ player = readln(file);junk=readln(file)
+ if player = '' then do
+   sendstring "\n1Press any key...\g1"
+   call close(file)
+   return
+  end
+transmit i'. 'player
+end
+sendstring "\n1Press any key...\g1"
+call close file
+return
+
+/*ATTACK OTHER USER */
+
+ATTACKUSER:
+turns = turns + 1
+if damage = stamina then do
+   transmit "\n2You need to be repaired first!"
+   transmit "\n2\c1Press any key...\g1"
+   call MAINMENU
+end
+if stamina = 0 then do
+   transmit "\n2\c2You have no robot to attack with!"
+   transmit "\n2\c1Press any key...\g1"
+   call MAINMENU
+end
+if weaponname = 'None' then do
+   transmit '\n2\c2You have no weapon to attack with.\n1\c1Press any key...\g1'
+   call mainmenu
+end
+computer = 0
+query "\n2\c1Who do you wish to attack (\c2L\c1=List) ?\c2" ; command = upper(result)
+call CARRIER;call totpl
+if command = 'L' then do;call list;call attackuser;end
+if command = "" then call ATTACKUSER
+if command = "Q" | goahead=1 then call MAINMENU
+call open(file,('pfiles:botz/players'),'R')
+do i = 1 to (command-1) * 2
+ puke = readln(file)
+end
+player = readln(file)
+oname = readln(file)
+call close file
+if player=botname then do;transmit "\n1\c2That's you\c1!!\n2Press any key...\g1";call mainmenu;end
+sendstring "\c1Are you sure you want to attack "player"? (\c2Y\c1/n)\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'N' then call attackuser
+call open userfile, ('PFiles:Botz/'||oname||'.bot'), 'R'
+omoney            = readln(userfile)
+ostamina          = readln(userfile)
+obankmon          = readln(userfile)
+oweaponstrength   = readln(userfile)
+oweaponname       = readln(userfile)
+odamage           = readln(userfile)
+obotname          = readln(userfile)
+owins             = readln(userfile)
+olosses           = readln(userfile)
+orunaway          = readln(userfile)
+osurrender        = readln(userfile)
+ofixme            = readln(userfile)
+call CLOSE userfile
+if lastattack = obotname then do
+   Transmit "\n2You can't attack the same bot twice in a row."
+   transmit "\n2\c1Press any key...\g1"
+end
+if odamage = ostamina then do
+   transmit "\n2He's already destroyed.  Attack someone else."
+   transmit "\n2\c1Press any key...\g1"
+   call MAINMENU
+end
+turns = turns + 1
+call ATTACK
+/* ATTACK COMPUTER */
+
+ATTACKCOMP:
+if damage = stamina then do
+   transmit "\n2Your robot needs to be repaired first!"
+   transmit "\n2\c1Press any key...\g1"
+   call MAINMENU
+end
+if stamina = 0 then do                         
+   transmit "\n2\c2You have no robot to attack with\c1!"
+   transmit "Press any key...\g1"              
+   call MAINMENU                               
+end
+if weaponstrength = 0 then do
+   transmit "\n2You have no weapon to attack with!"
+   transmit "\n2\c2Press any key...\g1"
+   call MAINMENU
+end
+query "\n2\c1Who do you wish to attack (\c2L\c1=List) ?\c2" ; command = upper(result)
+call CARRIER
+if command = 'L' then do
+   call open file, ('pfiles:botz/compubotz'), 'R'
+   i=0;do until eof(file)=1;i=i+1;puke=readln(file)
+   if puke='' then nop
+   else do;transmit i'. 'Puke;end;end
+   transmit '\n1Press Any Key...\g1'
+   call close file;call attackcomp
+end                               
+if command = "" then call ATTACKCOMP                          
+if command = "Q" then call MAINMENU                           
+call open(file,('pfiles:botz/compubotz'),'R')
+do i = 1 to command - 1                             
+   puke = readln(file)                          
+end                                           
+player = readln(file);oname=readln(file)                         
+call close file
+sendstring "\n1\c1Are you sure you want to attack "player" (\c2Y\c1/n) ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'N' then call ATTACKCOMP                                        
+call open(userfile,('Pfiles:botz/'player'.compubot'),'R')                        
+omoney            = readln(userfile)                                         
+ostamina          = readln(userfile)                                         
+obankmon          = readln(userfile)                                         
+oweaponstrength   = readln(userfile)
+oweaponname       = readln(userfile)                                         
+odamage           = readln(userfile)                                         
+obotname          = readln(userfile)                                         
+owins             = readln(userfile)                                         
+olosses           = readln(userfile)
+orunaway          = readln(userfile)
+osurrender        = readln(userfile)
+ofixme            = readln(userfile)
+call CLOSE(userfile)                                                         
+computer = 1
+turns = turns + 1
+call ATTACK
+/* ATTACK SCREENS */
+ATTACK:
+lastattack = obotname
+snarf = 0
+if oweaponstrength = 0 then do
+   transmit "\n2\c2He has no weapon\c1!"
+call WIN                               
+end 
+oscuba = ostamina - odamage
+odorfus = oscuba - 1
+if osurrender > odorfus then do                                  
+   transmit "\n1He surrenders\c1!"
+call WIN
+end
+transmit "\f1\n1"
+transmit "                                   \c2"botname        
+transmit "                              \c7Weapon:\c1 "weaponname   
+transmit "                              \c7Hit Points: \c1("stamina - damage"/"stamina")"     
+transmit ""                                                  
+transmit "                                      \c3vs."
+transmit ""
+transmit "                                  \c2"obotname        
+transmit "                              \c7Weapon:\c1 "oweaponname
+transmit "                              \c7Hit Points: \c1("ostamina - odamage"/"ostamina")"      
+transmit ""                                                  
+transmit "  \c1Would you like to [\c21\c1] \c7Attack  \c1[\c22\c1] \c7Run  \c1[\c23\c1] \c7Surrender" 
+sendstring "  Choice ?" ; getchar ; command = result
+call CARRIER
+adios = ostamina - odamage                                                     
+if orunaway > adios then do                                                   
+   if ostamina < stamina then do
+      run=random(0,10,time('s'))
+      if run > 9 then do
+         transmit '\n1\c2He runs away!\n1\w2'           
+         call open(file,('pfiles:botz/'oname'.bot'),'W')
+         call writeln(file,omoney)                      
+         call writeln(file,ostamina)                    
+         call writeln(file,obankmon)                    
+         call writeln(file,oweaponstrength)             
+         call writeln(file,oweaponname)                 
+         call writeln(file,odamage)                     
+         call writeln(file,obotname)                    
+         call writeln(file,owins)                       
+         call writeln(file,olosses)                     
+         call writeln(file,orunaway)                    
+         call writeln(file,osurrender)                  
+         call writeln(file,ofixme)                      
+         call close (file)                              
+         call MAINMENU;end
+   else transmit '\n1\c2He tries to escape, but you easily catch him!'
+   snarf = 1
+   call BLEAH
+end
+   run=random(0,10,time('s'))
+   if run > 5 then do
+    transmit '\n1\c2He runs away!\n1\w2'           
+    call open(file,('pfiles:botz/'oname'.bot'),'W')                          
+    call writeln(file,omoney)                                                
+    call writeln(file,ostamina)                                              
+    call writeln(file,obankmon)                                              
+    call writeln(file,oweaponstrength)                                       
+    call writeln(file,oweaponname)                                           
+    call writeln(file,odamage)                                               
+    call writeln(file,obotname)                                              
+    call writeln(file,owins)                                                 
+    call writeln(file,olosses)                                               
+    call writeln(file,orunaway)                                              
+    call writeln(file,osurrender)                                            
+    call writeln(file,ofixme)                                                
+    call close (file)                                                        
+    call MAINMENU;end                                                        
+   else transmit '\n1\c2He tries to escape, but you easily catch him!'
+   snarf = 1
+end                                                                          
+BLEAH:
+if command = '1' then do
+   numeric digits 3
+   tempa=randu(time('S'));tempa=tempa*weaponstrength
+   tempb=randu(time('S'));tempb=tempb*oweaponstrength
+   hit = tempa % 1
+   ohit = tempb % 1
+   if ohit > stamina then ohit=stamina
+   numeric digits 10
+   transmit "\n1\c1You hit him with your "weaponname" and do "hit" points of damage!"
+   odamage = odamage + hit
+   if odamage >= ostamina then do
+      transmit "His robot has been smashed to a pile of microchips!" ; call WIN
+   end
+   if snarf = 1 then do
+      call FRED
+   end
+   transmit "\n1\c1He hits you with his "oweaponname" and does "ohit" points of damage!"
+   damage = damage + ohit
+   if damage >= stamina then do
+      transmit "\n1\c2Your robot has been destroyed!" ; call LOSE
+   end
+end
+FRED:
+if command = '2' then do
+   if stamina < ostamina then do                                      
+      run=random(0,10,time('s'))                                      
+      if run > 9 then do                                              
+         transmit '\n1\c2You BARELY get away!\n1\w2'                         
+         call open(file,('pfiles:botz/'oname'.bot'),'W')
+         call writeln(file,omoney)                      
+         call writeln(file,ostamina)                    
+         call writeln(file,obankmon)                    
+         call writeln(file,oweaponstrength)             
+         call writeln(file,oweaponname)                 
+         call writeln(file,odamage)                     
+         call writeln(file,obotname)                    
+         call writeln(file,owins)                       
+         call writeln(file,olosses)                     
+         call writeln(file,orunaway)                    
+         call writeln(file,osurrender)                  
+         call writeln(file,ofixme)                      
+         call close(file)
+         call SAVESTATS
+         call MAINMENU
+      end                                            
+   else transmit '\n1\c2You try to escape, but he easily catches up to you!'
+end
+if stamina >= ostamina then do
+   run=random(0,10,time('s'))
+   if run > 5 then do;transmit '\n1\c2You manage to escape.\n1\w2'
+    call open(file,('pfiles:botz/'oname'.bot'),'W')
+    call writeln(file,omoney)                          
+    call writeln(file,ostamina)                        
+    call writeln(file,obankmon)                        
+    call writeln(file,oweaponstrength)                 
+    call writeln(file,oweaponname)                     
+    call writeln(file,odamage)                         
+    call writeln(file,obotname)                        
+    call writeln(file,owins)                           
+    call writeln(file,olosses)
+    call writeln(file,orunaway)
+    call writeln(file,osurrender)
+    call writeln(file,ofixme)                         
+    call close(file)
+    call MAINMENU;call SAVESTATS;end
+   else transmit '\n1\c2You fail to escape\c1! 'obotname' quickly catches back up to you!'
+end
+
+end
+if command = '3' then do
+   sendstring "\n2Do you really want to surrender?" ; getchar ; command = upper(result)
+   if command = 'Y' then do
+      transmit "\n1You surrender to "obotname"."
+      call LOSE
+   end
+end
+transmit '\n1\c1Press any key...\g1'
+call ATTACK
+/* If you won... */
+WIN:
+wins = wins + 1
+olosses = olosses + 1
+if omoney < 0 then omoney = 0
+if money < 0 then money = 0
+bleah = money*.5
+sprag = bleah % 1
+transmit "\n1\c1You take $"sprag" of his cash."
+otake = sprag
+money = money + otake
+omoney = omoney - otake
+if ofix = 1 then do         
+   odamage*10 = cost       
+   if omoney > cost then do 
+      omoney = omoney - cost
+      odamage = 0           
+   end                      
+end
+if oweaponstrength > 0 then do
+   sendstring "\n1\c1Would you like to take his "oweaponname"? (y/\c2N\c1)\c2 ";getchar;command = upper(result)
+   call CARRIER
+   if command = 'Y' then do
+      transmit 'Yes'
+      temp=oweaponname;oweaponname=weaponname;weaponname = temp
+      temp=oweaponstrength;oweaponstrength = weaponstrength;weaponstrength=temp
+   end
+if computer = 1 then do
+   call open file, ('PFiles:botz/'oname'.compubot'),'R'
+   do i = 1 to 9;junk.i=readln(file);end;call close file
+   call open file, ('pfiles:botz/'oname'.compubot'),'W'
+   call writeln file, omoney                          
+   do i = 2 to 7;call writeln file, junk.i;end
+   call writeln(file,owins)
+   call writeln(file,olosses)
+   call writeln(file,orunaway)
+   call writeln(file,osurrender)
+   call writeln(file,ofixme)
+   call close(file)
+   call savestats
+   transmit "\n2\c1Press any key...\g1"
+   call MAINMENU
+end
+odamage = ostamina
+call open file, ('pfiles:botz/'oname'.bot'),'W'
+call writeln(file,omoney)                          
+call writeln(file,ostamina)                        
+call writeln(file,obankmon)                        
+call writeln(file,oweaponstrength)                 
+call writeln(file,oweaponname)                     
+call writeln(file,odamage)                         
+call writeln(file,obotname)                        
+call writeln(file,owins)                           
+call writeln(file,olosses)
+call writeln(file,orunaway)
+call writeln(file,osurrender)
+call writeln(file,ofixme)                         
+call close(file)
+qwerty = botname' fought 'obotname' and won!'
+call open file, ('pfiles:botz/last'), 'R'
+do i = 1 to 10
+   poof.i = readln(file)
+end
+call close(file)
+call open(file,('pfiles:botz/last'),'W')
+do i = 2 to 10
+   call writeln(file,poof.i)
+end
+call writeln(file,qwerty)
+call close(file)
+transmit "\n2\c1Press any key...\g1"
+call SAVESTATS
+call MAINMENU
+/* You lost... */
+LOSE:
+owins = owins + 1
+losses = losses + 1
+if money < 0 then money = 0
+if omoney < 0 then omoney = 0
+bleah = money*.5
+sprag = bleah % 1
+take = sprag
+omoney = omoney + take
+damage = stamina
+transmit "\n1\c1He gets $"sprag" of your cash."
+money = money - take
+if fix = 1 then do        
+   damage*10 = cost      
+   if money > cost then do
+      money = money - cost
+      damage = 0          
+   end                    
+end
+if computer = 1 then do
+   computer = 0
+   call open file, ('PFiles:botz/'obotname'.compubot'),'R'
+   do i = 1 to 9;junk.i=readln(file);end;call close file
+   call open(file,('pfiles:botz/'obotname'.compubot'),'W')        
+   call writeln(file,omoney)                                   
+   do i = 2 to 7;call writeln file, junk.i;end             
+   call writeln(file,owins)                            
+   call writeln(file,olosses)                          
+   call writeln(file,orunaway)
+   call writeln(file,osurrender)
+   call writeln(file,ofixme)
+   call close(file)
+   call savestats
+   transmit "\n2\c1Press any key...\g1"
+   call MAINMENU   
+end
+damage = stamina
+call open(file,('pfiles:botz/'oname'.bot'),'W')
+call writeln(file,omoney)                       
+call writeln(file,ostamina)                     
+call writeln(file,obankmon)                     
+call writeln(file,oweaponstrength)              
+call writeln(file,oweaponname)                  
+call writeln(file,odamage)                      
+call writeln(file,obotname)                     
+call writeln(file,owins)                        
+call writeln(file,olosses)
+call writeln(file,orunaway)
+call writeln(file,osurrender)
+call writeln(file,ofixme)                      
+call close(file)                               
+qwerty = botname 'fought 'obotname' and LOST!'
+call open file, ('pfiles:botz/last'),'R'
+do i = 1 to 10                           
+   poof.i = readln(file)                 
+end                                      
+call close(file)                         
+call open file, ('pfiles:botz/last'),'W'
+do i = 2 to 10                           
+   call writeln(file,poof.i)             
+end                                      
+call writeln(file,qwerty)                
+call close(file)
+transmit "\n2\c1Press any key...\g1"
+call SAVESTATS
+call MAINMENU
+/* WEAPONS SHOP */
+WEAPONS:
+if botname = 'None' then do;transmit '\n2\c2You don''t have a robot\c1!  Buy one first.'
+sendstring '\n1\c1Press any key...\g1';call mainmenu;end
+transmit "\f1\n1"
+transmit "                                 \c6Weapon Shop"
+transmit ""   
+transmit "                               \c1[\c2B\c1]  \c7Buy Weapon"      
+transmit "                               \c1[\c2S\c1]  \c7Sell Weapon"  
+transmit "                               \c1[\c2W\c1]  \c7Build Weapon"
+transmit "\n3"
+sendstring "                                    \c5Choice ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'B' then do
+  if weaponstrength > 0 then do
+      transmit "\n2\c2You already have a weapon\c1! You must sell it first."
+      transmit "\n2\c1Press any key...\g1"
+      call WEAPONS
+  end
+ transmit "\f1\n1"
+ transmit "                 \c1The following weapon types are available,"   
+ transmit "             cost determining the amount of damage inflicted:"
+ transmit ""                                                             
+ transmit "                          \c1[\c21\c1]  \c7Ping Pong Balls    $100"       
+ transmit "                          \c1[\c22\c1]  \c7Thumb Tacks        $300"       
+ transmit "                          \c1[\c23\c1]  \c7Water Pistol       $500"       
+ transmit "                          \c1[\c24\c1]  \c7Baseball Bat       $1000"      
+ transmit "                          \c1[\c25\c1]  \c7Machete            $3000"       
+ transmit "                          \c1[\c26\c1]  \c7.22 Pistol         $5000"       
+ transmit "                          \c1[\c27\c1]  \c712-Gauge Shotgun   $10000"       
+ transmit "                          \c1[\c28\c1]  \c7Dynamite           $50000"       
+ transmit "                          \c1[\c29\c1]  \c7Atomic Bomb        $100000"       
+ transmit "                         \c1[\c210\c1]  \c7Photon Torpedoes   $250000"
+transmit "" 
+transmit "                             \c1Money = $"money
+turns = turns + 1
+ query "                                     \c5Choice ?\c2" ; command = result
+ call CARRIER
+ if command = '1' then do
+    cost = 100
+    call COSTS
+    weaponstrength = 1 
+    weaponname = 'Ping Pong Balls'
+ end
+ if command = '2' then do
+   cost = 300
+   call COSTS
+   weaponstrength = 3
+   weaponname = 'Thumb Tacks'
+ end
+ if command = '3' then do
+   cost = 500
+   call COSTS
+   weaponstrength = 5
+   weaponname = 'Water Pistol'
+end
+ if command = '4' then do
+   cost = 1000
+   call COSTS
+   weaponstrength = 10
+   weaponname = 'Baseball Bat'
+end
+ if command = '5' then do
+   cost = 3000
+   call COSTS
+   weaponstrength = 30 
+   weaponname = 'Machete'
+end
+ if command = '6' then do
+   cost = 5000
+   call COSTS
+   weaponstrength = 50
+   weaponname = '.22 Pistol'
+end
+ if command = '7' then do
+   cost = 10000
+   call COSTS
+   weaponstrength = 60
+   weaponname = '12-Gauge Shotgun'
+end
+ if command = '8' then do
+   cost = 50000
+   call COSTS
+   weaponstrength = 70
+   weaponname = 'Dynamite'
+end
+ if command = '9' then do
+   cost = 100000
+   call COSTS
+   weaponstrength = 100 
+   weaponname = 'Atomic Bomb'
+end
+ if command = '10' then do
+   cost = 250000
+   call COSTS
+   weaponstrength = 250
+   weaponname = 'Photon Torpedos'
+end
+ if command = "Q" then call MAINMENU
+ if command = "" then call WEAPONS
+end
+if command = 'S' then do
+turns = turns + 1
+   if weaponstrength = 0 then do;transmit "\n1\c2You have no weapon\c1!\n1Press any key...\g1" ; call WEAPONS;end
+   moneyback = weaponstrength*100
+   transmit "\n2\c1I will pay you $"moneyback" for your "weaponname"."
+   sendstring "\c1Would you still like to sell it? (y/\c2N\c1)\c2" ; getchar ; command = upper(result)
+   call CARRIER
+   if command = 'N' then call WEAPONS
+   if command = 'Q' then call MAINMENU
+   if command = 'Y' then do
+      weaponstrength = 0
+      money = money + moneyback
+      transmit "\n1\c1You have sold your "weaponname" for $"moneyback"."
+      weaponname = "(none)"
+      transmit "\n1\c1Press any key...\g1" ; call WEAPONS
+   end
+   if command = "" then call WEAPONS
+end
+if command = 'W' then call BUILDWEAPON
+call SAVESTATS
+call MAINMENU
+/* Checks to see if they have enough money for weapon */
+COSTS:
+if money < cost then do
+   transmit "\n1\c2You don't have enough for that weapon\c1!"
+   transmit "\c1Press any key...\g1"
+   call WEAPONS
+end
+money = money - cost
+return 
+/* Build Weapon */
+BUILDWEAPON:
+turns = turns + 1
+if money < 400 then do
+   transmit "\n2You don't have enough to build your own weapon!"
+   transmit "\n2\c1Press any key...\g1"
+   call WEAPONS
+end
+transmit "\n2Once you start, if you abort any money you have spent will be lost!"
+transmit "Do you still wish to build a weapon (y/\c2N) ?\c2" ; getchar ; command = upper(result)
+if command = 'Y' then call MATERIAL
+call MAINMENU
+MATERIAL:
+newweapon = 0
+transmit "\f1\n1"
+transmit "                     \c1What should the weapon be made out of?"      
+transmit ""                                                                 
+transmit "                         \c1$100   [\c2A\c1]  \c7Clay"                          
+transmit "                         \c1$500   [\c2B\c1]  \c7Construction Paper"            
+transmit "                        \c1$1000   [\c2C\c1]  \c7Reinforced Nylon"              
+transmit "                        \c1$4000   [\c2D\c1]  \c7Plastic"                       
+transmit "                        \c1$5000   [\c2E\c1]  \c7Oak"                           
+transmit "                       \c1$10000   [\c2F\c1]  \c7Melted Dr. Pepper Cans"   
+transmit "                       \c1$15000   [\c2G\c1]  \c7Carbon Fiber"                  
+transmit "                       \c1$50000   [\c2H\c1]  \c7Reinforced Steel"              
+transmit "                      \c1$100000   [\c2I\c1]  \c7Titanium Alloy"                
+transmit "                      \c1$250000   [\c2J\c1]  \c7Uridnium Compund"
+transmit ""                                                                 
+transmit "                                  \c1Money = $"money
+sendstring "                                 \c5Choice ?\c2" ; getchar ; command = upper(result)
+if command = 'Q' then call MAINMENU
+if command = '' then call MATERIAL
+if command = 'A' then do
+   cost = 100
+   call CHECK5
+   newweapon = newweapon + 10
+end
+if command = 'B' then do     
+   cost = 500                
+   call CHECK5               
+   newweapon = newweapon + 20
+end
+if command = 'C' then do     
+   cost = 1000                
+   call CHECK5               
+   newweapon = newweapon + 30
+end
+if command = 'D' then do     
+   cost = 4000                
+   call CHECK5               
+   newweapon = newweapon + 40
+end
+if command = 'E' then do     
+   cost = 5000                
+   call CHECK5               
+   newweapon = newweapon + 50
+end
+if command = 'F' then do     
+   cost = 10000                
+   call CHECK5               
+   newweapon = newweapon + 60
+end
+if command = 'G' then do     
+   cost = 15000                
+   call CHECK5               
+   newweapon = newweapon + 70
+end
+if command = 'H' then do     
+   cost = 50000                
+   call CHECK5               
+   newweapon = newweapon + 80
+end
+if command = 'I' then do     
+   cost = 100000                
+   call CHECK5               
+   newweapon = newweapon + 100
+end
+if command = 'J' then do     
+   cost = 250000                
+   call CHECK5               
+   newweapon = newweapon + 250
+end
+call SHOOT
+SHOOT:
+transmit "\f1\n1"
+transmit "                     \c1What do you want the weapon to shoot?"
+Transmit ""                                                          
+transmit "                         \c1$100   [\c2A\c1]  \c7Spitwads"               
+transmit "                         \c1$500   [\c2B\c1]  \c7Frozen Broccoli"        
+transmit "                        \c1$1000   [\c2C\c1]  \c7Rubber Balls"           
+transmit "                        \c1$4000   [\c2D\c1]  \c7Darts"                  
+transmit "                        \c1$5000   [\c2E\c1]  \c7Small Bullets"          
+transmit "                       \c1$10000   [\c2F\c1]  \c7Bird Shot"              
+transmit "                       \c1$15000   [\c2G\c1]  \c7Large Bullets"          
+transmit "                       \c1$50000   [\c2H\c1]  \c7Gamma Rays"             
+transmit "                      \c1$100000   [\c2I\c1]  \c7Nuclear Waste"          
+transmit "                      \c1$250000   [\c2J\c1]  \c720,0000 Jigawatts"      
+transmit ""                                                          
+transmit "                               \c1Money = $"money
+sendstring "                                 \c5Choice ?\c2" ; getchar ; command = upper(result)
+if command = 'Q' then call MAINMENU  
+if command = '' then call SHOOT
+if command = 'A' then do             
+   cost = 100                        
+   call CHECK6                       
+   newweapon = newweapon + 10        
+end                                  
+if command = 'B' then do             
+   cost = 500                        
+   call CHECK6                       
+   newweapon = newweapon + 20        
+end                                  
+if command = 'C' then do             
+   cost = 1000                       
+   call CHECK6                       
+   newweapon = newweapon + 30        
+end
+if command = 'D' then do     
+   cost = 4000               
+   call CHECK6               
+   newweapon = newweapon + 40
+end                          
+if command = 'E' then do     
+   cost = 5000               
+   call CHECK6               
+   newweapon = newweapon + 50
+end                          
+if command = 'F' then do     
+   cost = 10000              
+   call CHECK6               
+   newweapon = newweapon + 60
+end                          
+if command = 'G' then do     
+   cost = 15000              
+   call CHECK6               
+   newweapon = newweapon + 70
+end
+if command = 'H' then do      
+   cost = 50000               
+   call CHECK6                
+   newweapon = newweapon + 80 
+end                           
+if command = 'I' then do      
+   cost = 100000              
+   call CHECK6                
+   newweapon = newweapon + 100 
+end                           
+if command = 'J' then do      
+   cost = 250000              
+   call CHECK6                
+   newweapon = newweapon + 250
+end
+call ACCURACY
+ACCURACY:
+transmit "\f1\n1"
+transmit "                    \c1What targeting shall your weapon use?"
+transmit ""                                                             
+transmit "                         \c1$100   \c1[\c2A\c1]  \c7Pure Luck"                 
+transmit "                         \c1$500   \c1[\c2B\c1]  \c7Smell"                     
+transmit "                        \c1$1000   \c1[\c2C\c1]  \c71X Scope"                  
+transmit "                        \c1$4000   \c1[\c2D\c1]  \c710X Scope"                 
+transmit "                        \c1$5000   \c1[\c2E\c1]  \c750X Scope"                 
+transmit "                       \c1$10000   \c1[\c2F\c1]  \c7100X Scope"                
+transmit "                       \c1$15000   \c1[\c2G\c1]  \c7Radar"                     
+transmit "                       \c1$50000   \c1[\c2H\c1]  \c7Heat Seeking"              
+transmit "                      \c1$100000   \c1[\c2I\c1]  \c7Laser Sighting"            
+transmit "                      \c1$250000   \c1[\c2J\c1]  \c7Self-Firing Lockon"        
+transmit ""                                                             
+transmit "                                \c1Money = $"money
+sendstring "                                 \c5Choice ?\c2" ; getchar ; command = upper(result)
+if command = 'Q' then call MAINMENU  
+if command = '' then call ACCURACY
+if command = 'A' then do             
+   cost = 100                        
+   call CHECK7                       
+   newweapon = newweapon + 10        
+end                                  
+if command = 'B' then do             
+   cost = 500                        
+   call CHECK7                       
+   newweapon = newweapon + 20        
+end                                  
+if command = 'C' then do             
+   cost = 1000                       
+   call CHECK7                       
+   newweapon = newweapon + 30        
+end                                  
+if command = 'D' then do             
+   cost = 4000                       
+   call CHECK7                       
+   newweapon = newweapon + 40        
+end
+if command = 'E' then do     
+   cost = 5000               
+   call CHECK7               
+   newweapon = newweapon + 50
+end                          
+if command = 'F' then do     
+   cost = 10000              
+   call CHECK7               
+   newweapon = newweapon + 60
+end                          
+if command = 'G' then do     
+   cost = 15000              
+   call CHECK7               
+   newweapon = newweapon + 70
+end                          
+if command = 'H' then do     
+   cost = 50000              
+   call CHECK7               
+   newweapon = newweapon + 80
+end
+if command = 'I' then do      
+   cost = 100000              
+   call CHECK7                
+   newweapon = newweapon + 100 
+end                           
+if command = 'J' then do      
+   cost = 250000              
+   call CHECK7                
+   newweapon = newweapon + 250
+end
+call RELIABILITY
+RELIABILITY:
+transmit "\f1\n1"
+transmit "                          How reliable is your weapon?"  
+transmit ""                                                        
+transmit "                         \c1$100   [\c2A\c1]  \c7Blows Up In Your Face"
+transmit "                         \c1$500   [\c2B\c1]  \c7Constantly Jams"      
+transmit "                        \c1$1000   [\c2C\c1]  \c7Jams Occasionally"    
+transmit "                        \c1$4000   [\c2D\c1]  \c7Reliable"             
+transmit "                        \c1$5000   [\c2E\c1]  \c730-Day Warranty"      
+transmit "                       \c1$10000   [\c2F\c1]  \c7No Worries Mate"      
+transmit "                       \c1$15000   [\c2G\c1]  \c7Unbreakable"          
+transmit "                       \c1$50000   [\c2H\c1]  \c7Made By Ginsu"        
+transmit "                      \c1$100000   [\c2I\c1]  \c7Lasts Longer Than You"
+transmit "                      \c1$250000   [\c2J\c1]  \c7Don't Ask"            
+transmit ""
+transmit "                                \c1Money = $"money                                                        
+sendstring "                                 \c5Choice ?\c2" ; getchar ; command = upper(result)
+if command = 'Q' then call MAINMENU  
+if command = '' then call RELIABILITY
+if command = 'A' then do             
+   cost = 100                        
+   call CHECK8                       
+   newweapon = newweapon + 10        
+end                                  
+if command = 'B' then do             
+   cost = 500                        
+   call CHECK8                       
+   newweapon = newweapon + 20        
+end                                  
+if command = 'C' then do             
+   cost = 1000                       
+   call CHECK8                       
+   newweapon = newweapon + 30        
+end
+if command = 'D' then do     
+   cost = 4000               
+   call CHECK8               
+   newweapon = newweapon + 40
+end                          
+if command = 'E' then do     
+   cost = 5000               
+   call CHECK8               
+   newweapon = newweapon + 50
+end                          
+if command = 'F' then do     
+   cost = 10000              
+   call CHECK8               
+   newweapon = newweapon + 60
+end                          
+if command = 'G' then do     
+   cost = 15000              
+   call CHECK8               
+   newweapon = newweapon + 70
+end                          
+if command = 'H' then do     
+   cost = 50000              
+   call CHECK8
+   newweapon = newweapon + 80 
+end                           
+if command = 'I' then do      
+   cost = 100000              
+   call CHECK8                
+   newweapon = newweapon + 100 
+end                           
+if command = 'J' then do      
+   cost = 250000              
+   call CHECK8                
+   newweapon = newweapon + 250
+end
+query "\n2\c1What do you wish to call your new weapon? " ; weaponname = result
+if weaponname = "" then do
+   weaponname = "A Nameless Weapon"
+end
+weaponstrength = newweapon
+call SAVESTATS
+call MAINMENU
+/* Robot Shop */
+SHOP:
+Transmit "\f1\n1"
+transmit "                                   \c6Robot Shop"             
+transmit ""                                                          
+transmit "                             \c1[\c2R\c1]  \c7Build New Robot"         
+transmit "                             \c1[\c2F\c1]  \c7Fix Robot"               
+transmit "                             \c1[\c2S\c1]  \c7Current Robot Statistics"
+transmit "                             \c1[\c2P\c1]  \c7Program Robot"
+transmit ""
+sendstring "                                  \c7Choice ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'R' then call BUILD
+if command = "P" then call PROGRAM
+if command = 'F' then do
+turns = turns + 1
+   if damage < 1 then do
+      transmit "\n1\c2You aren't damaged\c1!"
+      transmit "\n1\c1Press any key...\g1" ; call SHOP
+   end
+transmit "\n2\c1You have "damage" points of damage and $"money"."
+transmit "\c1At $10 a point, it will cost you $"damage*10" to fix everything."
+query "\c1How many would you like to repair (\c2RETURN\c1=All) ?\c2" ; command = result
+call CARRIER
+if command = '' then do
+   command = damage
+end
+if command < 0 then do
+   transmit "\n1\c2You can't fix negative damage\c1!"
+   transmit "\n1\c1Press any key...\g1" ; call SHOP
+end
+if money*10 < damage then do
+   transmit "\n1\c2You don't have that much money\c1!"
+   transmit "\n1\c1Press any key...\g1" ; call SHOP
+end
+prash = command*10
+money = money - prash
+damage = damage - command
+call SAVESTATS
+call MAINMENU
+end
+if command = 'S' then call STATS
+if command = 'Q' then call MAINMENU
+if command = "" then call SHOP
+call BUILD
+PROGRAM:
+turns = turns + 1
+if stamina = 0 then do
+   transmit "\n2You don't have a robot to program!"
+   transmit "\n2\c1Press any key...\g1" ; call SHOP
+end 
+query "\n2At how many hit points do you want your robot to try and run away? " ; runaway = result
+if runaway < 0 then do
+   runaway = 0
+end
+if runaway > stamina then do
+   transmit "\n1You don't have that many hit points!"
+   transmit "\n2\c1Press any key...\g1" ; call SHOP
+end
+query "\n1At how many hit points do you want your robot to surrender at? " ; surrender = result
+if surrender < 0 then do
+   surrender = 0
+end
+if surrender > stamina then do
+   transmit "\n1You don't have that many hit points!"
+   transmit "\n2\c1Press any key...\g1" ; call SHOP  
+end
+sendstring "\n1Should your robot repair himself after battle? " ; getchar ; repair = upper(result)
+fixme = 2
+if repair = "Y" then do
+   fixme = 1
+end
+call SAVESTATS
+call SHOP
+/* This is the subroutine for building a new robot */
+/* Also known as the Build A Better Bot routine */
+BUILD:
+if stamina > 0 then do
+   payback = stamina*100
+   transmit "\n1\c1You already have a robot.  You must sell it before you can build a new"
+   transmit "\c1one.  I will give you $"payback" for your robot.   Would you still like"
+   sendstring "\c1to sell it? (y/\c2N\c1) ?\c2" ; getchar ; command = upper(result)
+   call CARRIER
+   if command = 'Y' then do
+      transmit "\n1\c1You have sold your robot for $"payback"."
+      money = money + payback
+      transmit "\n1\c1Press any key...\g1"
+      call deleterobot
+      call chassis
+   end
+   call MAINMENU
+end
+if money < 400 then do
+   transmit "\n2\c2You don't have enough to build a robot\c1!"
+   transmit "\n2\c1Press any key...\g1"
+   call MAINMENU
+end
+CHASSIS:
+transmit "\f1\n1"
+transmit "       \c1What do you want the chassis for your robot to be made out of?"
+transmit ""                                                                    
+transmit "                     \c1$100    [\c2A\c1]  \c7Recycled Toaster"                      
+transmit "                     \c1$500    [\c2B\c1]  \c7Porcelain Toilet Bowl"                 
+transmit "                    \c1$1000    [\c2C\c1]  \c7Rusty Tricycle Frame"                  
+transmit "                    \c1$4000    [\c2D\c1]  \c7Old Maytag Washing Mashine"            
+transmit "                    \c1$5000    [\c2E\c1]  \c7Trashed-Out Yugo"                      
+transmit "                   \c1$10000    [\c2F\c1]  \c71942 Biplane"                          
+transmit "                   \c1$15000    [\c2G\c1]  \c7Armored Truck Chassis"                 
+transmit "                   \c1$50000    [\c2H\c1]  \c7World War II Army Tank"                
+transmit "                  \c1$100000    [\c2I\c1]  \c7Custom Manufactured Carbon-Fiber Frame"
+transmit "                  \c1$250000    [\c2J\c1]  \c7Top Of The Line Titanium Alloy"
+transmit ""
+transmit "                              \c1Money = $"money
+turns = turns + 1
+sendstring "                                 \c5Choice ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'A' then do
+   cost = 100
+   call CHECK1
+   stamina = stamina + 1
+end
+if command = 'B' then do
+   cost = 500
+   call CHECK1
+   stamina = stamina + 5
+end
+if command = 'C' then do
+   cost = 1000
+   call CHECK1 
+   stamina = stamina + 10
+end
+if command = 'D' then do
+   cost = 4000
+   call CHECK1
+   stamina = stamina + 40
+end
+if command = 'E' then do 
+   cost = 5000
+   call CHECK1
+   stamina = stamina + 50
+end
+if command = 'F' then do
+   cost = 10000   
+   call CHECK1
+   stamina = stamina + 100
+end
+if command = 'G' then do
+   cost = 15000  
+   call CHECK1
+   stamina = stamina + 150
+end
+if command = 'H' then do 
+   cost = 50000   
+   call CHECK1
+   stamina = stamina + 500
+end
+if command = 'I' then do 
+   cost = 100000    
+   call CHECK1
+   stamina = stamina + 1000
+end
+if command = 'J' then do 
+   cost = 250000    
+   call CHECK1
+   stamina = stamina + 2500
+end
+if command = 'Q' then call MAINMENU
+if command = "" then call CHASSIS
+if command = " " then call CHASSIS
+call POWER
+POWER:
+transmit "\f1\n1"
+transmit "          \c1What do you want the power source for your robot to be?"
+transmit ""
+transmit "                      \c1$100   [\c2A\c1]  \c7Rodent On Treadmill"                
+transmit "                      \c1$500   [\c2B\c1]  \c7Duracell "AAA" Batteries"           
+transmit "                     \c1$1000   [\c2C\c1]  \c7Rechargable 9-Volt Batteries"       
+transmit "                     \c1$4000   [\c2D\c1]  \c712-Volt Car Battery"                
+transmit "                     \c1$5000   [\c2E\c1]  \c7Solar Cell"                         
+transmit "                    \c1$10000   [\c2F\c1]  \c7Solar Cell With Battery Backup"     
+transmit "                    \c1$15000   [\c2G\c1]  \c7Gas Powered Generator"              
+transmit "                    \c1$50000   [\c2H\c1]  \c7Fission Reactor"                    
+transmit "                   \c1$100000   [\c2I\c1]  \c7Cold Fusion Reactor"                
+transmit "                   \c1$250000   [\c2J\c1]  \c7Anti-Matter Drive"
+transmit ""
+transmit "                              \c1Money = $"money
+sendstring "                                 \c5Choice ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'A' then do 
+   cost = 100    
+   call CHECK2
+   stamina = stamina + 1
+end
+if command = 'B' then do 
+   cost = 500    
+   call CHECK2
+   stamina = stamina + 5
+end
+if command = 'C' then do 
+   cost = 1000    
+   call CHECK2
+   stamina = stamina + 10
+end
+if command = 'D' then do 
+   cost = 4000    
+   call CHECK2
+   stamina = stamina + 40
+end
+if command = 'E' then do
+   cost = 5000    
+   call CHECK2
+   stamina = stamina + 50
+end
+if command = 'F' then do 
+   cost = 10000    
+   call CHECK2
+   stamina = stamina + 100
+end
+if command = 'G' then do 
+   cost = 15000    
+   call CHECK2
+   stamina = stamina + 150
+end
+if command = 'H' then do 
+   cost = 50000    
+   call CHECK2
+   stamina = stamina + 500
+end
+if command = 'I' then do 
+   cost = 100000    
+   call CHECK2
+   stamina = stamina + 1000
+end
+if command = 'J' then do
+   cost = 250000    
+   call CHECK2
+   stamina = stamina + 2500
+end
+if command = 'Q' then call MAINMENU
+if command = "" then call POWER
+if command = " " then call POWER
+call MOTION
+MOTION:
+transmit "\f1\n1"
+transmit "               \c1What form of motion do you want your robot to use?"
+transmit ""                                                                 
+transmit "                      \c1$100   [\c2A\c1]  \c7Rocking Horse Legs"                 
+transmit "                      \c1$500   [\c2B\c1]  \c7Sled Runners"                       
+transmit "                     \c1$1000   [\c2C\c1]  \c7Office Chair Wheels"                
+transmit "                     \c1$4000   [\c2D\c1]  \c7Bicycle Tires"                      
+transmit "                     \c1$5000   [\c2E\c1]  \c7Car Tires (2 Wheel Drive)"          
+transmit "                    \c1$10000   [\c2F\c1]  \c7Car Tires (4 Wheel Drive)"          
+transmit "                    \c1$15000   [\c2G\c1]  \c7Tank Treads"                        
+transmit "                    \c1$50000   [\c2H\c1]  \c7Hover Craft"                        
+transmit "                   \c1$100000   [\c2I\c1]  \c7Jet Propulsion"                     
+transmit "                   \c1$250000   [\c2J\c1]  \c7Teleportation"
+transmit ""
+transmit "                              \c1Money = $"money
+sendstring  "                                 \c5Choice ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'A' then do 
+   cost = 100    
+   call CHECK3
+   stamina = stamina + 1
+end
+if command = 'B' then do 
+   cost = 500    
+   call CHECK3
+   stamina = stamina + 5
+end
+if command = 'C' then do 
+   cost = 1000    
+   call CHECK3
+   stamina = stamina + 10
+end
+if command = 'D' then do 
+   cost = 4000    
+   call CHECK3
+   stamina = stamina + 40
+end
+if command = 'E' then do 
+   cost = 5000    
+   call CHECK3
+   stamina = stamina + 50
+end
+if command = 'F' then do 
+   cost = 10000    
+   call CHECK3
+   stamina = stamina + 100
+end
+if command = 'G' then do 
+   cost = 15000    
+   call CHECK3
+   stamina = stamina + 150
+end
+if command = 'H' then do 
+   cost = 50000    
+   call CHECK3
+   stamina = stamina + 500
+end
+if command = 'I' then do 
+   cost = 100000    
+   call CHECK3
+   stamina = stamina + 1000
+end
+if command = 'J' then do 
+   cost = 250000    
+   call CHECK3
+   stamina = stamina + 2500
+end
+if command = 'Q' then call MAINMENU
+if command = "" then call MOTION
+if command = " " then call MOTION
+call ARMOR
+ARMOR:
+transmit "\f1\n1"
+transmit "                   \c6What kind of armor should your robot have?"
+transmit ""                                                             
+transmit "                     \c1$100    [\c2A\c1]  \c7Toilet Paper"                   
+transmit "                     \c1$500    [\c2B\c1]  \c7Tin Foil"                       
+transmit "                    \c1$1000    [\c2C\c1]  \c7Cardboard"                      
+transmit "                    \c1$4000    [\c2D\c1]  \c7Plywood"                        
+transmit '                    \c1$5000    [\c2E\c1]  \c71/4" Aluminum Plating'          
+transmit '                   \c1$10000    [\c2F\c1]  \c71/4" Steel Plating'             
+transmit '                   \c1$15000    [\c2G\c1]  \c71/2" Titanium Plating'          
+transmit "                   \c1$50000    [\c2H\c1]  \c7Electro-Magnetic Shield"        
+transmit "                  \c1$100000    [\c2I\c1]  \c7Electric Forcefield"            
+transmit "                  \c1$250000    [\c2J\c1]  \c7Plasma Shield"
+transmit ""
+transmit "                              \c1Money = $"money
+sendstring "                                 \c5Choice ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'A' then do
+   cost = 100    
+   call CHECK4
+   stamina = stamina + 1
+end                               
+if command = 'B' then do
+   cost = 500    
+   call CHECK4
+   stamina = stamina + 5
+end                               
+if command = 'C' then do 
+   cost = 1000    
+   call CHECK4
+   stamina = stamina + 10
+end                               
+if command = 'D' then do 
+   cost = 4000    
+   call CHECK4
+   stamina = stamina + 40
+end                               
+if command = 'E' then do 
+   cost = 5000    
+   call CHECK4
+   stamina = stamina + 50
+end                               
+if command = 'F' then do
+   cost = 10000 
+   call CHECK4
+   stamina = stamina + 100
+end                               
+if command = 'G' then do
+   cost = 15000    
+   call CHECK4
+   stamina = stamina + 150
+end                               
+if command = 'H' then do 
+   cost = 50000    
+   call CHECK4
+   stamina = stamina + 500
+end                               
+if command = 'I' then do 
+   cost = 100000    
+   call CHECK4
+   stamina = stamina + 1000
+end                               
+if command = 'J' then do
+   cost = 250000    
+   call CHECK4
+   stamina = stamina + 2500
+end                              
+if command = 'Q' then call MAINMENU
+if command = "" then call ARMOR
+if command = " " then call ARMOR
+name:
+query"\n2\c1What do you want your robot to be named? \c2" ; botname = result
+if botname='' then do;transmit '\n1\c1Your robot \c2MUST\c1 have a name!\n1';call name;end
+call SAVESTATS
+call open file, (pathname'Players'), 'R';do i = 1 to totplayers;tempa=readln(file)
+tempb=readln(file);if upper(tempa)=upper(botname) then do;transmit 'That name is already being used.. try another one.'
+call close file;call name;end;end;call close file
+call open file, (pathname'Players'), 'A';call writeln file, botname;call writeln file, handle;call close file
+totplayers=totplayers+1;call open file, (pathname'Total'), 'W';call writeln file, totplayers
+call close file
+call MAINMENU
+/* Save the users statistics */
+SAVESTATS:
+call open(file,('pfiles:botz/'filename),'W')
+call writeln(file,money)                       
+call writeln(file,stamina)                     
+call writeln(file,bankmon)                     
+call writeln(file,weaponstrength)              
+call writeln(file,weaponname)                  
+call writeln(file,damage)                      
+call writeln(file,botname)                     
+call writeln(file,wins)                        
+call writeln(file,losses)
+call writeln(file,runaway)
+call writeln(file,surrender)
+call writeln(file,fixme)                      
+call close(file)
+return
+/* Check for adequate money */
+CHECK1:
+var = cost + 300
+if cost > money then do
+   transmit "\n1\c2You do not have enough money to buy that option\c1."
+   transmit "\n1\c1Press any key...\g1" ; call CHASSIS
+end
+if money < var then do
+   transmit "\n1\c2If you buy that you won't have enough to build a robot\c1!"
+   transmit "\n1\c1Press any key...\g1" ; call CHASSIS
+end
+money = money - cost
+return
+CHECK2:                                                              
+var = cost + 200                                                     
+if cost > money then do                                              
+   transmit "\n1\c2You do not have enough money to buy that option\c1."       
+   transmit "\n1\c1Press any key...\g1" ; call POWER                     
+end                                                                  
+if money < var then do                                               
+   transmit "\n1\c2If you buy that you won't have enough to build a robot\c1!"
+   transmit "\n1\c1Press any key...\g1" ; call POWER
+end
+money = money - cost
+return
+CHECK3:                                                              
+var = cost + 100                                                     
+if cost > money then do                                              
+   transmit "\n1\c2You do not have enough money to buy that option\c1."       
+   transmit "\n1\c1Press any key...\g1" ; call MOTION                     
+end                                                                  
+if money < var then do                                               
+   transmit "\n1\c2If you buy that you won't have enough to build a robot\c1!"
+   transmit "\n1\c1Press any key...\g1" ; call MOTION
+end
+money = money - cost
+return
+CHECK4:                                                       
+if cost > money then do                                       
+   transmit "\n1\c2You do not have enough money to buy that option\c1."
+   transmit "\n1\c1Press any key...\g1" ; call ARMOR              
+end
+money = money - cost
+return
+CHECK5:                                                                      
+var = cost + 300                                                             
+if cost > money then do                                                      
+   transmit "\n1\c2You do not have enough money to buy that part\c1."      
+   transmit "\n1\c1Press any key...\g1" ; call MATERIAL                       
+end                                                                          
+if money < var then do                                                       
+   transmit "\n1\c2If you buy that you won't have enough to build a weapon\c1!"
+   transmit "\n1\c1Press any key...\g1" ; call MATERIAL                       
+end                                                                          
+money = money - cost                                                         
+return
+CHECK6:
+var = cost + 200                                                             
+if cost > money then do                                                      
+   transmit "\n1\c2You do not have enough money to buy that part\c1."      
+   transmit "\n1\c1Press any key...\g1" ; call SHOOT                         
+end                                                                          
+if money < var then do                                                       
+   transmit "\n1\c2If you buy that you won't have enough to build a weapon\c1!"
+   transmit "\n1\c1Press any key...\g1" ; call SHOOT                         
+end                                                                          
+money = money - cost                                                         
+return
+CHECK7:
+var = cost + 100                                                             
+if cost > money then do                                                      
+   transmit "\n1\c2You do not have enough money to buy that part\c1."      
+   transmit "\n1\c1Press any key...\g1" ; call ACCURACY                        
+end                                                                          
+if money < var then do                                                       
+   transmit "\n1\c2If you buy that you won't have enough to build a weapon\c1!"
+   transmit "\n1\c1Press any key...\g1" ; call ACCURACY                        
+end                                                                          
+money = money - cost
+return
+CHECK8:
+if cost > money then do                                                
+   transmit "\n1\c2You do not have enough money to buy that part\c1."
+   transmit "\n1\c1Press any key...\g1" ; call RELIABILITY                   
+end                                                                    
+money = money - cost                                                   
+return
+/* The SPY routines */
+SPY:
+query "\n2\c1Who do you wish to spy on (\c2L\c1=List) ?\c2";command=upper(result)
+call CARRIER;call totpl
+if command = 'L' then do
+   transmit "\n3"                             
+   call open(file,('pfiles:botz/players'),'R')
+   i = 0                                      
+   do until EOF (file) = 1                    
+     i = i + 1                                 
+     player = readln(file);junk=readln(file)   
+     if player = '' then do                    
+       sendstring "\n1Press any key...\g1"     
+       call close(file)                        
+       return                                  
+     end                                      
+   transmit i'. 'player                       
+   end                                        
+   sendstring "\n1Press any key...\g1"        
+   call close file                            
+   call SPY
+end
+if command=''| goahead='1' then call mainmenu
+if command=' '| goahead='1' then call mainmenu
+if command='Q' | goahead='1' then call mainmenu
+call open(file,('pfiles:botz/players'),'R')
+do i = 1 to command-1                              
+ puke = readln(file);puke=readln(file)                          
+end                                           
+player = readln(file);oname=readln(file)
+call close file
+if command = 'N' then call MAINMENU
+call CARRIER
+if player = botname then do
+   transmit "\n2You can't spy on yourself!"
+   transmit "\n2\c1Press any key...\g1"
+   call SPY
+end
+sendstring "\c1That will cost you $500.  Do you still want to spy on "player"?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'N' then call MAINMENU
+if command = "" then call SPY
+if command = "Q" then call MAINMENU
+turns = turns + 1
+if money < 500 then do
+  transmit "\n2You don't have that much!"
+  transmit "\n2\c1Press any key...\g1"
+  call MAINMENU
+end 
+call open(userfile,('Pfiles:botz/'oname'.bot'),'R')
+omoney            = readln(userfile)
+ostamina          = readln(userfile)
+obankmon          = readln(userfile)
+oweaponstrength   = readln(userfile)
+oweaponname       = readln(userfile)
+odamage           = readln(userfile)
+obotname          = readln(userfile)
+owins             = readln(userfile)
+olosses           = readln(userfile)
+call CLOSE(userfile)
+transmit "\n2\c1That robot has the following statistics:"
+transmit "\n1\c2NAME \c1:\c7"obotname
+transmit "\c2HIT POINTS \c1: \c7("ostamina - odamage"/"ostamina")"
+transmit "\c2WEAPON NAME \c1:\c7"oweaponname
+transmit "\c2WEAPON DAMAGE \c1: \c70-"oweaponstrength
+transmit "\c2CASH IN HAND \c1: \c7$"omoney
+transmit "\c2WINS \c1: \c7"owins
+transmit "\c2LOSSES \c1:\c7"olosses
+transmit ""
+money = money - 500
+sendstring "\n1\c1Spy on someone else (y/\c2N\c1) ?\c2" ; getchar ; command = upper(result)
+call CARRIER
+if command = 'Y' then call SPY
+call MAINMENU
+/* Your status */
+STATS:
+turns = turns + 1
+if botname='None' then do;transmit '\n2You have no robot!!!\n1\w3';call mainmenu;end
+call OPEN(userfile,pathname||filename,'R')
+money            = readln(userfile)       
+stamina          = readln(userfile)       
+bankmon          = readln(userfile)       
+weaponstrength   = readln(userfile)       
+weaponname       = readln(userfile)       
+damage           = readln(userfile)       
+botname          = readln(userfile)       
+wins             = readln(userfile)       
+losses           = readln(userfile)
+runaway          = readln(userfile)
+surrender        = readln(userfile)
+fixme            = readln(userfile)       
+call CLOSE(userfile)
+if money < 0 then do
+   money = 0
+end
+transmit "\f1\n3"
+transmit "\c1Current statistics for "botname":"
+transmit ""      
+transmit "\c2HIT POINTS \c1:\c7 ("stamina - damage"/"stamina")"
+transmit "\c2WEAPON NAME \c1: \c7"weaponname                      
+transmit "\c2WEAPON DAMAGE \c1: \c70-"weaponstrength             
+transmit "\c2CASH IN HAND \c1: \c7$"money                        
+transmit "\c2CASH IN BANK \c1: \c7$"bankmon
+transmit "\c2WINS \c1: \c7"wins                                   
+transmit "\c2LOSSES \c1:\c7"losses
+transmit "\c2RUN AWAY AT "runaway" HIT POINTS"
+transmit "\c2SURRENDER AT "surrender" HIT POINTS"
+if fixme = 1 then do
+   transmit "\c2AUTO-REPAIR AFTER BATTLE"
+end
+if fixme = 2 then do 
+   transmit "\c2DO NOT REPAIR AFTER BATTLE"
+   end
+transmit ""
+transmit "\n2\c1Press any key...\g1"
+call SAVESTATS
+call MAINMENU
+/* Last 10 Battles */
+LAST10:
+turns = turns + 1
+transmit "\n2"
+sendfile 'pfiles:botz/last'
+transmit "\n2\c1Press any key...\g1"
+call MAINMENU
+
+DELETEROBOT:
+call open file, (pathname'Players'), 'R'
+i=0;do until eof(file)=1
+i=i+1;tempa.i=readln(file);tempb.i=readln(file)
+end;call close file;num=i-1
+call open file, (pathname'Players'), 'W'
+do i = 1 to num;if tempa.i=botname then nop;else do;call writeln file, tempa.i;call writeln file, tempb.i;end;end
+call close file;return
+
+TOTPL:
+goahead=0;if command > totplayers then goahead='1';return
+
+/* Check for Carrier */
+CARRIER:                                                      
+getcarrier ; carrier = result ; if carrier = 'false' then exit
+return
+/* The error handling stuff */                                         
+HALT:                                                                  
+ transmit '\n1\c1AREXX HALT issued by Sysop, WARBOTZ aborted..\Q1\n1'
+exit                                                                   
+IOERR:                                                                 
+ transmit 'An I/O Error has occured.  Please inform the Sysop.'        
+ transmit 'Line:' SIGL                                                 
+ logentry '\c1IO Error occured in \c2WARBOTZ\q1'                     
+ logentry '\c1      Line:\c7' SIGL '\Q1'                               
+exit                                                                   
+ERROR:                                                                 
+ transmit 'An Error has occured.  Please inform the Sysop.'            
+ transmit 'Line:' SIGL '   Severity:' RC                               
+ logentry '\c1Error occured in \c2WARBOTZ\Q1'                        
+ logentry '\c1      Line:\c7' SIGL '   \c1Severity:\c7' RC '\Q1'       
+exit
+SYNTAX:                                                           
+ transmit 'A Syntax Error has occured.  Please inform the Sysop.' 
+ transmit 'Line:' SIGL '   Severity:' RC                          
+ logentry '\c1Syntax Error occured in \c2WARBOTZ'               
+ logentry '\c1      Line:\c7' SIGL '   \c1Error Code:\c7' RC '\Q1'
+exit

@@ -1,0 +1,192 @@
+Short:    Trion Shareware BBS update V1.10 -> V1.12
+Uploader: david.ellison3@ukonline.co.uk (Dave Ellison)
+Author:   paul.spijkerman@ddimedia.com (Paul Spijkerman)
+Type:     Comm/BBS
+
+
+Trion BBS is a ShareWare multinode BBS with RIPscrip BBS graphics,
+echomail, mailer with EMSI & IEMSI , areafix, tick processor,
+allfiles, SplitChatDoor, CDRomDoor etc etc..
+Controllable through scripts (by a Cron utility).
+Fax and Voice programmes are spawnable.
+Runs CliDoors, ParagonDoors, Arexx Doors, Max's BBS Doors.
+
+
+
+    Major changes from version V1.10 to V1.12   (Shortlist)
+
+
+
+     Utils:   BBS, TrionRM, Poll, Areafix, TMP, MailDecode, AttViewer
+     Doors:   
+     Scripts: 
+     Cfg:     
+
+
+
+   -Changed the mail processor (And BBS, Poll and areafix) so
+    you can put mail on hold. Which means that mail only is send
+    when some one calls you. It is not send when you call the
+    node. This works also with attached files but not with .tic
+    files at this moment. 
+
+ !! You need to change the systems.cfg
+    All lines have to be changed from:
+
+    <system>  <archiver>  <Password>
+
+    into:
+
+    <system>  <archiver>  <send>  <Password>
+
+    Where send can be either SEND or HOLD
+
+
+   -Changed Areafix so you can connect and disconnect multiple sections
+    with a wildcard.
+
+    Because my wildcard function is case insensitive it doesn't
+    matter anymore if you type the area name in upper or lower
+    case. So "*amiga*" or "*AMIGA*" will both connect or
+    disconnect all sections with "amiga" in the TagName.
+
+   -Added options to areafix so you can 'pause' or 'resume' a node
+    from the command line.
+
+   -Finally got my Tape-streamer online again and got the old
+    Areafix source from tape for the connect/disconnect functions
+    without Wildcards.
+    Build those in areafix for "Resume" which doesn't need
+    wildcards. It's more suitable and much faster.
+
+   -Checked the integrity of all the BBS sources.
+    If all sources are complete and if there are source
+    files which are not needed but only where placed there
+    as an example.
+
+   -Changed the BBS a little so when you reply to a message you
+    first get some information about the original message at the
+    top of the screen.
+
+   -If you start the BBS with the -B flag, it will not check if
+    a user has enough time to download a file when it is marked.
+    This is usefull if you have a crazy modem which doesn't give
+    a connection speed, so the calculated transfer time is hours
+    instead of minutes :)
+
+   -Fixed a little bug in the RipScrip engine, it used the wrong
+    function to draw the last line of a filled polygon.
+    Which could sometimes give the wrong result.
+
+   -Changed MailDecode so if there is a name provided with a UUencoded
+    file an attempt is made to use it.
+    If there is a problem (a dupe for instance) the old name convention
+    is used.
+
+    Looked if I could do the same with "MIME" encoded files,
+    but I don't have enough information.
+    The names and storage methodes changes places in the headers.
+    With the MIME methode files can be encoded with BASE64 or text
+    files can added unencoded.
+    (Base64 coded files are a little smaller then UUencoded ones).
+
+    Base64 files are still recognized the old way, by checking
+    if a line is Base64 compliant.
+
+   -Changed the mailer so that if after a "send session" a flo file is
+    remade that and file is "in use" because it was processed by
+    the mail processor it is added again instead of orphaned.
+
+   -Changed the mail processor so that archive names are only added
+    to a .FLO file when it is completely ready. No more packets
+    to add.
+
+   -Changed the mail processor so empty "PATH:" lines are
+    recognized (they where only recognized if PATH: was
+    followed with a space).
+    Otherwise you may get "no path" message while you
+    read messages, if the message was written by a point
+    directly "under" your node.
+
+   -Changed TrionRM so when you are online and you get a
+    "you have a message waiting" text, the name of the writer
+    is included.
+
+   -Added the time a line was received to the AttentionViewer
+    for people who have it always open.
+
+    You have to run AttViewer with the flag -T to get the time
+    on the screen.
+
+    Also added the possibility to define the width of the window,
+    just put the number of columns after the word attviewer.
+    The default is still 40, but if you use the -T flag, 50
+    maybe better.
+
+   -Added a tildecode ~107 (#107) which does the same as code 106
+    (displaying the type of message section) but with only
+    3 characters.
+
+
+   -Added a simple "mailing list" function to the BBS.
+    When you give a username when writing a message, the
+    BBS will check if there is a file with that name in
+    the directory "Trion:".
+    If there is such a file, the message is send to all
+    people in the file.
+
+    The file has the following format:
+    If the section has an E-mail flag:
+
+    "recipient name"     "E-mail address"
+
+    If the section has no E-mail flag (just netmail):
+
+    "recipient name"     "fidostyle nodenumber"
+
+    Note that if there are spaces in a name or address it has
+    to be places between "", because only 2 arguments on a
+    line are accepted.
+
+
+   -Changed the BBS a little bit so it sends the CPS of the
+    last send file to a door, if a file was downloaded from
+    a door. Here follows a little modified TestDownload()
+    function from the DemoDoor suplied in the main archive:
+
+
+
+
+void TestDownload(struct DoorIO *pd, struct ADS_Data *pp)
+{
+   UWORD cps;
+   int   result;
+
+   nprintf(pd, "Let's mark the startup-sequence\r\n");
+
+   /* mark as much files as needed before calling download */
+
+/* MarkFile(pp , "s:startup-sequence" ); */
+   MarkFile(pp , "dh2:hal9002.lha" );
+
+   Delay(100);
+
+   nprintf(pd, "Here it comes\r\n");
+   result = Download( pp );
+
+   /* 0=OK, 1=Err, -1,-2=trouble with msgs */
+
+   nprintf(pd, "\nresult = %d\n",  result);
+
+   if (result == 0){
+      cps = pp->BBSMsg->ADS_Data_word;
+      nprintf(pd, "\nCPS = %d\n",  cps);
+   }else{
+      nprintf(pd, "\nError\n");
+   }
+
+   Delay(100);
+}
+
+
+

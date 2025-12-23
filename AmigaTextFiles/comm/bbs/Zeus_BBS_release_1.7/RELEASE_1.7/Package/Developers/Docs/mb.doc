@@ -1,0 +1,384 @@
+
+Message Base Libraries
+
+
+1.0 An introduction
+
+
+Message Base Libraries allow foreign message base standards to be used
+seamlessly with every aspect of your Zeus BBS. They operate under the
+principle that Zeus does not know, or need to know how the message data
+is stored.
+
+This means that the message base specifications could be extended to
+allow the reading of a seperate message base over a network, or simply
+another message base standard.
+
+Zeus comes with two message base libraries:
+
+ - mbzeus.library
+ - mbstarmsg.library
+
+The first, mbzeus.library is the most commonly used message base library
+as it uses a fast, indexed, asynchronous and buffered "three file per
+area" format. This means that message base files do not fragment the
+hard drive to a great extent, and unnecessary space is not wasted on
+the storage medium with small files. AmigaDos files take up an extra
+512 bytes of space regardless of their length. The one main disadvantage
+of the mbzeus.library is that it is proprietary to Zeus. Other programs
+cannot take advantage of it unless they are programmed directly for
+Zeus.
+
+To counter this, we also supply the mbstarmsg.library with Zeus. The
+mbstarmsg.library, the C source of which is supplied in this development
+archive is a slower, more cumbersome standard. Its great advantage
+is that many Amiga mail processors, readers, Areafix and other utility
+programs have direct support for this standard.
+
+The "starmsg" base is so called because the name of each mail file is
+its number followed by the ".MSG" suffix, for example the third message
+in area AMIGASOFT might be stored in "MAIL:AMIGASOFT/3.MSG".
+
+
+2.0 Implementing a message base library
+
+
+A message base library is a standard Amiga shared library, as defined in
+the file "Developers/Include/mb_lib.h". You must create your library with
+this exact template, as MsgControl calls these functions relating to their
+offset, not name.
+
+Functions in message base libraries are NEVER called directly. Only the
+zmf.library and mbManager will ever contact your library directly. All
+other Zeus programs work from a link with the similarly named functions
+in the zmf.library, e.g. LoadMessage() links to mbLoadMessage().
+
+
+2.0.1 Initialisation
+
+struct MsgBaseLink * mbInitialise ( struct MsgGlobals * ) ;
+int                  mbGetInfo    ( struct MsgInfo * ) ;
+BOOL                 mbInitBase   ( struct msgarea * ) ;
+void                 mbQuit       ( void ) ;
+
+Functions in the message base library will only be called while MsgControl
+is active. Your library will be activated and deactivated when MsgControl
+opens and closes with the functions "mbInitialiase" and "mbQuit" respectively.
+
+The function "mbInitBase" must be available at all times, and should return
+some information about the library into the "struct MsgInfo *" passed to
+the function.
+
+A MsgInfo structure contains the following elements with example entries
+in comments.
+
+struct	MsgInfo
+{
+	char	Name[40];     /* mbstarmsg.library v1.0 */
+	char	Info[40];     /* Standard FTSC-1 *.MSG library */
+	char	Author[40];   /* (c)1992-1995 Alex May & Nick Loman */
+} ;
+
+Each message area is assigned to a message base library. This allows
+different libraries to be used with different bases. Therefore, for your
+library to know which areas it will be serving, the function "mbInitBase"
+will be called for each area, with a pointer to a "struct msgarea *"
+configuration structure in A0. This can be used to build-up an internal
+list of message pointers, or simply discarded.
+
+If a message area for some reason cannot be initialiased, returning
+FALSE will cause it to be unlinked from the internal message area list.
+
+
+2.0.2 Message Requests
+
+
+Once these initialisations have occured, your message base library should
+be ready to accept requests for manipulating your message database.
+
+The following functions are the minimum required functions for a working
+message base library.
+
+struct WholeMessage *    mbLoadMessage ( int, ULONG, ULONG ) ;
+signed int               mbSaveMessage ( struct WriteMsgStruct * ) ;
+struct MsgScanKey *      mbInitMsgScanKey ( struct ScanInfo * ) ;
+ULONG                    mbScanMessages ( struct MsgScanKey *, struct WholeMessage * ) ;
+void                     mbCloseMsgScanKey ( struct MsgScanKey * ) ;
+signed int               mbEditMessage ( struct Msg *, unsigned char * ) ;
+signed int               mbDeleteMessage ( int, ULONG ) ;
+ULONG                    mbGetNumberOfMessages ( void ) ;
+struct MsgIdx *          mbGetPointers ( ULONG ) ;
+int                      mbSetPointers ( struct MsgIdx * ) ;
+BOOL			 mbScanMsgHdrs ( struct MsgScanKey *, struct Msg * ) ;
+
+Zeus' message base works under the following principle:
+
+Each message area has a unique "message area number", which can be a minimum
+of one and a maximum of ULONG. These message areas are configured from within
+Prefs/MsgConfig. No two message area numbers may be the same. Message area
+numbers are not in numeric sequence, and can skip from 1 to 5 to 200 etc.
+
+Each message area has some "active data". This active data stores the areas
+current lowest message, highest message, high sent by mail processor and high
+sent by Internet pointer. You do not need to worry about the last two, but
+they must be available for setting by other Zeus programs.
+
+Zeus requires a "struct MsgIdx" to be available from the GetPointers routine
+to work out which message it wishes to read next.
+
+struct	MsgIdx
+{
+	ULONG			 Area;
+	ULONG			 Low;
+	ULONG			 High;
+	ULONG			 HighSentByNet;
+	ULONG			 HSBInterNet;
+} ;
+
+The Low pointer must be a minimum of one.
+
+This structure is passed to SetPointers in A0 when Zeus wishes to update
+an entry itself.
+
+
+2.0.4 Loading Messages
+
+
+In order for Zeus to be able to read messages with success, it requires
+a universal format for reading.
+
+struct	Msg
+{
+	ULONG			MsgSection;
+	ULONG			Number;
+	ULONG			TextPosition;
+	ULONG			TextLength;
+	char			From[36];
+	char			To[36];
+	char			Subject[72];
+	time_t			Date;
+	time_t			ArriveDate;
+	struct 	FidoAddress	FromAddress;
+	struct  FidoAddress	DestAddress;
+	ULONG			ReplyTo;
+	ULONG			NextReply;
+	ULONG			Flags;
+} ;
+
+N.B. You do not have to store your message physically in this format,
+but you must translate your message into this structure when you return
+messages from mbLoadMessage and mbScanMessages.
+
+A description of fields:
+
+ MsgSection   - The message area number this message belongs to. This
+                field is usually the same as the D0 argument passed to
+                mbLoadMessage() and the Area field of "struct ScanInfo"
+                passed to mbInitMsgScanKey()
+
+ Number       - The message database number. This is usually the same
+                as the D1 argument passed to mbLoadMessage(). This number
+                relates to the messages position in the areas MsgIdx
+                entry.
+
+ TextPosition - This field is used by mbzeus and is not required to be
+                filled. However, this may be useful for your library
+                to store the position on disk of the message text
+                corresponding to the message header.
+
+ TextLength   - The length of the message text minus the NULL terminator,
+                i.e. strlen ( wm->wm_Text )
+
+ From         - The author of this message
+
+ To           - The addresse of this message
+
+ Subject      - The "topic" or "title" of this message
+
+ Date         - The date this message was written. The
+                zeus.library/Time() and zeus.library/GMTime() functions
+                may be useful for creating this field. It represents
+                the number of seconds since 01-Jan-1978.
+
+ ArriveDate   - The date this message was stored on the local machine.
+
+ FromAddress  - For echomail and matrix areas- the FidoNet address
+                this message originated from.
+
+ DestAddress  - For matrix areas- the destination address of this message.
+
+ ReplyTo      - The previous message in this area linked to the
+                current message by MSGID.
+
+ NextReply    - The newt message in this area linked to the current
+                message by MSGID.
+
+ Flags        -
+
+#define MI_PRIVATE		0x0001  - Message may only be read by the
+                                          author and addresse.
+#define MI_FILEATTACHED 	0x0002  - There are file(s) attached to
+                                          this message, of which the file-
+                                          names are stored in the subject
+                                          field.
+#define MI_REPLY		0x0004  - This message is a reply to a
+                                          previous message.
+#define MI_DELETED		0x0008  - This message no longer exists.
+#define MI_SENDERANONYMOUS	0x0010  - The sender of this mail is
+                                          anonymous
+#define MI_RECEIVEANONYMOUS	0x0020  - The addresses of this mail is
+                                          shown to be anonymous.
+#define MI_DELETEUPONRECEIVE	0x0040  - This message should self
+                                          destruct upon read.
+#define MI_RECEIVED		0x0080  - This message has been read by
+                                          its addresse.
+#define MI_CRASH		0x0100  - Matrix bases- this message should
+                                          be sent out in CRASH mode.
+#define MI_HOLD			0x0200  - Matrix bases- this message should
+                                          be sent out in HOLD mode.
+#define MI_DIRECT		0x0400  - Matrix bases- this message should
+                                          be sent out in DIRECT mode.
+#define MI_CROSSREPLY		0x0800  - This message is a reply to a
+                                          message in another message base.
+
+This message structure does not include the message text, as this is
+often stored in another place to the header. The message text and header
+is returned from mbLoadMessage() and mbScanMessage() in the form of a:
+
+struct	 WholeMessage
+{
+	struct Msg 	 	 wm_Msg;
+	UBYTE	        	*wm_Text;
+	ULONG			 wm_TextLength;
+} ;
+
+Where wm_Text is a pointer to the null-terminated text, and wm_TextLength
+is the length of the text allocation. The zmf.library function
+FreeMessage() will free these structures like this:
+
+	struct	 WholeMessage	*Msg;
+
+	if ( Msg->wm_Text )
+		FreeMem ( Msg->wm_Text, Msg->wm_TextLength ) ;
+
+	FreeMem ( Msg, sizeof ( struct WholeMessage ) ) ;
+
+Therefore, the WholeMessage structure and the Msg->wm_Text field must be
+allocated with AllocMem().
+
+
+2.0.5 Saving Messages
+
+
+The saving of a message is handled using a "WriteMsgStruct", a structure
+which is useful for different applications of saving messages, including
+mail processors.
+
+struct      WriteMsgStruct
+{
+	char			 From[36];
+	char			 To[36];
+	char			 Subject[72];
+
+	struct 	FidoAddress 	 FromAddress;
+	struct 	FidoAddress	 DestAddress;
+	struct	FidoAddress	 RouteAddress;
+
+	LONG			 ReplyTo;
+	ULONG			 Flags;		/* Standard Message Flags */
+	LONG			 MessageArea;
+
+	UBYTE			*FidoText;	/* Use what you like of  */
+	UBYTE			*Text;		/* these different texts */
+	UBYTE			 Origin[80];    /* Use in this order.    */
+	UBYTE			*SeenBys;
+
+	/* Mail Processor Use */
+
+	UBYTE			*FullText;
+	long			 FullTextLength;
+	BOOL			 NoPointerUpdate;
+	time_t			 OriginalTime;
+} ;
+
+A description of fields:
+
+ From            - The author of this message
+
+ To              - The addresse of this message
+
+ Subject         - The "topic" or "title" of this message
+
+ FromAddress     - For echomail and matrix areas- the FidoNet address this
+                   message originated from.
+
+ DestAddress     - For matrix areas- the FidoNet address this message
+                   is destined.
+
+ RouteAddress    - For matrix areas- the FidoNet address this message
+                   should be routed through.
+
+ ReplyTo         - The message number this message is a reply to. If this
+                   field is 0, the message is an original.
+
+ Flags           - As defined in section 2.0.4
+
+ MessageArea     - The message area number this message should be saved to.
+
+
+Optional - combinations of the following four fields may be used:
+
+ FidoText        - The FidoNet kludges for this message, or NULL.
+
+ Text            - The main body of the text, or NULL.
+
+ Origin          - For echomail and matrix areas- the Origin text, excluding
+                   " * Origin: " prefix and (FidoNet address) suffix.
+
+ SeenBys         - For echomail areas- the SEEN-BY and PATH lines for this
+                   text.
+
+Or:
+
+ FullText        - The entire text of the message.
+
+ FullTextLength  - The length of FullText.
+
+
+ NoPointerUpdate - Message Base library should not update the high
+                   message pointers.
+
+ OriginalTime    - The date this message was written.
+
+
+2.0.6 Database Sharing
+
+
+void mbUpdate            ( ULONG AreaNumber ) ;
+void mbRescan            ( ULONG AreaNumber ) ;
+void mbMaintenance       ( ULONG Areanumber ) ;
+void mbTrim              ( ULONG AreaNumber ) ;
+void mbInitialiseArea    ( ULONG AreaNumber ) ;
+void mbCreateWaitingMail ( ULONG AreaNumber ) ;
+
+In order for Zeus to be used effectively with the "starmsg" base, a
+few important problems are thrown up.
+
+Zeus shared it's data files using the mbstarmsg.library with another
+program, which may have no links whatsoever to Zeus apart from their
+reliance on the same data files. How does Zeus know when program "x"
+decides to delete a message from the database, how can Zeus keep its
+waiting mail data current when program "x" writes it's own message to
+the database.
+
+To counter these sharing problems, the "Bin/mbManager" supplied with Zeus
+provides links to important functions. All message base libraries should
+support the extended functions this program may execute:
+
+   UPDATE       - Check High and Low pointers are correct
+   RESCAN       - Scan area for High and Low message pointers
+   MAINTENANCE  - Perform a health check on message area(s)
+   TRIM         - Trims message area(s) till it contains 'MaxMsgs'
+   INITIALISE   - Delete all messages and reset message pointers
+   WAITINGMAIL  - Create waiting mail data information from new messages
+

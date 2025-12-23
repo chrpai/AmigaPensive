@@ -1,0 +1,323 @@
+MSFilter 1.1 (c) 1994 by Doug McLean
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*** Please read this entire doc file, even if you already run MSFilter. ***
+*** The configuration file has completely changed, and you will want    ***
+*** to fully understand how the new features work before setting it up. ***
+*** If you don't read all the docs, you might get unexpected results.   ***
+
+Do you feed from a MS-Dos system that sends you an annoying file attach
+message for every tick file you get? Or is there someone on one or more
+of the echos who you find really annoying and just won't go away??? Are
+there message threads that have gotten out of hand, and you don't want
+cluttering up your BBS or point? Then try MSFilter.
+
+MSFilter is a fido packet filter. What is does is examine packets in your
+inbound, and remove from each packet any messages that are:
+
+      - from anyone you want filtered,
+      - to anyone you want filtered,
+      - about any subject you want filtered,
+
+but, MSFilter will NOT filter messages:
+
+      - from anyone you don't want filtered,
+      - to anyone you don't want filtered,
+      - about any subject you don't want filtered.
+
+With this release, MSFilter is pretty configurable as to what is and is
+not filtered (although, as with any program, there is always room for
+improvement :-).
+
+The filtering is done before you import your mail, so filtered messages
+aren't even imported (as opposed to some filters that delete the messages
+once they have been imported, leaving "holes" in your message areas).
+MSFilter looks only at packets, so it doesn't care what you run for a
+tosser or BBS or mailer.
+
+For example, when my feed sends along tick files, he also send an empty
+file attach message. Since I don't want these messages cluttering up my
+netmail area, I filter any messages from Tick v2.10.
+
+
+Legal Stuff
+~~~~~~~~~~~
+I forgot this section in the initial release, so here it is now.
+
+Use MSFilter at your own risk. If it works well for you, great! If it
+doesn't, or if it causes un-expected side effects, or it it totally
+messes up your system, or does anything else you don't like, tough!
+That is your problem, not mine.
+
+I don't expect you to have any problems with MSFilter, it works as
+expected here. But if you do have problems, please don't blame me for
+them. But please DO send me full info on any bugs you find (hopefully,
+there are none :-).
+
+MSFilter is copyright by me (Doug McLean). You may distribute it as you
+wish, as long as all files are intact within the original archive, and
+as long as you do not profit by distributing it. You may not alter any of
+the files in the archive in any way.
+
+
+Setting it up (the config file)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Place the executable and config file wherever you want (I have mine in
+Doors:MSFilter/).
+
+Edit the config file to suit your needs. My config file is:
+
+;Filter messages from these people
+<Tick v2
+<Bill Beogele
+;Filter messages to these people
+>Bill Beogele
+;Some subjects to filter
+=w h i n e
+=beogis
+=stalked by james hastings
+;But always keep messages addressed to these people
++Doug McLean
++Mike Mossman
++Tim Locke
+;And always keep messages from these people
+&Doug McLean
+&Mike Mossman
+&Tim Locke
+&Moderator
+;And always keep these subjects
+$msfilter
+
+There should be no spaces before or after the names (or the space will
+become part of the string to check for!). Do not leave any blank lines
+either at the beginning or the end of the config file!!!
+
+The first character on each line must be one of the following:
+
+   ; A comment line. This does not affect filtering in any way
+   < filter all messages from this person
+   > filter all messages to this person
+   = filter all messages that have a subject line that contains
+     the specified string
+   + never filter messages to this person, regardless of other
+     filtering criteria
+   & never filter messages from this person, regardless of other
+     filtering criteria
+   $ never filter messages whose subject line contains this string
+     regardless of other filtering criteria
+
+Except for the subject check, the string to filter is checked against the
+appropriate field (to/from) starting at the beginning of the string and
+only for the length of the specified filter string.
+
+So in the above example config file, messages from Tick v2.0, Tick v2.10,
+Tick v26.Beta4 etc will be filtered, while messages from Tick v will not.
+If you specify:
+
+<Bill
+
+all messages from anyone whose first name is Bill will be filtered, so
+be careful with what you specify!
+
+With subject filtering (and keeping), any subject that contains the
+specified string is filtered (or kept). So if the config file contains:
+
+=test
+
+"testtube", "echo test", and "abctestdef" will all be filtered.
+
+Now, in the above config file all messages to and from anyone whose name
+starts with Bill Beogele are filtered. But, if someone named Moderator
+sends him a message, then that message will not be filtered, since the
+config file specifies that messages from anyone named Moderator should
+never be filtered. In the same way, if someone whose name starts with
+Bill Beogele send Doug McLean a message, then it won't get filtered,
+since messages to Doug McLean are never filtered.
+
+Again looking at the above config file, if Bill Beogele send anyone
+a message about MSFilter, that message won't get filtered because the
+string msfilter is a "keep" subject.
+
+See the section "What happens when it runs" for more info on when the
+comparisons are made.
+
+Note that the comparisons are NOT case sensitive, so Tick is the same as
+tick is the same as TICK.
+
+Also note that your config file may have a maximum of 50 names in each
+catagory. This 50 name limit is for each catagory (not a total of 50),
+so you can filter 50 from names, 50 to names, and 50 subjects, and keep 50
+from names, keep 50 to names, and keep 50 subjects. This should be enough
+for anyone's needs. If you exceed this limit, you will get a warning in the
+log file. Note that the 50 name limit for each catagory implies that you
+cannot be sure of keeping messages for every user on your BBS, unless you
+have very few users. The more strings you specify in each catagory,
+the slower MSFilter will run.
+
+You *must* specify at least 3 characters for each string you want to check
+(4 characters if you count the filter type character). MSFilter will not
+check messages against strings with less than 3 characters. 
+
+Also note the following restrictions on field lengths in standard fido 
+packed messages:
+
+     To field     : 36 bytes including null terminator
+     From field   : 36 bytes including null terminator
+     Subject field: 72 bytes including null terminator
+
+Strings in the config file (except comments) should not exceed these
+limits. Comments should not exceed 78 characters.
+
+You don't need to have something in every catagory if you don't
+want, your entire config file might be:
+
+<Bill Beogele
+
+if that is all you want.
+
+If your config file has more than one or two lines, I suggest you set it
+up in sections like the above example, It is easier to change that way, and
+besides, it will look nicer in the log file.
+
+
+Running MSFilter
+~~~~~~~~~~~~~~~~
+Once it is set up, all you have to do is run MSFilter on incomming packets
+before you import mail. I do this in the aftersession batch file for
+TrapDoor. Since MSFilter works on PACKETS, and NOT on bundles, you will
+have to un-archive any bundles if you want MSFilter to process them. Here
+is the appropriate section from my aftersession script (not my full
+aftersession, it would contain a lot of unrelated stuff):
+
+.key who/a,baud/a
+.bra [
+.ket ]
+failat 99
+waittask CoProcess_<<3>>
+echo >>logs:MSFilter.log "####################### Fido session with +[who]+"
+date >>logs:MSFilter.log
+if "[who]" eq "1:255/1"
+ cd inbound:
+ list >t:msf.script ????????.(mo|tu|we|th|fr|sa|su)? lformat="rx xarc x %n"
+ execute t:msf.script
+ delete t:msf.script
+ delete ????????.(mo|tu|we|th|fr|sa|su)?
+ doors:MSFilter/MSFilter inbound: logs: doors:MSFilter/MSFilter.cfg
+endif
+dmc process
+
+Lines 1-3: This is for command line options to the aftersession script.
+           The line that calls the aftersession in my trapdoor.cfg is:
+
+           AFTERSESSION "execute dlgconfig:batch/aftersession %n %B"
+
+Line 4: Use FAILAT to make sure an error won't abort the script (maybe there
+        are no packets or bundles?).
+
+Line 5: I make sure that the rest of the script won't run while my tosser
+        is already running. Instead, the script waits until the tosser
+        is finished. I don't need my tosser and MSFilter fighting
+        over packets! If your tosser doesn't run in the background,
+        you shouldn't need to wait for it...
+
+Lines 6 & 7: A little extra logging for the MSFilter.log file.
+
+Line 8: If last session was with my main feed, then do the following.
+        Otherwise, go to the line following the ENDIF.
+
+Line 9: CD to where the inbound bundles and packets are.
+
+Line 10: Make a batch file to take apart any bundles and extract the
+         packets that they contain...
+
+Line 11: ... and execute the batch file ...
+
+Line 12: ... and delete the batch file once it exits.
+
+Line 13: Since the packets have been extracted from the bundles, delete
+         the bundles or else your tosser will want to take them apart again!
+
+Line 14: Have MSFilter process the packets.
+
+Line 15: End if the if block. The above if block would have been skipped
+         after a connect with anyone other than my main feed.
+
+Line 16: Finally, process the mail as usual.
+
+Sorry for the step by step analysis, but it occured to me that some of
+you may be newer to the Amiga than many of us, and not entirely familiar
+with AmigaDos batch files...
+
+The MSFilter command line is:
+
+path/MSFilter inbound_directory: log_directory: path/config_file_name
+
+The inbound: and log: directories MUST end in : or /. The config file
+is the full path and file name (allowing you to specify different
+config files, perhaps based on who the last session was with).
+
+After you have run MSFilter, run your tosser. I use DLGMail, but it doesn't
+matter what tosser (or BBS software) you use. All messages that were not
+filtered will be imported as usual.
+
+
+IMPORTANT
+~~~~~~~~~
+After setting up MSFilter, be sure to check the log file regularly (at least
+for a while) to make sure that you have configured it corectly. MSFilter
+will log exactly what it thinks it should and should not filter. If you
+have problems, check the log file and compare it with your config file.
+You may have an extra space at the end of a line.
+
+If you still have problems, file attach me both your log file and your
+config file, and I'll see what the problem is.
+
+
+What happens when it runs
+~~~~~~~~~~~~~~~~~~~~~~~~~
+First, MSFilter reads the config file. Then, it checks the specified
+inbound directory for packets. All packets in the inbound directory will
+be processed.
+
+For each packet, MSFilter builds a temporary file, to which the packet
+header and all non-filtered messages are copied. Filtered messages are
+printed to the log file instead of the temporary file.
+
+When checking a packet, each message is checked in order. If a message
+is to someone you specified you want to keep messages for (+ in the config
+file), is from someone you want to keep messages from (& in the config
+file), or if the subject field contains a keep string ($ in the config
+file), the filtering checks are skipped, and the message kept.
+
+If the message does not pass the above tests, then the to, from, and
+subject fields (>, <, and = in the config file) are checked against the
+appropriate lines in the config file. If the message fails any of these
+checks, then it is filtered, and copied to the log file as text. The
+reason the message was filtered is logged as well.
+
+If a packet does not contain any messages to be filtered, the temporary
+file is deleted.
+
+If some of the messages were filtered, the original packet is deleted and
+the temporary file renamed to the original packet name.
+
+If all the messages were filtered, both the original packet and the
+temporary file are deleted (this is often the case with those file attach
+messages from Tick).
+
+The log file will contain full info on each packet processed, and on each
+message filtered (including the full message text).
+
+NOTE THAT IF YOU FEED OTHER NODES, you will be filtering messages for them
+too. Since the packets are processed by MSFilter before your tosser gets
+ahold of them, filtered messages are kept from going to other nodes as
+well as yours.
+
+
+That's all folks!
+~~~~~~~~~~~~~~~~~
+Well, that's all. Send comments/suggestions/bug reports/etc to Doug McLean
+at fido 1:255/9.0.
+
+Doug
+

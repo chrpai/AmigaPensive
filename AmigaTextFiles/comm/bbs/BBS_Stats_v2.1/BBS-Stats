@@ -1,0 +1,286 @@
+/**************************************************************************\
+|*                                                                        *|
+|* Bulletin Board Statistical List Maker             BBS-Stats            *|
+|*                                                                        *|
+|* Written by The Marshal (c) 1992                   September, 1992      *|
+|*                                                                        *|
+|* From an original idea by: Grimalkin.              v2.1                 *|
+|*                                                                        *|
+\******************** SEE ** TEXT ** BOX ** BELOW *************************/
+
+options results ; signal on SYNTAX ; signal on IOERR ; signal on ERROR
+
+tr=transmit ; se=sendstring
+
+tr '\f1\n1\>f\z4                                         \z0'
+tr '\>f\z4  \z2\c9                                    \z4   \z0'
+tr '\>f\z4  \z2\c9  BBS_Stats v2.1   By: The Marshal  \z0  \z4 \z0'
+tr '\>f\z4  \z2\c9                                    \z0  \z4 \z0'
+tr '\>f\z4    \z0                                    \z4 \z0'
+tr '\>f\z4                                         \z0'
+tr '\>f\z4                \z0                       \z4  \z0'
+tr '\>f\z4\cf Account Number:\z0                       \z4  \z0'
+tr '\>f\z4\cf Alias (Handle):\z0                       \z4  \z0'
+tr "\>f\z4\cf  User's Gender:\z0                       \z4  \z0"
+tr '\>f\z4\cf  Computer Type:\z0                       \z4  \z0'
+tr '\>f\z4\cf   Access Group:\z0                       \z4  \z0'
+tr '\>f\z4\cf    Current Age:\z0                       \z4  \z0'
+tr '\>f\z4                \z0                       \z4  \z0'
+tr '\>f\z4                \z0                       \z4  \z0'
+tr '\>f\z4                                         \z0'
+tr '\>f\z4  \z5\cb  To update to new  computer types  \z4   \z0'
+tr '\>f\z4  \z5\cb  you must first delete this file:  \z0  \z4 \z0'
+tr '\>f\z4  \z5\cb  " sysdata: BBS_Stats.Computers "  \z0  \z4 \z0'
+tr '\>f\z4  \z5\cb  You should then ReRun BBS_Stats!  \z0  \z4 \z0'
+tr '\>f\z4    \z0                                    \z4 \z0'
+tr '\>f\z4                                         \z0'
+
+/**************************************************************************\
+|*        S Y S O P       D E F I N A B L E      V A R I A B L E S        *|
+|*      ------------------------------------------------------------      *|
+|*                                                                        *|
+|*  CurrentState: Your Two-Letter Abbreviation, for use with calculating  *|
+|*                percentage of Long-Distance Callers.                    *|
+|*                                                                        *|
+|*        SkipID: A listing of bbs ID numbers that will be skipped when   *||
+|*                counting the following variables: TotalCalls, Posts,    *|
+|*                Responses, Mail, UpBytes, UpFiles, DnBytes, & DnFiles.  *|
+|*                                                                        *|
+|*       BBSName: The name of your BBS, for use in generating the text    *|
+|*                file of statistical information.                        *|
+|*                                                                        *|
+|* Add this line to your BBSEVENT? file to automatically update the text  *|
+|* file every night:                                                      *|
+|*                                                                        *|
+|* ALL    400    ALL    400    -o    RUNA pfiles:maintenance/BBS-Stats    *|
+|*                                                                        *|
+|* This will run at 4 AM every night, provided the BBS-Stats file is      *|
+|* located in the 'maintenance' directory inside your P-Files directory.  *|
+|*                                                                        *|
+|* The text file is called: 'BBS_Stats' in the Root directory of your     *|
+|* G-Files section. It can also be viewd as a G-File. To include it as    *|
+|* part of your 'sys.welcome' file, add this line to the bottom of that   *|
+|* file:                                                                  *|
+|*          \*0gfiles:BBS_Stats\                                          *|
+|*                                                                        *|
+|* That's all there is to it! Enjoy it as much as I do!                   *|
+|*                                                                        *|
+|*                                                          The Marshal   *|
+\**************************************************************************/
+
+CurrentState    = 'NY'
+SkipID          = '1 2'
+BBSName         = 'The Frontier'
+
+SkipTotal = words(SkipID) ; Current = 1 ; Accounts = 0 ; Alien = 0
+TotalAges = 0 ; LD = 0 ; Male = 0 ; Female = 0 ; do i = 0 to 23
+computer.i = 0 ; end i ; TotalCalls = 0 ; PostedMessages = 0
+PrivateMessages = 0 ; UpBytes = 0 ; UpFiles = 0 ; DownBytes = 0
+DownFiles = 0 ; Slow = 0 ; Medium = 0 ; SlowFast = 0 ; Fast = 0
+c1='' ; c2='' ; c3='' ; c4='' ; c5='' ; c6='' ; c7='' ; c8=''
+
+call COMPUTERTYPES ; x=readuser(Current)
+
+        tr '\f0\!f\>f\>8\>9\cf'left('Please hold...',22,' ')
+
+    do until readuser(Current) = -1
+
+        tr '\f0\!8\>f\>8\>9\cb'left(Current,5,' ')
+
+        if substr(User_Alias,1,1) = '!' then do
+            tr '\>f\>8\>9\c9EMPTY ACCOUNT       '
+        end
+
+    else do
+        tr '\>f\>8\>9\c9'left(User_Alias,22,' ')
+
+    Accounts = Accounts + 1
+    if User_Country ~= 'USA' then Alien = Alien + 1
+    CurrentYear = date('e')
+    CurrentYear = right(CurrentYear,2)
+    age = CurrentYear - user_year
+    TotalAges = TotalAges + age
+    parse var User_City trash ',' STATE
+    if STATE ~= CurrentState then LD = LD + 1
+    if User_Sex = 1 then do ; Male = Male + 1 ; sex='Gentleman' ; end
+    if User_Sex = 0 then do ; Female = Female + 1 ; sex='Lady' ; end
+
+    do i=0 to 23 until User_Computer=i ; end
+    Computer.i = Computer.i + 1
+        tr '\>f\>8\>9\cd'left(sex,9,' ')
+        tr '\>f\>8\>9\ce'left(comp.i,22,' ')
+        tr '\>f\>8\>9\cf'left(user_access,2,' ')
+        tr '\>f\>8\>9\ca'left(age,4,' ')
+
+    do i=1 to SkipTotal
+        if Current=subword(Skip,i,1) then signal C1
+    end i
+
+    TotalCalls = TotalCalls + User_TotCalls
+    PostedMessages = PostedMessages + User_PubMess
+    PrivateMessages = PrivateMessages + User_PriMess
+    UpBytes = UpBytes + User_UpBytes
+    UpFiles = UpFiles + User_UpFiles
+    DownBytes = DownBytes + User_DnBytes
+    DownFiles = DownFiles + User_DnFiles
+
+C1:
+    if User_HighBaud < 301 then Slow = Slow + 1
+    if User_HighBaud > 300 & User_HighBaud < 1201 then Medium = Medium + 1
+    if User_HighBaud > 1200 & User_HighBaud < 2401 then SlowFast = SlowFast + 1
+    if User_HighBaud > 2400 then Fast = Fast + 1
+
+    end
+
+    Current = Current + 1
+
+    end
+
+    se '\f0\!f\>f\>8\>9\cfCalculating...'
+
+    TotalUsers      = Accounts
+    AverageCalls    = TotalCalls%TotalUsers
+    AveragePubM     = PostedMessages%TotalUsers
+    AveragePrivM    = PrivateMessages%TotalUsers
+    AverageUpBytes  = UpBytes%TotalUsers
+    AverageUpFiles  = UpFiles%TotalUsers
+    AverageDwnBytes = DownBytes%TotalUsers
+    AverageDwnFiles = DownFiles%TotalUsers
+    AverageAge      = TotalAges%TotalUsers
+
+    tr '\cbDone!'
+    se '\f0\!f\>f\>8\>9\cfSaving File...      \h6'
+
+    bname=BBSName||' Statistical Record' ; blen=(78-length(bname))%2
+    bname=copies(' ',blen)||bname||copies(' ',blen)
+    do i= 0 to 2  ; if ct>=i+1 then c1=c1||comp.i||left(computer.i,6,' ') ; end i
+    do i= 3 to 5  ; if ct>=i+1 then c2=c2||comp.i||left(computer.i,6,' ') ; end i
+    do i= 6 to 8  ; if ct>=i+1 then c3=c3||comp.i||left(computer.i,6,' ') ; end i
+    do i= 9 to 11 ; if ct>=i+1 then c4=c4||comp.i||left(computer.i,6,' ') ; end i
+    do i=12 to 14 ; if ct>=i+1 then c5=c5||comp.i||left(computer.i,6,' ') ; end i
+    do i=15 to 17 ; if ct>=i+1 then c6=c6||comp.i||left(computer.i,6,' ') ; end i
+    do i=18 to 20 ; if ct>=i+1 then c7=c7||comp.i||left(computer.i,6,' ') ; end i
+    do i=21 to 23 ; if ct>=i+1 then c8=c8||comp.i||left(computer.i,6,' ') ; end i
+
+    call open(f1,'GFiles:BBS_Stats','W')
+
+    call writeln(f1,'\f1\z5\cb'bname'\z0\n1')
+    call writeln(f1,'\ce     Total Number of Users\cb: \ca'left(TotalUsers,4,' '))
+    call writeln(f1,'\ce               Local Users\cb: \ca'left(TotalUsers-LD,4,' ')'\ce       Long Distance Users\cb: \ca'LD)
+    call writeln(f1,'\ce                Male Users\cb: \ca'left(Male,4,' ')'\ce              Female Users\cb: \ca'Female'\n1')
+    if ct>0  then call writeln(f1,c1)
+    if ct>3  then call writeln(f1,c2)
+    if ct>6  then call writeln(f1,c3)
+    if ct>9  then call writeln(f1,c4)
+    if ct>12 then call writeln(f1,c5)
+    if ct>15 then call writeln(f1,c6)
+    if ct>18 then call writeln(f1,c7)
+    if ct>21 then call writeln(f1,c8)
+    call writeln(f1,'\n1\ce          300 Baud Callers\cb: \ca'left(Slow,5,' ')'\ce        1200 Baud Callers\cb: \ca'Medium)
+    call writeln(f1,'\ce         2400 Baud Callers\cb: \ca'left(SlowFast,5,' ')'\ce  4800-14200 Baud Callers\cb: \ca'Fast'\n1')
+    call writeln(f1,'\ce  Callers from Outside USA\cb: \ca'left(Alien,5,' ')'\z4\cfBBS-Stats\z0 \ceLast Updated On\cb: \ca'Date('u')'.')
+    if ct>15 then do
+        call writeln(f1,'\n1\z5\cb'copies(' ',23)'Press Any Key To View Averages'copies(' ',23)'\z0\g6')
+    end
+    call writeln(f1,'\n1\ce    Average Calls Per User\cb: \ca'left(AverageCalls,5,' ')'\ce     Average Age Per User\cb: \ca'AverageAge)
+    call writeln(f1,'\ce    Average Posts Per User\cb: \ca'left(AveragePubM,5,' ')'\ce    Average Mail Per User\cb: \ca'AveragePrivM)
+    call writeln(f1,'\ce  Average Uploads Per User\cb: \ca'left(AverageUpFiles,5,' ')'\ce Average UpBytes Per User\cb: \ca'AverageUpBytes)
+    call writeln(f1,'\ceAverage Downloads Per User\cb: \ca'left(AverageDwnFiles,5,' ')'\ce Average DnBytes Per User\cb: \ca'AverageDwnBytes'\n1')
+    call writeln(f1,'\z5\cb'copies(' ',21)'Press Any Key When Ready To Continue'copies(' ',20)'\z0\g6')
+    call close(f1)
+
+    tr '\cbDone!'
+    tr '\f0\!f\>f\>8\>9\cfCreated: \cb'left(date('u'),12,' ')'\n2'
+    tr '\f0\!f\!2\>f\z4  \z5\cb BBS_Stats (c) July,1992 The Marshal \z4 \z0'
+    tr '\>f\z4                                         \z0'
+    do i=1 to 4 ; tr '\>f\z0'copies(' ',41) ; end i ; tr '\f0\!f\!3'
+  exit
+
+READUSER:
+    arg usernumber
+
+    call open(uf1,'sysdata:bbs.udata','R')
+
+    to_read = 672*(usernumber-1)+1  /* Number of bytes to read */
+    bytes = seek(uf1,to_read,'B')
+
+    if bytes ~= to_read then do
+    call close(uf1) ; return( -1 )
+    end
+
+        barf=skipbytes( -1 )        /* Skip BACK the extra byte we read */
+    User_IDNumb   = readvar( 4 )
+    User_Alias    = readvar( 21 )   /* If = to '!' then not an account */
+        barf=skipbytes( 57 )
+    User_City     = readvar( 31 )   /* City AND state */
+        barf=skipbytes( 11 )
+    User_Country  = readvar( 8 )
+        barf=skipbytes( 210 )       /* Skip comments, macros, dates, etc */
+    User_Year     = readvar( 1 )
+        barf=skipbytes( 5 + 6*5 )
+    User_Access   = readvar( 1 )
+        barf=skipbytes( 14 )        /* Skip over other junk we don't need */
+    User_Sex      = readvar( 1 )    /* 0=Female/1=Male */
+        barf=skipbytes( 3 )
+    User_Computer = readvar( 1 )
+        barf=skipbytes( 6 )
+    User_TotCalls = readvar( 4 )
+    User_PubMess  = readvar( 4 )    /* Posts AND replies! */
+    User_PriMess  = readvar( 4 )    /* Email */
+    User_UpBytes  = readvar( 4 )
+    User_UpFiles  = readvar( 4 )
+    User_DnBytes  = readvar( 4 )
+    User_DnFiles  = readvar( 4 )
+        barf=skipbytes( 44 )
+    User_HighBaud = readvar( 2 ) * 10
+
+    call close(uf1)
+  return(0)
+
+READVAR:
+    arg type
+    temp=readch(uf1, type )
+    if type = 1 | type = 2 | type = 4 then
+        return( c2d( temp ) )
+  else return( substr(temp,1,pos(d2c(0),temp)-1) )
+
+SKIPBYTES:
+    arg howmany
+    barf=seek(uf1, howmany, 'c' )
+  return( 0 )
+
+COMPUTERTYPES:
+    if exists('sysdata:BBS_Stats.Computers') then signal READCOMPUTERS
+    se '\f0\!f\>f\>8\>9\cfScanning BBSMENU: \k1' ; ct=0 ; l1=0
+    call open(f1,'cnet:bbsmenu','r')
+        do until left(line,2)='30'
+            line=readln(f1) ; l1=l1+1
+            se left(l1,4,' ')'\<4' ; end
+        do until r='' ; ct=ct+1 ; r=readln(f1)
+            r=substr(r,2) ; comp.ct='\ce'||left(r,18,' ')||'\cb: \ca' ; end
+    ct=ct-1 ; call close(f1) ; tr '\n1'
+    tr '\f0\!f\>f\>8\>9\k0\cb'left(ct,2,' ')' \cftotal types.       '
+    se '\f0\!f\>f\>8\>9Saving file...        \h8'
+    call open(f1,'sysdata:BBS_Stats.Computers','w')
+        call writeln(f1,ct) ; do i=1 to ct
+        call writeln(f1,comp.i) ; end i
+    call close(f1) ; se 'Done'
+
+READCOMPUTERS:
+    call open(f1,'sysdata:BBS_Stats.Computers','r')
+    ct=readln(f1) ; do i=0 to ct-1
+    comp.i=readln(f1) ; end ; call close(f1)
+  return
+
+SYNTAX:
+ERROR:
+IOERR:
+    tr '*** BOOM *** An Error Has Occurred!'
+    tr 'ER:'rc' ('errortext(rc)') @ 'sigl
+    tr 'Sysop has been notified.'
+    logentry '\c1An Error occurred in \c2BBS Stats'
+    logentry '\c2Please notify The Marshal at (716)823-9892!'
+    logentry '\cf'rc' ('errortext(rc)') @ \c7'sigl'\q1'
+  bufferflush ; exit
+
+/*                        < END OF FILE MARKER >                      */

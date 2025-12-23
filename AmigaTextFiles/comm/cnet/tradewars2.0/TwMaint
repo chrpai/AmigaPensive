@@ -1,0 +1,58 @@
+/* TwMaint BBSEVENT file -- Written by Chris Cowan */
+
+options results
+signal on error
+signal on syntax
+signal on ioerr
+path="pfiles:tradewars/universe/"
+path2="pfiles:tradewars/messages/"
+sector=0;ports=0;fighters=0;fighters2=0;mines=0;beacons=0;planets=0;asteroids=0
+transmit "\f1\n2\c4<\c7Scanning sectors\c4>\n2"
+sendstring "\c2Sector: \c3"
+
+loop:
+sector=sector+1
+if sector>999 then signal writeit
+sendstring sector
+if ~exists(path||'tws'||sector) then signal loopend
+call open(file,path||'tws'||sector,"R")
+do i=1 to 30
+sd.i=readln(file)
+end
+call close file
+c=sd.21
+b=left(c,1)
+if b ~="." then ports=ports+1
+if sd.8>0 then do
+ if sd.9<90 then fighters=fighters+sd.8
+ if sd.9>90 then fighters2=fighters2+sd.8
+end
+if sd.16>0 then mines=mines+sd.16
+if sd.24 ~="" & sd.24 ~="0" then beacons=beacons+1
+c=sd.26
+b=left(c,1)
+if b ~="." then planets=planets+1
+if sd.30>0 then asteroids=asteroids+1
+
+loopend:
+a = "\h1"
+if sector > 9 then a = "\h2"
+if sector > 99 then a = "\h3"
+sendstring a
+signal loop
+
+writeit:
+sendstring "\n2\c6Saving\c7..."
+tt.1="\c1-=- Updated on "date()" -=-"
+tt.2=""
+tt.3="\c3"ports"\c2 ports are open."
+tt.4="\c3"planets"\c2 planets & \c3"asteroids"\c2 asteroids exist."
+tt.5="\c3"mines"\c2 mines & \c3"beacons"\c2 beacons are in use."
+tt.6="\c3"fighters"\c2 player fighters & \c3"fighters2"\c2 alien fighters are guarding sectors."
+call open(file,path2||'gamestats',"W")
+do i=1 to 6
+call writeln file, tt.i
+end
+call close file
+transmit "\h6\c6ed!"
+exit

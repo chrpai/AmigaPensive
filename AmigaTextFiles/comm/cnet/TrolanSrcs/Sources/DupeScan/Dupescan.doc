@@ -1,0 +1,141 @@
+                               DupeScan v2.04
+                               --------------
+
+                   Written for C-Net Amiga ** v4.45+ **
+                 oringinally by Ray Akey (AKA Heavy Metal)
+            Call his C-Net Amiga support BBS at (519) 255-7378
+          Supporting 2400-38.4k via US Robotics Dual Standard HST
+                  Running on an Amiga 2000 with 2 lines!
+
+   >> Hats off to Ken Pletzer for making and KEEPING C-Net THE BEST!! <<
+
+      Now maintaned by Kelly Cochran (AKA Trolan - kcochran@tggh.net)
+
+    >> Hats off to Ray Akey for bringing CNet back up to THE BEST!! <<
+
+Version Information/Changes:
+--------------------
+v1.0 -- created DupeScan to check for duplicate or similar accounts.
+v1.1 -- ** Fixed bug where account numbers were logged wrong.
+        now passes more information about possible duplicates to log.
+        Will abort processing with [SPACE] or "/"
+v1.2 -- ** Added routine to log dupes in own log (system:log.DupeScan), routines 
+        that, when run by SysOp, allows him/her to check log, and then process
+        (SCAN) User List if he/she wishes. When run by AutoMaint, the log check
+        and read routines are skipped (See note at the bottom of this section).
+v1.3 -- ** Added POSSIBLE fix for a problem where dupescan stopped prematurely
+        without going through the complete user list.    
+        Made log output more pleasing to the eye.
+        Shortened code, program is a "few" bytes smaller now.
+v1.4 -- ** Re-compiled for C-Net v1.97.
+        Fixed a minor bug where VERY LAST account was not scanned.
+
+v2.0 -- ************************ NOW SUPER FAST!! **************************
+        ** Now uses DYNAMIC ALLOCATION for necessary user data, also allows
+        access of it's own data "Sysdata:dupecheck.UData" in ram.
+        (see note about memory usage below)
+        (also see the note in DupeScan.config for details on configuration)
+
+v2.01-- Recompiled for C-Net v2.59+
+        NO OTHER CHANGES as of yet.
+
+v2.02-- Recompiled for CNet 4.26d
+        Minor maintenance and cosmetic modifications.
+        First release under the new maintaner of DupeScan.
+
+v2.03-- Addition of Voice Phone # check.
+        Birthdate and access level display on a match.
+        A real version string now too!  =)
+        Numerous little optimizations.
+        Shows type of match in log entries.
+        Data and voice numbers are now checked against each other as well.
+
+v2.04-- Minor recompile to bring in line with current CNet releases
+        Conversion to cnetc.library code.
+
+**      <-- signifies main reason for re-release/version update.
+
+(this documentation is still in the same state it was when Ray was working with
+ this code, a .guide format will be in the works soon with updated information.)
+
+Memory Usage:
+-------------
+	Dupescan is a power tool for C-Net.  Doing all of the same functions
+efficiently, by hand, is impossible.  Due to the nature of the changes in
+this version I must make a note about it's RAM usage.  Sysops with at least
+300-512k of ram left after your port(s) is/are running, need not worry.
+
+   Due to the method of dynamic allocation DupeScan uses to allow it's extra 
+speed capabilities for this version, you might notice a slight increase in the
+amount of RAM it uses.  Here is a small guide to go by to help you figure out
+if you will have enough ram, and whether or not you should enable the RAM access
+of DupeScan's Udata file:
+
+ Program Usage       : ~98K
+ Ram Access of Udata : ~460 bytes per account
+                      (460 * total accounts should give you a safe value)
+ Bytes per user alloc: ~150 bytes per account
+                      (again, 150 * total accounts should give you a safe value)
+
+ My stats: With 252 active accounts, a 7560 byte previous DupeCheck.UData 
+           file and with RAM access enabled the program consumed 162k while 
+           processing.  Not bad considering the fact that EVERY user is 
+           allocated AND scanned in record time, compared to previous versions
+           of DupeScan.
+
+ ** If you are worried about RAM, don't enable RAM access (see the file
+ "DupeScan.config").  Processing will be a BIT slower but still faster than
+ the previous versions of DupeScan.
+
+ One last note about allocation:  If you don't have enough ram for ALL users
+ to be allocated, processing will proceed on what users the program CAN
+ allocate.
+
+
+What is it:
+-----------
+ This is a POWERFUL little utility for C-Net Amiga that scans your complete
+user data file and notifies you of any POSSIBLE duplicate users (more than one
+account per user).  DupeScanis a "smart" program.  When it is first run,
+DupeScan proceeds through your COMPLETE userdata file and checks each and every
+user for duplicate accounts by comparing Real Name, Address and Phone Number.
+If it finds something that looks suspicious, it will be written to your log of
+maint (system:sys.maint).  It keeps all it's own data in a single file in your 
+system directory called "Dupecheck.udata" (intentionally spelled wrong for
+compatibility with future versions of my other utility called Dupecheck). If you
+ever need to check the COMPLETE user list again, delete this file
+(system:dupecheck.Udata).  When it is ran a second time, it starts at account #1
+and as it searches your userdata file, it checks for users that haven't been
+scanned or compared yet and then checks them as it did for the other users on 
+the first run..  I see no use (nor do you probably) to re-check users
+as it uses SERIAL ID#'s to decide if a particular account has been checked
+already and it DOES take awhile to go through each and every account.
+
+ So as not to cause you to wonder what the activity on your hard drive is
+(reading userdata), all operations are displayed to you when it runs.. 
+(ie, while searching, if a user has been checked already, you are notified of
+that fact and it goes on to read the next user's data.  If not, then you will be
+told that is is checking out a particular user (comparing his personal data with
+the rest of the user's in your udata file.)
+
+Remember! if possible, have your Maint performed on the local port (0) so
+as to minimize down time due to the lengthy action of DupeScan in checking
+your COMPLETE user list the first time you run it.
+
+ ** NOTE:  No data is written to any C-Net Amiga data file. Everything is kept
+           in a seperate file and any read access to your udata file is done in
+           a "legal to C-Net" manner via Ken's own C-Net routines.
+
+
+Installation:
+-------------
+Simple, copy to your pfiles directory and add as a "C" pfile via the Add command
+in your pfiles section of C-Net Amiga. Also copy DUPESCAN.CONFIG to your 
+SYSDATA: directory.  See version changes, at the top of this file for more info.
+
+This version is suitable for Auto-Maint based operation by adding the following
+text to your BBSEVENT script:
+
+ALL  start_time  ALL end_time  -o RUNC pfiles:DupeScan
+
+NOTE: start_time and end_time should be identical for proper operation.

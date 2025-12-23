@@ -1,0 +1,164 @@
+#include <exec/types.h>
+#include <exec/memory.h>
+#include <exec/execbase.h>
+#include <exec/ports.h>
+
+#define DOS_FALSE    		0L
+#define DOS_TRUE     	       -1L
+
+#define AUXBUFSIZE              260  /* Same as CON: handler */
+#define MAXLINESIZE   		254  /* save two for \n'\0'  */
+#define MAXREADERS		10	/* Number of people who can read
+					   from a session at once */
+#define SERCHAR			256
+#define CONCHAR			257
+
+#define OFF 0L
+#define ON  1L
+
+#define WOPEN  3L
+#define WCLOSE 4L
+
+#define TDELSTAT	0L
+#define TADDSTAT	1L
+#define TBAUD		2L
+#define TPOPWIND	3L
+#define TCLOSEWIND	4L
+#define TTIMEOUTDELAY	5L
+#define TKILL		6L
+#define TFREEZE		7L
+#define TCONT		8L
+#define TRECOVER	9L
+#define TPOPSCREEN	10L
+#define TCLOSESCREEN	11L
+#define TVERSION	12L
+#define TTITLE		13L
+#define TSTRING		14L
+#define TCOLORS		15L
+#define TDEVQUERY	16L
+#define TWINHEIGHT	17L
+#define TGETSER		18L
+#define TGETTITLE	19L
+#define TINTRANS	20L
+#define TOUTTRANS	21L
+#define TCHECKCARRIER	22L
+#define TSENDBREAK	23L
+#define TBUFFER         24L
+#define TANSIPOS        25L
+
+#define T_ECHO     		1L
+#define T_CRLF     		2L
+#define T_RAW      		4L
+#define T_RPEND    		8L
+#define T_WAIT_FOR 		16L
+#define T_TYPEAHEAD_FULL 	32L
+#define T_BREAK			64L
+#define T_WINDOW		128L
+#define T_KILL_ENABLE		256L
+#define T_DO_PEND		512L
+#define T_KILL_PEND		1024L
+#define T_SER_TIMEOUT		2048L
+#define T_DO_TIMEOUT		4096L
+#define T_CTLD			8192L
+#define T_PAUSE			16384L
+#define T_PAUSED		32768L
+#define T_KILLED		65536L
+#define T_SCREEN		131072L
+#define T_PASS_THRU		262144L
+#define T_VERB_PAUSE		524288L
+#define T_CWRITE_PEND		1048576L
+#define T_LINEFREEZE		2097152L
+#define T_FROZEN		4194304L
+#define T_WRITE_PEND		8388608L
+#define T_BUFFER               16777216L
+#define T_ANSIPOS              33554432L
+
+#define INTERNAL_FLAGS (T_RPEND | T_WAIT_FOR | T_TYPEAHEAD_FULL | T_WINDOW | \
+			T_KILL_PEND | T_SER_TIMEOUT | T_PAUSED | T_KILLED | \
+			T_SCREEN | T_CWRITE_PEND | T_FROZEN | T_WRITE_PEND)
+
+#define NOERR         0L
+#define GENERALERR   -1L
+#define ACTIVERR     -2L
+#define WINOPENERR   -3L
+#define WINCLOSEDERR -4L
+#define SCROPENERR   -5L
+#define SCRCLOSEDERR -6L
+#define FROZENERR    -7L
+
+#define DEBUG        "TPTDebugPort"
+
+extern long TBaud(), TBreak(), TCont(), TCRLF(), Tctld(), TEcho(), TFreeze(),
+		TKill(), TKillEnable(), TKillPend(), TPassThru(), TPause(),
+		TRaw(), TRecover(), TScreen(), TTitle(), TGetTitle(),
+		TTimeDelay(),
+		TTimeout(), TVerbPause(), TVersion(), TWindow(),
+		TString(), TColors(), TDevQuery(), TWinHeight(), TLineFreeze(),
+		TGetSer();
+
+extern long SendCtlMsg();
+
+struct ctrl_mess
+{
+  struct Message cmess;
+  long mod_type, astat;
+};
+
+struct debug_mess
+{
+  struct Message mess;
+  SHORT num;
+  char *str;
+  char *port;
+};
+
+struct tdev_info
+{
+  char devname[21];
+  unsigned char unit;
+  long serflags;
+};
+
+struct TPTSerStuff
+{
+  struct  IOExtSer    *read;
+  struct  IOExtSer    *write;
+};
+
+
+struct TPTPort;
+
+struct ReaderInfo
+{
+  struct Node node;
+  struct Task *task;
+/*  struct List msglist;*/
+  struct MsgPort *port;
+  struct DosPacket *rdpkt;
+};
+
+struct TPTSess
+{
+  struct TPTPort    *port;
+  struct DosPacket  *mypkt;
+  struct FileHandle *fh;
+  struct List        readerlist;
+  struct ReaderInfo *creader;
+  struct List        readmsg;
+  struct List        othermsg;
+  char               run;
+  SHORT              aux_open;
+  UBYTE              auxbuf[AUXBUFSIZE];
+};
+
+struct TPTPort
+{
+  struct Process *myproc;
+  struct MsgPort *myport;
+  struct Message *mymess;
+/*  struct Message *pendhead, *pendtail;*/
+//  UBYTE tctl[11], tserdev[21];
+  UBYTE tctl[11], tserdev[36];
+  long unit, serflags;
+  struct TPTSess *sess;
+};

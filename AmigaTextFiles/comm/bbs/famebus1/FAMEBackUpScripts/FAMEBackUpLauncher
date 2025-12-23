@@ -1,0 +1,138 @@
+.key subscript
+.bra <
+.ket >
+
+;FAMEBackUpLauncher 1.0
+;
+;Simple universal FAME BackUp script by David Wettig (strider@trsi.de).
+;
+;Or call it MasterScript ;))))
+;
+;This script creates a directory of the current day in FAME:BackUp/
+;where important files like FAME settings can be copied/backuped into.
+;
+;This script is universal - means that everybody can write subscripts
+;which can do what ever backup of important FAME files. Those subscripts
+;will be executed not directly but by FAMEBackUpLauncher, means this
+;script you are currently reading in. Because of this you have to call
+;FAMEBackUpLauncher with the subscript as argument.
+;
+;Template: "Execute FAMEBackUpLauncher <PathToSubscript>"
+; Example: "Execute FAMEBackUpLauncher FAMEBackUpConfDatas"
+;
+;The reason why doing it this way with subscripts is simple to explain.
+;FAMEBackUpLauncher creates the directory of the current day as told above
+;and because of this FAMEBackUpLauncher already knows the name of the
+;subpath in FAME:BackUp/ which discribes the current day.
+;FAMEBackUpLauncher now calls the subscript with this date as argument
+;so the subscript does not need to create that subdirectory and also
+;does not need to figure the date out, because it gets the date easy
+;as argument in a variable to simply use it everywhere in the script.
+;
+;
+;You don't need to understand what the code below does. It's a bit tricky,
+;because it generates the date for the directory of today in the format
+;dd-mmm-yy.
+
+
+;Linefeed
+Echo ""
+
+;Check if a subscript has been given.
+IF NOT <subscript>
+	Echo "You have to call FAMEBackUpLauncher with a subscript as argument!!!"
+	Echo ""
+	Echo "FAMEBackUpLauncher halted."
+	Echo ""
+
+  QUIT
+ENDIF
+
+;Check if the subscript is valid.
+IF NOT EXISTS <subscript>
+	Echo "Given subscript is not available!!!"
+	Echo ""
+	Echo "FAMEBackUpLauncher halted."
+	Echo ""
+
+  QUIT
+ENDIF
+
+;Echo some info.
+Echo "Now checking/creating backup directory for today..." NOLINE
+;Create a temp file which will be executed to create a temp file
+;of the current date without the nasty CR and the end.
+;Create a temp file with echo to cut down the last 19 chars of the date.
+Echo "Echo >>T:FAMEBackUp.tmp1 " >T:FAMEBackUp.tmp2 NOLINE
+;Add the " char.
+Echo >>T:FAMEBackUp.tmp2 '"' FIRST 2 LEN 1 NOLINE
+;First create the temp file with echo part.
+Echo "Echo >>T:FAMEBackUp.tmp2 NOLINE " >T:FAMEBackUp.tmp1 NOLINE
+;Add the date.
+date >>T:FAMEBackUp.tmp1
+;Execute the first temp file to create the CR less date.
+Execute T:FAMEBackUp.tmp1
+;Add the " char.
+Echo >>T:FAMEBackUp.tmp2 '"' FIRST 2 LEN 1 NOLINE
+;Add the LEN cutting.
+Echo " LEN 18 NOLINE" >>T:FAMEBackUp.tmp2
+;Create new temp file which gets the shorted date to short it more.
+Echo "Echo >>T:FAMEBackUp.tmp2 " >T:FAMEBackUp.tmp1 NOLINE
+;Add the " char.
+Echo >>T:FAMEBackUp.tmp1 '"' FIRST 2 LEN 1 NOLINE
+;Execute the second temp file to create the shorter date.
+Execute T:FAMEBackUp.tmp2
+;Add the " char.
+Echo >>T:FAMEBackUp.tmp1 '"' FIRST 2 LEN 1 NOLINE
+;Short the date again.
+Echo " FIRST 1 LEN 9 NOLINE" >>T:FAMEBackUp.tmp1
+;Create our directory creating script.
+Echo "IF NOT EXISTS FAME:BackUp/" >T:FAMEBackUp.tmp2 NOLINE
+;Execute the third temp file to create the shortest date.
+Execute T:FAMEBackUp.tmp1
+;Insert newline.
+Echo "" >>T:FAMEBackUp.tmp2
+;Go on with our directory creating script.
+Echo "  MakeDir FAME:BackUp/" >>T:FAMEBackUp.tmp2 NOLINE
+;Execute the third temp file to create the shortest date.
+Execute T:FAMEBackUp.tmp1
+;Insert newline.
+Echo "" >>T:FAMEBackUp.tmp2
+;Go on with our directory creating script.
+Echo "ENDIF" >>T:FAMEBackUp.tmp2
+Echo "Echo " >>T:FAMEBackUp.tmp2 NOLINE
+Execute T:FAMEBackUp.tmp1
+Echo "...done." >>T:FAMEBackUp.tmp2
+
+;Execute our directory creating script.
+Execute T:FAMEBackUp.tmp2
+
+;Linefeed.
+Echo ""
+;Echo some info.
+Echo "Now executing subscript."
+;Linefeed.
+Echo ""
+
+;Create the subscript caller.
+;We need the Execute command
+Echo "Execute " >T:FAMEBackUp.tmp2 NOLINE
+;Add our subscript (argument).
+Echo <subscript> >>T:FAMEBackUp.tmp2 NOLINE
+;Add a space.
+Echo " " >>T:FAMEBackUp.tmp2 NOLINE
+;Execute the temp file to add the shortest date for the subscript argument.
+Execute T:FAMEBackUp.tmp1
+
+
+;Execute the subscript.
+Execute T:FAMEBackUp.tmp2
+
+
+;Final Linefeed.
+Echo ""
+
+;Delete our temp files.
+Delete >NIL: T:FAMEBackUp.tmp1
+Delete >NIL: T:FAMEBackUp.tmp2
+

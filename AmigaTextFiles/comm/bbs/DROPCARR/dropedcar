@@ -1,0 +1,42 @@
+/*********************/
+options results
+getuser 1
+handle=result
+getuser 12
+tim=result
+transmit ' '
+transmit '\c3@\c5 'handle' Detected Droping Carrier At 'tim
+filename=handle
+qurt='pfiles:logoff/'handle'3'
+transmit qurt
+if exists(qurt) then do
+ transmit 'prepared to reset user stats'
+ delme='pfiles:logoff/'handle'#?'
+ transmit delme
+ address command 'delete "'delme'"'
+ transmit 'reset user stats'
+ exit
+end
+filename2="pfiles:logoff/"filename'1'
+if ~exists(filename2) then do
+ transmit 'first logoff'
+ call open(1,filename2,'W')
+ writeln(1,tim)
+ call close(1)
+ address quitter
+end
+filename2="pfiles:logoff/"filename'2'
+if ~exists(filename2) then do
+ transmit 'second logoff'
+ call open(1,filename2,'W')
+ writeln(1,tim)
+ call close(1)
+ address quitter
+end
+transmit 'third logoff'
+filename2="pfiles:logoff/"filename'3'
+ call open(1,filename2,'W')
+ writeln(1,tim)
+ call close(1)
+quitter:
+  exit

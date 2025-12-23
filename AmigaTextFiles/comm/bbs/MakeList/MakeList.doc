@@ -1,0 +1,226 @@
+****************************************************************************
+
+MakeList by Olly koenders 03-10-97
+(A.R.G [Amiga Resource Group] BBS +61-3-9870-4608 In Oz)
+
+
+Gooday all :)
+
+Me mate Marty from Gremlins BBS (+61-3-9870-4393) requested a proggy off me
+a coupla days ago..
+
+
+
+Brother Erik chattin' ta Marty on A.R.G: "..Marty says he needs a proggy."
+
+Me: (Geez - 'ere we go..  What blimmin' miracle we gonna perform today?)
+
+Erik: "..Says he needs it to make a list of files like: filename, size and
+      comment.  (reading from chat) comment.. maximum.. 45.. characters..
+      and.. maximum.. line.. length.. 75.. characters."
+
+Me (Rummaging round my electro-chemical processing/storage device [brain?]
+for something vaguely similar seen before): "Yeah - no probs."
+
+
+
+As ya can see, the whole conversation was pretty painless an' a complete
+non-event, but I thought I'd document it to fill some space as the finished
+proggy is pretty small :)
+
+What MakeList does is also (pretty much) a non-event, as it only took me an
+hour ta chuck together, but I designed it to be used from Directory Opus as
+a button or menu function an' everything ta be as automatic as possible fer
+the stoopid among us :)
+
+Sounds simple enough - an' so is the coding.  It don't give error messages
+or any "Workin': ..blah, blah.." garb so don't expect too much fer somethin'
+that's probably available elsewhere already an' freeware ta boot :)
+
+So..  What is this marvel of modern technology?  Hmm, ok.
+
+It makes a file list similar in construction to the "FILES.BBS" lists ya see
+on the Aminets etc (..Ooooo - wow!).
+
+Ta set it up ya gotta configure a button or menu function fer Opus ta run
+this proggy (as an AmigaDOS application) like: "C:MakeList {o}".  The {o}
+is "First selected entry (name only)".
+
+These are the flags that need be the only ones set:
+
+CD source         (You'll need this or MakeList won't find the files!)
+Do all files      (A good idea!)
+No filename quote (Definitely!)
+
+An' that should do ya.
+
+Once ya have the button or menu function set, go back into Opus proper an'
+tag yer selection of files, then hit the MakeList button.
+
+DO NOT SELECT DIRECTORIES or Dopus will hang round forever an' do nothing!
+
+The filename, filesize an' comment will be written to a file called
+"RAM:ListOut".  This file will be appended to by each call of the program
+so by the end you'll have a complete list of yer dir in this file set out
+as planned.
+
+The maximum length of the filename text is 20 characters, I know that
+AmigaDOS can handle more than that but with everythin' on one line ya kinda
+run outta space.  The filesize max is 99,999,999 bytes - if it's bigger,
+you'll get a strange character in the size numbers so you'll have ta fix
+that manually once the file's written.  The comment is set to a max of 45
+characters although AmigaDOS wins out with a max of 116.  The whole line is
+ended with a returncode ($0A - #10 - linefeed thingy) and the total length
+of the line is 76 characters if yer comment is the full 45, otherwise the
+line length will be less (efficiency!).
+
+If you then use "listOut" fer whatever purpose an' don't delete it, then
+your next use of MakeList will append even more filenames etc. to it.
+
+Pretty cool eh?  Okay - so ya can do with this proggy whatever ya like
+except change it ta rotten an' buggy code then pass it off as mine, or feed
+it to yer Granny, as she probably won't be able ta digest ferrous coated
+Mylar and Polypropylene unless it's been pre-chewed real good ;)
+
+And an extra prezzie fer those that may be interested is the asm source
+which was written with Maxon assembler version somethin' or other (various
+files)..  Enjoy yerselves :)
+
+Olly.
+
+****************************************************************************
+
+	section code ,code ,public
+
+execbase=4
+openlib=-408
+mode_old=1005
+mode_new=1006	;don't need "includes" or "XREFS" with my proggies!
+open=-30
+seek=-66
+write=-48
+close=-36
+lock=-84
+examine=-102
+unlock=-90
+
+	move.l execbase,a6
+	clr.b -1(a0,d0.w)	;clear end byte
+	move.l a0,a5		;store address of parameter filename
+	lea name(pc),a1		;we're gonna chuck it in string "name"
+
+nameloop:
+	move.b (a0)+,(a1)+
+	bne.b nameloop		;copy bytes until null found
+	move.b #" ",-1(a1)	;then put a space where the copied null is
+	lea dosname(pc),a1
+	jsr openlib(a6)		;open the dos lib
+	move.l d0,a6		;base address in a6 for dos function calls
+	move.l a5,d1		;parameter filename
+	moveq #-2,d2		;shared read
+	jsr lock(a6)		;get a lock on it
+	move.l d0,d5		;store it in a scratch register
+	beq.w nofile		;if d0=null then get outta here
+	move.l d5,d1		;otherwise we'll continue
+	move.l #info,d2		;the infoblock for dos in d2
+	jsr examine(a6)		;examine fills infoblock with name, size etc
+	move.l d5,d1
+	jsr unlock(a6)		;unlock it as we're done with the file
+	lea info,a5		;start address of infoblock
+	lea size(pc),a1		;doing the size text now
+	move.l 124(a5),d0	;get filesize an' put in d0
+	lea table(pc),a0	;need the table fer convert to decimal text
+
+pad:
+	move.l (a0)+,d1
+	move.b #" ",(a1)+	;bytes not needed padded with spaces
+	cmp.l d1,d0		;find the range of the number
+	bcs.b pad		;if smaller then label "pad"
+
+nextdigit:
+	moveq #10,d2
+
+getdigit:
+	subq.b #1,d2
+	sub.l d1,d0
+	bcc.b getdigit
+	add.l d1,d0
+	move.b #"9",d1
+	sub.b d2,d1
+	move.b d1,(a1)+
+	move.l (a0)+,d1
+	bne.b nextdigit
+	add.b #$30,d0		;convert to ASCII
+	move.b d0,(a1)
+	lea 144(a5),a5		;address of the comment in infoblock
+	lea comment(pc),a1	;we're gonna put it here
+	moveq #44,d0		;45 bytes only
+
+commentloop:
+	move.b (a5)+,(a1)+
+	dbf d0,commentloop	;copy until d0 = -1
+	lea name(pc),a5		;address of the entire string
+	move.l a5,d0		;store the number fer now
+
+looking:
+	tst.b (a5)+		;lookin' for a null byte (copied from comm.)
+	bne.b looking		;if not null..
+	move.b #10,-1(a5)	;replace null with a CR
+	sub.l d0,a5		;calculate size of string
+	move.l #file,d1
+	move.l #mode_old,d2
+	jsr open(a6)		;see if "listOut" already exists
+	move.l d0,d5
+	bne.b oldfile		;if so, then we'll append
+	move.l #file,d1
+	move.l #mode_new,d2
+	jsr open(a6)		;open a new file if it don't exist
+	move.l d0,d5		;store pointer to file
+
+oldfile:
+	move.l d0,d1
+	moveq #0,d2		;seeking no bytes to move..
+	moveq #1,d3		;..from the end of the file
+	jsr seek(a6)		;do it - we should now be at EOF
+	move.l d5,d1
+	move.l #name,d2		;the start of the string
+	move.l a5,d3		;the calculated length
+	jsr write(a6)		;write it to the file
+	move.l d5,d1		;get pointer back
+	jsr close(a6)		;close the file
+
+nofile:
+	moveq #0,d0		;no errors
+	rts			;quit proggy
+
+dosname:
+	dc.b "dos.library",0	;need this lib
+
+file:
+	dc.b "RAM:ListOut",0	;file to make & append to
+
+name:
+	ds.b 20,32		;reserve 20 "spaces" for filename
+
+size:
+	ds.b 10,32		;converted size is put in here
+
+comment:
+	ds.b 45			;the comment is dumped here
+	even			;make sure next address ain't an odd one!
+
+table:				;conversion table for binary to decimal
+	dc.l 10000000		;max = 99,999,999
+	dc.l 1000000
+	dc.l 100000
+	dc.l 10000
+	dc.l 1000
+	dc.l 100
+	dc.l 10
+	dc.l 0
+
+	section data ,bss ,public
+
+info:
+	ds.b 260	;the infoblock examine fills with fileinfo data
+	end		;assembler: stop here - no more to assemble!

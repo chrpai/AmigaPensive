@@ -1,0 +1,49 @@
+/* Archive lister & archived Doc reader.
+   By David Prothero                      */
+
+/*
+   Note, this program supports .LHA files.
+   Main reason: All my transform scripts transform all my files to
+   .LHA, except for .DMS and .WRP, which you can't extract individual
+   files to read anyway.
+*/
+
+options results
+
+test = getclip(dr)
+x = setclip(dr,'0')
+if test ~= 'YEP' then do
+   errorname = getclip(error)
+   sendstring 'NOTE: can not find "'errorname'" ...'
+   exit
+end
+
+filename = getclip(thef)
+getuser 23 ; port = result
+lcmd = 'lha >ram:lhatemp.'port' v 'filename
+xcmd = 'lha x 'filename' ' /* Doc name will be appended later */
+
+address command lcmd
+sendfile 'ram:lhatemp.'port
+transmit
+query 'Would you like to text-view one of the above files? (y/N) '
+view = upper(result)
+
+if view = 'Y' then do
+   query 'Enter path+filename (Q to quit) : '
+   docfile = result
+
+   if upper(docfile) = 'Q' then break
+
+   sendstring 'Un-arcing file, one moment....'
+   xcmd = xcmd||docfile' ram:'
+   address command xcmd
+   query 'Done!\n2\cdPress (Enter) to view file: \q1'
+   sendstring '\f1'
+   sendfile 'ram:'docfile
+   address command 'delete ram:'docfile' quiet'
+   query '\cdPress (Enter) to continue: \q1'
+end
+
+address command 'delete ram:lhatemp.'port' quiet'
+exit

@@ -1,0 +1,227 @@
+;	Zerberus-Netzcall
+;
+;	Scriptfile zum Austausch neuer Nachrichten im Z-Netz-Format als
+;	CALLER
+;
+;	$VER: 2.03 / 19.04.1994
+;
+;	Beschreibung :
+;	Diese Batchdatei wird beim Anrufen der Server-Box von der
+;	anrufenden Mailbox ausgefuehrt.
+;	Das Passwort fuer den LOGIN in die andere Box muss im File
+;	MBDAT:BOXNAME.PW stehen, wobei BOXNAME = Name der angerufenden
+;	Box ist.
+;	Die gesendeten und empfangenen Daten werden im Directory
+;	MBMSG:POINT/<Portname>/ temporaer gespeichert.
+;	Stehen im Directory MBMSG:POINT/NETCALL/ die Dateien <USERNAME>.LHA
+;	und <USERNAME>.MSGNR, so werden nicht die neusten Nachrichten und
+;	Files aktuell exportiert und gepackt, sondern diese vorgepackten
+;	Daten benutzt.
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die folgende Befehle zugreifen kann !
+;
+;	CHECK FILE
+;	CONVERT FASTTOZER
+;	DISK DOWNLOAD
+;	DISK UPLOAD
+;	ECHO
+;	EOD
+;	EXTERN
+;	FASTNET GETFILE
+;	GOTO
+;	IF
+;	ON ERROR
+;	ON HANGUP
+;	POINT GETFILE
+;	POINT MAKEFILE
+;	WAIT
+;	WAITSTRING
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DELETE
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) :
+;	USERNAME : Name der anzurufenen Node
+;	STRASSE  : @NETCALL
+;
+;	Einrichtung eines LocalGates fuer die Einbindung eines anderen
+;	lokalen Netzwerks :
+;	USERNAME : Name der anzurufenen Node
+;	VORNAME  : Gatename im Fastnet
+;	STRASSE  : @LOCALGATE
+;
+;	Einrichtung eines Gates fuer die Einbindung eines anderen 
+;	globalen Netzwerks :
+;	USERNAME : Name der anzurufenen Node
+;	VORNAME  : Gatename im Fastnet
+;	NACHNAME : Gatename im Zerberus-Netz
+;	STRASSE  : @GATE
+;
+;	Beim Netcall (@NETCALL) muss die Datei MBDAT:USERNAME.NODES
+;	existieren (USERNAME = Name der anzurufenen Node).
+;	In dieser Datei muss die anzurufene Node und die Nodes stehen,
+;	die ueber sie zu erreichen sind.
+;	Datei fuer eine Node:
+;	TYP:S<LF>
+;	SID:0<LF>
+;	LEN:20<LF>
+;	NAME DER ANZURUFENEN NODE 0<LF>
+;
+;	Wenn mehrere Nodes ueber den Netcall mit dem Fastnet versorgt werden,
+;	bitte den Aufbau der Datei in der Dokumentation FASTNET.DOK unter
+;	dem Stichwort Systemnachricht der Kategorie 0 nachlesen.
+;
+;       Konstanten :
+;
+TMPDIR  = "mbmsg:point/'{port}'/"               ; Dir fuer Tmp-Files
+NETDIR  = "mbmsg:point/netcall/"		; NET-Directory
+MAXKBYT = 2000                                  ; Max. Filelaenge in KByte
+MSGFILE = "PUFFER"                              ; Name des Msg-Files
+NRFILE  = "msgnr"				; File fuer Msg-Nummern
+COPYFILE= "'{NAME}'.lha"			; Vorgabefile (Pack-Event)
+COPYNR  = "'{NAME}'.msgnr"			; File fuer Msg-Nummern
+PCKFILE = "caller.lzh"                          ; Name des gepackten Files
+RECFILE = "called.lha"                          ; Name des empfangenen Files
+TBOXDIR = "mbdat:"                              ; Dir fuer Fastnet-Boxlistfile
+SERNR   = "^A^A^A^A^D"				; Seriennummer 1,1,1,1,4
+PACKER  = "lha -P-1 m ""'TMPDIR''PCKFILE'"" ""'TMPDIR''MSGFILE'"""
+						; Packen
+UPACKER = "lha -P-1 x ""'TMPDIR''RECFILE'"" ""'TMPDIR'"" ""'MSGFILE'"""
+						; Entpacken
+;
+_on error POINT_ERROR                           ; Im Fehlerfall ...
+
+;
+;	Pruefe auf normalen Netcall
+;
+
+_if {STREET} != "@NETCALL" then _goto LOCALGATE
+OP_GET="/NETCALL"				; Setze Optionen
+OP_MAKE="/NETCALL"
+OP_CVT=""
+_goto START
+
+;
+;	Pruefe auf LocalGate
+;
+LOCALGATE:
+_if {STREET} != "@LOCALGATE" then _goto GATE
+OP_GET="/NETCALL/LOCALGATE"			; Setze Optionen
+OP_MAKE="/NETCALL"
+OP_CVT="/LOCALGATE"
+_goto START
+
+;
+;	Pruefe auf Gate
+;
+GATE:
+_if {STREET} != "@GATE" then _goto POINT_ERROR
+OP_GET="/NETCALL/GATE"				; Setze Optionen
+OP_MAKE="/NETCALL/GATE"
+OP_CVT="/GATE"
+
+;
+;	Login in der anderen Box
+;
+START:
+_echo/nolf/raw "^X^C^X^C^X^C^X^C^X^C"		; Intro abbrechen
+
+TRIES=0
+LOGIN_LOOP:
+TRIES=TRIES+1					; Versuchsanzahl +1
+_if/i TRIES > 3 then _goto POINT_ERROR		; Wenn 4., Fehler
+_waitstring "Username:" 60 LOGIN_TIMEOUT	; 60s auf Username: warten
+_echo/nolf/raw "ZERBERUS^M"			; Username schicken
+_waitstring "Systemname:" 30 LOGIN_TIMEOUT	; 30s auf Systemname: warten
+_echo/nolf/raw "'{sysname}'^M"			; Boxname schicken
+_waitstring "Passwort:" 30 LOGIN_TIMEOUT	; 30s auf Passwort: warten
+_disk text "mbdat:'{name}'.PW"			; PW schicken
+_echo/nolf/raw "^M"
+_waitstring "running arc" 30 LOGIN_TIMEOUT	; 30s auf running arc warten
+_goto LOGIN_OK					; Login OK
+
+LOGIN_TIMEOUT:
+_echo/nolf/raw "^X^C^X^C^X^C^X^C^X^C^M^M^M^M^M"" ; neu synchronisieren
+_goto LOGIN_LOOP
+
+;
+;	Login ist okay ... Nachrichten exportieren und packen
+;
+LOGIN_OK:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_extern/q rename "'TMPDIR''PCKFILE'" "'TMPDIR''PCKFILE''{CALLNR}'"
+_extern/q rename "'TMPDIR''RECFILE'" "'TMPDIR''RECFILE''{CALLNR}'"
+
+;
+;	Die neuen Nachrichten fuer die angerufene Box sammeln & packen
+;
+
+_check file "'NETDIR''COPYFILE'" EXPORT		; Existiert Sendefile ?
+_extern/q copy "'NETDIR''COPYFILE'" "'TMPDIR''PCKFILE'"	; Ja, vorgepackte
+_extern/q copy "'NETDIR''COPYNR'" "'TMPDIR''NRFILE'"	; Files benutzen
+_goto HANDSHAKE					; -> Handshake
+
+;	PMs exportieren
+
+EXPORT:
+_convert FastToZer'OP_CVT' "'TMPDIR''MSGFILE'"	; PM-File erstellen
+
+;	Messages exportieren
+
+_on error/ignore
+_point makefile'OP_MAKE' "'TMPDIR''MSGFILE'" 'MAXKBYT' "'TMPDIR''NRFILE'"
+_on error POINT_ERROR
+
+;	Messages packen
+
+_extern/q 'PACKER'
+
+;
+;	Transfer
+;
+HANDSHAKE:
+_waitstring "^U"				; Auf NAK warten
+ACK_LOOP:
+_echo/nolf/raw SERNR				; Seriennummer senden
+_menu "" "^F" ACK_OK "^U" ACK_LOOP
+ACK_OK:
+
+_on hangup/ignore				; Auch weiter, wenn aufgelegt
+
+_disk download "'TMPDIR''PCKFILE'"		; Unsere Nachrichten schicken
+_disk upload "'TMPDIR''RECFILE'"		; File von Box empfangen
+
+_hangup						; Und tschuess! (auflegen)
+
+;
+;	Nachrichten importieren
+;
+
+_on error/ignore				; Alle Fehler ignorieren
+_point makefile/setnr "'TMPDIR''NRFILE'"	; Gezogene Msgs = alte Msgs
+
+;	Nicht mehr benoetigte Files loeschen, empfangene Messages entpacken.
+
+_extern/q delete "'TMPDIR''PCKFILE'" "'TMPDIR''NRFILE'" "'TMPDIR''MSGFILE'" "'NETDIR''COPYFILE'" "'NETDIR''COPYNR'"
+_extern/q 'UPACKER'
+
+;	Altes PM-Netfile loeschen und Nodes in Liste aufnehmen
+
+_convert FastToZer'OP_CVT'/Del			; mbnet:-File loeschen
+_if {STREET} != "@NETCALL" then _goto POINT_GET	; @Netcall ? Nein, verzw.
+_fastnet getfile "'TBOXDIR''{name}'.NODES"	; Boxen in Nodeliste aufnehmen
+
+;	Alle Messages und PMs importieren
+
+POINT_GET:
+_point getfile'OP_GET' "'TMPDIR''MSGFILE'"	; Nachrichten einsortieren
+
+; Alle Files loeschen
+
+POINT_ERROR:                                    ; Fehler / Ende
+POINT_END:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" ; Disk aufraeumen
+_eod

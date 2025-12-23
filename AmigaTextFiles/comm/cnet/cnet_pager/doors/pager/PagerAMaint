@@ -1,0 +1,24 @@
+/**************************************************************************\
+       $VER: CNet Amiga Pager AMaint, v5.20 (15-Mar-98) by Dotoran!
+\**************************************************************************/
+options results;tr=transmit;gu=getuser;pu=putuser
+parse source . . fp .;df=left(fp,max(lastpos('/',fp),lastpos(':',fp)))
+
+day=find("Sun Mon Tue Wed Thu Fri Sat",left(date("w"),3))
+hour=left(time("n"),2)+1
+
+call open(f1,df"Availabilities","r")
+  do day;a=readln(f1);end;tog=substr(a,hour,1)
+call close(f1)
+
+/*   3Ports  4Ports <-- For CNet3/4.26e Compatibility. check100; */
+dat="2124264 2127054"
+bbsidentify bbs;a=word(result,3);cnet=(datatype(left(a,4),"n")=1&a>"4.44")+3
+guPORTS=word(dat,(cnet=4)+1)
+
+gu guPORTS;m=d2c(result);if BitTST(m,4)=tog then exit
+
+m=BitCHG(m,4);setobject c2d(m);pu guPORTS
+if cnet=4 then do;setobject "1";pu 2128304;end /* check_latch; */
+/**************************************************************************\
+\****************************************** Frontiers BBS (716)/823-9892 **/

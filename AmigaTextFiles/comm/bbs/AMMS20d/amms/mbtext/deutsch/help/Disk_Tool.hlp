@@ -1,0 +1,374 @@
+
+   Befehl : {VAR20 28}Kurz : {VAR21}
+
+Parameter : [DIRECTORY]
+
+ Funktion : Scanne das angegebene Directory und zeige alle Files und
+{TAB 12}Directories in einem Requester an.
+{TAB 12}Sofern der User kein Sysop-Zugriff auf den Befehl hat, kann
+{TAB 12}ihm ueber Optionen ein definierter Zugriff auf die angezeigten
+{TAB 12}Files gegeben werden.
+{TAB 12}Alle Funktionen dieses Befehls stehen im zweiten Teil dieses
+{TAB 12}Hilftextes genau erklaert.
+
+ Optionen : /{VAR1 13}Diese Option ermoeglicht Zugriff auf verschiedene
+{TAB 26}Funktionen, die normalerweise nur dem Sysop
+{TAB 26}vorbehalten sind (beim Sysop sind alle Funktionen
+{TAB 26}aktiviert). Der Option wird eine Zahl uebergeben
+{TAB 26}(/{VAR2}=x), die als Summe aus den Werten der
+{TAB 26}folgenden Tabelle errechnet wird :
+
+{TAB 29}1 = Download von angezeigten Files
+{TAB 29}2 = Upload von neuen Files
+{TAB 29}4 = Loeschen von Files & Directories
+{TAB 29}8 = Aendern von File- und Directorynamen
+{TAB 28}16 = Aendern von Kommentaren
+{TAB 28}32 = Download-Ratio ausstellen
+{TAB 28}64 = Fastdir-File speichern
+{TAB 27}128 = Directory neu einscannen
+
+{TAB 26}Beispiel: /{VAR2}=33 oder /{VAR2}=%00100001
+{TAB 36}erlaubt Downloads ohne Ratiobeachtung
+
+{TAB 12}/{VAR10 13}Keine Directories einscannen und anzeigen.
+{TAB 26}Damit beschraenkt man den Zugriff auf ein Directory.
+
+{TAB 12}/{VAR13 13}Mit dieser Option kann der Fastdir-Modus aktiviert
+{TAB 26}werden. Dabei uebergibt man dem Befehl ueber die
+{TAB 26}Option /{VAR14}=<Directory> einen Pfadnamen, der die
+{TAB 26}gleiche Unterdirectory-Struktur haben muss, wie der
+{TAB 26}Scann-Pfad. Somit kann man z.B. die FastDir-
+{TAB 26}Verwaltungfiles von CDs auf die Festplatte verlagern.
+{TAB 26}Existiert nicht das Fastdir-File im angegebenen
+{TAB 26}Fastdir-Pfad, so wird im Scann-Pfad danach gesucht.
+{TAB 26}Ist der Fastdir-Pfad gleich dem Scann-Pfad, so wird
+{TAB 26}nur einmal nach dem Fastdir-File gesucht.
+{TAB 26}Existiert kein Fastdir-File, so wird der Scann-Pfad
+{TAB 26}normal eingelesen.
+
+{TAB 12}/{VAR16 13}Scanne das angegebene Directory rekursiv und erstelle
+{TAB 26}alle Fastdir-Files bzw. Directories im vorgegebenen
+{TAB 26}Fastdir-Pfad.
+
+#underline#Beispiele :#reset#
+
+Das Directory DH0: einscannen :
+
+ {VAR20} DH0:
+
+User auf die CD CD0: Download-Zugriff geben :
+
+ {VAR20}/{VAR2}=1 CD0:
+
+User auf die CD CD0: Down-, Upload- und Loesch-Zugriff geben :
+
+ {VAR20}/{VAR2}=7 CD0:
+
+Erstelle alle Fastdir-Files inc. Directories auf DH1:CD0/ von der CD CD0: :
+
+ {VAR20}/{VAR17}/{VAR14}=dh1:CD0 CD0:
+
+Benutze alle Fastdir-Files fuer die CD CD0: von DH1:CD0/ :
+
+ {VAR20}/{VAR14}=dh1:CD0 CD0:
+
+
+
+#underline#Tips zur Einbindung und Zugriffsvergabe auf CDs :#reset#
+
+Damit der User nicht beliebig auf alle Speichermedien zugreifen kann,
+muss {VAR20} ueber einen Batchdateibefehl vordefiniert aufgerufen werden.
+Dabei gibt man im Batchdateibefehl an, welches Directory gescannt werden und
+welchen Zugriff (z.B. Download) der User auf die angezeigten Files haben soll.
+Da die Zugriffsvergabe nicht so einfach wie bei Filebrettern moeglich ist,
+greift man auf einen einfachen Trick zurueck. Man benutzt die Zugriffsvergabe
+der Filebretter, um den Usern Zugriff auf den Befehl zu geben.
+Dabei geht man davon aus, dass jeder User ab einem bestimmten Level den
+erstellten Batchdateibefehl aufrufen kann, aber man prueft in diesem Befehl,
+ob der User auf ein vorgegebenes Filebrett Zugriff hat. Wenn ja, dann wird
+{VAR20} gestartet, wenn nein, dann wird eine Fehlermeldung ausgegeben
+oder der Befehl einfach beendet.
+
+Ein solcher Batchdateibefehl kann wie folgt aussehen :
+
+_CHECK FBOARD/ACC=1 :Files/Amiga/Allgemein NOACC
+_DISK TOOL/{VAR2}=1 CD0:
+_EOD
+NOACC:
+_ECHO "Du hast kein Zugriff auf die CD ..."
+_EOD
+
+Diese Batchdatei prueft, ob der User Download-Zugriff auf das Brett
+:File/Amiga/Allgemein hat. Hat er Zugriff, so wird {VAR20} mit
+Download-Zugriff fuer die CD CD0: gestartet. Hat er kein Zugriff,
+so wird eine Fehlermeldung ausgegeben und die Batchdatei beendet.
+
+
+
+
+#invers#DISK TOOL V2.04 (01.04.1995):#reset#
+
+#fett##underline#UPLOAD & DOWNLOAD :#reset#
+
+#invers# d #reset#  : DOWNLOAD MARKIEREN
+{TAB 7}Aktuelles File als Download-File markieren.
+{TAB 7}Ein kleines 'd' erscheint im X-Feld, wenn das File markiert ist !
+{TAB 7}Bei erneutem Druecken der Taste wird das File wieder entmarkiert !
+{TAB 7}Die Markierungen der Files werden momentan noch nicht gespeichert.
+{TAB 7}(Download-Privilegien erforderlich)
+
+#invers# D #reset#  : DOWNLOAD STARTEN
+{TAB 7}Batch-Download starten, alle markierten Files im Board werden gesendet.
+{TAB 7}(Download-Privilegien erforderlich)
+
+#invers#CTRL-D#reset#: FILE/DIRECTORY LOESCHEN
+{TAB 8}Aktuelles File loeschen oder akt. Directory inc. allen Files loeschen.
+{TAB 8}Sicherheitsabfrage vorhanden !
+{TAB 8}Unter Fastdir wird das File immer aus dem Fastdir-File geloescht.
+{TAB 8}(Delete-Privilegien erforderlich)
+
+#invers# l #reset#  : DOWNLOADZEIT ANZEIGEN
+{TAB 7}Die gesamte Downloadzeit der markierten Files im Board anzeigen.
+
+#invers# t #reset#  : TEXT ANZEIGEN
+{TAB 7}Textfile anzeigen. Die Ausgabe erfolgt ueber die AMMS-Ausgaberoutinen,
+{TAB 7}daher werden AMMS-Konvertierungsfunktionen unterstuetzt.
+{TAB 7}More wird ebenfalls unterstuetzt.
+{TAB 7}(Download-Privilegien erforderlich)
+
+#invers# T #reset#  : TEXT ANZEIGEN
+{TAB 7}Textfile anzeigen. Es wird nur der ROH-Text angezeigt !
+{TAB 7}Dies kann zur einer falschen Textausgabe fuehren und somit
+{TAB 7}sollte die Textanzeige "t" bevorzugt werden !
+{TAB 7}(Download-Privilegien erforderlich)
+
+#invers# H #reset#  : HEX-DUMP ANZEIGEN
+{TAB 7}Ein File als Hex-Dump anzeigen.
+{TAB 7}(Download-Privilegien erforderlich)
+
+#invers# u #reset#  : UPLOAD
+{TAB 7}Einzelnes File uploaden.
+{TAB 7}Vor dem Import wird eine Batchdatei aus dem Directory
+{TAB 7}mbbatch:upload/ ausgefuehrt.
+{TAB 7}(Upload-Privilegien erforderlich)
+
+#invers#CTRL-U#reset#: UPLOAD-RESUME
+{TAB 8}Upload-Resume am aktuellen File. Funktion nur bei eigenen Files
+{TAB 8}erlaubt. Vor dem Import wird eine Batchdatei aus dem Directory
+{TAB 8}mbbatch:upload/ ausgefuehrt.
+{TAB 8}(Upload-Privilegien erforderlich)
+
+
+
+#fett##underline#KOMMENTARE & INFOS :#reset#
+
+#invers# a #reset#  : GESAMTLAENGE ALLER FILES ANZEIGEN
+{TAB 7}Die Gesamtlaenge aller eingescannten Files anzeigen.
+
+#invers# e #reset#  : KOMMENTAR AENDERN
+{TAB 7}Kommentar mir max. 30 Buchstaben beim aktuellen File/Dir aendern.
+{TAB 7}(Sysop-Privilegien erforderlich)
+
+#invers# i #reset#  : INFORMATIONEN ZUM FILE ANZEIGEN
+{TAB 7}Ausgabe der mit der Dos-Funktion EXAMINE() ausgelesenen Daten.
+
+#invers# w #reset#  : Settings in das File DISK_TOOL.CFG im Userdirectory speichern.
+
+
+
+#fett##underline#FILE SUCHEN :#reset#
+
+#invers# f #reset#  : FILE/DIR AB CURSOR WEITER SUCHEN
+{TAB 7}Naechsten Eintrag ab Cursor suchen. Beim erstmaligem Gebrauch der
+{TAB 7}Funktion wird automatisch nach dem Suchnamen gefragt. Der Suchname
+{TAB 7}kann Wildcards (* und ?) enthalten.
+
+#invers# F #reset#  : FILE/DIR AB CURSOR SUCHEN
+{TAB 7}Suche Eintrag ab Cursor. Hier wird immer nach dem Suchnamen gefragt.
+{TAB 7}Der Suchname kann Wildcards (* und ?) enthalten.
+
+#invers# s #reset#  : FILE/DIR AB ANFANG WEITER SUCHEN
+{TAB 7}Suche Eintrag vom oberstem Eintrag an. Beim erstmaligem Gebrauch der
+{TAB 7}Funktion wird automatisch nach dem Suchnamen gefragt. Der Suchname
+{TAB 7}kann Wildcards (* und ?) enthalten.
+
+#invers# S #reset#  : FILE/DIR AB ANFANG SUCHEN
+{TAB 7}Suche Eintrag vom oberstem Eintrag an. Hier wird immer nach dem
+{TAB 7}Suchnamen gefragt. Der Suchname kann Wildcards (* und ?) enthalten.
+
+
+
+#fett##underline#ZUSAETZLICHE FUNKTIONEN :#reset#
+
+#invers#Return#reset# : Wechsele in das angewaehlte Directory.
+{TAB 9}Die Cursor-Taste RECHTS hat die gleiche Funktion.
+
+#invers# p #reset#  : Zurueck ins uebergeordnete Directory.
+{TAB 7}Sofern keine Sysop-Privilegien vorhanden sind, kann der User
+{TAB 7}nur bis zum vorgegebenen Directory zurueckgehen.
+{TAB 7}Die Cursor-Taste LINKS hat die gleiche Funktion.
+
+#invers# c #reset#  : Kopiere File/Directory
+{TAB 7}Das angewaehlte File bzw. Directory wird in ein einzugebenes
+{TAB 7}Zieldirectory kopiert.
+{TAB 7}(Sysop-Privilegien erforderlich)
+
+#invers# m #reset#  : Bewege File/Pfad
+{TAB 7}Das angewaehlte File bzw. Directory wird in ein einzugebenes
+{TAB 7}Zieldirectory bewegt.
+{TAB 7}(Sysop-Privilegien erforderlich)
+
+#invers# C #reset#  : Filearchiv checken
+{TAB 7}Das aktuelle Archiv-File wird auf Korrektheit geprueft.
+{TAB 7}Dafuer wird eine Batchdatei aus dem Directory mbbatch:filecheck/
+{TAB 7}ausgefuehrt.
+{TAB 7}(Download-Privilegien erforderlich)
+
+#invers# 1 - 8 #reset#  : Frei programmierbare Amiga-Dos-Batches ausfuehren.
+{TAB 11}Diese Batchdatei steht im Directory MBBATCH:FILEBATCHx/, wobei x
+{TAB 11}fuer die Zahl steht (z.B. MBBATCH:FILEBATCH1/)
+{TAB 11}(Privilegien muessen in der Dos-Batch abgefragt werden)
+
+#invers# h #reset#  : HILFE-SEITEN ANZEIGEN
+{TAB 7}Hilfeseiten anzeigen. Es gibt vier Hilfeseiten, die durch erneutes
+{TAB 7}Aufrufen dieser Funktion durchgeblaettert werden.
+
+#invers# r #reset#  : FILENAMEN/DIRNAMEN AENDERN
+{TAB 7}Name des Files/Directories aendern.
+{TAB 7}(Sysop-Privilegien erforderlich)
+
+#invers# v #reset#  : Filearchiv listen
+{TAB 7}Der Inhalt des aktuellen Archiv-Files wird gelistet.
+{TAB 7}Dafuer wird eine Batchdatei aus dem Directory mbbatch:filelist/
+{TAB 7}ausgefuehrt.
+{TAB 7}(Download-Privilegien erforderlich)
+
+#invers# W #reset#  : Das Fastdir-File fuer das gerade eingescannte Directory speichern.
+{TAB 7}Sofern das Directory fuer das Fastdir-File fehlt, wird es erzeugt.
+{TAB 7}(Sysop-Privilegien erforderlich)
+
+#invers# R #reset#  : Das aktuelle Directory neu einscannen.
+{TAB 7}Unter Fastdir wird das alte Fastdir-File mit den neu eingescannten
+{TAB 7}Daten ueberschrieben.
+{TAB 7}(Sysop-Privilegien erforderlich)
+
+
+#fett##underline#EXIT-FUNKTIONEN :#reset#
+
+#invers# q,x #reset#  : QUIT
+{TAB 7}Disk Tool verlassen.
+
+
+
+#fett##underline#SONDER-FUNKTIONEN :#reset#
+
+#invers#CTRL-A#reset# : ALPHA/DATUM-SORTIERUNG AENDERN
+{TAB 9}Alphanumerische-Sortierung / Datums-Sortierung.
+
+#invers#CTRL-A#reset# : FILES/DIR-SORTIERUNG AENDERN
+{TAB 9}Directories vor Files listen / Files vor Directories listen.
+
+
+
+#fett##underline#ANWAHL-FUNKTIONEN :#reset#
+
+#invers#CTRL-B#reset# : Sprung zum letzten Eintrag.
+
+#invers#CTRL-L#reset# : Letzte Seite.
+
+#invers#CTRL-N#reset# : Naechste Seite.
+
+#invers#CTRL-T#reset# : Sprung zum ersten Eintrag.
+
+#invers#CTRL-XC#reset#: Window neu aufbauen.
+
+#invers#CTRL-Y#reset# : Screen neu aufbauen.
+
+#invers#CURSOR#reset# : HOCH   = Ein Eintrag hochgehen
+			RUNTER = Ein Eintrag runtergehen
+			LINKS  = Ins Parent-Directory wechseln
+			RECHTS = In das angewaehlte Directory wechseln
+
+#fett##underline#X-Feld :#reset#
+
+d : File als Download markiert (Siehe Taste 'd').
+
+
+
+#fett##underline#Sysop-Privilegien :#reset#
+
+User mit Sysop-Privilegien koennen alle Funktionen benutzen.
+
+
+
+
+#fett##underline#Amiga-Dos-Batches im File-System :#reset#
+
+Es handelt sich um Amiga-Dos-Batches, die ausgefuehrt werden.
+Sie stehen in einem bestimmen Directory und ihr Name entspricht der
+Endung des zu bearbeitenden Files (z.B. lha, arj, iff usw.).
+Die Amiga-Dos-Batches erhalten einige Variablen als Eingabewerte
+(siehe Variablen im Batch-Kopf) und koennen ueber den Dos-Befehl
+SETRETURN (steht in AMMS:C/) Rueckgabewerte dem aufrufenden Programm
+uebermitteln (siehe akt. unterstuetzte Rueckgabewerte im Batch-Kopf).
+Mit dem Befehl SETHFLAGS koennen die Ein-/Ausgaben sofort geaendert
+werden (siehe Funktionen im Batch-Kopf).
+
+Der Aufbau eines solchen Amiga-Dos-Scripts sieht wie folgt aus :
+
+;	Amiga-Dos-Batch
+;
+;	Beeinflussung der Ein-/Ausgabe: sethflags <Flags>
+;	-------------------------------------------------
+;	Flags:	AN	AUS	Funktion
+;		     (Default)
+;		r1	r0	Raw-Eingabe
+;		o1	o0	Raw-Ausgabe
+;		m1	m0	More ein
+;		c1	c0	CTRL-C erlaubt
+;		x1	x0	CTRL-X erlaubt (entspricht CTRL-D im Amiga-Dos)
+;		e1	e0	Bei Fehler -> CTRL-C
+;		f1	f0	Bei Fehler -> CTRL-X
+;
+;	Beispiel: sethflags r1o1c0x0
+;
+;	
+;	Bekannte Variablen :
+;	--------------------
+;	${BOARD}	Brettname (leer, wenn kein Brett)
+;	${CLS}		AMMS-Sequence zum Loeschen des Screens (sethflags t1)
+;	${CON}		Port-Consolen-Status (0=keine Console,1=Console)
+;	${FILE}		Pfadname+Filename
+;	${FILEPART}	Filename
+;	${FILEPATH}	Pfadname
+;	${LEVEL}	Level des Users
+;	${NAME}		Username
+;	${PORT}		Aktueller Portname
+;	${SYSOPACC}	Sysop-Zugriff auf File (0=kein Zugriff,1=Zugriff)
+;	${DOWNACC}	Download-Zugriff auf File (0=kein Zugriff,1=Zugriff)
+;	${UPACC}	Upload-Zugriff auf File (0=kein Zugriff,1=Zugriff)
+;	${DELACC}	Loesch-Zugriff auf File (0=kein Zugriff,1=Zugriff)
+;	${OWNER}	Uploader des File (0=nein,1=ja)
+;
+;
+;	Rueckgabewert : setreturn "[Parameter] [Parameter] [...]"
+;	---------------------------------------------------------
+;	CHANGEDAT	Filedaten wurden geaendert (z.B. Laenge)
+;	COMMENT=<Str>	Aendere Kurz-Kommentar zum angegebenen String
+;	DELETE		Loesche File
+;	ECOMMENT	Extra-Kommentar existiert (z.B. Vorgabe beim Upload)
+;	NOEDIT		Keine Extra-Kommentar-Eingabe beim Upload
+;	REFRESH		Screen muss wegen Ausgaben neu aufgebaut werden
+;	REFRESHLINE	Zeile wegen Datenaenderung neu aufbauen
+;	RENAME=<Name>	File in den angegebenen Namen umbenennen
+;	WAIT		Auf Taste warten (inc. Warte-Text)
+;
+;	Beispiel: setreturn WAIT REFRESH COMMENT="Ein Kommentar"
+
+setreturn WAIT REFRESH
+
+sethflags t1m1
+echo "${CLS}"
+sethflags t0x1c1
+
+lha <nil: -P-1 v "${FILE}"

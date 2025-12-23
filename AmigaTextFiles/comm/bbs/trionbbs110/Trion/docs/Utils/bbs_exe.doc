@@ -1,0 +1,227 @@
+
+
+   =====( BBS V1.00 )=================================================
+
+
+        Trion BBS Program.
+
+        (c) Copyright Paul Spijkerman, '94-'97. All rights reserved.
+
+        Written for use with the Trion BBS package.
+
+
+   ===================================================================
+
+
+   The program BBS is the main BBS executable, it contains
+   the code to answer the phone, and to let users login 
+   (manually or with EMSI) or handle mailers when they call.
+   Also it can do mail calls to other systems and a simple terminal.
+
+   Before a node can be startup the 'TrionRM' Resource Manager
+   has to be running or 'BBS' will exit with an error message
+   when started.
+
+   A node is started with the run command so other things can be
+   done in the shell. After the BBS command you have to place
+   a number of options which start with a '-' sign. The first
+   option is the node number and can be 0 to 9.
+   Here is a list of the other options:
+
+   -L   = Local node (without serial port)
+   -P   = Don't open serial yet but wait on command
+   -X   = Spawned by a mailer
+   -N   = Don't accept callers
+   -A   = Don't list LastCallers for this node
+   -I   = Iconized
+   -V   = Modem volume (sound) off
+   -T   = No logs buffering
+   -D   = Debug
+   -S   = Debug and log commands of Users
+
+
+
+   If you start a node with the (-L) option is doesn't open a
+   serial port (local node) and can't be made to handle a
+   serial port with external utilities like trion.
+   This is usefull if you want to use a node for local use
+   so there are no lines busy while you read you mail or
+   browse to the BBS.
+
+   If the (-P) option is used this node while be configured
+   as a serial node, but the serial port isn't opened until
+   a command is given. The command can be a click on a button
+   in the GUI-screen or a start of the Trion utility in shell.
+   This can be usefull if you want to startup a few nodes at
+   the same time at the same serial port. Some people do this
+   so they can poll with different sysop names .. because
+   their fido node nummer belongs to a Co-sysop.
+
+   With the (-X) option the node starts up without initializing
+   the modem and without waiting for a call so it can be
+   started from an external mailer like Trapdoor, but no
+   IEMSI can be used if the mailer happens to be a person.
+   Also in this mode the node exits when the call is finished.
+   Recommended is to use the internal mailer of the trion BBS system.
+
+   If the node was started with the (-N) option it doesn't
+   pick up the modem if there there is a call. This can be
+   usefull if you want to call out a few times and don't
+   want the BBS to pick up the modem in the time between
+   calls .. you can also toggle this mode from the GUI-screen
+   of this node , or with the 'trion' util in a script.
+
+   With the (-A) option no lastcallers of this node will be
+   added the TrionRM monitor and the Lastcaller util screens.
+   This is usefull if you use a node for internal calls, if
+   you for instance call your BBS via nullmodem.device with
+   your point packet you probably don't want that shown in
+   your lastcallers screen.
+
+   With the (-I) option the node will not open it's GUI-screen
+   when started but show a little icon on the workbench screen.
+   This icon will show the status of the node or the name of a
+   User when someone is logged in, if a user pages the sysop
+   a asterix (*) will appear in the icon before the name.
+   If you click on the icon the node is DeIconized and a
+   GUI-screen is opened .. or if the node is calling or
+   answering the BBS screen is opened.
+   The screen of this node can also be DeIconized by the
+   'trion' util in a script of with buttons in the TrionRM
+   monitor (who actually call the trion util to do this).
+
+   If a node is used with a serial port it sends commands to
+   the modem to control sound, with this option you can turn
+   modem sound on or off with a cron util (via the trion util),
+   so can can still hear the modem at daytime (and people who
+   call voice) but have a quiet modem at night.
+   With the (-V) option the node will startup in quiet mode.
+
+   The 'No logs buffering' (-T) option means that logs are not
+   stored in memory until the buffer is full or the buffer was
+   flushed internally but that lines written to the log are
+   written immediatly to the log. This was usefull in some
+   debuging situations when the BBS wasn't as stable as it is
+   now.
+
+   The debug (-D) option is usefull when configuring nodes, because
+   more information is stored in the log file.
+   The results of modem strings is loged in this mode, also the
+   memory use of a node is loged and memory allocated by the BBS
+   is checked for overwriting of boundaries.
+
+   The (-S) option is the same as the (-D) option but also all
+   input of users in the menus is stored.
+
+
+
+
+   When a BBS node is started up it wil read the Trion-X.cfg
+   from the Trion:cfg/ directory (where the X is the number
+   of this node) to determine the information it needs to
+   run. This includes information on the serial port, modem strings,
+   the screen mode, depth and size and icon size.
+
+
+
+
+   Scripts:
+   --------
+
+   The BBS executable will start scripts in certain situations,
+   here is a little overview which scripts and where the were
+   mend for:
+
+
+
+   When there was an incoming call from a mailer the folowing
+   script is called after the modem was initialised.
+
+   trion:script/incoming.X       (where X is the number of this BBS node)
+
+   In this script you can start the fax.init script which will
+   GPFax control to the modem to init the modem with your
+   fax details.
+   In this script you can start the mail processing script.
+   You can start the lastcallers script to make a new lastcaller
+   and UsageGraph ANSI screen.
+
+
+
+   When an outgoing mail call was made by the mailer (and a connect
+   was made) the folowing script is called after the modem was initialised.
+
+   trion:scripts/outgoing.x       (where X is the number of this BBS node)
+
+   This is usefull for unpacking the collected mail, Update the
+   lastcallers screen .. and start the fax.init script.
+
+
+
+
+   When a user logs out from the BBS the folowing script is started
+   after the modem is initialised.
+
+   trion:script/logout.X       (where X is the number of this BBS node)
+
+   In this script you can start the fax.init script which will
+   GPFax control to the modem to init the modem with your
+   fax details.
+   In this script you can start the mail processing script.
+   You can start the lastcallers script to make a new lastcaller
+   and UsageGraph ANSI screen.
+   You can start the Trion Log-off police programm.
+
+
+
+
+   After an upload the trion:scripts/Upload script is runned to
+   proces the upload.  Processing can be:
+
+   Checking for viruses
+   Deleting displayme files.
+   Extracting description files from an archive like FILE_ID.DIZ
+
+   The upload script is called with the filename, compressiontype
+   and name for a descritionfile as arguments.
+   Note that the BBS reads the first bytes of an archive to determine
+   the methode which was used to create the archive.
+
+
+
+
+   When a user wants to view an archive the trion:scripts/ViewArchive
+   is started to make a list of the archive.
+   The ViewArchive script is called with the filename, compressiontype
+   and name for a listfile as arguments.
+   Note that the BBS reads the first bytes of an archive to determine
+   the methode which was used to create the archive.
+   In the default script the unrecognized archives are processed with
+   the Unpack util in list mode. The default config of the unpack
+   script contains recognation codes for IFF, GIF and JPEG and
+   calls to viewtek to show the sizes and depth of these screens.
+
+
+   When an incoming Voice call is detected the
+   'trion:scripts/voice.script' is started to take over the serial
+   port. When this script returns to the BBS the modem is initialized
+   and the BBS returns to the monitoring the serial port mode.
+
+
+
+   When an incoming fax call is detected the
+   'trion:scripts/fax.script' is started to take over the serial
+   port. When this script returns to the BBS the modem is initialized
+   and the BBS returns to the monitoring the serial port mode.
+
+
+
+   If you exit the terminal mode of the BBS program the folowing
+   script is started.
+
+   trion:scripts/TerminalExit.X       (where X is the number of this BBS node)
+
+   This was meant to start the fax.init script but you also could
+   copy downloaded files from ram: to disk if you download to ram:
+
+

@@ -1,0 +1,564 @@
+/*
+ *  History:
+ *      5.0a   = May 25, 1992
+ *               Simple buggies everywhere... I thought it was bug-free...
+ *      5.0b   = Added naughties searching!
+ *      5.0c-r = Non-public releases... minor fixes...
+ *      5.0s   = A period in the wrong place... fixed (duh)
+ *      5.0t   = Bug fixed in Maint... some problems renaming files.
+ *      5.1-5.4= Private release.
+ *      5.5c   = Fixed the GETCHAR bug in MAINT
+ *               Don't you love your idiot users? How they say "Sure, I
+ *                   will add a quote!", they enter " " as a quote and when
+ *                   it prompts them if it's correct, they say "Yip!" and
+ *                   you get an empty quote! GREAT! NOT NO MORE!
+ *               Cute mode added in, if user enters NOTHING, you get a cute
+ *               little remark placed for you!
+ *      5.5d-w = Private releases
+ *      5.5x   = Addedd random "Cute Mode" messages, as requested by Barny
+ *               Addedd the comments throught the program to document what it
+ *               is doing.
+ *      5.5y-z = Private releases.
+ *      6.0    = Fixed spelling error in 5.5x update description. Added in the
+ *               selectable colours for SYZOPS... since NO ONE likes MY CHOICE
+ *               in colours dammit!!
+ *               Added a few ARexx scripts to RIP the old TEXT assignments from
+ *               your old T-Quote 5.5x and slugged them into this new and more
+ *               efficient version!
+ *               Sped up AGAIN the old scan for naughties. Wow! I am jettin'
+ *               along here aren't I?
+ *               Bought C-Net 2.2 and am very satisfied. Still includes a 1.xx
+ *               version of 5.5x for those poof ol' folks with 1.xx versions
+ *               of C-Net (If you want the 6.0 version for 1.xx, call my
+ *               board, dammit!)
+ *      6.0a-e = Private release.
+ *      6.0f   = The not-so LATEST!!
+ *               Removed both scripts.. they are no longer needed! (No longer
+ *               work...)
+ *               Made a MAJOR cosmetic enhancement to the Sysop's end. Still
+ *               a few bugs there to be worked out.
+ *               Text is NOW IN A SEPERATE FILE! You may edit this file at
+ *               will. This idea came from Thx1138, great idea!
+ *               This time I REALLY added in the selectable colours.
+ *               Fixed other un-important stuff. We are already in need of a
+ *               overhaul... looks like it CODE MASSAGE TIME!
+ *               Text still compatable with 5.5x and above.
+ *               Alright, I did it... I made a 1.xx version instead of letting
+ *               the idiots do it.
+ *      7.0a   = This is THE LASTEST! (As of Nov 19th)
+ *             >>WARINING! This version REQUIRES C-Net 2.35+ in order to use
+ *               the funky new ARexx commands!! Whooaa!! Great job Ken!!
+ *             >>ALSO!! The Text.Quotes file has changed, please copy the new
+ *               one over!
+ *             * Now, uses the new PROMPT command so checking for 77 or more
+ *               characters is now obsolete!
+ *             * Now sets the "Where?" column in a WHo command for "T-Quote"
+ *             * Now uses all 16 colours of C-Net for more beauty! Ooo!!
+ *             * Fixed bugs in SYSOP MAINT, previously when you changed a
+ *               quote, it would use my colours - now conforms to LINTEX,
+ *               TIMTEX, and HANTEX specified in files! OooO!!!
+ *             * Now has a more professional 3-D style look to it. OooOOO!
+ *             * Is a tad cleaner and a little faster... replaced "tr'';tr xx"
+ *               for a simple "tr '\n1'xx".. less command hunting for poor
+ *               ol' CPU! Yay!
+ *             * Now SUCCESSFULLY removed the racial slurs put into the
+ *               cute mode (Ahem.. the "I HATE NIG..RS" one... I don't know
+ *               what came over me when I wrote that. Some of my best friends
+ *               are black!).
+ *             * NOTICE! It is not recommended to use more than 5 quotes. It
+ *               will work perfectly if you do, but I disabled the "More?"
+ *               mode so people with 23-line screens don't have to hit "Y"
+ *               when the screen for TQuote fills up. This means if you use
+ *               say 6-1000 quotes.. umm.. hee hee.. get my drift??
+ *             * Oh great... more dirty words in the removal system! Be sure
+ *               to check them to make sure they are the ones you want.. >:)
+ *             * More Cute-Mode sayings have been added in.. check and make
+ *               sure they are the ones you like. >:)
+ *             * Fixed cute mode spelling error.. it's "poontang" not
+ *               "puntang".
+ *
+ *  Release date: November 19, 1992
+ *
+ *  T-Quote 7.0a - The TWAT TICKLER Version
+ *
+ *  C-Net's BEST Quote Wall program EVER! Throw out ALL shit versions of
+ *  T-Quote NOW!
+ *
+ *  I am sure you are all familiar with the old quote wall called
+ *  TQuote, it was HORRIBLE to configure, and it had broken support for
+ *  sysop maintenance, and .. it was just BAD! Well, this is a new
+ *  re-worked version, please refer to the Docs for setup instructions
+ *  and/or additional help.
+ *
+ *  CALL BLUE SILVER AMIGA - 402 / 496 - 4325 - Multi-Line AMIGA and
+ *  (at long last) REGISTERED C-NET AMIGA 2.40e! (Now with MEGA SUGAR
+ *  FILLED AARDVARK-PENIS-SHAPED CRUNCHIE NUT GOOBERS!)
+ *
+ */
+
+options results
+
+signal on ioerr
+signal on syntax
+signal on error
+
+gu='getuser'
+ss='sendstring'
+tr='transmit'
+qu='query'
+re='receive'
+gc='getchar'
+
+/* User Definable Variables */
+
+bortex='\ce'            /* Colour for text INSIDE border.                           */
+timtex='\cc'            /* Colour for the quote's time                              */
+hantex='\ca'            /* Colour for the quote's HANDLE                            */
+lintex='\c7'            /* The colour for the >----< thingy in a quote.             */
+where="T-Quote 7.0a"                                                /* Where are you? This test for Where? in WHo    */
+siz=5                                                               /* Min. size of quote in order for saving.       */
+as=1                                                                /* Ask users if they wanna read it? 0=No, 1=Yes  */
+cz=1                                                                /* Search for naughty words! 0=No, 1=Yes         */
+qn=5                                                                /* Maximum number of quotes (9999999999 max)     */
+cm=1                                                                /* Cute mode 1=on, 0=off - Great fun!            */
+dt='SYSDATA:Quotes/Sys.QuoteNum.'                                   /* Quote Data File, must be in own SubDir!!      */
+dd='SYSDATA:Quotes'                                                 /* Quote Directory (Same as above -file)         */
+txd='SYSDATA:Quotes/Text.Quotes'                                    /* Name of TEXT data file                        */
+c.1='\c11  \c7= Dk. Red'                                            /* These are the MCI colour codes, change        */
+c.2='\c22  \c7= Dk. Green'                                          /* them according your your version of CNet,     */
+c.3='\c33  \c7= Dk. Yellow'                                         /* why Ken fucked 'em up is beyond me...         */
+c.4='\c44  \c7= Dk. Blue'                                           /*                                               */
+c.5='\c55  \c7= Dk. Purple'                                         /* Note: These are Cnet 2.xx colours.            */
+c.6='\c66  \c7= Dk. Cyan'                                           /*       (1.xx users must change!)               */
+c.7='\c77  \c7= Grey'                                               /*                                               */
+c.8='\c88  \c7= Dk. Grey'
+c.9='\c99  \c7= Red'
+c.10='\ca10 \c7= Green'
+c.11='\cb11 \c7= Yellow'
+c.12='\cc12 \c7= Blue'
+c.13='\cd13 \c7= Purple'
+c.14='\ce14 \c7= Cyan'
+c.15='\cf15 \c7= White'
+
+changewhere where
+
+/* IMPORTANT DATA! THIS IS A DUAL BI-HEX FIELD! IMPORTANT FOR USER INFORMATION
+   DO NOT, REPEAT, DO NOT DELETE THIS LINE!!!!!
+*/
+
+impdata='5451756F746520372E3061202D2042793A20486F6C6D6573202D20426C75652053696C766572202834303229203439362D34333235'
+
+/* Getusers - Don't remove these! */
+
+gu 1;han=result
+gu 12;tim=result
+gu 27;lin=result
+
+/* Check to see if the quote text file exists. */
+
+if ~exists(txd) then do
+  tr "\c9TQUOTE6.0\q1: Can't find [\c3'txd'\q1]! Inform Sysop!!"
+  call death
+end
+
+/* If it does exists, READ IT! Yowzahs! */
+
+call open(fil,txd,'r')
+  le=readln(fil)
+  nd=readln(fil)
+  qd=readln(fil)
+  sd=readln(fil)
+  ch=readln(fil)
+  cd=readln(fil)
+  bc=readln(fil)
+  id=readln(fil)
+  yn=readln(fil)
+  eq=readln(fil)
+  cc=readln(fil)
+  th=readln(fil)
+  nh=readln(fil)
+  sc=readln(fil)
+  ts=readln(fil)
+  ba=readln(fil)
+  ck=readln(fil)
+  dl=readln(fil)
+  su=readln(fil)
+  pw=readln(fil)
+  mt=readln(fil)
+  no=readln(fil)
+  ye=readln(fil)
+  bb=readln(fil)
+  b2=readln(fil)
+  sy=readln(fil)
+call close(fil)
+
+/* This is the cuss word listing... to add more, simply make numb = the number
+   of nasty words in your list! :-) Also, the variable name must be wd.#
+*/
+
+numb=24
+wd.1=upper('shit')
+wd.2=upper('bitch')
+wd.4=upper('dick')
+wd.5=upper('cunt')
+wd.6=upper('fuck')
+wd.7=upper('god')
+wd.8=upper('bullshit')
+wd.9=upper('fucking')
+wd.10=upper('phuck')
+wd.11=upper('fhuck')
+wd.12=upper('phfuck')
+wd.13=upper('pfuck')
+wd.14=upper('fuc')
+wd.15=upper('fuk')
+wd.16=upper('fukc')
+wd.17=upper('cock')
+wd.18=upper('kunt')
+wd.19=upper('penis')
+wd.20=upper('dildo')
+wd.21=upper('clinton')      /* Eeeeeehehehehe */
+wd.22=upper('nigger')
+wd.23=upper('nazi')
+wd.24=upper('cok')
+
+/* These are the random Cute Mode sayings, edit them but make sure the number
+   of messages is contained in CModenum
+*/
+
+cmodenum=13
+cmes.1="I am too stupid to figure out what Yes & No mean or type anything intelligent!"
+cmes.2="I just can't seem to be smart enough to type anything!"
+cmes.3="I have lebenty zillion gigs and run BTerm 5.5f - do I get access?"
+cmes.4="I am just SOOOOOO dumb! Can you type something for me?"
+cmes.5="Yezdertay i coodnt reed. Today i am a b-b-ez uzerr! Ha ha!"
+cmes.6="I sure wish I could think of something to day so I don't look dumb!"
+cmes.7="Hey, whats a BBS?"
+cmes.8="Am I as stupid as I look?"
+cmes.13="WWWHHOOAA!! CLINTON RULES!! I LOVE CLINTON!!!! YYEEEHAAW!!!"  /* Eeeehehehehe */
+cmes.9="Does this look infected to you?"
+cmes.10="For free poontang, call "han"!!!"
+cmes.11="For a good time, call 1-900-"upper(han)
+cmes.12="TAX IT! WAX IT! MOVE IT AROUND!"
+
+/* You can change these, but the 80 column on must be 78 chars long, and the
+   40 column one must be 38 chars long, but whatever you do, do not change
+   the middle one (line.80.2 & line.40.2) unless you have achived level 189:
+   Triple Super Duper Muther Whomping Killer ARexx Dungeon Master.
+*/
+
+line.80.1='\z4\c7ÖÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ\c0·\z0'
+line.80.2='\z4\c7º'bortex||centre(bb' 'b2,76)'\c0º\z0'
+line.80.3='\z4\c7Ó\c0ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ½\z0'
+line.40.1='\f1+------------------------------------+'
+line.40.2=':'centre(bb,36,' ')':'
+line.40.3='+------------------------------------+'
+
+bin=c2b(han)
+
+call getuserdata
+
+if clone~='TQuote ' then do
+  tr "\c1\o1Running mangled version of T-Quote 7.0a! ABORTING!!!!\o0\q1"
+  call death
+end
+
+call test
+
+ss '\f1'x2c(impdata)
+ss '\f1'
+
+/* Format of the data files                                                       */
+/* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx */
+/* xxxxxxxxxxxxxxxxxxxxxx >-----------------------------< xxxxxxxxxxxxxxxxxxxx >- */
+
+if ~exists(dd) then do
+  address command 'C:Makedir 'dd
+end
+
+if ~exists(dt'1') then do
+  ss '\n1\z1\c7No data found, initializing...'
+  do i = 1 to qn
+    call open(file,dt''i,'w')
+    call writeln(file,nd)
+    call writeln(file,timtex||tim||lintex' >'right('< 'hantex||sy||lintex' >Ä',60,'Ä'))
+    call close(file)
+    ss '.'
+  end
+  tr '\z0'
+end
+
+if as~=0 then do
+  ss qd
+  gc;ans=result
+  if ans='###PANIC' then do;logentry le;call death;end
+  if upper(ans)='N' then do;tr no;call death;end
+  tr ye
+  signal prepread
+end
+
+/* Display the Line.x.1,2,3 lines */
+
+prepread:
+  ss '\f1'
+  tr line.lin.1
+  tr line.lin.2
+  tr line.lin.3
+signal readit
+
+/* Display the Quotes */
+
+readit:
+  do i = 1 to qn
+    sendfile dt''i
+  end
+  tr '\n1\z4\c7ÖÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ\c0·\z0'
+  tr '\z4\c7Ó\c0ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ½\z0\@4'
+signal wannaspack
+
+/* Do you wanna spack on da wall? */
+
+wannaspack:
+  if bin=c2b(sy) & han=sy then do
+    tr '\n1'th
+  end
+  ss '\n1'sd
+  gc;ans=result
+  if ans='###PANIC' then do;logentry le;call death;end
+  if upper(ans)='N' then do;tr no;call death;end
+  if upper(ans)='Z' & bin=c2b(sy) & han=sy then do;tr mt;signal maint;end
+  tr ye'\w1'
+signal spack1
+
+/* Get the Quote Line */
+
+spack1:
+  tr '\f1\n1'eq'\n1'
+  prompt 77 normal '"\cf: \c7"'
+  quo=result
+  if quo='###PANIC' then do;logentry le;call death;end
+  if length(quo)<siz & cm=~1 then do
+    tr '\n1'ts
+    signal spack1
+  end
+  if length(quo)<siz & cm=1 then do
+     cnum=random(1,cmodenum,time('s'))
+     quo=cmes.cnum
+  end
+  if cz=1 then do;ss ck;call chekcuz;end
+  if vyn=1 then signal wannaspack
+
+/* Select Colours */
+
+spack2:
+  tr '\f1\n1'cc'\n1'
+  do i = 1 to 15
+    ss left(c.i,46)
+  end
+  tr '\n1'
+  ss cd
+  re;col=result
+  if col='###PANIC' then do;logentry le;call death;end
+  if col>15 then do;tr bc;signal spack2;end
+  if col<1 then do;tr bc;signal spack2;end
+  if col>9 then do;call covert;end
+signal getready
+
+/* Convert colours to 16 of they selected it .. you know!! \c11 don't work! */
+
+covert:
+  if col=10 then col='a'
+  if col=11 then col='b'
+  if col=12 then col='c'
+  if col=13 then col='d'
+  if col=14 then col='e'
+  if col=15 then col='f'
+return
+
+/* Ask if it's ok or not... duh */
+
+getready:
+  tr '\f1\n1'pw'\n1'
+  fil.1='\c'col''quo
+  fil.2=timtex||tim' 'lintex'>'right('< 'hantex||han''lintex' >Ä',60,'Ä')
+  tr fil.1
+  tr fil.2
+  ss '\n1'yn
+  gc;ans=result
+  if ans='###PANIC' then do;logentry le;call death;end
+  if upper(ans)='N' then do;tr no;call wannaspack;end
+  tr ye
+signal writeit
+
+/* Delete the old quotes, and replace with the new one! */
+
+writeit:
+  address command "C:delete "dt"1"
+  do i = 2 to qn
+    address command 'C:Rename 'dt''i' 'dt''i-1
+  end
+  call open(file,dt''qn,'w')
+  call writeln(file,fil.1)
+  call writeln(file,fil.2)
+  call close(file)
+call death
+
+/* Checks to see if the Sysop is using TQuote */
+
+test:
+  if bin=c2b(sy) then do
+  setobject 999
+  putuser 7
+  setobject 23
+  putuser 15
+  end
+return
+
+/* Sysop Maint Menu */
+
+maint:
+  tr '\n1 \c7[\c9D\c7]elete a Quote w/ no change        \c7[\c9C\c7]hange a quote'
+  tr ' \c7[\c9Q\c7]uit Maint                         \c7[\c9L\c7]ist quote(s)\n1'
+  ss sc
+  gc;sel=result
+  tr sel
+  if sel='###PANIC' then do;logentry le;call death;end
+  if upper(sel)='Q' then signal wannaspack
+  if upper(sel)='D' then signal delit
+  if upper(sel)='C' then signal change
+  if upper(sel)='L' then signal listem
+  tr id
+signal maint
+
+/* List the Quotes with their numbers! */
+
+listem:
+  tr '\f1'
+  do i = 1 to qn
+    ss '\z1\c7'i'\z0'
+    sendfile dt''i
+  end
+signal maint
+
+/* Edit a quote */
+
+change:
+  ss '\n1\c6Change which \c7(\c21-'qn'\c7): \c3'
+  re;cew=result
+  if cew='###PANIC' then do;logentry le;call death;end
+  if cew>qn then do;tr id;signal maint;end
+  if cew<1 then do;tr id;signal maint;end
+  tr '\n1'eq'\n1'
+  prompt 77 normal '"\cf: \c7"'
+  quo=result
+  if quo='###PANIC' then do;logentry le;call death;end
+  ss '\n1'ch
+  gc;ans=result
+  if ans='###PANIC' then do;logentry le;call death;end
+  if upper(ans)='N' then do;tr no;cbv=0;signal writethen;end
+  tr ye
+  cbv=123
+  tr '\n1'nh'\n1'
+  prompt 20 normal '"\cf: \c7"'
+  hand=result
+  if hand='###PANIC' then do;logentry le;call death;end
+  if length(hand)>20 then do;tr tl;signal maint;end
+signal writethen
+
+/* Write the new Quote */
+
+writethen:
+  call open(file,dt''cew,'r')
+    gar=readln(file)
+    oldlin=readln(file)
+  call close(file)
+  call open(file,dt''cew,'w')
+  call writeln(file,'\c'random(1,7,time('s'))''quo)
+  if cbv~=0 then do
+    call writeln(file,timtex||tim||lintex' >'right('< 'hantex||hand||lintex' >Ä',60,'Ä'))
+  end
+  if cbv=0 then do
+    call writeln(file,oldlin)
+  end
+  call close(file)
+signal maint
+
+/* Delete a Quote */
+
+delit:
+  ss '\n1\c6Delete which \c7(\c21-'qn'\c7): \c3'
+  re;del=result
+  if del='###PANIC' then do;logentry le;call death;end
+  if del>qn then do;tr id;signal maint;end
+  if del<1 then do;tr id;signal maint;end
+  sendfile dt''del
+  ss '\n1'su
+  gc;ans=result
+  if ans='###PANIC' then do;logentry le;call death;end
+  if upper(ans)='Y' then do
+    tr ye
+    address command 'C:Delete 'dt''del
+    call open(file,dt''del,'w')
+    call writeln(file,nd)
+    call writeln(file,timtex||tim||lintex' >'right('< 'hantex||sy||lintex' >Ä',60,'Ä'))
+    call close(file)
+    tr dl
+    signal maint
+  end
+  tr no
+signal maint
+
+/* Gotta SYNTAX ERROR???? ACK!!! */
+
+syntax:
+  tr 'Error has occured! Call Holmes at Blue Silver BBS (402)496-4325 help!'
+  tr 'Error on line #'sigl', Inform 'sy' at once!'
+  tr ''
+call death
+
+/* Get user data */
+
+GeTuSeRdATa:
+  clone=x2c(left(impdata,14))
+return
+
+/* Gotta Error? */
+
+error:
+  tr 'Error has occured! Call Holmes at Blue Silver BBS (402)496-4325 help!'
+  tr 'Error on line #'sigl', Inform 'sy' at once!'
+  tr ''
+call death
+
+/* IO Error! */
+
+ioerr:
+  tr 'IO Error! YIKES!! Inform sysop that this program has formatted his'
+  tr 'hard disk for him!'
+  tr ''
+call death
+
+/* Check for cuss words... way the hell down here??? */
+
+chekcuz:
+  nword=words(quo)
+  vyn=0
+  do i = 1 to nword
+    ss '.'
+    wor=word(quo,i)
+    do j = 1 to numb
+      if upper(wor)=wd.j then do
+        tr ''
+        tr ba
+        vyn=1
+        leave
+      end
+    end
+    if vyn=1 then leave
+  end
+return
+
+/* For no carriers and such... */
+
+death:
+  bufferflush
+exit

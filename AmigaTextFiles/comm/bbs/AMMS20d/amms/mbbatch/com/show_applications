@@ -1,0 +1,61 @@
+;
+;       NAME : SHOW APPLICATIONS
+;
+;       VERSION : V1.04 / 27.01.1994
+;
+;       FUNKTION : Zeigt neue Userantraege an.
+;
+;       Diese Batchdatei benutzt folgende Befehle :
+;       -------------------------------------------
+;       ECHO
+;       MENU
+;       DISK TEXT
+;       EXTERN
+;       ON ERROR
+;       GOTO
+;       EOD
+;
+;       Aufruf durch User : SHOW APPLICATIONS
+;
+;       Changes :
+;
+;       Konstanten :
+;
+APPFILE="mbdat:antraege.txt"                    ; Textfile mir Antraegen
+;
+;       Programm :
+;
+
+; Antraege anzeigen
+
+_echo ""
+_echo "Neue Antraege ..."                       ; Ueberschrift ausgeben
+_echo ""
+_check file "'APPFILE'" NOFILE                  ; Wenn kein Text da, verzw.
+_disk text "'APPFILE'"                          ; Antraege anzeigen
+_on error                                       ; Bei Fehler abbrechen
+
+; Abfragen, ob Antragfile geloescht werden soll
+
+_menu "File loeschen (J/N) ? n#left#" -    ; Loeschabfrage
+ "j"  DELETEFILE -
+ "n"  END -
+ "^M" END
+
+; Antragsfile loeschen
+
+DELETEFILE:
+_echo ""                                        ; Leerzeile ausgeben
+_extern delete 'APPFILE'                        ; Antraege loeschen
+_echo ""                                        ; Leerzeile ausgeben
+_goto END                                       ; Sprung zum Ende
+
+; Keine neuen Antraege vorhanden
+
+NOFILE:
+_echo "Keine neuen Antraege vorhanden ...^J"  ; Fehlermeldung ausgeben
+
+; Ende
+
+END:
+_eod                                            ; ENDE

@@ -1,0 +1,431 @@
+/*
+             The C-Net Speaker Config Utility
+                       Version 2.1
+                       by  Le Chat
+
+                    Copyright (c) 1992
+                 A Boothware Presentation
+
+          Contact Gate Keeper on Future World or
+
+            Call The Phone Booth BBS For More!
+            (504)272-2000  3/12/24/HST 24hrs
+*/
+
+options results
+
+signal on error
+signal on syntax
+signal on ioerr
+
+GETUSER 1
+name = result
+GETUSER 23
+port = result
+GETUSER 17
+if result = "1234567890" then maint = 1
+  else maint = 0
+
+ChtConfig   = "PFiles:SpeakerChat.Config"
+LOnConfig   = "PFiles:SpeakerLogon.Config"
+LOffConfig  = "PFiles:SpeakerLogoff.Config"
+ChtVersion  = "Speaker Chat Version 2.1 by Le Chat"
+LOnVersion  = "Speaker Logon Version 2.1 by Le Chat"
+LOffVersion = "Speaker Logoff Version 2.1 by Le Chat"
+
+
+
+if maint then transmit ""
+  else do
+         transmit "  This program is only for SysOps with maintenance access!"
+         exit
+       end
+
+cfg = 0
+call SETCFG
+call READCONFIG(file,vtype)
+
+do forever
+  transmit d2c(12)
+  transmit "         Speaker Utility Configuration Program"
+  transmit "                       by Le Chat"
+  transmit ""
+  transmit "                   Copyright (c) 1992"
+  transmit "                A Boothware Presentation"
+  transmit "               (504)272-2000  3/12/24/HST"
+  transmit ""
+  ans = SOUND()
+  transmit ""
+  transmit "  1.  Configuring program : "tag
+  transmit "  2.  Delete Configuration (resets)"
+  transmit "  3.  Save Current Configuration"
+  sendstring "  4.  Pitch ("
+  if pitch = "" then transmit "NONE SET)"
+    else transmit right(pitch,length(pitch)-1)")"
+  sendstring "  5.  Speed ("
+  if speed = "" then transmit "NONE SET)"
+    else transmit right(speed,length(speed)-1)")"
+  sendstring "  6.  Voice ("
+  if voice = "" then transmit "NONE SET)"
+    else select
+           when voice = "m" then transmit "Male)"
+           when voice = "f" then transmit "Female)"
+           when voice = "r" then transmit "Robot)"
+           otherwise transmit "Normal)"
+         end
+  transmit "  7.  Test/Output Current Configuration"
+  transmit "  8.  Sound ("ans")"
+  transmit "  9.  Quit - does not save!"
+  sendstring "      >"
+  ans = GETKEY("123456789")
+  if ans = "1" then
+    do
+      transmit ""
+      transmit "  This will NOT save the last configuration you set up!"
+      transmit ""
+      transmit "  1.  SpeakerChat.v2.1"
+      transmit "  2.  SpeakerLogon.v2.1"
+      transmit "  3.  SpeakerLogoff.v2.1"
+      transmit "  4.  Abort"
+      transmit ""
+      sendstring "      >"
+      ans = GETKEY("1234")
+      if ans = "4" then iterate
+      cfg = ans - 1
+      voice = ""
+      pitch = ""
+      speed = ""
+      call SETCFG
+      call READCONFIG(file,vtype)
+      iterate
+    end
+  if ans = "2" & exists(file) then
+    do
+      sendstring " Delete the current config file?  [y/N] "
+      if YESNO(0) = 0 then iterate
+      transmit "Deleting configuration . . ."
+      iterate
+    end
+  if ans = "3" then
+    do
+      transmit " Saving configuration file . . ."
+      call SAVE(2,file,vtype,optz)
+      iterate
+    end
+  if ans = "9" then
+    do
+      transmit ""
+      transmit " Make sure you have saved your changes before Quitting!"
+      transmit ""
+      sendstring "   Are you sure you want to quit? [y/N] "
+      if YESNO(0) = 1 then exit
+      iterate
+    end
+  if ans = "4" then
+    do
+      sendstring "Set a pitch (65-320) [below 65 aborts] "
+      ans = GETNUM(320)
+      if ans = 0 then
+        do
+          transmit "  Setting no pitch."
+          pitch = ""
+          call SETSTRING
+          iterate
+        end
+      if ans < 65 then
+        do
+          transmit "  Aborting."
+          iterate
+        end
+      pitch = "p"||ans
+      call SETSTRING
+      iterate
+    end
+  if ans = "6" then
+    do
+      transmit ""
+      transmit "  Select the voice type you wish to use:"
+      transmit "  1.  Male"
+      transmit "  2.  Female"
+      transmit "  3.  Robot"
+      transmit "  4.  Natural"
+      sendstring "      >"
+      ans = GETKEY("1234")
+      select
+        when ans = "1" then
+          do
+            voice = "m"
+          end
+        when ans = "2" then
+          do
+            voice = "f"
+          end
+        when ans = "3" then
+          do
+            voice = "r"
+          end
+        otherwise do
+                    transmit " Natural"
+                    voice = "n"
+                    end
+      end
+      call SETSTRING
+      iterate
+    end
+  if ans = "5" then
+    do
+      sendstring "Set the speed (30-400) [0 = none] >"
+      ans = GETNUM(400)
+      if ans = 0 then
+        do
+          transmit "  Setting no speed."
+          speed = ""
+          call SETSTRING
+          iterate
+        end
+      if ans < 30 then
+        do
+          transmit "  Aborting."
+          iterate
+        end
+      speed = "s"||ans
+      call SETSTRING
+      iterate
+    end
+  if ans = "7" then
+    do
+      transmit ""
+      transmit "  Sending a test sound of current configuration to 
+Speak-Handler"
+      string = "Call Phone Booth if you need help, 5 0 4 2 7 2 2 0 0 0"
+      address command "echo >speak:"optz" "||string
+      iterate
+    end
+  if ans = "8" then
+    do
+      transmit ""
+      sendstring " Do you want the Speaker Utilities to be Mute?  [y/N] "
+      if YESNO(0) = 1 then line = "Off"
+        else line = "On"
+      call SAVE(1,"CNet:Sound",line)
+      iterate
+    end
+end
+exit
+
+
+ERROR:
+SYNTAX:
+IOERR:
+line = sigl
+err = rc
+transmit "Error in "line" type "rc" "errortype(rc)
+logentry "Error in SpeakerChat.v2.1"
+logentry "Error in "line" type "rc" "errortype(rc)
+exit
+
+
+GETNUM:
+if arg() = 0 then value = 0
+  else curmax = arg(1)
+value = 0
+do forever
+  GETCHAR
+  ans = result
+  if ans = "###PANIC" then exit
+  if ans = d2c(8) then
+    if value = 0 then nop
+      else do
+             if value < 10 then
+               do
+                 sendstring "\h1"
+                 value = 0
+               end
+             else if value < 100 then
+                    do
+                      sendstring "\h1"
+                      value = left(value,1)
+                    end
+                  else do
+                         sendstring "\h1"
+                         value = left(value,2)
+                       end
+           end
+  if ans = d2c(13) then break
+  if index("1234567890",ans)=0 then nop
+    else do
+           if ans = 0 & value = 0 then iterate
+           if (ans + (10 * value)) > curmax then iterate
+           if value = 0 then
+             do
+               value = ans
+               sendstring ans
+             end
+           else do
+               value = value||ans
+               sendstring ans
+                end
+          end
+  end
+transmit ""
+return value
+
+
+YESNO:
+  do forever
+    GETCHAR
+    ans = upper(result)
+    if ans = "Y" then
+      do
+        transmit "Yes"
+        return 1
+      end
+    if ans = "N" then
+      do
+        transmit "No"
+        return 0
+      end
+    if ans = d2c(13) then
+      do
+        if arg() = 0 then iterate
+        ans = arg(1)
+        if ans = 1 | ans = 0 then nop
+          else ans = 0
+        if ans = "Y" then transmit "Yes"
+          else transmit "No"
+        return ans
+      end
+  end
+return 0
+
+
+SETSTRING:
+optz = "OPT"
+if voice = "" then nop
+  else optz = optz||"/"||voice
+if pitch = "" then nop
+  else optz = optz||"/"||pitch
+if speed = "" then nop
+  else optz = optz||"/"||speed
+if optz = "OPT" then optz = ""
+return
+
+
+SETVARS:
+  ans = arg(1)
+  if index("mfrn",ans) > 0 then voice = ans
+    else if left(ans,1) = "s" then speed = ans
+      else if left(ans,1) = "p" then pitch = ans
+return
+
+
+READCONFIG:
+if arg() < 2 then return 0
+  else do
+         config = arg(1)
+         version = arg(2)
+       end
+optz   = ""
+if exists(config) then
+  do
+    call open(in,config,"R")
+    if eof(in) then type = ""
+      else type = readln(in)
+    if type = version then
+      do
+        if eof(in) then optz = ""
+          optz = readln(in)
+        call close(in)
+      end
+    else do
+           call close(in)
+           address command "delete "||config
+         end
+  end
+pitch = ""
+voice = ""
+speed = ""
+if optz = "" then nop
+  do
+    parse var optz o "/" s1 "/" s2 "/" s3
+    if s1 = "" then nop
+      else call SETVARS(s1)
+    if s2 = "" then nop
+      else call SETVARS(s2)
+    if s3 = "" then nop
+      else call SETVARS(s3)
+  end
+return
+
+
+SOUND:
+if exists("CNet:Sound") then
+  do
+    call open(sndfile,"CNet:Sound","R")
+    line = readln(sndfile)
+    if upper(line) = "OFF" then line = "OFF"
+      else line = "ON"
+  end
+else line = "ON"
+call close(sndfile)
+return line
+
+
+GETKEY:
+if arg() = 0 then
+  do
+    GETCHAR
+    ans = upper(result)
+    if ans = "###PANIC" then exit
+  end
+else
+  do forever
+    line = arg(1)
+    GETCHAR
+    ans = upper(result)
+    if ans = "###PANIC" then exit
+    if index(line,ans) = 0 then iterate
+    transmit ans
+    leave
+  end
+return ans
+
+
+SETCFG:
+  select
+    when cfg = 0 then
+      do
+        file = ChtConfig
+        vtype = ChtVersion
+        tag = "SpeakerChat.v2.1"
+      end
+    when cfg = 1 then
+      do
+        file = LOnConfig
+        vtype = LOnVersion
+        tag = "SpeakerLogon.v2.1"
+      end
+    otherwise do
+                file = LOffConfig
+                vtype = LOnVersion
+                tag = "SpeakerLogoff.v2.1"
+              end
+    end
+return
+
+
+SAVE:
+if arg() < 3 then
+  do
+    transmit "Error calling SAVE: not enough args"
+    return
+  end
+t = arg(1)
+f = arg(2)
+call open(out,f,"W")
+do i = 1 to t
+  data = arg(2+i)
+  call writeln(out,data)
+end
+call close(out)
+return

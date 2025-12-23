@@ -1,0 +1,329 @@
+
+/*
+
+Shows a list of all CNet-BBS callers' "organization" strings.
+
+Find out who's who.
+
+Are callers even using organization-strings?  What percent are?
+
+> Users of Amiga ShareWare HQ, 810-473-2020, 1:2410/207, as of 05-Apr-96 ...
+>
+> ID## === HANDLE ===      === REAL-NAME ===      === ORGANIZATION ===
+>    1 SysOp               Bill Beogelein         CNet-BBS V3.05 Tester
+>    6 Bern                Bernhard Muller        MACRO
+>   12 Jim Harvey          (=)                    MACRO
+>   13 Jurgen              Jurgen Switalski       Macro
+>   14 Jim Selleck         (=)                    Perspective Software
+>   17 Boomer              Mike Wrobel            Cnet Amiga
+>  285 Kristen Thorsen     (=)                    Colosseum BBS
+>  287 Jim Krzyzak         [PRIVATE]              Crystal Cave BBS
+>  295 Michael Painter     (=)                    TeleCable Targeting
+>  296 Jack Patton         [PRIVATE]              CyberSphere BBS
+> ID## === HANDLE ===      === REAL-NAME ===      === ORGANIZATION ===
+>
+>  435 out of 1464 users have organization-strings. (29%)
+
+Shows handles, real-names (if NOT private), and organization strings.
+
+Runs from the CLI, or online.
+
+===================================================================
+
+Pick installation method #1 or #2.  (You do NOT need to do both.)
+
+Installation Method #1:   (Allows for real-time computing, but is slow.)
+   A) Edit the variables below marked as "SysOp Variables".
+
+   B) Copy Orgz.rexx TO CNet:Rexx/Orgz.rexx
+
+   C) Edit your CNet:BBSmenu file.
+      Onto the END of the list marked "2; Available everywhere",
+      add the following line...
+      > ORGanizations, ORGz | #4 rx CNet:Rexx/Orgz.rexx MIN=1 SORT=6}
+
+
+Installation Method #2:    (Allows for very fast, online execution.)
+   A) Edit the variables below marked as "SysOp Variables".
+
+   B) Copy Orgz.rexx TO CNet:Rexx/Orgz.rexx
+
+   C) Edit your CNet:BBSmenu file.
+      Onto the END of the list marked "2; Available everywhere",
+      add the following line...
+      > ORGanizations, ORGz | {*1 SysText:Orgz.txt}
+
+   D) Set-up a nightly CNet event as:
+      Ports   : 0
+      Weekdays: SMTWRFS
+      Time    : 100
+      Valid   : 1
+      Interval: 0
+      Iterate : 1
+      Type    : Immediate--system idle or not
+      Command : DOS-CMD
+      Args    : rx CNet:Rexx/Orgz.rexx >SysText:Orgz.txt MIN=1 SORT=6
+
+===================================================================
+
+Orgz.rexx allows any of the following options, in any order.
+      MIN=n     : Start at acct #n.  (Use MIN=2 if you wish to skip SysOp acct #1)
+                  ("MIN=?" will prompt user for acct #)
+      MAX=n     : End at acct #n.
+                  ("MAX=?" will prompt user for acct #)
+      NOHANDLES : Do NOT show handles.
+      PRIVATE   : Show real-names, even if 'private'.
+      SMART     : If real-name is 'public', show it.  Otherwise, show handle.
+      ALL       : List all users (even those w/o organization)
+      SORT=6    : Sort the output by handle.
+      SORT=26   : Sort the output by real-name.
+      SORT=49   : Sort the output by organization.
+      SORT=7    : Sort the output by name. (If using NOHANDLES or SMART option)
+      SORT=30   : Sort the output by organization. (If using NOHANDLES or SMART)
+      HELP      : Display this help-text.
+
+(No one other than the SysOp should ever view a list using the "PRIVATE" option.)
+
+=============================================================
+
+Perhaps someone will volunteer to gather together a bunch of
+orgz-lists for various BBS.  Kind of a global "Who's Who".  Placing
+them all into one archive.  (Perhaps renaming each individual list
+into that BBS's phone number.)  My orgz-list is updated automatically
+each week.  You can File-Requ it as "ORGLIST" from 1:2410/207 at any
+time.
+
+$VER: Orgz.rexx 1.0 (7.4.96) 07-Apr-96
+   Fixed version-string date.
+   Released in aminet.
+
+$VER: Orgz.rexx v0.2 Wednesday 14-Sep-94 00:48:59
+   Added SORT=n options.
+   Added ALL option.
+
+$VER: Orgz.rexx v0.1 Tue 13-Sep-94 05:56:35
+   Written and tested with CNet-BBS v3.05c
+
+Future plans:
+   Add BANNER option to display who-banners instead of org-strings.
+   Rename BB's list to "810-473-2020" filename.
+   U/L to "Werner Csanitz@1:2606/543" for testing.
+   Please report all bugs and suggestions.
+
+Author Info:
+   Bill Beogelein
+   Box 530441
+   Livonia, MI 48153
+   BBS 1-810-473-2020 (Note: Areacode changed from 313 to 810)
+   Fido 1:2410/207
+
+Ignore:
+   lz u CNet3:Orgz.LHA CNet:Rexx/Orgz.rexx HELP:BB_CMDS a:zzzBBS SysText:Orgz.txt
+
+*** End of Orgz.doc ***/
+
+/**************** Top of SysOp Variables List *******************/
+
+pri   = -1                  /* Task priority to run at          */
+fname = "SysData:bbs.udata" /* Path/name of your user-data file */
+
+                            /* A note about your BBS.... */
+note  = "Users of Amiga ShareWare HQ, 810-473-2020, 1:2410/207"
+                            /* ...the current date is automatically appended */
+
+/**************** End of SysOp Variables List *******************/
+
+call pragma('PRIORITY', pri)
+options results
+parse arg opts
+
+LF   = '0a'x
+YES  = (1==1)
+NO   = (1==0)
+
+if( opts="" ) then call HelpExit()
+
+o_nohand = GetSwitch(opts, "NOHANDLES", NO)
+o_private= GetSwitch(opts, "PRIVATE"  , NO)
+o_help   = GetSwitch(opts, "HELP"     , NO)
+o_smart  = GetSwitch(opts, "SMART"    , NO)
+o_all    = GetSwitch(opts, "ALL"      , NO)
+/* o_banners= GetSwitch(opts, "BANNERS"  , NO) */
+
+o_sort   = GetArg(opts, "SORT=",     0)    /* Sort on which column? */
+o_min    = GetArg(opts, "MIN=" ,     1)    /* MIN=1     */
+o_max    = GetArg(opts, "MAX=" , 65555)    /* MAX=65555 */
+
+if( o_smart  ) then o_nohand = YES
+
+form  = "ID## === HANDLE ===      === REAL-NAME ===      === ORGANIZATION ==="
+if( o_nohand ) then form = "ID##  === NAME ===           === ORGANIZATION ==="
+
+if( o_min="?" ) then
+do
+   call writeCH(STDOUT, LF "Enter starting acct #: ")
+   o_min = readLN(STDIN)
+end
+
+if( o_max="?" ) then
+do
+   call writeCH(STDOUT, LF "Enter ending acct #  : ")
+   o_max = readLN(STDIN)
+end
+
+if( o_min<1 | o_min="" ) then o_min=1             /* Default is all (1-65555) */
+if( o_max<1 | o_max="" ) then o_max=65555
+
+if( o_help | o_min>o_max ) then call HelpExit()    /* and exit */
+
+if( opts~="" ) then
+do
+   say LF || "*** Orgz.rexx illegal options: " opts
+   call HelpExit()
+end
+
+size = 672           /* Do NOT edit (Size of 1 user-data record) */
+big  = 999999999     /* Arbitrary big # */
+
+if( ~open(fp, fname, 'READ') ) then
+do
+   say LF "*** Can't open" fname "for reading." LF
+   exit
+end
+
+call seek(fp, (o_min-1)*size, 'BEGINNING')     /* Skip these users */
+
+tmpFile1 = "t:Orgz." || pragma('ID') || ".1.tmp"
+tmpFile2 = "t:Orgz." || pragma('ID') || ".2.tmp"
+if( o_sort>0 ) then
+   call open(tmpfp, tmpFile1, 'WRITE')
+else
+   call TopText()
+
+has_orgz = 0; display=0
+do users=o_min to o_max
+   buf  = readCH(fp, size)          /* Read each user's full data in 1 pass */
+
+   if( eof(fp) ) then leave
+
+/* 9997 SysOp     (=)                SysOp of 810-473-2020    Public and same      */
+/* 9998 SysOp                        SysOp of 810-473-2020    Private              */
+/* 9999 SysOp     Bill Beogelein     SysOp of 810-473-2020    Public and different */
+
+   hand = Chop(substr(buf,   5, 21))    /* char Handle[21]  ;   4 i:CNet/CNet.h */
+   name = Chop(substr(buf,  26, 26))    /* char RealName[26];  25 */
+   priv =  c2d(substr(buf, 490,  1))    /* UBYTE private    ; 489 */
+
+/***
+   if( o_banners ) then
+      orgz = Chop(substr(buf, 495, 43))    /* char Banner[43]  ; 494 */
+   else
+***/
+      orgz = Chop(substr(buf, 307, 31))    /* char Organiz[31] ; 306 */
+
+   if( orgz~=""                      ) then has_orgz = has_orgz+1
+
+   if( hand == "!"                   ) then hand = "[DELETED]"
+   if( priv=YES & o_private==NO      ) then name = "[PRIVATE]"
+   if( (name == hand) & o_nohand==NO ) then name = "(=)"
+   if( o_smart & priv==YES           ) then name = hand
+   if( o_all & orgz == ""            ) then orgz = "[NONE]"
+
+   hand = left(hand,19)
+   name = left(name,22)
+
+   if( o_nohand ) then hand=""
+
+   if( orgz ~= "" ) then
+   do
+      display = display+1
+      if( o_sort>0 ) then
+         call writeLN(tmpfp, right(users,4) hand name orgz)
+     else
+         say right(users,4) hand name orgz
+   end
+end
+call close(fp)
+users=users-o_min
+if( o_sort>0 ) then
+do
+   call close(tmpfp)
+   call TopText()
+   address command "Sort" tmpFile1 tmpFile2 "COLSTART" o_sort
+   call ShowFile(tmpFile2)
+   address command "Delete QUIET" tmpFile1 tmpFile2
+end
+call BotText()
+
+exit     /************* End ****************/
+
+DateForm:   PROCEDURE      /* Show the current date as "Wed, 22-Jun-94" */
+   a2=date('NORMAL')                        /* 01 Jan 1990 */
+   a2=delstr(a2, 8, 2)                      /* 01 Jan 90   */
+return translate(a2, "-", " ")              /* 01-Jan-90   */
+
+Chop:  PROCEDURE                            /* Chop string var to 1st \0 */
+   parse arg str
+   p=index(str, '0'x)
+   if(p>0) then p=p-1
+return left(str, p)
+
+GetSwitch:  PROCEDURE   EXPOSE opts  /* o_reset = GetSwitch(opts, "RESET", 0) */
+   parse arg opts, str, def
+   w=find(upper(opts), upper(str))
+   if(w<1) then return def
+   opts=delword(opts, w, 1)
+return ~(def)        /*** End of GetSwitch ***/
+
+GetArg:     PROCEDURE   EXPOSE opts    /* min = GetArg(opts, "MIN=", 10) */
+   parse arg opts, str, def
+   p=pos(upper(str), upper(opts))
+   if(p<1) then return def
+   len=length(str)
+   s=word(substr(opts, p+len),1)
+   opts=delstr(opts, p, len+length(s)+1)
+return s             /*** End of GetArg ***/
+
+TopText:
+   say LF "                     'Orgz' by Bill Beogelein" LF
+   say note || ", as of" DateForm() "..." LF LF || form
+return
+
+BotText:
+   if( display>15 ) then say form
+   avg = trunc(has_orgz*100/users)
+   say LF has_orgz "out of" users "users have organization-strings. (" || avg || "%)"
+return
+
+ShowFile:   PROCEDURE      /* Load and display this file */
+   parse arg fname
+   if(open(fp, fname, 'READ')) then
+   do
+      do forever
+         buf = readLN(fp)
+         if( eof(fp) ) then leave
+         say buf
+      end
+      call close(fp)
+   end
+      else say "*** Can't open" fname "for reading."
+return   /*** End of ShowFile ***/
+
+HelpExit:
+   say LF "'Orgz' by Bill Beogelein" LF
+   say "MIN=n     : Start at acct #n.  (Use MIN=2 if you wish to skip SysOp acct #1.)"
+   say "MAX=n     : End at acct #n.    (MIN=? or MAX=? will prompt user.)"
+   say "NOHANDLES : Do NOT show handles."
+   say "PRIVATE   : Show real-names, even if 'private'."
+   say "SMART     : If real-name is 'public', show it.  Otherwise, show handle."
+   say "ALL       : List all users (even those w/o organization)"
+   say "SORT=6    : Sort the output by handle."
+   say "SORT=26   : Sort the output by real-name."
+   say "SORT=49   : Sort the output by organization."
+   say "SORT=7    : Sort the output by name. (If using NOHANDLES or SMART option)"
+   say "SORT=30   : Sort the output by organization. (If using NOHANDLES or SMART)"
+   say "HELP      : Display this help-text."
+   exit
+return
+
+/*** EOF CNet:Rexx/Orgz.rexx 810-473-2020 ***/

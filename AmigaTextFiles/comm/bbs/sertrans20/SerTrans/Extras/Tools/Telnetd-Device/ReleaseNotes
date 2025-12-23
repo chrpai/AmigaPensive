@@ -1,0 +1,435 @@
+                     RELEASE NOTES FOR TELNETD.DEVICE
+                  ======================================
+
+              *************************************************
+                 VERSION 0 REVISION 165 -- BUILT ON 6 Aug 93
+              *************************************************
+
+Telnet.device requires either AS225 Release 2 or AmiTCP version 2+ to run.
+It also requires Workbench 2.04+ to operate properly.
+
+To install telnetd.device, do the following:
+
+1)  Copy the appropriate version of the device to your DEVS:
+    directory.  The device must be named telnetd.device.  Thus,
+    if you have AS225r2, at a CLI type:
+
+	copy telnetd.AS225.device devs:telnetd.device
+
+    Similarly, the command to use if you are running AmiTCP is:
+
+	copy telnetd.AmiTCP.device devs:telnetd.device
+
+2)  You must create a configuration file for telnetd.device.  For the AS225
+    version, this file is called:
+
+	inet:db/telnetd-device.conf
+
+    The AmiTCP version is called:
+
+	AmiTCP:db/telnetd-device.conf
+
+    Lines in this file may be blank, start with a ';' character (for
+    comment lines) or be a configuration entry.  Configuration entries take
+    the form of:
+
+	<port #> <# units> <access list> [BLACKLIST <blacklist list>]
+
+    <port #>, <# units>, and <access list> are all required.  Specifying
+    blacklist entries is optional.
+
+    <port #> is the TCP/IP port to accept connections on.
+
+    <# units> is the number of units to make available for <port #>
+
+    <access list> is a list of networks to allow access to.  This is not
+    supported yet, and "255.255.255.255" should be used for the time
+    being.
+
+    If you wish to blacklist specific networks or hosts, place the
+    'BLACKLIST' tag on the line and then follow it by blacklist entries.
+    Like the <access list>, blacklist checking is not implemented yet
+    and thus you shouldn't try to specify any blacklist entries at this time.
+    NOTE:  Blacklist entries must be the last thing on the configuration
+    line and must be preceeded by the 'BLACKLIST' tag.
+
+    A sample config entry might look like:
+
+	23 5 255.255.255.255
+
+    This tells telnetd.device to watch TCP/IP port 23 (the standard telnet
+    port), allocating 5 units for that port.  These units can then be
+    accessed as telnetd.device unit 0 -> telnetd.device unit 4.  If
+    another config entry were to follow this one, it's first unit would
+    be access as telnetd.device unit 5.
+
+    NOTE:  THE DEMO VERSION IS RESTRICTED TO PORT 5432 WITH 2 UNITS!
+    The demo version does not make any attempt to read the configuration
+    file.
+
+Now that you've got the device installed, try opening it with a terminal
+program.  You should be able to type AT <carriage return> and have it
+respond with "OK".  Typing AT$ <carriage return> will give you a complete
+list of all AT commands supported by telnetd.device.
+
+To properly monitor a port, you must run as many copies of your
+bbs/whatever software as you specified units for.  I.e., if you asked for 5
+units on port 23 and you want Getty to handle logins, you would run 5
+copies of Getty on telnetd.device unit 0 through telnetd.device unit 4.
+
+When a connection comes in, the supervisor for the TCP/IP port looks to see
+which of its units have been opened.  It then tries to find one that is
+currently available.  If one is free, it hands the connection off to that
+unit.
+
+THIS RELEASE IS STILL A BETA VERSION!!
+
+Known problems:
+	1)  file transfers with C-Net don't work.  I have successfully done
+	    z-modem & other transfers between two terms (one running on
+	    telnetd.device, the other on tnser.device) though.
+	2)  trying to use Terminus in IGNOREODU mode (thereby making Terminus
+	    use Begin() directly instead of calling DoIO()) results in
+	    character loss and/or incredibly slow throughput.
+	3)  never returns SerErr_BufOverflow or SerErr_DetectedBreak.  It
+	    does set the appropriate bits for this information in io_Status
+	    when a SDCMD_QUERY is done, though.  I can't find any
+	    documentation that states exactly how these errors are
+	    handled.  If anyone knows, please e-mail me.
+	4)  the clients I have ignore my request for binary mode.  thus,
+	    you have to specify binary on the client before telneting into
+	    telnetd.device if you want a full 8-bit clean pathway.  if
+	    someone knows how to kick a client into binary mode remotely,
+	    please e-mail me.
+
+Still more or less untested:
+	1)  serial code that makes use of SERF_EOFMODE
+	2)  support for the ASDG serial.device extension SIOCMD_SETCTRLLINES
+	3)  CMD_RESET, CMD_STOP, CMD_START, & CMD_FLUSH IO requests.
+	4)  detection of a break signal from the other side (i.e.,
+	    when telnetd.device sees IAC BREAK, IAC AO, or IAC IP it
+	    should indicate that a break signal has been seen.
+	5)  banging on this from various Unix varients of telnet to see
+	    if there are any problems with my options negotiations.
+	6)  the AmiTCP version has not been tested at all since I don't
+	    have the ability to run the AmiTCP protocol stack.
+
+Other notes:
+	1)  telnetd.device reports the baud rate at connect time based on
+	    the speed reported by the other side via the TELOPT_TSPEED
+	    option.  If the other side doesn't support TELOPT_TSPEED, the
+	    device will report 19200 as a fallback.  Note that the
+	    TELOPT_TSPEED handling hasn't been tested yet since I don't
+	    actually have a telnet client that supports this option... :-)
+	2)  the ASDG serial.device extension SIOCMD_SETCTRLLINES is
+	    supported.  However, I don't have any software that makes use
+	    of this so haven't been able to test it.  The way it should
+	    work, though, is this:
+
+		the RTS options are basically ignored, except that they
+		will toggle the RTS line state reported by SDCMD_QUERY.
+		RTS doesn't really map to anything in telnet.
+
+		if DTR is turned off, the device should hang up the
+		connection.  it should also not allow any new connections
+		on the unit until DTR is turned back on.  If there was
+		no connection at the time DTR was turned off, the unit
+		should notify the supervisor that it can't accept any
+		new connections.
+
+		if DTR is turned on, the unit should inform the
+		supervisor that it is now read to accept another
+		connection.
+
+		when a CMD_RESET is done, RTS and DTR should both be
+		reset to ON status, notifying the supervisor as
+		appropriate.
+
+	3)  telnetd.device provides a full 8-bit clean pathway (provided
+	    the client asked for binary mode).  it does not do any line
+	    ending translations, etc, as is normally done.  it assumes
+	    that the software one is running on top of it does the
+	    translations needed.  Since this is normally done anyway
+	    when talking to a modem, BBS software or programs like Getty
+	    generally do this anyway and this shouldn't be a problem.
+
+
+              **************************************************
+                 VERSION 0 REVISION 241 -- BUILT ON 14 Aug 93
+              **************************************************
+
+Minor change made to the telnet receive code which should result in less
+overhead in the buffer management routines.  Resulted in a boost of about
+700 CPS on ZModem file transfers between two terms running on the same
+machine.
+
+Lowered the stack size given to the supervisor and unit processes to 8192
+bytes.
+
+CMD_READ code updated to better support EOFMODE requests.
+
+CMD_READ now returns SerErr_BufOverfload and SerErr_DetectedBreak.  The
+appropriate flags are cleared in the io_Status field when these are
+returned, so a SDCMD_QUERY right after one of these errors is returned will
+not indicate the condition.  SDCMD_QUERYs done when no CMD_READ has been
+posted will indicate these conditions (and clear them).
+
+Implemented changes necessary to BeginIO to make it do CMD_READ immediate
+when there are no pending read requests and the buffer has enough
+characters in it to satisfy the read request without having to block.  This
+fixed the problem with Terminus having very slow io/dropping characters
+when calling BeginIO directly (i.e., when it is in Ignore ODU mode).  This
+also improved the situation with C-Net file transfers failing, but did not
+totally solve the problem with C-Net.
+
+
+              **************************************************
+                 VERSION 0 REVISION 259 -- BUILT ON 17 Aug 93
+              **************************************************
+
+Added rate pacing support in an attempt to fix downloads over a terminal
+server.  telnetd.device would dump data to the terminal server at full
+ethernet speed.  The terminal server would then have to downspeed to the
+modem speed, and overruns often occured.  Pacing keeps telnetd.device from
+blasting away at the terminal server.  Unfortunately, pacing didn't seem to
+fix the problems with the NetBlazer.  Sigh.  Pacing support is being left
+in, however, in case someone else finds it useful.
+
+Pacing is optional on a per TCP port basis.  If no pacing is specified, no
+pacing will be done.  If PACERATE is 0, then pacing will be done at the
+rate reported by TELOPT_TSPEED.  Otherwise, pacing will be done at the rate
+specified.  So, taking the earlier example of 5 units on port 23, a
+similiar config entry that paces data output at 19200 baud would look like:
+
+	23 5 PACERATE 19200 255.255.255.255
+
+Data being received from the client is not paced.  Only data being output
+to the client is.
+
+Recomendations on how to set PACERATE are as follows:
+
+	1) If you experience to problems with overrun then do not
+	   specify a PACERATE at all.  This will give maximum throughput
+	   and reduce the driver's overhead a bit as well.
+
+	2) If you experience overrun problems and have clients that
+	   fully support the TELOPT_TSPEED negotation, then set
+	   PACERATE to 0.
+
+	3) If you experience overrun problems, but have clients that
+	   do not support the TELOPT_TSPEED option, you must set the
+	   pace rate manually.  For high speed modems, you probably
+	   want to set it to 38400 or 19200.  For slow modems, you
+	   want to to set it at 2400 - 9600 most likely.  If you
+	   have people connecting to a terminal server and then into
+	   a BBS, you might create bbs24 and bbs192 aliases on the
+	   terminal server that connect to different ports on the
+	   BBS.  These ports would then have difference pace rates
+	   set.
+
+NOTE:  THE DEMO VERSION IS FIXED AT A PACE RATE OF 9600 BAUD!
+
+              **************************************************
+                 VERSION 0 REVISION 282 -- BUILT ON 18 Aug 93
+              **************************************************
+
+Thanks to agnet.device in the release version of AmiTCP v2, I am now able
+to run AmiTCP and AS225 on the same machine concurrently.  This has made it
+possible for me to test the AmiTCP version of the device, which appears to
+work exactly the same as the AS225 version (which is should).  Yeah!
+
+There is, however, a bug in AmiTCP v2's WaitSelect() command that prevents
+it from waiting on a timeout value properly.  Because of this, the delay
+that should occur between RINGs does not occur since WaitSelect() returns
+timeout immediately.  This doesn't seem to affect the useability of the
+device, though.  I have reported the bug to the AmiTCP guys.  Jarno also
+tells me there is a bug in AmiTCP's gethostbyaddr() routine that can cause
+problems.  Thus, Caller ID output may be trashed sometimes.
+
+Now defaults to ATE1 (echo on) at the request of several people. *sigh*
+I've always prefered echo off, myself.
+
+Implemented access restriction checking.  At this time, subnet checking is
+not possible, however.  Entries for the access list and the blacklist list
+should be entered in the following manner:
+
+	if the entry is a net, enter only the net portion of the address.
+	i.e., enter 128.135 only for the net 128.135.0.0.
+
+	if the entry is a host, enter the full IP address for the host.
+	i.e., 128.135.72.6.
+
+	if you are intending to specify a net, and instead specify a
+	net + local address (i.e., 128.135.72, in this case a sub-net
+	of 128.135), then telnetd.device will interpret this as a host
+	entry and no-one from the net will be able to connect (except
+	for the machine with IP address 128.135.72.0 in this example).
+
+The access list must be specified.  If you wish to allow access to all
+nets, specify a single entry of 255.255.255.255.  Since the blacklist list
+is optional, you should not specify it unless you actually wish to
+blacklist someone.
+
+A couple of example configuration lines follow.  All specify TCP/IP port 23
+with 5 units.
+
+	23 5 255.255.255.255 blacklist 128.135
+	this would allow any machine except for those in the net
+	128.135 to connect to the machine.
+
+	23 5 128.135
+	allow only those in the net 128.135 to connect.
+
+	23 5 128.135 128.248 131.193 blacklist 128.135.72.6
+	allow any machine in the nets 128.135, 128.248, & 131.193 to
+	connect with the exception of the specific machine 128.135.72.6.
+
+NOTE: THE DEMO VERSION RESTRICTS ACCESS TO THOSE MACHINES ON YOUR LOCAL NET!
+
+State related to the AT command parser is now stored by the supervisor
+process rather than the individual unit.  Now, when you hang the unit up by
+closing & then reopening it (standard CBM hangup procedure), the unit will
+remember your AT command settings as well as the last caller information.
+Before, the unit would reinitialize this state information each time it was
+opened, and thus this information would be lost from one opening of the
+unit to the next.
+
+The new method is not totally fool-proof, however.  If the unit you are
+setting options in is the only unit open, then closing and reopening it
+will cause the AT command set to be reset.  This is because telnetd.device
+shuts down all supervisors when the last unit open is closed.  Thus, the
+supervisor goes away and so does the state information.  This is not viewed
+as a significant problem, however, as most usage of telnetd.device will
+have more than one unit open at the same time.
+
+              **************************************************
+                 VERSION 0 REVISION 298 -- BUILT ON 29 Aug 93
+              **************************************************
+
+This is a release candidate.  The device basically hasn't changed since
+the last build.  More testing was done, though.  Found a bug in the delayed
+expunge handling.  On Mike Sinz' recommendation, the device no longer
+supports delayed expunge.
+
+I have also created a .texinfo file of the documentation.  This gives both
+an AmigaGuide file as well as beautiful text output via TeX.  The DVI file
+is included.  I may include a postscript file generated from the DVI in
+registered versions if people ask me for it since not everyone has a
+program that can deal with DVI files.
+
+               ************************************************
+                  VERSION 1 REVISION 0 -- BUILT ON 31 Aug 93
+               ************************************************
+
+First public release!
+
+              *************************************************
+                 VERSION 1 REVISION 46 -- BUILT ON 11 Oct 93
+              *************************************************
+
+Add support for accepting rlogin connections as well as the telnet
+connections that telnetd.device has previously known about.
+
+To get telnetd.device to watch a port number in rlogind mode, specify the
+'RLOGIND' keyword in the configuration file.  The standard rlogind port is
+513, so the line
+
+	513 5 255.255.255.255 rlogind
+
+would allocate five units on the standard rlogind port to accept rlogin
+connections.
+
+NOTE: THE DEMO VERSION IS NOT CAPABLE OF ACCEPTING RLOGIN CONNECTIONS!
+
+Modified the makefile to build 68000 and 68020 versions of the device.
+
+              *************************************************
+                 VERSION 1 REVISION 57 -- BUILT ON 27 Dec 93
+              *************************************************
+
+The telnet mode will now time out after five seconds if no TELOPT_ECHO
+response is seen.  This allows (*seriously*) broken telnet clients (that
+can't really be called telnet clients at all) to connect to the device.
+Previous versions would wait indefinately (or until the connection was
+closed by the other side) for the TELOPT_ECHO negotiation to be acked.
+
+              *************************************************
+                 VERSION 1 REVISION 65 -- BUILT ON 19 Jan 94
+              *************************************************
+
+telnetd.device now supports the ATH modem command.   It is primarily
+intended to allow BBS programs to mark a unit as in-use.  Thus, if the
+system does a local login on a port, the BBS can send ATH1 to take the unit
+off-line.  Incoming connections will then automatically roll over to the
+next available unit.
+
+               ************************************************
+                  VERSION 1 REVISION 73 -- BUILT ON 7 Feb 94
+               ************************************************
+
+Now compiled with SAS/C 6.51.
+
+Added AT*B command.  This will dump byte count statistics for the last
+connection.  Specifically, it will show bytes received, bytes sent, and
+the total of these two counts.
+
+              *************************************************
+                 VERSION 1 REVISION 91 -- BUILT ON 23 Nov 94
+              *************************************************
+
+Added a loging feature to the device.  There is a new keyword that can be
+specified for each configuration entry:  LOGFILE.  This names a file to be
+written to each time a connection is dropped.  The information written to
+the logfile is:
+
+(Date Time) <port number> <unit number on port> <user name>@<host> (<host ip>)
+	<connect time> <connect date> <bytes received> <bytes transmitted>
+
+(All on one line, of course.)
+
+<user name> is only available for rlogin connections, and will be blank for
+telnet connections.
+
+A sample configuration line that uses the LOGFILE keyword might be:
+
+23 5 255.255.255.255 logfile inet:telnetd.log
+
+More than one configuration entry can point at the same logfile.  The
+device will internally lock around writes to the log to prevent the logfile
+from being clobbered.  If you have OwnDevUnit.library installed, it will
+also lock the logfile using that so that utilities such as the AmigaUUCP
+"trimfile" command will not be able to interfere with log updates, either.
+For this to work properly, however, you need at least version 2.1 of
+OwnDevUnit.library.
+
+-----
+
+Added new keyword to the configuration file:  RLOGIND-8.  If specified,
+units serviced by this port will run with a bastardized version of the
+rlogin protocol were all options negotations are ignored and treated as
+data.  This was done as an attempt to allow people running BBS' using a
+NetBlazer as their modem rack to accept uploads without problems (the
+NetBlazer's telnet is whacked when it comes to downloads, and there's
+nothing I've been able to find that will get around this).
+
+-----
+
+Added new keyword to the configuration file:  ANSWERTIMEOUT.  This keyword
+can be used to specify a maximum time (in seconds) a unit can "ring" for
+before telnetd.device tries moving on to the next unit managed by the
+supervisor. Consider what happens when the program monitoring a given unit
+hangs and the person that was connected to it disconnects.  New connection
+attempts will find that the unit is available, and start ringing it.
+However, since the program has crashed, it will never answer the RING
+messages.  Thus, the connect will appear to hang.  This keyword allows one to
+specify a number of seconds that a unit must "answer" within.  If it does not
+answer, the supervisor will try finding another unit to service the
+connection and start ringing it.  Note: this keyword is useless for units
+which are set to auto-answer.
+
+-----
+
+Fixed a bug in the receive routine that could crash telnetd.device,
+particularily on heavilly loaded systems.  Thanks to Geoff and Mark at
+Equinox Networks for providing the Enforcer hit information that helped
+pinpoint the problem.

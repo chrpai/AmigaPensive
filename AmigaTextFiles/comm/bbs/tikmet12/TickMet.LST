@@ -1,0 +1,481 @@
+versnum$="$VER: TickMet 1.2kyj"
+versnum$="1.2"
+versdate$="09-Dec-94"
+'
+MODE 1
+esc$=CHR$(27)
+de$=CHR$(8)+" "+CHR$(8)
+DIM ansi$(10)
+'
+GOSUB setansi
+GOSUB getmetconfig
+'
+OPEN "O",#1,"*",0
+RELSEEK #1,0
+'
+'
+PRINT #1,""
+PRINT #1,ansi$(3)+"        ---------"+ansi$(2)+"Tick"+ansi$(0)+" - "+ansi$(2)+"Met"+ansi$(3)+"---------"
+PRINT #1,ansi$(0)+"        Vers "+versnum$+"   "+ansi$(3)+"by PD  "+ansi$(0)+versdate$
+PRINT #1,""
+'
+@parsecmd
+'
+IF abort!=TRUE
+  PRINT #1,""
+  PRINT #1,ansi$(2)+"ERROR! "+ansi$(3);
+  IF blat%=3
+    PRINT #1,"Command line missing or truncated."
+  ELSE IF blat%=4
+    PRINT #1,"Insufficient arguments."
+  ENDIF
+  PRINT #1,""
+  PRINT #1,ansi$(3)+"Usage:    "+ansi$(0)+"TickMet <name> <path> <area> <length> <desc>"
+  PRINT #1,""
+  PRINT #1,ansi$(3)+"From Tick.cfg: "+ansi$(0)+"EXECUTE "+CHR$(34)+"<path>TickMet %n %p %a %l %d"+CHR$(34)
+  RELSEEK #1,0
+  GOTO bye
+ENDIF
+'
+'
+fname$=iname$
+PRINT #1,"        Filename      : "+fname$
+RELSEEK #1,0
+fpath$=ipath$
+PRINT #1,ansi$(0)
+PRINT #1,"        Directory     : "+fpath$
+RELSEEK #1,0
+'
+@parseconfig
+'
+IF abort!=TRUE
+  PRINT #1,ansi$(2)+"ERROR! "+ansi$(3);
+  IF blat%=1
+    PRINT #1,"Udfiles/File.areas not found."
+  ELSE IF blat%=2
+    PRINT #1,"Number of items in 'file.areas' not a multiple of 5."
+  ENDIF
+  RELSEEK #1,0
+  GOTO skipmetro
+ENDIF
+'
+'
+k%=0
+WHILE k%<numareas%
+  INC k%
+  IF cfg$(1,k%)=ipath$
+    selkey$=cfg$(0,k%)
+  ENDIF
+  EXIT IF cfg$(1,k%)=ipath$
+WEND
+'
+IF selkey$=""
+  PRINT #1,""
+  PRINT #1,ansi$(2)+"ERROR! "+ansi$(3)+"No area found for this file."
+  RELSEEK #1,0
+  GOTO bye
+ENDIF
+'
+xx$=ufd$+"udfiles/FileList_"+selkey$
+IF EXIST(xx$)
+  OPEN "I",#2,xx$,204
+  topfile%=LOF(#2)/204
+  CLOSE #2
+ELSE
+  topfile%=0
+ENDIF
+'
+fbyte$=ibyte$
+PRINT #1,"        File Size     : "+fbyte$
+PRINT #1,"        File Number   : "+STR$(topfile%+1)
+GOSUB dateconv(DATE$)
+fdate$=pd.date$
+PRINT #1,"        Date Sent     : "+fdate$
+fsent$=isent$
+PRINT #1,"        Uploader      : "+fsent$
+RELSEEK #1,0
+'
+OPEN "I",#2,sfd$+"BBSFILES/index"
+LINE INPUT #2,xx$
+CLOSE #2
+findx$=xx$
+PRINT #1,"        Index Number  : "+findx$
+'
+fdesc$=idesc$
+PRINT #1,"        Description   : "+LEFT$(idesc$,45)+"..."
+PRINT #1,""
+RELSEEK #1,0
+'
+IF topfile%>495
+  PRINT #1,""
+  PRINT #1,ansi$(2)+"ERROR! "+ansi$(3)+"Over 495 files already in this area!"
+  RELSEEK #1,0
+  GOTO skipmetro
+ENDIF
+'
+'
+' Get rid of the < signs which were causing file redirection probs in GFA
+'
+kly%=INSTR(fdesc$,"<")
+WHILE kly%<>0
+  ttt$=LEFT$(fdesc$,kly%-1)
+  ttt$=ttt$+"("+MID$(fdesc$,kly%+1,100)
+  fdesc$=ttt$
+  kly%=INSTR(fdesc$,"<")
+WEND
+'
+' Here's where we actually DO add the file into the listing..
+'
+@udfileprep
+@udfileput(topfile%+1)
+CLOSE #3
+'
+' find the HiFile number..
+'
+IF EXIST(sfd$+"BBSFILES/hifile")
+  OPEN "I",#2,sfd$+"BBSFILES/hifile",20
+  LINE INPUT #2,hifile$
+  CLOSE #2
+ELSE
+  hifile$="0"
+ENDIF
+'
+' and set the (useless) hdf X file - huh!  Not any more!
+'
+' Increment the HiFile number..
+'
+OPEN "O",#2,sfd$+"BBSFILES/hifile",20
+PRINT #2,VAL(hifile$)+1
+CLOSE #2
+'
+PRINT #1,ansi$(0)+"        * Added file to Metro area succesfully."
+RELSEEK #1,0
+'
+'
+skipmetro:
+'
+IF EXIST("MAIL:TickMet.cfg")
+  OPEN "I",#2,"MAIL:TickMet.cfg",64
+  LINE INPUT #2,entries$
+  LINE INPUT #2,fileout$
+  CLOSE #2
+  '
+  entries%=VAL(entries$)
+  IF (entries%>500) OR (entries%<1)
+    GOTO bye
+  ENDIF
+  '
+  PRINT #1,"        * Writing to 'Last "+entries$+" Files' list...";
+  '
+  IF NOT EXIST(fileout$)
+    OPEN "O",#2,fileout$,4096
+    PRINT #2,"----"
+    PRINT #2,"File: ";fname$
+    PRINT #2,"Size: ";fbyte$
+    PRINT #2,"Date: ";fdate$
+    PRINT #2,"Area: ";fsent$
+    PRINT #2,"Desc: ";LEFT$(fdesc$,72)
+    '
+    CLOSE #2
+    '
+  ELSE
+    '
+    DIM lastline$(entries%)
+    DIM lastfile$(entries%)
+    DIM lastsize$(entries%)
+    DIM lastdate$(entries%)
+    DIM lastarea$(entries%)
+    DIM lastdesc$(entries%)
+    '
+    OPEN "I",#2,fileout$,4096
+    '
+    count%=0
+    '
+    WHILE NOT EOF(#2)
+      INC count%
+      LINE INPUT #2,lastline$(count%)
+      EXIT IF EOF(#2)
+      LINE INPUT #2,lastfile$(count%)
+      EXIT IF EOF(#2)
+      LINE INPUT #2,lastsize$(count%)
+      EXIT IF EOF(#2)
+      LINE INPUT #2,lastdate$(count%)
+      EXIT IF EOF(#2)
+      LINE INPUT #2,lastarea$(count%)
+      EXIT IF EOF(#2)
+      LINE INPUT #2,lastdesc$(count%)
+      EXIT IF EOF(#2)
+      '
+      EXIT IF count%>=entries%
+      '
+    WEND
+    CLOSE #2
+    '
+    INSERT lastline$(1)="----"
+    INSERT lastfile$(1)="File: "+fname$
+    INSERT lastsize$(1)="Size: "+fbyte$
+    INSERT lastdate$(1)="Date: "+fdate$
+    INSERT lastarea$(1)="Area: "+fsent$
+    INSERT lastdesc$(1)="Desc: "+LEFT$(fdesc$,72)
+    '
+    OPEN "O",#2,fileout$,4096
+    '
+    FOR k%=1 TO entries%
+      PRINT #2,lastline$(k%)
+      PRINT #2,lastfile$(k%)
+      PRINT #2,lastsize$(k%)
+      PRINT #2,lastdate$(k%)
+      PRINT #2,lastarea$(k%)
+      PRINT #2,lastdesc$(k%)
+    NEXT k%
+    CLOSE #2
+    '
+  ENDIF
+  '
+  PRINT #1,"...done!"
+  RELSEEK #1,0
+  '
+ENDIF
+'
+'
+'
+bye:
+PRINT #1,ansi$(0);
+CLOSE #1
+END
+'
+'
+'
+'
+'
+'
+PROCEDURE parsecmd
+  '
+  LOCAL k%
+  '
+  abort!=FALSE
+  aa$=TRIM$(_dosCmd$)
+  IF LEN(aa$)<5
+    abort!=TRUE
+    blat%=3
+    GOTO parsecmdexit
+  ENDIF
+  '
+  spc%=0
+  FOR k%=1 TO LEN(aa$)
+    IF MID$(aa$,k%,1)=" "
+      INC spc%
+    ENDIF
+  NEXT k%
+  '
+  IF spc%<4
+    abort!=TRUE
+    blat%=4
+    GOTO parsecmdexit
+  ENDIF
+  '
+  xx%=INSTR(aa$," ")
+  iname$=TRIM$(UPPER$(LEFT$(aa$,xx%)))
+  aa$=RIGHT$(aa$,LEN(aa$)-xx%)
+  aa$=TRIM$(aa$)
+  '
+  xx%=INSTR(aa$," ")
+  ipath$=TRIM$(UPPER$(LEFT$(aa$,xx%)))
+  IF RIGHT$(ipath$,1)<>"/"
+    ipath$=ipath$+"/"
+  ENDIF
+  aa$=RIGHT$(aa$,LEN(aa$)-xx%)
+  aa$=TRIM$(aa$)
+  '
+  xx%=INSTR(aa$," ")
+  isent$=UPPER$(LEFT$(aa$,xx%))
+  aa$=RIGHT$(aa$,LEN(aa$)-xx%)
+  aa$=TRIM$(aa$)
+  '
+  xx%=INSTR(aa$," ")
+  ibyte$=LEFT$(aa$,xx%)
+  aa$=RIGHT$(aa$,LEN(aa$)-xx%)
+  '
+  idesc$=TRIM$(aa$)
+  IF ASC(RIGHT$(idesc$,1))<31
+    idesc$=LEFT$(idesc$,LEN(idesc$)-1)
+  ENDIF
+  '
+  parsecmdexit:
+  '
+RETURN
+'
+PROCEDURE parseconfig
+  abort!=FALSE
+  IF NOT EXIST(ufd$+"Udfiles/file.areas")
+    abort!=TRUE
+    blat%=1
+    GOTO parseconfigexit
+  ENDIF
+  '
+  lncount%=0
+  OPEN "I",#2,ufd$+"Udfiles/file.areas",4096
+  WHILE NOT EOF(#2)
+    LINE INPUT #2,xxx$
+    INC lncount%
+  WEND
+  CLOSE #2
+  '
+  xx=lncount%/5
+  '
+  IF xx<>INT(lncount%/5)
+    abort!=TRUE
+    blat%=2
+    GOTO parseconfigexit
+  ENDIF
+  '
+  numareas%=lncount%/5
+  xx%=0
+  DIM cfg$(1,numareas%)
+  OPEN "I",#2,ufd$+"Udfiles/file.areas",4096
+  WHILE NOT EOF(#2)
+    INC xx%
+    LINE INPUT #2,garb$
+    LINE INPUT #2,garb$
+    LINE INPUT #2,cfg$(0,xx%)
+    ' /\ The keypress
+    LINE INPUT #2,garb$
+    LINE INPUT #2,cfg$(1,xx%)
+    ' /\ The directory name
+    '
+    cfg$(0,xx%)=TRIM$(UPPER$(cfg$(0,xx%)))
+    cfg$(1,xx%)=TRIM$(UPPER$(cfg$(1,xx%)))
+    IF RIGHT$(cfg$(1,xx%),1)<>":"
+      IF RIGHT$(cfg$(1,xx%),1)<>"/"
+        cfg$(1,xx%)=cfg$(1,xx%)+"/"
+      ENDIF
+    ENDIF
+  WEND
+  CLOSE #2
+  '
+  parseconfigexit:
+  '
+RETURN
+'
+'
+'
+'
+PROCEDURE udfileprep
+  OPEN "R",#3,ufd$+"udfiles/FileList_"+selkey$,204
+  FIELD #3,11 AS fin$,25 AS ffn$,76 AS fds$,7 AS fby$,10 AS fda$,25 AS fsb$,50 AS fpa$
+RETURN
+'
+'
+PROCEDURE udfileput(uu%)
+  LSET fin$=findx$
+  LSET ffn$=fname$
+  LSET fds$=fdesc$
+  LSET fby$=fbyte$
+  LSET fda$=fdate$
+  LSET fsb$=fsent$
+  LSET fpa$=fpath$
+  PUT #3,uu%
+RETURN
+'
+PROCEDURE setansi
+  '
+  ansi$(1)=esc$+"[31m"
+  ansi$(2)=esc$+"[32m"
+  ansi$(3)=esc$+"[33m"
+  ansi$(4)=esc$+"[34m"
+  ansi$(0)=esc$+"[0m"
+RETURN
+'
+PROCEDURE dateconv(pddt$)
+  '
+  ' converts date to Fido style DD-Mmm-YY
+  ' string to use is pd.date$
+  '
+  LOCAL pd.temp$,pd.date1$,pd.date2$,pd.date3$,pd.month%,pd.month$
+  '
+  ' (Only thing this returns is the pd.date$)
+  '
+  pd.date1$=LEFT$(pddt$,2)
+  pd.date2$=MID$(pddt$,4,2)
+  pd.date3$=RIGHT$(pddt$,2)
+  pd.month%=VAL(pddt$)
+  '
+  SELECT pd.month%
+    '
+  CASE 1
+    pd.month$="Jan"
+  CASE 2
+    pd.month$="Feb"
+  CASE 3
+    pd.month$="Mar"
+  CASE 4
+    pd.month$="Apr"
+  CASE 5
+    pd.month$="May"
+  CASE 6
+    pd.month$="Jun"
+  CASE 7
+    pd.month$="Jul"
+  CASE 8
+    pd.month$="Aug"
+  CASE 9
+    pd.month$="Sep"
+  CASE 10
+    pd.month$="Oct"
+  CASE 11
+    pd.month$="Nov"
+  CASE 12
+    pd.month$="Dec"
+  DEFAULT
+    pd.month$="???"
+  ENDSELECT
+  pd.date$=pd.date2$+"-"+pd.month$+"-"+pd.date3$
+  '
+RETURN
+'
+'
+PROCEDURE getmetconfig
+  '
+  IF EXIST("S:Metro.cfg")
+    config$="S:Metro.cfg"
+  ELSE IF EXIST("BBS:Metro.cfg")
+    config$="BBS:Metro.cfg"
+  ELSE IF EXIST("Metro.cfg")
+    config$="Metro.cfg"
+  ELSE
+    config$="XXX"
+  ENDIF
+  '
+  ' Defaults
+  '
+  sfd$="BBS:"
+  ufd$="BBS:"
+  IF config$<>"XXX"
+    '
+    OPEN "I",#2,config$,128
+    DO WHILE (NOT EOF(#2))
+      LINE INPUT #2,xx$
+      xx$=TRIM$(xx$)
+      xxu$=UPPER$(xx$)
+      '
+      IF xxu$="" OR LEFT$(xxu$,1)=";"
+        ' Do nothing
+      ELSE IF LEFT$(xxu$,8)="FILEPATH"
+        xx$=MID$(xx$,9,255)
+        xx$=TRIM$(xx$)
+        IF RIGHT$(xx$,1)<>"/" AND RIGHT$(xx$,1)<>":"
+          xx$=xx$+"/"
+        ENDIF
+        ufd$=xx$
+      ENDIF
+      '
+    LOOP UNTIL EOF(#2)
+    CLOSE #2
+  ELSE
+    END
+  ENDIF
+  '
+  '
+RETURN
+'
+'

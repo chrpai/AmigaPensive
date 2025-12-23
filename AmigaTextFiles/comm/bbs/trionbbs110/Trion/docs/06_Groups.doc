@@ -1,0 +1,178 @@
+
+
+  Introduction
+  ------------
+
+   This chapter discusses the mail and file groups, which are
+   sub lists of sections, so that you can read new mail in
+   a group of sections with one command.
+
+
+  History
+  -------
+
+   Had a real long think about how to do it RIGHT and implemented
+   more or less optional Group support. Groups (of mail or
+   file sections) could be easy if you have many sections.
+   It would be easier if a (sub) list of sections would fit
+   on one screen. Or why should an PC user see all the new
+   Amiga files (and vice versa).
+
+   From what I have seen from systems as RemoteAccess and FrontDoor
+   (MS-DOS programmas I toyed with more then half a decade ago)
+   every sections has a character (a-z) to indicate to which group
+   they belong.
+   Which has its drawbacks, I have to change all programms because
+   the way sections are dealt with are changed, and what if you have
+   a Fido-netmail section, do you add it to the net-mail group or
+   to the Fido (echomail) group ?? Well .. wouldn't both be nice.
+   Or what if you would make a group with all programming sections
+   of all the mail nets you get.
+   Or how about a group with ALL sections, which is also
+   usefull for people (users or sysops) who don't want to use groups.
+
+   So I added Group Support to TrionRM, programms that require
+   this option can get the information they need from TrionRM.
+   (Which is basically a couple of "Get Group Info" commands like:
+    GetFirstGroup, GetNextGroup, GetGroupOnNumber)
+
+   With this system, the support for groups is separated from the
+   support for file and message sections. So nothing has to be
+   changed to programms like the mail processor, Areafix (which
+   has its own group system) and Allfiles.
+
+   Also because of the way the BBS is written this system was
+   very easy to implement. Altough the code in the BBS programm
+   itself for messages and files is like 100KB+ C-code each.
+   The BBS programm uses a few functions to get the first
+   and next section to process. This is done because there
+   has to be checked if a user has access to a section.
+   For groups this access checking had to be extended with
+   group checking.
+
+   When you don't want to Use groups you don't have to change
+   a thing. When there isn't a "trion:cfg/groups.cfg" (or
+   when there isn't a file or msgs group in the cfg) the system
+   makes an "All" group with all sections and the system should
+   work as before.
+
+   Also you could use the system as before and use groups in
+   an other menu. If you have made ANSI screens to select
+   sections you probably don't need groups.
+
+
+  Menu commands for groups
+  ------------------------
+
+    ListFileGroups         (like: ListFileAreas)
+    OtherFileGroup         (like: OtherFileArea)
+    ChangeFileGroup "n"    (like: ChangeFileArea)
+
+    ListMessageGroups      (like: ListMessageAreas)
+    OtherMessageGroup      (like: OtherMessageArea)
+    ChangeMessageGroup "n" (like: ChangeMessageArea)
+
+
+
+Cmd "G"
+   ClrScr
+   ListFileGroups
+   OtherFileGroup
+
+   ClrScr
+   ListFileAreas            ;Or PrintFile "trion:text/FileAreas.ansi"
+   OtherFileArea
+   LogMessage "Changed to file area: ~301."
+EndCmd
+
+Cmd "A"
+   ClrScr
+   ListFileAreas
+;   PrintFile "trion:text/FileAreas.ansi"
+   OtherFileArea
+   LogMessage "Changed to file area: ~301."
+EndCmd
+
+Cmd "O"
+;   ClrScr
+;   ListFileAreas
+   PrintFile "trion:text/FileAreas.ansi"
+   OtherFileArea
+   LogMessage "Changed to file area: ~301."
+EndCmd
+
+
+
+
+    When you want to use Groups you could add the ListFileGroups
+    and OtherFileGroup command to the "other area" command 
+    sequence in a menu. If you don't you get in the first group.
+
+    When you want to make groups optional you could make a new command
+    to change Groups and leave the Change area command as before.
+    When the user logs in he is in the "All" groups and doesn't
+    have to choose a group.
+
+    Or when you really want to annoy users you put the ListGroups
+    and OtherGroup command before the NewFileScan when a user logs
+    in. 
+
+
+   TildeCodes for groups
+   ---------------------
+
+      ~350                  File Group number
+      ~351                  File Group name
+      ~352                  Messages Group number
+      ~353                  Messages Group name
+
+
+
+
+   Configuration
+   -------------
+
+    The "trion:cfg/groups.cfg" is very simple.
+
+    Just have a FILEGROUP or MAILGROUP line folowed with one
+    or more SECTIONS lines.
+    After a group line you put a group number and a group name
+    (separated with a comma !!!).
+    Check the suplied config for reference.
+
+
+FILEGROUP    1 , "All"
+SECTIONS     1 - 65535
+
+FILEGROUP    2,  "Amiga-files"
+SECTIONS     1 - 15 , 20 - 59
+
+FileGroup    3,  "PC-files"
+Sections     1 - 15 , 60 - 99
+
+
+
+MAILGROUP    2 , "Sections on programming"
+SECTIONS     11, 111, 211, 311, 411, 511
+SECTIONS     611, 711, 811
+
+
+    It's important to have the Group "All" as first in the group
+    list to have the system operating as before.
+
+
+    Have an upload area in every file group (which can of cause
+    be the same area in all groups).
+    Note that if you are in a group all the global commands, like
+    newfiles or readGlobalNew work only on the sections in the
+    current group but you can go to all sections with change
+    sections commands. So you can put the ListGroups and
+    OtherGroup command before the newfiles command and the
+    user only sees the files he is really interested in.
+
+
+    You probably also want a menu command to change area without
+    having to change the group. (which is basically a command
+    like you have in use now).
+
+

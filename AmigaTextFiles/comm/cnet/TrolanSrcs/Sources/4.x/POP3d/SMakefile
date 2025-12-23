@@ -1,0 +1,33 @@
+.IGNORE:
+
+OBJS = pop3d.o pop_auth.o
+
+all: pop3d pop3d.doc
+	lha u pop3d.lha $?
+
+pop3d.o: pop3d.c pop3d.h
+	sc pop3d.c nolink
+
+pop_auth.o: pop_auth.c pop3d.h COMPNUM
+	sc pop_auth.c DEF NUM_COMPILE=`type COMPNUM` nolink
+
+pop3d: $(OBJS)
+	sc link $(OBJS) to $@
+
+install: pop3d
+	copy $< Miami:serv
+	copy pop3d.doc //CINS/.Contrib4.x/POP3d/
+
+package:
+	@/MiscUtils/lic
+	@Copy COMPILE COMPNUM
+	@SetEnv COMPNUM `type COMPNUM`
+	@SetEnv COMP_USER `type Reg/\$COMPNUM`
+	@smake all
+	makedir /CNet-INetPackages/`GetEnv COMP_USER`
+	move pop3d.lha /CNet-INetPackages/`GetEnv COMP_USER`/pop3d.lha
+
+package-nolic:
+	@smake all
+	makedir /CNet-INetPackages/`GetEnv COMP_USER`
+	move pop3d.lha /CNet-INetPackages/`GetEnv COMP_USER`/pop3d.lha

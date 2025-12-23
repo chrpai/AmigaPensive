@@ -1,0 +1,1 @@
+/* Place this file in ENV:CNET/ */;options results;getuser 1209388;f='PFILES:FPSAG/FPSAGDIR/'result;if open(1,f,'R') then do;a=readln(1);call close(1);end;else a=0;a=a+1;call open(1,f,'W');call writeln(1,a);call close(1)

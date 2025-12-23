@@ -1,0 +1,396 @@
+
+
+        _____     _                  _     _              _    ___
+       |_   _|_ _(_) ___  _ __      | |__ | |__  ___     / |  / _ \
+         | | | '_| |/ _ \| '_ \     | '_ \| '_ \/ __|    | | | | | |
+         | | | | | | (_) | | | |    | |_) | |_) \__ \    | |_| |_| |
+         |_| |_| |_|\___/|_| |_|    |____/|____/|___/    |_(_)\___/
+
+                        © 1994/98 by Paul Spijkerman
+                             All Rights Reserved
+
+
+     Update from V1.08 to V1.09
+
+
+     Here are some of the things I worked on.
+
+     Note that after Update V1.10 I'm probably going to make
+     a complete V1.10 archive for Aminet so the next update
+     probably consists of little things and docs.
+
+
+
+
+     Utils:   TrionRM, Tick, BBS, Tmp, scheduler
+              FileEd, MailEd, MaintMod, UserEd
+              MiscGui, Attention, AttViewer
+     Doors:   
+     Scripts: Mail
+     Cfg:     MiscGui.cfg, taglines.data   
+
+
+
+   -Changed the list handler a bit so scrolling a lot smoother,
+    it doesn't use the blitter to scroll yet but it looks
+    very good now.
+
+   -Changed the file editor so if you edit the description the
+    line you are editing stays hi-lighted.
+
+   -I must be going blind or something like that, just noticed
+    the MailEd windows are titled "Trion FileEditor" or something
+    like that.
+
+   -Changed the FileEditor.
+    Normally when you go back from the editor the to the filelist
+    the list is emptied en de scroller goes back to full size.
+    It now empties the list but doesn't redraw it until the
+    list is loaded again .. so you don't see the actual
+    loading anymore and you can select the file after
+    the file you just edited without having to go back
+    in the list.
+
+   -Fixed a little bug in the BBS, the total minutes a user
+    is online during all calls was added a number of updates ago
+    but I forgot to clear this field when a new user logs in so
+    a new user "inherited" the number of minutes called from the
+    previous user..
+
+
+   -Changed Tick a bit so it can unpack archives, some PC tick
+    processors make files with a name like 00000000.c00
+    which contains all files and .tic files.
+    When it encounters such a file it tries to Unpack it and
+    then process all the files.
+    It doesn't uses the Archive.cfg because that only extracts
+    the *.pkt files from mail archives.
+    To avoid making a config just for unpacking tick files, it
+    uses the Unpack.cfg .. which was made for the shell unpack
+    Util. The default version of that config has no quiet flags
+    or routing of the output to NIL: so the unarchiving is
+    displayed in the shell. It will unpack archives with the
+    lowest number after de 'c' first.
+
+    Later i heard other PC tick processors make .ZIC archives,
+    which are probably something like "Zipped tIC" archives.
+    So I added a loop that checks for archives with extensions
+    that end with .?IC but don't have .TIC in the name.
+
+    Worked a little bit on different modes for the description
+    lines .. but that isn't finished yet. In normal tic files
+    the descriptions are put on one long line that start with "Desc"
+    but some PC tick processors put descriptions on multiple lines
+    so you can have formatted descriptions (the ANSI drawings
+    and File_id.diz type thingies) .. these are not supported
+    by Amiga tick processors so if there is an Amiga tick
+    processor between you and a PC tick processor you only
+    get the first line of the description which is probably
+    something like the topside of an ANSI-box.
+    So even if this works and you poll a Xlk BBS you still have
+    the single line.
+
+   -Since the last update there was a little problem in TrionRM with
+    the node status not updating when something in a node changed.
+    In the previous version there were more possibilities added to
+    the list handler .. because of this the way a list is accessed
+    was a little changed .. this part in TrionRM was missed when
+    updating to the new standard.
+
+    Also what happend is that the list is now dynamically, you have
+    to make entries at the opening of the window to be able to
+    "update" the entries later.. beats me why there was something
+    in the list in the last version.
+
+   -Fixed a little problem in MaintMod, in the last update I forgot
+    to update a piece of code where the star was added to a line
+    if you clicked on it. Because of this the line wasn't updated
+    with a star but a new line with the star was added.
+    When you started the MaintMod again all was displayed right.
+
+   -Fixed a little thing in TMP ... when an echomail message was
+    Bad because Origin, Seen-by:'s or path was missing to wrote
+    to the log that all 3 things where missing instead of 1 or
+    2 or 3 items.
+
+   -Changed the scheduler a bit so you can optionally op it's window
+    on the TrionRM public screen when you use "ONTRION" on the
+    command line when started.
+ 
+    This has the disadvantage that you can't Iconize the TrionRM
+    window anymore (until you close the Scheduler window).
+    Which is not a problem when you have the TrionRM screen always open.
+
+    Note that it isn't a problem to have the screen always open, but
+    it slows the mail processor a little when unpacking mail because
+    it has to update the screen after each message.
+
+    The Trion:down script still works because it also quits the
+    scheduler.
+
+    Couldn't think of a better way to implement this at this moment,
+    well actually I just thougth of something.
+    Just add to the "event" program commands to Iconize and DeIconize
+    the scheduler and then call the "event" program when TrionRM
+    is Iconized or Deiconized. Have to think if that is a 
+    really smart thing to do.
+
+
+ ! -Taglines And Signatures
+
+    Added flags to the Trion:cfg/MailAreas.cfg to controll of
+    Taglines And Signatures are allowed in message sections.
+
+    So if you allow both you have to add flags to all sections
+    or if you are lucky you can use the "replace" mode in CED
+    and replace "-]" with "TS-]" or something like that.
+    (The - before the ] is necessary if you use the ] in
+     section names like "[Fido] Amiga")
+
+    So this is a list of the existing flags at this moment:
+
+; Flags:        type of area     (use only 1 per area)
+;           L = Local Messages
+;           N = Netmail
+;           E = Echomail
+;
+;               Characteristics of area
+;           A = User may use an alias in this area.
+;           W = Users can write in this area.
+;           O = Obligatory (for areafix) can't disconnect with areafix
+;           I = Internet support (For E-mail)
+;           S = Use signatures in this section
+;           T = Use taglines in the section
+
+
+
+   -Added simple code for Taglines.
+
+    I looked at a few archives that add Tagline support to other
+    BBS programs and they are mostly weird hacks so I added some
+    support to prevent that.
+    That needed separate config files, or they used Signature
+    files so you had to disable Signatures or you got double
+    signatures etc.
+
+    Also there were al sorts of scripts to filter and sort tag files
+    and to make Index files.
+
+    The index files are data files which contains the number of
+    taglines present and the position of each line in the file
+    to guarantee guick acccess.
+    Because when you want to select a Random tagline you first have
+    to know how many lines there are and secondly if you don't want
+    to browse to all lines before the one randomly picked you
+    have to know the position in the file.
+
+    To prevent this I thougth of a simpler methode which works
+    nearly as well but doesn't need the index file.
+
+    I just take the size of the Tagline data file, and make
+    a Random number which selects a Random position in the file.
+    Then I start reading in the file until I find a return.
+    The character at the next position is the start of the
+    selected Tagline !
+    It reads the line and if it is not empty or starts with
+    a ';' it will return this line.
+    If it is empty or starts with a ';' it will read on
+    to find a line which isn't empty or starts with a ';'.
+
+    This methode is quick, i tested it with a 250kb file
+    and you can't measere the access time with a stopwatch.
+
+    However there are a couple of little problems. It isn't
+    as random as the methode with the index file because
+    if a tagline is preceeded with a line tagline it has
+    a sligthly bigger change of being choosen.
+    The second problem is that if the random position is
+    in the last line .. there isn't a tagline it can read.
+    Well .. if that problem occurs it just tries again,
+    with a maximum of 3 tries. Which seems to work fine.
+    Only if you have 30 taglines in a file, after about
+    100 times skipping the presented tagline the code
+    aborts. But hey .. that means that the User already
+    has seen all taglines 3 times !!! So you can also see
+    this as a protection of users against them self if
+    they can't stop looking at your taglines :)
+    With a 250K tagline file the chanches of this happening
+    is very small.
+
+    Note that this is a very simple but funtional implementation,
+    in the near future I probably will look if I can make this
+    into a door so others can make doors for this. But it
+    shouldn't really be necessary. Or make a little GUI for
+    local use where you can select a line from a list of
+    add one.
+
+    Note that the format of the data file are single lines of less
+    than 80 characters, so it selects taglines not paragraphs.
+    Which migth be an option for a next version but I don't know
+    if BIG taglines are apreciated by everyone who has to read them :)
+
+    Note that empty lines or lines beginning with a ';' are skipped.
+
+
+   -Attention and AttViewer
+
+    Some sysops really want to see what is going on in their
+    scripts. You can add "echo" lines to scripts so that you
+    can look at a shell window what is going on but that isn't
+    very convenient.
+    So I made a program which shows a list of lines (AttViewer)
+    that are send to the list by a shell program (Attention).
+
+    The program can be used in two ways:
+
+    You can start the Viewer manually by for instance clicking
+    on a button in MiscGui (see further in this doc).
+    You then call:
+    Attenttion "This is a test"
+    in scripts to make text appear in the list.
+    In this way you can see what is going on as long if you have
+    the Viewer program running.
+
+    The other way is to have Attention start and stop the Viewer in a
+    script. Attention has 3 options:
+        
+    Trion Attention V1.00 (c)1998 Paul Spijkerman.
+    Use : <-options> "Text"
+
+    Options:
+      -O   = Open the Trion Attention Viewer.
+      -Q   = Quit the Trion Attention Viewer.
+      -C   = Clear the Trion Attention Viewer.
+
+    So if you want the viewer to "pop up" during a mail script
+    for instance you would use something like this:
+
+    (If you want to use it manually just remove the -o and -q flags)
+
+
+;;;  Script to proces mail and .TIC files.
+
+;quit
+wait 2
+
+avail flush >nil:
+
+Attention -o "Mail: script started"
+trion  -max  "Mail processor is started, system can be a little slower"
+
+trion:utils/CheckInbound -q
+
+if WARN
+   Attention  "Mail: processor in PACK mode"
+   trion:utils/tmp P -d
+else
+
+   ;;;  process  .TIC files
+
+   Attention  "Mail: Processing tick files"
+   trion:utils/TrionTick  -p -b   -d
+
+   ;CD trion:inbound       ;;; to enable unpacking ARC and ARJ archives
+
+   Attention  "Mail: processor in UNpack mode"
+   trion:utils/tmp  U -c -b -f   -d
+
+   ;CD trion:              ;;; to enable unpacking ARC and ARJ archives
+
+   Attention  "Mail: Areafix started"
+   trion:utils/areafix   F -d
+
+   Attention  "Mail: processor in PACK mode"
+   trion:utils/tmp  P    -d
+
+endif
+
+Attention "Mail: script finished" -q
+trion  -m -a -x  "Mail processor is Finished !"
+
+
+
+
+
+   -Added a Mail(editor) button to the TrionRM window.
+
+   -Added a Misc. button to the TrionRM window, which runs
+    the MiscGui program when clicked.
+
+    Made a little MiscGui program which produces a window
+    with programmable buttons. Like clickit all over again.
+    Very usefull for starting shell things or third party
+    GUI tools. You can for instance put a node number in a
+    button .. and when you click on it it starts a script which
+    DeIconizes the node and gives a call command.
+
+
+    It uses the "Trion:utils/MiscGui.cfg".
+
+    You can use Buttons and text fields which will be arranged
+    in a horizontal row. Until it finds a command to tell it
+    to go to the next row. 
+
+    There are 5 commands.
+
+    TEXT         "some text"
+    BUTTON       "some text"    "command to be executed"
+    NEXTROW
+    QUITBUTTON
+    NEXTBOX
+
+    Text       <- makes a box with text
+    Button     <- makes a button
+    NextRow    <- sort of a return for a new line of buttons
+    QuitButton <- makes a quit button (optional)
+    NextBox    <- start a complete new box with buttons (optional)
+
+
+    Here is an experimental example, which will produce something like this:
+    (Just an example, you can use more rows or buttons)
+
+
+    Boss1     14:103/0       Make poll pkt     Make the call
+    Boss2     14:103/103     Make poll pkt     Make the call
+    Files     Bulkupload     CheckFileBase     Config this
+    Misc      KillOldMail    KillOldUsers      Compile menus
+    Trim      Trim logs      Trim backup       Trim msgs
+
+
+
+
+TEXT     "Boss 1"
+TEXT     "14:103/0"
+BUTTON   "Make poll pkt"     "Trion:utils/poll 14:103/0"
+BUTTON   "Make the call"     "Trion:utils/trion -c -1 14:103/0"
+
+NEXTROW
+
+TEXT  "Boss 2"
+TEXT  "14:103/103"
+BUTTON   "Make poll pkt"     "Trion:utils/poll 14:103/103"
+BUTTON   "Make the call"     "Trion:utils/trion -c -1 14:103/103"
+
+NEXTROW
+
+TEXT  "Files"
+BUTTON   "Bulkupload"        "Trion:utils/TBulkUpload"
+BUTTON   "CheckFileBase"     "Trion:utils/CheckFileBase I >ram:cfb"
+BUTTON   "Config this"       "CED Trion:cfg/MiscGui.cfg"
+
+NEXTROW
+
+TEXT  "Misc."
+BUTTON   "KillOldMail"       "Trion:utils/KillOldMail"
+BUTTON   "KillOldUsers"      "Trion:utils/KillOldFiles"
+BUTTON   "Compile Menus"     "Trion:utils/menu #?"
+
+NEXTROW
+
+TEXT  "Trim"
+BUTTON   "Trim logs"         "Trion:utils/TTrimlogs"
+BUTTON   "Trim backup"       "execute Trion:scripts/cbdir"
+BUTTON   "Trim msgs"         "execute Trion:scripts/TrimMsgs"
+
+
+

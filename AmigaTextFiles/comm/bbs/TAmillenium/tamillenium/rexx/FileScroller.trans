@@ -1,0 +1,2094 @@
+/* 
+$VER: FileScroller.trans 11.11p Public (31 Dec 1998) by Merlin & Gnome
+*/
+
+/* FileScroller.Trans by Merlin  (Eric Sauvabeau)
+   Adapted by Gnome  (John Marchant) with permission.
+
+   Adjust the Configs some lines below to suits your needs.
+
+** This program calls 'BBS:bin/GCreateList'
+**                and 'BBS:bin/Gsort'
+** and it REQUIRES that the utility 'UserLast.rexx' has been run
+**        within Logon.trans.
+** For more information on this, see the document Filescroll.readme
+*/
+
+options failat 10
+Options results
+Signal on Syntax
+Signal on Failure
+
+Version = 'v11.11p'
+
+/* The following will output trace to "ram:tracefile" */
+/*
+call open('STDERR','ram:tracefile','w')
+trace results
+*/
+
+If ~Show('L','rexxsupport.library') Then Do
+    If ~AddLib('rexxsupport.library',0,-30,0) Then Do
+       Transmit 'RexxSupport.Library missing! Can''t continue...'
+       Exit 10
+    End
+End
+
+
+       /***********************************************************/
+      /* Begining of the configuration... Adjust it as you need. */
+     /***********************************************************/
+
+/* Minimum access required for accessing the Sysop Module */
+SysopLevel = 255
+
+/* Set maximum number of files caller may mark for download in 1 batch */
+MaxMark = 5
+
+/* Set the following to '1' to enable FileScroller logging */
+LogActive = 1
+
+/* Here you put the path and the filename of the log */
+LogFile ='BBS:System/FScroller.log'
+
+/* Set this to '1' if you use "NumFiDL" or GTAFiDL to show download counts */
+NumFiDL = 1
+
+/* Set this to '1' if you want century to be included in file date display */
+Century = 0
+
+/* Where extracted work files go. (Written by GCreateList) */
+DestDir = 'T:'
+
+/* Where your File.cfg file lives */
+config = "BBS:configs/file.cfg"
+
+/* Path and name of the file to be used as header for the file listings */
+/* downloaded from FileScroller. If this file doesn't exist, a suitable */
+/* heading will be created.  */
+TextHeader = 'BBS:System/Full-list.header'
+ 
+/* Next part is about archive handling. */
+/* To disable one archive type, just tell "Com.? = 'OFF'", and leave the
+   remainder of its line untouched.
+
+Archiver Filename ; List Switches   ; Extract Switches                      */
+Com.1 = 'LhA'     ; Switch.1 = 'v'  ; Extract.1 = 'e'  /* .lha & .run files */
+Com.2 = 'Lha'     ; Switch.2 = 'v'  ; Extract.2 = 'e'  /* .lzh files        */
+Com.3 = 'OFF'     ; Switch.3 = 'l'  ; Extract.3 = 'x'  /* .zoo files        */
+Com.4 = 'LZX'     ; Switch.4 = 'v'  ; Extract.4 = 'x'  /* .lzx files        */ 
+Com.5 = 'OFF'     ; Switch.5 = '-l' ; Extract.5 = ''   /* .zip files        */
+Com.6 = 'OFF'     ; Switch.6 = 'l'  ; Extract.6 = 'e'  /* .arj files        */
+
+/* Set the initial 'list type' and 'header text' for displays */
+
+ListType = 3      /* 3 for 'sorted'. 1 = Unsorted  */
+SortType = 'd r'  /* a=Alphabetic,  d=by Date, s=by size.     */
+                  /* add ' r' for reverse sort.               */
+
+Init_TextType = 'Alphabetic'
+  /* This caption appears at top of initial listings */
+  /* Options include 'Alphabetic', 'Aged', or 'Reverse aged' etc etc */
+  /* Don't make it more than 20 characters.   */
+
+
+                      /**************************/
+                     /* End of the Config Area */
+                    /**************************/
+
+
+/*---------------------------------------------------------*/
+
+/* Initialisation */
+
+ViewArchiveFlag = 1
+
+call open('cfg',config,'r')  /* Get area access levels */
+faccess.=256      /* file area access (for area list) */
+arflag.=256       /* area flags */
+dlaccess.=256     /* download access */
+
+do 4
+  line=readln('cfg')
+end
+HighArea=strip(line)
+
+i=1
+do forever
+  Aname.i= strip(readln('cfg'))
+  do 2
+    line=readln('cfg')
+  end
+  dlaccess.i=strip(line)   /* download access level */
+  do 2
+    line=readln('cfg')
+  end
+  faccess.i=strip(line)    /* file area access */
+  line=readln('cfg')
+  arflag.i=strip(line)    /* access flags */
+  do 2
+    line=readln('cfg')
+  end
+  i=i+1
+  if i>HighArea then leave
+end
+call close('cfg')
+
+ActualDate = Date('I')  /* Produces today's date as days */
+
+UserInfo 'x' ; Ansi=Result
+UserInfo 'v' ; Screen = Result - 8 ; If Screen < 15 Then Screen = 15
+UserInfo 'a' ; username = Result
+Userinfo 'i' ; UserProto = Result
+SystemInfo '8' ; Node = Result
+userinfo '7' ; fileratio=result
+UserInfo 'o' ; Useraccess = Result
+userinfo 'g' ; Userflags = result
+SystemInfo 'o' ; Protocols = Result /* Number of available protocols */
+
+/* ---- fetch date of last call -----*/
+ufile='env:userlast.'||node
+if open('last',ufile,'r')=0 then do
+  print 'This program requires that UserLast.rexx should have been'
+  print 'run within Logon.trans. See Filescroller docs.'
+  LogEntry 'Env:Userlast not found. See filescroller docs'
+  exit 20
+end
+tmp = readln('last')      /* format e.g. '24 Nov 2000' */
+call close('last')
+
+Call ConvertDate(tmp)
+LastCall = Result    /* e.g. 19980217 or 20001124 */
+
+if numfidl>0 then LineLength = 112  /* numfidl=1, century=1 or 0 */
+else do
+  if century>0 then linelength=108  /* numfidl=0, century=1  */
+  else linelength=106               /* numfidl=0, century=0  */
+end
+
+GetCarrier ; Carry = Result
+If Carry = 'false' Then Exit
+
+If Ansi='ON' Then Do
+  CSI = '1b'x||'[' ; BRI = CSI||'1m' ; REB = CSI||'41m' ; BLB= CSI||'40m'
+  OFF = CSI||'0;37m' ; RED = CSI||'31m' ; GRE = CSI||'32m'; YEL = CSI||'33m'
+  BLU = CSI||'34m' ; PUR = CSI||'35m' ; CYA = CSI||'36m' ; WHI = CSI||'37m'
+  ITA = CSI||'3m' ; UND = CSI||'4m' ; CEL = CSI||'K' ; CEP = CSI||'J' ; UP = CSI||'A'
+  BOLD = CSI||'1m'
+End
+Else Call ASCII_rtn
+
+Init_TextType = YEL||Init_TextType  /* Add color */
+
+SetNodeLocation username||' in the FileScroller.'
+
+If LogActive = 1 then do
+  If ~Exists(LogFile||Node) then tmp = 'W'
+  Else tmp = 'A'
+  Call Open('ScrollLog',LogFile||Node,tmp)
+  Call LogThis('*',username||' entered FileScroller.')
+End
+
+Getcharstack       /* clear impatient keyboard entry */
+
+if ListType=3 then ListName = 'T:FileSorted'||node
+else ListName='T:FileList'||node
+
+TextType = Init_TextType
+
+/* Main Program */
+
+Main:
+Call CreateFileList
+Call Entete
+Call Open('Input',ListName,'R')
+Call Affiche
+Call PagePrompt
+Call DownPrompt
+Call Main_Prompt
+Call Quit(0)
+
+
+/* Functions */
+
+CreateFileList:
+  texte = 'Processing file listing...Please wait!'
+  Transmit WHI||Texte
+  SystemInfo '7' ; Path=result
+  SystemInfo 'z' ; AreaName=result
+  SystemInfo '2' ; AreaNumber=result
+  Call LogThis('&','Entered:-  '||AreaName)
+  Block = 0
+
+  Call CleanUp
+
+  tmp = 'BBS:Bin/GCreateList -s'||path||'files.bbs -l'||lastcall||' -n'||node
+  If NumFidl = 1 then tmp = tmp||' -d1'
+  If Century = 1 then tmp = tmp||' -c'
+  Address Command tmp
+
+  Call Open('Input','T:ListInfos'||node,'R')
+  MaxLines = ReadLn('Input')
+  Comments = ReadLn('Input')
+  CommentsLines = ReadLn('Input')
+  Call Close('Input')
+
+  If ListType =4 | ListType =5 then Do
+    OldListName ='T:FileList'||node
+    OldListType =1
+    OldTextType = Init_TextType
+  End
+
+  If ListType = 2 Then Call Process_2 /* New files list */
+  If ListType = 3 Then Call Process_3 /* Sorted list */
+
+Return
+
+Position:
+   Arg x,y
+   Send CSI||y||';'||x'H'
+Return
+
+LogThis:
+  if LogActive = 1 then do
+    Parse Arg Kind,Entry
+    Call Writeln('ScrollLog',' '||Kind Date()||' '||Time()||' - '||Entry)
+  end
+Return
+
+Cursor_Convert:
+  If Answer = '5b'x | Answer = '9b'x then Do
+     if ~carrier then call Quit(1)
+     MayGetChar ; Tmp = result
+     If Tmp = 'A' then Return '8'
+     If Tmp = 'B' then Return '2'
+     If Tmp = 'C' then Return '1'
+     If Tmp = 'D' then Return '7'
+  End
+Return Answer
+
+Entete:
+  Cls
+  Send PUR||'Area:'||BRI||YEL||areanumber||OFF||PUR||'-'||BRI||YEL||Areaname||OFF||PUR||'.'
+
+Small_Entete:
+  Texte = BLU||Copies('Ä',79)
+  Call Position(1,2)
+  Send Texte
+  If ListType ~=4 then Do
+    Call Position(1,4)
+    Send Texte
+    Call Position(1,Screen+5)
+    Send Texte
+  End
+  If ListType ~=4 then do
+/*                   12345678901234567890123         4567         890123456 */
+    pline=CEL||WHI||'Filename               '||CYA||'Kb  '||YEL||'Date   '
+    Call Position(1,3) ; Send pline
+/*  Call Position(36,3) */
+/*  If Century=1 then call Position(38,3) */
+    If Century=1 then send '  '
+    If NumFidl = 1 then Send BRI||RED||'New '||GRE||'D/L '||CYA||'Description'
+    Else Send BRI||RED||'New '||CYA||'Description'
+  End
+  Call Position(40,1)
+  if ListType=2 then send TextType
+  else Send CEL||Left(TextType,25)
+  Call Total_Files
+  Refresh = 0
+Return
+
+Smart_Entete:
+  Call Position(1,1)
+  Send CEL||PUR||'Area:'||YEL||areanumber||PUR||'-'||YEL||Areaname||OFF||PUR||'.'
+  Call Position(40,1)
+  if ListType=2 then send TextType
+  else Send CEL||Left(TextType,25)
+  Call Total_Files
+Return
+
+Affiche:
+  Call Position(1,5)
+  If Answer ~= 'Next' then Call Seek('Input',Block * Screen * LineLength,'B')
+  Count = 1
+  Do until count=Screen+1
+    Data.Count = Readln('Input')
+    If index(data.count,'\')>0 then do
+      if ListType>1 then iterate
+      data.count=compress(data.count,"\")
+    end
+    Transmit CEL||Trim(data.count)
+    count=count+1
+  End
+Return
+
+DownPrompt:
+  Call Position(1,Screen+6)
+  texte = 'A'||CYA||'rea change, '||YEL||'O'||CYA||'ptions, '||YEL||'M'||CYA||'ode, '||YEL||'R'||CYA||'edraw, '||YEL||'I'||WHI||'nformation on file, '||YEL||'Q'||CYA||'uit to menu'
+  Send CEL||BRI||YEL||texte||BLU||' >'||OFF
+Return
+
+PagePrompt:
+  Call Position(1,Screen+7)
+  texte='('||YEL||'?'||CYA||')Help, '||WHI||'Arrow keys> '||CYA||'('||YEL||'^'||CYA||')Page Up, ('||YEL||'v'||CYA||')Page Down, ('||YEL||'<-'||CYA||')Top, ('||YEL||'->'||CYA||')End '
+  Send CEL||BRI||CYA||texte||OFF
+  Call PageTotal
+Return
+
+PageTotal:
+   Call Position(68,Screen+7)
+   Send CEL||PUR||'Page '||YEL||Block + 1||OFF||'/'||YEL||((MaxTotal-1) % Screen) + 1||OFF||PUR||'.'
+Return
+
+Main_Prompt:
+  Do Forever
+    if ~carrier then call Quit(1)
+    GetChar ; Answer = upper(result)
+    If Answer = '###PANIC' then Call Quit(1)
+    Call Cursor_Convert ; Answer = result
+
+    If Answer = '8' & Block > 0 then do
+       Block = Block - 1
+       Send WHI||'Page up.'
+       Call Affiche
+       Call PageTotal
+       Call DownPrompt
+    End
+
+    If Answer = '7' & Block ~=0 then do
+      Block = 0
+      Send WHI||'Top.'
+      Call Affiche
+      Call PageTotal
+      Call DownPrompt
+    End
+
+    If Answer = '2' & Block < ((MaxTotal-1)% Screen) Then Do
+       Answer = 'Next'
+       Block = Block+1
+       Send WHI||'Page down.'
+       Call Affiche
+       Call PageTotal
+       Call DownPrompt
+    End
+
+    If Answer = '1' & Block ~=((MaxTotal-1) % Screen) then Do
+      Block = (MaxTotal-1) % Screen
+      Send WHI||'End.'
+      Call Affiche
+      Call PageTotal
+      Call DownPrompt
+    End
+
+    If Answer = 'O' Then do       /* Options */
+      If Max = 0 Then do
+        texte = 'No Files!'
+        Call Position(1,Screen+6)
+        Call WarnPrompt(Texte,'P')
+      End
+      Else Call File_Option
+      Call PagePrompt
+      Call DownPrompt
+    End
+
+    If Answer = 'R' then do
+      Call Entete
+      Call Affiche
+      Call PagePrompt
+      Call DownPrompt
+    End
+
+    If Answer = 'M' then do      /* Mode */
+      Call Close('Input')
+      Call ListingType
+      If Answer ~= '0d'x then Call Affiche
+      Call PagePrompt
+      Call DownPrompt
+    End
+
+    If Answer = 'I' then do
+      action = 'File to look at'
+      Do Forever
+        Call AFR ; File = result
+        If File = '###NOTHING' then leave
+        Call Affiche_Browse_Entete
+        Send YEL||'Retrieving informations...'
+        Call LogThis('.','Examined '''||File||'''.')
+        Call GetBrowseInfo
+        Call Affiche_Browse_Data
+        Call Position(1,Screen+6)
+        Send CEL ; Continue
+        Call Entete
+        Call Affiche
+      End
+      Call PagePrompt
+      Call DownPrompt
+    End
+
+    If Answer = 'Q' then do
+      Transmit YEL||'Quit!'
+      Call Close('Input')
+      Leave
+    End
+
+    If Answer = '?' then do
+       SendMenu 'FileScroll_main.hlp'
+       Continue
+       Call Entete
+       Call Affiche
+       Call PagePrompt
+       Call DownPrompt
+    End
+
+    If Answer = 'A' then do
+      Call Area_Change
+      If Refresh then Call Entete
+      Else Call Smart_Entete
+      Call Affiche
+      Call PagePrompt
+      Call DownPrompt
+    End
+
+    If Answer = '$' & Useraccess >= SysopLevel then do
+      If ListType ~=1 then do
+        Texte = 'You must be in Normal Listing mode!'
+        Call Position(1,Screen+6)
+        Call WarnPrompt(Texte,'P')
+      End
+      Else Call Sysop_Module
+      Call PagePrompt
+      Call DownPrompt
+    End
+  End
+Return
+
+
+ListingType:
+  Call Position(1,Screen+6)
+  if ListType=1 & Max=0 then do
+    texte=YEL||'There are NO files to show!'
+    Call Position(1,Screen+6)
+    Call WarnPrompt(Texte,'P')
+    Call Position(1,Screen+6)
+    Send CEL
+    Answer=1
+  end
+  else do
+    texte = '('||YEL||'1'||CYA||')Normal  ('||YEL||'2'||CYA||')New Files  ('||YEL||'3'||CYA||')Sorted'
+    If Max > 0 then Texte = Texte||'  ('||YEL||'4'||CYA||')Browse'
+    Send CEP||BRI||CYA||Texte||BLU||' >'||OFF
+    if ~carrier then call Quit(1)
+    GetCmd ; Answer = upper(Result)
+    If Answer = '###PANIC' then Call Quit(1)
+    If Answer = '' | Answer = '0d'x then Answer = '1'
+  end
+
+  If Answer = '1' then Do
+    ListType = 1
+    ListName = 'T:FileList'||node
+    TextType = YEL||'Normal list'
+  End
+
+  If Answer = '2' then Do
+    Cutoff=date('I',LastCall,'S')
+    Send YEL||'Processing partial listing...'
+    ListType = 2
+    TextType = CEL||YEL||'New Since '||WHI||Date('N',Cutoff,'I')||PUR||'.'
+    ListName = 'T:CutOffList'||node
+    Call Process_2
+  End
+
+  If Answer = '3' then Do
+    Call Position(1,Screen+6)
+    Texte ='Sorted by '||YEL||'N'||CYA||'ame, '||YEL||'D'||CYA||'ate, '||YEL||'S'||CYA||'ize '
+    Answer = ''
+    Send CEP||BRI||CYA||Texte||BLU||'>'||OFF||YEL
+    Do Until Answer = '###PANIC' | Answer = 'D' | Answer = 'N' | Answer = 'S' | Answer = 'L'
+       GetChar ; Answer = result
+    End
+
+    If Answer = '###PANIC' then Call Quit(1)
+
+    If Answer = 'D' then Do
+       SortType = 'd'
+       TextType = 'Sorted by Date'
+    End
+
+    If Answer = 'N' then Do
+       SortType = 'a'
+       TextType = 'Sorted By Name'
+    End
+
+    If Answer = 'S' | Answer = 'L' then Do
+        SortType = 's'
+        TextType = 'Sorted by Size'
+    End
+
+    TextType = YEL||TextType
+
+    Call Position(1,Screen+6)
+    Texte ='Perform a reversed sort ?'
+    QueryN CEL||CYA||Texte||YEL
+    Answer = Result
+    If Answer = 'Y' then SortType = SortType||' r'
+
+    ListType = 3
+    Call Position(1,Screen+6)
+    Send CEL||YEL||'Processing...'
+    ListName = 'T:FileSorted'||Node
+    Call Process_3
+  End
+
+  If Answer = '4' & Max > 0 Then Do
+    OldListName = ListName
+    OldListType = ListType
+    OldTextType = TextType
+    ListName = 'T:FileList'||node
+    Call Open('Input',ListName,'R')
+    ListType = 4
+    TextType = YEL||'Browse mode'
+    Call Browse
+    ListType = OldListType
+    ListName = OldListName
+    TextType = OldTextType
+    Call Entete  /* was Small_entete  */
+  End
+  
+  Call Open('Input',ListName,'R')
+  If Answer = '0d'x then Return
+  Block = 0
+  Call Position(40,1)
+  if ListType=2 then send TextType
+  else Send CEL||Left(TextType,25)  /* was 22 */
+  Call Total_Files
+Return
+
+Process_2:
+  Call Open('Input','T:FileList'||node,'R')
+  Call Seek('Input',0,'B')
+  Call Delete(ListName)
+  Call Open('Output',ListName,'W')
+  MaxNew = 0
+  Do while eof('Input') = 0
+    Data = Readln('Input')
+    If Data = '' then Iterate
+    If index(data,'\')>0 then iterate   /* DIZ line */
+    MaxNew = MaxNew + 1
+    If Left(Data,1) = ' ' then Do
+      Call Writeln('Output',Data)
+      Iterate
+    End
+
+/* 'century' tells state of CreateList output. (Source for mode 2)  */
+
+    if century=1 then
+      tmp=ConvertDate(Strip(SubStr(Data,43,11)))
+    else do
+      tmp=ConvertDate(Strip(SubStr(Data,43,9)))
+      if left(tmp,2)>70 then tmp='19'||tmp
+        else tmp='20'||tmp
+    end
+    tmp=date('I',tmp,'S')  /* tmp must be yyyymmdd */
+    If tmp >= CutOff then Call Writeln('Output',Data)
+    Else MaxNew = MaxNew - 1
+  End
+  Call Close('Output')
+  Call Close('Input')
+Return
+
+Process_3:  /* Handle sort types */
+
+  If Exists(path||'Files.BBS') & (Word(StateF(path||'Files.BBS'),2) > 0) Then Do 
+    Tmp = 'BBS:bin/GSort -i'||path||'Files.BBS -oT:Files.BBS'||Node||' '||SortType
+    Address command Tmp
+
+    tmp = 'BBS:Bin/GCreateList -sT:Files.BBS'||node||' -l'||lastcall||' -n'||(node+10)
+  End
+  Else
+    tmp = 'BBS:Bin/GCreateList -s'path||'Files.BBS -l'||lastcall||' -n'||(node+10)
+  If NumFidl = 1 then tmp = tmp||' -d1'
+  If Century = 1 then tmp = tmp||' -c'
+  Address Command tmp
+
+  Call Delete(Listname)
+  Call Rename('T:FileList'||(node+10),ListName)
+  Call Delete('T:#?'||(Node+10))
+  Call Delete('T:Files.BBS'||node)
+Return
+
+File_Option:
+  Call Position(1,Screen+6)
+  texte = '('||YEL||'L'||CYA')'||WHI||'File Lists, '||YEL||'M'||CYA||'ark files, '||YEL||'R'||CYA||'ead file/archive, '||YEL||'S'||CYA||'earch, '||YEL||'Q'||CYA||'uit Options'
+  Send CEP||BRI||CYA||texte||BLU||' >'||OFF
+  if ~carrier then call Quit(1)
+  GetChar ; Tmp = upper(result)
+  If tmp = '###PANIC' Then Call Quit(1)
+  If Tmp = '' | tmp = '0d'x then signal File_Option
+
+  if tmp='Q' then return
+
+  If tmp = 'M' then do                 /* Mark */
+    if Check_Access()=0 then return
+
+    userinfo '&'; mark_count=Result    /* No. of marked files */
+    if mark_count>=MaxMark then do
+      texte =  YEL||'Sorry - '||mark_count||' files are marked. Download first.'
+      Call Warnprompt(Texte,'P')  /* clear to end of page */
+      Return
+    end
+
+    action = 'Filename to mark'
+    Do Forever
+       Call AFR ; File = result
+       If File = '###NOTHING' then Leave
+       Call Mark_File
+    End
+    signal File_Option
+  End
+
+  If tmp = 'R' Then Do
+    action = 'File or archive to read'
+    Call AFR ; File = result
+    If File ~= '###NOTHING' then do
+      Call Read_File
+      Call Entete
+      Call Affiche
+    End
+    Signal File_Option
+  End
+
+  If Tmp = 'L' then Do
+    Call DownloadList
+    Call Entete
+    Call Affiche
+    signal File_Option
+  End
+
+  If Tmp = 'S' | Tmp = 'C' then do
+    OldListName = ListName
+    OldListType = ListType
+    OldTextType = TextType
+    ListName = 'T:FileList'||node
+    Call Close('Input')
+    Call Open('Input',ListName,'R')
+    ListType = 4
+    TextType = YEL||'Search Area'
+    Call Entete
+    Call Affiche_Browse_Entete
+    Call BrowseSearch
+    ListType = OldListType
+    ListName = OldListName
+    TextType = OldTextType
+    Call Total_Files
+    Call Small_Entete
+    Call Open('Input',ListName,'R')
+    Call Affiche
+  End
+Return
+
+
+Read_File:
+  Cls
+  Call ArchiveList(File)
+  If result ~= 'Unsupported' then Do
+    Do Until ArchFile = 'RESULT'
+      print CYA||'Text filename to extract & display? (Enter full path as shown) '
+      texte = CYA||' or '||YEL||'?'||CYA||' to relist, or '||YEL||'Return'||CYA||' only'
+      Query texte||BLU||':> '||YEL
+      ArchFile = result
+      If ArchFile = '?' then do
+        Cls
+        Call ArchiveList(File)
+        Iterate
+      End
+      If ArchFile ~= 'RESULT' then Do
+        Call LogThis('.','Unpacked '''||File||''' archive.')
+        Transmit WHI||'Extracting file...'
+        OldPath = Pragma('D')
+        Call Pragma('Directory',DestDir)
+        Address Command Com.tmp '>NIL:' Extract.tmp path||File ArchFile
+        If Exists(ArchFile) then do
+          Address command 'Protect '||ArchFile||' +d'
+          open('fred',archfile,'r')
+          myline=readln('fred')
+          close('fred')
+          if length(myline)>100 then do
+            print RED||'Unable to display this file. Is not text.'
+          end
+          else do
+            Cls
+            Sendfile DestDir||ArchFile
+            Call LogThis('.','Viewed '''||ArchFile||'''.')
+          end
+          Call Delete(ArchFile)
+        End
+        Else Do
+          print
+          Transmit RED||'No file extracted!'
+          print
+        End
+        Call Pragma('Directory',OldPath)
+        Continue
+      End
+    End
+  End
+
+  Else Do
+    tmp = 'LHALZHZOOLZXZIPARJ'
+    Do i = 1 to 18 by 3
+       If Upper(Right(File,4)) = '.'||SubStr(tmp,I,3) Then Do
+          i = -1
+          texte = 'Cannot process this file!'
+          print
+          print
+          Call WarnPrompt(Texte,'L')
+          Leave i
+       End
+    End
+    If i ~=-1 Then Do
+      Call LogThis('.','Viewed '''||File||'''.')
+      Sendfile path||File
+      Continue
+    End
+  End
+Return
+
+
+Mark_File:
+   Call Position(1,Screen+6)
+   userinfo '&'; mark_count=Result
+   if mark_count>=MaxMark then do
+     texte =  YEL||'Sorry - ||mark_count|| files are marked. Download first.'
+     Call Warnprompt(Texte,'P')  /* clear to end of page */
+     Return
+   end
+   MarkFile File
+   If result = 'FAIL' then do
+     texte = 'Can''t mark this file!'
+     Call WarnPrompt(Texte,'P')
+   End
+   Else do
+     If LogActive then Call LogThis('.','Marked '''||File||'''')
+     texte =CYA||File||WHI||''' is now marked. '
+     Send CEP||BRI||texte||CYA||OFF
+     Continue
+   End
+Return
+
+
+Area_Change:
+  Refresh = 0
+  Call Position(1,Screen+6)
+  send CEP
+  Call Position(1,Screen+7)
+  send BRI||WHI||'Please note: < and > are not arrow keys but characters.'
+  Call Position(1,Screen+6)
+  texte = 'Number of the area?, '||YEL||'?'||CYA||' = List, '||YEL||'<'||CYA||' = Previous, '||YEL||'>'||CYA||' = Next'
+  Query BRI||CYA||texte||BLU||' : '||YEL||OFF
+  Answer = upper(result)
+  if Answer = "RESULT" | Answer = '' then return
+
+  If Answer = '?' then Do
+    Cls
+    Refresh = 1
+    If Exists('BBS:Text/FileLibs.'||Right(useraccess,3,'0')||'.ANSI') then sendmenu 'FileLibs'
+    Else do
+      Print
+      ListFileAreas
+      Print
+    end
+    texte = 'Number of the area? '||YEL||'<'||CYA||' = Previous, '||YEL||'>'||CYA||' = Next'
+    Query BRI||CYA||texte||BLU||' :'||YEL ||OFF; answer = result
+  End
+  If Answer = '<' | Answer = ',' then do
+    Answer = AreaNumber
+    Do until tmp = 1
+      Answer = Answer - 1
+      If Answer = 0 then do
+        Send UP
+        Texte ='Already in the lowest file area!'
+        Call WarnPrompt(Texte,'L')
+        Answer = AreaNumber
+        Leave
+      End
+      FileArea Answer  /* changes to specified file area */
+      Tmp = Result
+    End
+  End
+  If Answer = '>' | Answer = '.' then do
+    Answer = AreaNumber
+    Do until tmp = 1
+      Answer = Answer + 1
+      If Answer > HighArea then do
+        Send UP
+        Texte ='Already in the last file area!'
+        Call WarnPrompt(Texte,'L')
+        Answer = AreaNumber
+        Leave
+      End
+      FileArea Answer  /* changes to specified file area */
+      Tmp = Result
+    End
+  End
+  If Answer = '###PANIC' then Call Quit(1)
+  If DataType(Answer) = 'NUM' & Answer ~= 0 & Answer ~= AreaNumber then Do
+    FileArea Answer  /* changes to specified file area */
+    Answer = 0
+    If result = 0 then do
+      Send UP
+      texte = 'Invalid Area!'
+      Call WarnPrompt(Texte,'L')
+    End
+    Else Do
+      Call Close('Input')
+      Call Position(1,Screen+6)
+      Send CEP
+      Call CreateFileList
+      Call Open('Input',ListName,'R')
+     End
+  End
+Return
+
+
+DownloadList:
+  Cls
+  If userproto=0 then do
+    print
+    print 'You cannot download lists from here until you have selected your'
+    print '  file transfer protocol on this BBS.'
+    print
+    print 'You should first Join this BBS, when you will asked what'
+    print '  protocol you wish to use.'
+    print
+    continue
+    return
+  end
+
+  ListTotal = 0
+  If Exists('BBS:Text/FileLibs.'||Right(Useraccess,3,'0')||'.ANSI') then sendmenu 'FileLibs'
+  Else ListFileAreas
+  print
+  Print YEL||'You have chosen "File Lists"'
+  Transmit CYA||'Select desired file areas, separated by a space (or '||WHI||'ALL'||CYA||' for all areas):'
+  Query BLU||':'||WHI ; tmp = result
+  If tmp = 'RESULT' Then Return
+  print
+  Texte ='FileList Sorted by '||YEL||'N'||CYA||'ame, '||YEL||'D'||CYA||'ate, '||YEL||'S'||CYA||'ize '
+  Answer = ''
+  Send CEP||BRI||CYA||Texte||BLU||'>'||WHI||OFF
+  Do Until Com = '###PANIC' | Com = 'D' | Com = 'N' | Com = 'S'
+     GetCmd; Com = result
+  End
+  If Com = '###PANIC' Then Call Quit(1)
+  print
+  Send UP||CSI||'19C'||CEL
+
+  If Com = 'D' then Do
+     Com = 'd'
+     Transmit WHI||'Date'||CYA||'.'
+  End
+
+  If Com = 'N' then Do
+     Com = 'a'
+     Transmit WHI||'Name'||CYA||'.'
+  End
+
+  If Com = 'S' | Com = 'L' then Do
+     Com = 's'
+     Transmit WHI||'Size'||CYA||'.'
+  End
+
+  Texte ='Perform a reversed sort ?'
+  QueryN CEL||CYA||Texte||WHI
+  Answer = Result
+  If Answer = 'Y' then Com = Com||' r'
+
+  print
+  Send BLU||'Now processing file area '||CYA
+
+  If Exists(TextHeader) Then Do
+    Address Command 'Copy '||TextHeader||' T:FileList'||node||'.txt'
+    Call Open('Dest','T:FileList'||node||'.txt','A')
+    Call WriteLn('Dest','')
+  End
+  Else Do
+    Call Open('Dest','T:FileList'||node||'.txt','W')
+    bbsidentify "name" ; bbsname = result
+    Call WriteCenter('File listing from '||bbsname||'.')
+    Call WriteCenter(Copies('~',i))
+    Call WriteLn('Dest','')
+  End
+  Call WriteLn('Dest','')
+  Call WriteCenter('File listing created on '||Date()||' at '||Time()||'.')
+  Call WriteCenter(Copies('~',i))
+  Call Close('Dest')
+
+  OldAreaNumber = AreaNumber
+
+  If Upper(Tmp) = 'ALL' Then Do  
+    Tmp = ''
+    Do i = 1 to HighArea
+      FileArea i ; Answer = Result
+      If Answer = 1 Then Tmp = Tmp||i||' '  /* 1 means 'successful' */
+    End
+  End
+
+  Do i = 1 to Words(tmp)
+    AreaNumber = Word(tmp,i)
+    FileArea AreaNumber  /* changes to specified file area */
+    Answer = result
+    If Answer = 0 then Iterate
+    SystemInfo '7' ; Path=result
+    SystemInfo 'z' ; AreaName=result
+    If i > 1 then Send ','
+    Send AreaNumber
+    If Exists(path||'Files.BBS') & (Word(StateF(path||'Files.BBS'),2) > 0) Then Do 
+      Texte = 'BBS:bin/GSort -i'||path||'Files.BBS -oT:Files.BBS'||Node||' '||Com
+      Address Command Texte
+
+      Texte = 'BBS:Bin/GCreateList -sT:Files.BBS'||node||' -l'||lastcall||' -n'||(node+10)
+    End
+    Else Do
+      Texte = 'BBS:Bin/GCreateList -s'||path||'Files.BBS -l'||lastcall||' -n'||(node+10)
+    End
+    If NumFidl = 1 then texte = texte||' -d1'
+    If Century = 1 then texte = texte||' -c'
+    Address Command texte
+
+    Call Open('Infos','T:ListInfos'||(node+10),'R')
+    AreaLines = ReadLn('Infos')
+    AreaComments = ReadLn('Infos')
+    Call Close('Infos')
+    AreaTotal = AreaLines - AreaComments
+    ListTotal = ListTotal + AreaTotal
+
+    Call Open('Dest','T:FileList'||node||'.txt','A')
+    Call WriteLn('Dest','')
+    Call WriteLn('Dest','')
+    Call WriteLn('Dest','')
+    Texte = 'Area '||AreaNumber||' - '||AreaName||'.'
+    Textebis = Copies('~',Length(Texte))
+    Texte = Left(Texte,60)
+    Textebis = Left(Textebis,60)
+    Call WriteCh('Dest',Texte)
+    Texte = 'Total files:'||AreaTotal||'.'
+    Textebis = Textebis||Copies('~',Length(Texte))
+    Call WriteLn('Dest',Texte)
+    Call WriteLn('Dest',Textebis)
+    Call WriteLn('Dest',Copies('-',77))
+    If NumFidl = 1 Then Call WriteLn('Dest','Filename               Kb  Date      N D/L Description')
+    Else Call WriteLn('Dest','Filename               Kb  Date      N Description')
+    Call WriteLn('Dest',Copies('-',77))
+    Call Close('Dest')
+    
+    Address Command 'Join T:FileList'||node||'.txt T:FileList'||(node+10)||' TO T:FileList'||node||'.tmp'
+    Call Delete('T:FileList'||node||'.txt')
+    Call Rename('T:FileList'||node||'.tmp','T:FileList'||node||'.txt')
+    Call Open('Dest','T:FileList'||node||'.txt','A')
+    Call WriteLn('Dest',Copies('-',77))
+    Call Close('Dest')
+  End
+
+  Send '.'
+  FileArea OldAreaNumber  /* changes to specified file area */
+  SystemInfo '7' ; Path=result
+  SystemInfo 'z' ; AreaName=result
+  SystemInfo '2' ; AreaNumber=result
+
+  Call Open('Dest','T:FileList'||node||'.txt','A')
+  Call WriteLn('Dest','')
+  Call WriteLn('Dest','')
+  Call WriteCenter('Total files in listed areas:'||ListTotal)
+  Call WriteCenter(Copies('~',i))
+  Call WriteLn('Dest','')
+  Call WriteLn('Dest','')
+  Call WriteCenter(' File listing generated by FileScroller '||version||', by Merlin & Gnome. ')
+  Call WriteLn('Dest','')
+  Call Close('Dest')
+
+  address command com.1||' >NIL: a T:FileList'||node||'.lha T:FileList'||node||'.txt'
+  
+  print
+  print
+  transmit YEL||'Archive ready for download.'
+  print
+  setprotocol userproto
+
+  print YEL||"Press Return and the list will be sent to you,"
+  Query YEL||"Or press Q+return to Quit (refuse the file) "
+  reply = upper(result)
+  if reply='###PANIC' then call Quit(1)
+  if reply='Q' then do
+    Call LogThis('.','FileList refused.')
+  end
+  else do
+    Tmp = 'T:FileList'||node||'.lha'
+    ProtocolSend Tmp
+    Call LogThis('.','Downloaded FileList.')
+    print
+    print
+    Send CYA||'Transfer completed'||WHI||' - '
+    Continue
+  end
+  call CleanList
+Return
+
+WriteCenter:
+  Parse Arg Textebis
+  i = Length(Textebis)
+  Texte = Centre(Textebis,77)
+  Call WriteLn('Dest',Texte)
+Return
+
+
+Total_Files:
+  Call Position(65,1)
+  If ListType =4 then Texte = '   File: '||PUR||'/'
+  Else Texte = ' Total Files:'
+  
+  If ListType =2 then Do
+    Max = MaxNew - Comments
+    MaxTotal = MaxNew
+  End
+  Else Do
+    Max = MaxLines - Comments
+    MaxTotal = MaxLines
+  End
+
+  Transmit CEL||PUR||Texte||YEL||Max||OFF||PUR||'.'
+Return
+
+AFR:
+/*  Call PagePrompt  */
+  Call Position(1,Screen+7)  /* new 11.1.95 */
+  Send CEL                   /* new 11.1.95 */
+  Call AFR_Prompt
+  Pointer = 1
+  If Left(Data.Pointer,1) = ' ' then Do 
+    Do Until Left(Data.Pointer,1) ~= ' '
+       Pointer = Pointer + 1
+    End
+  End
+  Call Affiche_Red
+  Call PageTotal
+
+  scrollcount=0
+  Do Forever
+    getcharstack
+    if ~carrier then call Quit(1)
+    GetChar ; Answer = upper(result)
+    If Answer = '###PANIC' then Call Quit(1)
+    Call Cursor_Convert ; Answer = UPPER(result)
+
+    If Answer = '8' then do     /* UP */
+       getcharstack
+       Call Affiche_black
+       Pointer = Pointer - 1
+       If Pointer <1 then do   /* page up here */
+         if block > 0 then do
+           Block = Block - 1
+           Call Affiche
+           Pointer = Screen
+         end
+         else do
+           pointer = 1
+           scrollcount=scrollcount+1
+           if scrollcount>5 then do
+             TheFile = '###NOTHING'
+             leave
+           end
+         end
+       end
+       If Data.Pointer = '' | Left(Data.Pointer,1) = ' ' then do while (Data.Pointer = '' | Left(Data.Pointer,1) = ' ')
+         Pointer = Pointer - 1
+         If Pointer <1 then Pointer = Screen
+       End
+       Call Affiche_Red
+       Call PageTotal
+    End
+
+    If Answer = '7' then do
+      Call Affiche_black
+      Pointer = 1
+      If Left(Data.Pointer,1) = ' ' then do While Left(Data.Pointer,1) = ' '
+         Pointer = Pointer + 1
+      End
+      Call Affiche_red
+    End
+
+    If Answer = '2' then do       /* DOWN */
+       getcharstack
+       Call Affiche_black
+       holdptr=pointer
+       Pointer = Pointer + 1
+       If Pointer > Screen then do   /* page down here */
+         if Block < ((MaxTotal-1)% Screen) Then Do
+           Block = Block+1
+           call Affiche
+           Pointer = 1
+         end
+         else pointer = holdptr
+       end
+       If Left(Data.Pointer,1) = ' ' then do
+         pointer = holdptr
+         scrollcount=scrollcount+1
+         if scrollcount>5 then do
+           TheFile = '###NOTHING'
+           leave
+         end
+       end
+       Call Affiche_Red
+       Call PageTotal
+    End
+
+    If Answer = '0' then do
+       Call Affiche_black
+       Pointer = Pointer + 5
+       If Pointer > Screen | Data.Pointer = '' then Pointer = 1
+       If Left(Data.Pointer,1) = ' ' then do while Left(Data.Pointer,1) = ' '
+         Pointer = Pointer + 1
+         If Pointer > Screen | Data.Pointer = '' then Pointer = 1
+       End
+       Call Affiche_Red
+    End
+
+    If Answer = '1' then do
+       Call Affiche_black
+       Pointer = Screen
+       If Data.Pointer = '' | Left(Data.Pointer,1) = ' ' then do while (Data.Pointer = '' | Left(Data.Pointer,1) = ' ')
+          Pointer = Pointer - 1
+       End
+       Call Affiche_red
+    End
+
+    If Answer = 'S' then do
+      TheFile = DelStr(word(data.pointer,1),1,5)  /* strips off color control */
+      TheNext = word(data.pointer,2)
+/* If over 999K, colour control chars butt onto size */
+      if length(TheNext) = 5 then       /* If 5, this is colour control + space */
+        TheSize = word(data.pointer,3)
+      else                              /* else we must strip off colour */
+        TheSize = DelStr(word(data.pointer,2),1,5)  /* strips off color control */
+      Call Affiche_Black
+      Leave
+    End
+
+    If Answer = '?' then do
+       SendMenu 'FileScroll_AFR.hlp'
+       Continue
+       Call Entete
+       Call Affiche
+       Call Affiche_red
+       Call PagePrompt
+       Call AFR_Prompt
+    End
+
+    If Answer = 'Q' then Do
+      Call Affiche_Black
+      TheFile = '###NOTHING'
+      Leave
+    End
+
+    If Answer = '###PANIC' then Call Quit(1)
+  End
+  Answer = ''
+  Data = Data.Pointer
+Return TheFile
+
+Affiche_black:
+  Call Position(1,Pointer+4)
+  Send word(data.pointer,1)
+Return
+
+Affiche_red:
+   Call Position(1,Pointer+4)
+   Send REB||word(data.pointer,1)||BLB
+Return
+
+AFR_Prompt:
+  Call Position(1,Screen+7)
+  texte = 'Use arrow keys to light file. (<- Top: -> Bottom)'
+  Send CEP||WHI||texte
+  Call Position(1,Screen+6)
+  texte = 'Press S to '||YEL||S||CYA||'elect highlit file, '||YEL||'Q'||CYA||'uit option '
+  Send CEL||BRI||CYA||texte||BLU||': '||OFF
+Return
+
+ConvertDate: Procedure Expose ActualDate
+  Parse Arg tmp
+  If DataType(left(tmp,2),'mixed') then Do
+    Select
+      When Tmp = 'Yesterday' then Tmp = Date('N',ActualDate-1)
+      When Left(Tmp,5) = 'Today' then Tmp = Date('N',ActualDate)
+      Otherwise Do
+        Do I = 2 to 7 until Day = tmp
+          Day = Date('W',ActualDate-I)
+        End   
+        Tmp = Date('N',ActualDate-I)
+      End
+    End
+    Tmp = DelStr(Tmp,8,2)
+  End
+
+  Day = Word(tmp,1)
+  Month = Right('0'||(Pos(Word(tmp,2),'  JanFebMarAprMayJunJulAugSepOctNovDec')/3),2)
+  Years = Word(tmp,3)
+Return Years||Month||Day
+
+ArchiveList:  /* See also archivers list in user configs above */
+  Arg File
+  If Open('Archive',Path||File,'R') then do
+    I = Readch('Archive',48)
+    Call Close('Archive')
+    Select
+      When SubStr(I,45,3) = "SFX" Then Tmp = 1  /* .lha */
+      When Substr(I,3,4) = "-lh0" Then Tmp = 1
+      When Substr(I,3,4) = "-lh1" Then Tmp = 2  /* .lzh */
+      When Substr(I,3,4) = "-lh2" Then Tmp = 1
+      When Substr(I,3,4) = "-lh3" Then Tmp = 1
+      When Substr(I,3,4) = "-lh4" Then Tmp = 1
+      When Substr(I,3,4) = "-lh5" Then Tmp = 1
+      When Substr(I,3,4) = "-lhd" Then Tmp = 1
+      When Left(I,3) = "ZOO" Then Tmp = 3         /* .zoo */
+      When Left(I,3) = "LZX" Then tmp = 4         /* .lzx */
+/*    When Left(I,1) = "1a"x Then Tmp = 4    */   /* .arc */
+      When Left(I,2) = "PK" Then Tmp = 5          /* .zip */
+      When Left(I,2) = "60ea"x Then Tmp = 6       /* .arj */
+      Otherwise Tmp = 'Unsupported'
+    End
+  End
+  Else Tmp = 'Unsupported'
+  If Com.Tmp = 'OFF' Then Tmp = 'Unsupported'
+  If Tmp ~= 'Unsupported' Then do
+    If ViewArchiveFlag =1 then VIEWARCHIVE File
+    Else do
+      Address Command Com.Tmp' >T:Listing'||Node Switch.Tmp Path||File
+      Sendfile 'T:listing'||node
+      Call Delete('T:listing'||node)
+      print
+      Continue
+    End
+  End
+Return Tmp
+
+Browse:
+  Pointer = 0
+  FilePointer = 1
+  Move = 'F'
+  Call Entete
+  Call Affiche_Browse_Entete
+  Call LogThis('-','Starting browse mode.')
+  Call Browse_PagePrompt
+  Do Until Answer = 'Q'
+    Call Browse_Read_Data(Move) ; File = Result
+    Call GetBrowseInfo
+    Call Browse_File_Total
+    Call Affiche_Browse_Data
+    Call Browse_Prompt
+    Call Get_Browse_Answer
+  End
+  Send WHI||'Quit...'
+  Answer = ''
+  Call LogThis('-','Ending browse mode.')
+Return
+
+Browse_File_Total:
+  Call Position(67,1)
+  Transmit CEL||YEL||FilePointer||'/'||Max||OFF||PUR||'.'
+Return
+
+Browse_Prompt:
+  Call Position(1,Screen+6)
+  texte = 'M'||CYA||'ark, '||YEL||'R'||CYA||'edraw, '||YEL||'S'||CYA||'earch, '||YEL||'V'||CYA||'iew, '||YEL||'Q'||CYA||'uit browse'
+  Send CEL||BRI||YEL||texte||BLU||' >'||OFF
+Return
+
+Get_Browse_Answer:
+   Do Forever
+      if ~carrier then call Quit(1)
+      GetChar ; Answer = result
+      If Answer = '###PANIC' then Call Quit(1)
+      Call Cursor_Convert ; Answer = Result
+
+      If Answer = '2' then Do
+         Send WHI||'Next.'
+         Pointer = Pointer + 1
+         FilePointer = FilePointer + 1 
+         If Pointer >= MaxTotal then Do
+           Pointer = 0
+           FilePointer = 1
+         End
+         Move = 'F'
+         Leave
+      End
+
+      If Answer = '8' then Do
+         Send WHI||'Previous.'
+         Pointer = Pointer - 1
+         FilePointer = FilePointer - 1
+         If Pointer < 0 then Do
+           Pointer = MaxTotal-1
+           FilePointer = Max
+         End
+         Move = 'B'
+         Leave
+      End
+
+      If Answer = '7' then Do
+         Send WHI||'First.'
+         Pointer = 0
+         FilePointer = 1
+         Move = 'F'
+         Leave
+      End
+
+      If Answer = '1' then Do
+         Send WHI||'Last.'
+         Pointer = MaxTotal-1
+         FilePointer = Max
+         Move = 'B'
+         Leave
+      End
+
+      If Answer = 'R' then Do
+        Call Entete
+        Call Affiche_Browse_Entete
+        Call Browse_PagePrompt
+        Move = 'N'
+        Leave
+      End
+
+      If Answer = 'M' then do
+        If Check_Access()=1 then call Mark_File
+        Call Browse_PagePrompt
+        Call Browse_Prompt
+      End
+
+/*
+      If Answer = 'A' then do
+        Call Area_Change
+        Pointer = 0
+        FilePointer = 1
+        Call Entete
+        Call Affiche_Browse_Entete
+        If Max = 0 Then do
+          texte = 'No Files! '||WHI||'Going back to normal mode... '
+          Call Position(1,Screen+6)
+          Send CEP||RED||texte
+          Continue
+          Answer = 'Q'
+        End
+        Call Browse_PagePrompt
+        Move = 'F'
+        Leave
+      End
+*/
+      If Answer = '#' then do
+        Call Position(1,Screen+6)
+        Query CEP||CYA||'Jump to file number'||BLU||' ('||WHI||'1'||BLU||'-'||WHI||Max||BLU||') :'||WHI
+        Tmp = result
+        If Tmp = '###PANIC' then Call Quit(1)
+        If Upper(Tmp) ~= 'RESULT' then do
+          If DataType(Tmp) = 'NUM' & Tmp >0 & Tmp <= Max then Do
+            FilePointer = Tmp
+            Pointer = Tmp - 1
+            I = 0 ; Tmp = 0
+            If (Comments >0) & (Word(CommentsLines,1) < Pointer + 1) then do
+              Do I = I + 1 Until Tmp >= FilePointer
+                Tmp = Word(CommentsLines,I)
+              End
+              Pointer = Pointer + I-1
+            End
+            Leave
+          End
+          Else Do
+            Call Position(1,Screen+6)
+            Texte ='Invalid file number!'
+            Call WarnPrompt(Texte,'L')
+          End
+        End
+        Call Browse_PagePrompt
+        Call Browse_Prompt
+      End
+
+      If Answer = '?' then do
+         SendMenu 'FileScroll_Browse.hlp'
+         Continue
+         Call Entete
+         Call Affiche_Browse_Entete
+         Call Browse_PagePrompt
+         Move = 'N'
+         Leave
+      End
+
+      If Answer = 'S' | Answer = 'C' then do
+         Move = 'N'
+         Call BrowseSearch
+         Call Browse_PagePrompt
+         If upper(TheFile) ~= 'RESULT' then Leave
+         Call Browse_Prompt
+      End
+
+      If Answer = 'V' Then Do
+        Call Read_File
+        Call Entete
+        Call Affiche_Browse_Entete
+        Call Browse_PagePrompt
+        Move = 'N'
+        Leave
+      End
+
+      If Answer = 'Q' then Leave
+   End
+Return
+
+Browse_Read_Data:
+  Arg Move
+  Do Until Left(Data,1) ~= ' ' & index(data,'\')=0 | Move = 'N'
+    Call Seek('Input',Pointer * LineLength,'B')
+    Data = Readln('Input')
+    If (Left(Data,1) = ' ')|(Index(Data,'\')>0) & Move ~= 'N' then do
+      If Move = 'F' then Do 
+        Pointer = Pointer + 1 
+        If Pointer > MaxTotal-1 then Do
+          Pointer = 0
+          FilePointer = 1
+        End
+      End
+      If Move = 'B' then Do
+        Pointer = Pointer - 1
+        If Pointer < 0 then Do
+          Pointer = MaxTotal - 1
+          FilePointer = Max
+        End
+      End
+    End /* end of left(data) */
+  End /* end of section */
+Return DelStr(Word(Data,1),1,5)
+
+GetBrowseInfo:
+   If Exists(Path||File||'.Desc') then Do
+     Call Open('Info',Path||File||'.Desc','R')   /* read .Desc file */
+     Uploader = Readln('Info')
+   End
+   Else Uploader = 'Someone'
+   If Word(Data,1) ~= WHI||File then do
+      Call Open('SearchData',Listname,'R')
+      Do until Upper(word(Data,1)) = Upper(WHI||File) | Eof('SearchData')=1
+         Data = Readln('SearchData')
+      End
+      Call Close('SearchData')
+   End
+   dt=60; if century=1 then dt=62
+   Desc = SubStr(Data,dt)
+   If NumFiDl = 1 then Desc = DelStr(Desc,Pos(']',Desc)+1,5)
+   Else Desc = DelStr(Desc,1,5)
+   dt=9; if century=1 then dt=11
+   Date = Strip(SubStr(Data,43,dt))
+   FileSize = Strip(SubStr(Data,32,5))
+   TheSize = FileSize
+   Call Close('Info')
+Return
+
+Affiche_Browse_Entete:
+   Call Position(1,3)
+   Transmit CEP||CYA||'Filename'||BLU||':'
+   If NumFiDL = 1 then do
+     Call Position(57,3)
+     Transmit CYA||'Downloaded'||BLU||':'
+   End
+   Transmit CYA||'File Size'||BLU||':'
+   print
+   Transmit CYA||'Date Uploaded'||BLU||':'
+   print
+   Transmit CYA||'Description'||BLU||':'
+   print
+   Transmit UND||CYA||'Long description'||OFF||BLU||':'
+   Call Position(1,Screen+5)
+   Transmit BLU||Copies('Ä',79)
+Return
+
+Affiche_Browse_Data:
+  Call Position(10,3)
+  Send WHI||Left(File||BLU||'.',29)
+  If NumFiDl = 1 then do
+    Call Position(68,3)
+    Transmit WHI||Compress(SubStr(Desc,6,4),'[] ')||CYA||' times'||BLU||'. '
+  End
+  Call Position(11,4)
+  Transmit CEL||WHI||FileSize||BLU||'.'
+  Call Position(15,6)
+  Transmit CEL||WHI||Date||CYA||', by '||WHI||Uploader||BLU||'.'
+  If SubStr(Data,58,1)= '*' then Do
+     Call Position(57,6)
+     Send RED||UND||'New Upload'||OFF
+  End
+  Call Position(13,8)
+  If NumFiDl = 1 then Transmit WHI||SubStr(Desc,Pos(']',Desc)+2)||CEL
+  Else Transmit WHI||Desc||CEL
+  Transmit CEL
+  print
+  I = 0
+  Tmp = 7
+  If exists(path||File||'.desc') then do
+    Flag=0
+    Call Open('Info',path||File||'.desc','R')
+    Texte = Readln('Info') /* Uploader */
+    Texte = Readln('Info')
+    Transmit CEL||YEL||Texte
+    Do Tmp = Tmp + 1
+      Texte = Readln('Info')
+      If Eof('Info') then leave
+      Transmit CEL||YEL||texte
+      Flag=1
+      If Tmp = Screen then Do
+        If Answer ~= 'S' & Answer ~= 'C' then I = -1
+        Call Position(1,Screen+6)
+        If I = -1 then Send CEP 
+        Send CEL||WHI||'Q'||YEL||' to quit this file - Any other key for more description...'
+        if ~carrier then call Quit(1)
+        GetChar ; cmd=upper(result)
+        If cmd = '###PANIC' then call Quit(1)
+        If cmd = 'Q' then leave
+        MayGetChar  /* Clear keybd. Arrow keys send double chars */
+        Call Position(1,Screen+6) ; Send CEL
+        Tmp = 6
+        Call Position(1,11)
+      End
+    End
+    Call Close('Info')
+    If flag=0 then print CEL||RED||'No long description available.'
+  End
+  Else Send RED||'No long description available.'
+  Do II = tmp to Screen
+     Transmit CEL
+  End
+  If (I = -1 | Answer = '#') & ListType = 4 then Call Browse_PagePrompt
+Return
+
+BrowseSearch:
+  Call Position(1,Screen+7)
+  Print CEP||YEL||"This searches the current area only. Use Menu 'Search' for all areas."
+  Call Position(1,Screen+6)
+  texte = 'Enter pattern to search'
+  Query CEP||CYA||texte||BLU||': '||WHI
+  TheFile = Upper(result)
+  If TheFile = 'RESULT' then Return
+  Call Position(1,Screen+6)
+  Action = 'Searching for '
+  Transmit CEL||YEL||Action||WHI||TheFile
+  Call LogThis('.','Search for '''TheFile''' pattern.')
+  OldPointer = Pointer
+  OldFilePointer = FilePointer
+  FilePointer = 0
+  Do Pointer = 0 to MaxTotal
+    Call Browse_Read_Data('N') ; File = Result
+    If Left(Data,1) = ' ' then Iterate
+    FilePointer = FilePointer + 1
+    Desc = SubStr(Data,60)
+    If NumFiDl = 1 then Desc = DelStr(Desc,Pos(']',Desc)+1,5)
+    Else Desc = DelStr(Desc,1,5)
+    If Pos(TheFile,Upper(File)) >0 | Pos(TheFile,Upper(Desc)) >0 then Do
+       Call Browse_File_Total
+       Call Position(1,Screen+7)
+       Send CYA||'Found '||WHI||File||CYA||'.'
+       Call GetBrowseInfo
+       Call Affiche_Browse_Data
+       texte = 'M'||CYA||'ark file, '||YEL||'C'||CYA||'ontinue scan, '||YEL||'S'||CYA||'top scan'
+       Call Position(1,Screen+6)
+       Send CEL||BRI||YEL||texte||BLU||' >'||OFF
+       Do Until Tmp = 'C' | Tmp = 'M' | Tmp = 'S'
+         if ~carrier then call Quit(1)
+         GetChar ; Tmp = upper(result)
+         If Tmp = '###PANIC' then Call Quit(1)
+       End
+       If Tmp = 'M' then do
+        if Check_Access()=1 then do
+          if Check_Batch()=1 then do
+            if Check_Ratio()=1 then do
+              Call Mark_File
+            end
+          end
+        end
+       end
+
+       If Tmp = 'S' then Leave Pointer
+       Call Position(1,Screen+6)
+       Transmit CEP||YEL||Action||WHI||TheFile
+    End
+  End
+  Call Position(1,Screen+6)
+  Send CEL||CYA||'Search finished!'||WHI||' - '
+  Pointer = OldPointer
+  FilePointer = OldFilePointer
+  Continue
+  Call Position(1,Screen+6)
+  Send CEL
+Return
+
+Browse_PagePrompt:
+  Call Position(1,Screen+7)
+  Texte ='('||YEL||'?'||CYA||')Help, ('||YEL||'#'||CYA||')Jump. '||WHI||'Arrow keys> '||CYA||'('||YEL||'^'||CYA||')Previous, ('||YEL||'V'||CYA||')Next, ('||YEL||'<-'||CYA||')First, ('||YEL||'->'||CYA||')Last '
+  Send CEL||BRI||CYA||texte||BLU||'>'||OFF
+Return
+
+WarnPrompt:
+  Parse Arg Texte,Clear
+  If Clear = 'L' then Clear = CEL
+  If Clear = 'P' then Clear = CEP
+  Send Clear||RED||BRI||Texte||OFF||WHI||' - '
+  Continue
+Return
+
+Sysop_Module:
+  Call LogThis('+','Entering Sysop Module.')
+  OldTextType = TextType
+  ListType = 5
+  TextType = YEL||'Sysop Module'
+  Call Position(40,1)
+  Send Left(TextType,25)
+  Call SysopPrompt
+  Call Read_Sysop_Answer
+  Call LogThis('+','Leaving Sysop Module.')
+  TextType = OldTextType
+  Call Position(40,1)
+  Send Left(TextType,25)
+  ListType = 1
+Return
+
+SysopPrompt:
+  Call Position(1,Screen+6)
+  Texte = 'A'||OFF||WHI||'rea change, '||CYA||'D'||OFF||WHI||'elete, '||CYA||'M'||OFF||WHI||'ove, '||CYA||'E'||OFF||WHI||'dit, '||CYA||'R'||OFF||WHI||'edraw, '||CYA||'Q'||OFF||WHI||'uit, '||CYA||'V'||OFF||WHI||'iew Logfile'
+  Send CEL||CYA||texte||BLU||' >'
+Return
+   
+Read_Sysop_Answer:
+  Do Forever
+    if ~carrier then call Quit(1)
+    GetChar ; Answer = result
+    If Answer = '###PANIC' then Call Quit(1)
+    Call Cursor_Convert ; Answer = result
+    Maygetchar              /* clear impatient keyboard entry */
+
+    If Answer = '8' & Block > 0 then do
+       Block = Block - 1
+       Send WHI||'Page up.'
+       Call Affiche
+       Call PageTotal
+       Call SysopPrompt
+    End
+
+    If Answer = '7' & Block ~=0 then do
+      Block = 0
+      Send WHI||'Top.'
+      Call Affiche
+      Call PageTotal
+      Call SysopPrompt
+    End
+
+    If (Answer = '2' | Answer = '0d'x) & Block < ((MaxLines-1)% Screen) Then Do
+       Answer = 'Next'
+       Block = Block+1
+       Send WHI||'Page down.'
+       Call Affiche
+       Call PageTotal
+       Call SysopPrompt
+    End
+
+    If Answer = '1' & Block ~=((MaxLines-1) % Screen) then Do
+      Block = (MaxLines-1) % Screen
+      Send WHI||'End.'
+      Call Affiche
+      Call PageTotal
+      Call SysopPrompt
+    End
+
+    If Answer = 'E' Then do
+      If Max = 0 Then do
+        texte = 'No Files!'
+        Call Position(1,Screen+6)
+        Call WarnPrompt(Texte,'P')
+      End
+      Else Do
+        Call Edit_Desc
+        Call Affiche
+      End
+      Call PagePrompt
+      Call SysopPrompt
+    End
+
+    If Answer = 'V' then do
+      Call Position(1,Screen+6)
+      Texte = CEP||CYA||'View FileScroller log for node '||BLU||':'
+      Query Texte||WHI||'\\'||Node
+      Tmp = Result
+      Cls
+      Transmit BLU||'FileScroller Logfile for node '||CYA||Tmp||BLU||'.'||OFF||WHI
+      print
+      Sendfile LogFile||Tmp
+      QueryN YEL||'Delete logfile? ' ; Answer = Result
+      If Answer = 'Y' then Do
+        If Tmp = Node & LogActive = 1 then Do
+          Call Close('ScrollLog')
+          Call Delete(LogFile||Tmp)
+          Call Open('ScrollLog',LogFile||Node,'W')
+        End
+        Else Call Delete(LogFile||Tmp)
+        If LogActive = 1 then Do
+          Call LogThis('|','Deleted LogFile node '||Tmp||'.')
+          Call Close('ScrollLog')
+          Call Open('ScrollLog',LogFile||Node,'A')
+        End  
+        print
+        Send CYA||'Logfile deleted - '||WHI
+      End
+      Else print
+      Continue
+      Call Entete
+      Call Affiche
+      Call PagePrompt
+      Call SysopPrompt
+    End
+
+    If Answer = 'M' then do
+      If Max = 0 Then do
+        texte = 'No Files!'
+        Call Position(1,Screen+6)
+        Call WarnPrompt(Texte,'P')
+       End
+       Else Do
+         Call Move_File
+         If Refresh then Call Entete
+         Else Call Smart_Entete
+         Call Affiche
+         Call Total_Files
+      End
+      Call PagePrompt
+      Call SysopPrompt
+    End
+      
+    If Answer = 'R' then do
+       Call Entete
+       Call Affiche
+       Call PagePrompt
+       Call SysopPrompt
+    End
+
+    If Answer = 'Q' then do
+      Transmit WHI||'Quit...'
+      Leave
+    End
+
+    If Answer = 'D' then do
+      If Max = 0 Then do
+          texte = 'No Files!'
+          Call Position(1,Screen+6)
+          Call WarnPrompt(Texte,'P')
+       End
+       Else Do
+         Call Del_File
+         Call Total_Files
+         Call Affiche
+      End
+      Call PagePrompt
+      Call SysopPrompt
+    End
+
+    If Answer = '?' then do
+       SendMenu "FileScroll_SysOp.Hlp"
+       Continue
+       Call Entete
+       Call Affiche
+       Call PagePrompt
+       Call SysopPrompt
+    End
+
+    If Answer = 'A' then do
+      Call Area_Change
+      If Refresh then Call Entete
+      Else Call Smart_Entete
+      Call Affiche
+      Call PagePrompt
+      Call SysopPrompt
+    End
+
+  End
+Return
+
+
+Edit_Desc:
+  action = 'Filename to edit'
+  Call AFR ; File = result
+  If File = '###NOTHING' then Return
+  Call GetBrowseInfo
+  If NumFiDL = 1 then Desc = DelStr(Desc,1,5)
+  Call Position(1,Screen+6)
+  texte = 'New description (35 characters max.)'
+  Send CEP||CYA||texte||BLU||':'||BLU||CSI||'40C.'||CSI||'41D'
+  Query WHI||'\\'||Trim(Desc)
+  Answer = result
+  If (Answer = Trim(Desc)) | (Answer = 'RESULT') then Return
+  Else Do
+    Send UP||CEL||YEL||'Updating listing... Please wait!'
+    If Exists(Path||File) then Address Command 'Filenote '||Path||File||' "'||Answer||' "'
+    Call Open_IO
+    Call Close('Input')
+    
+    Do While Eof('Liste1') = 0
+      LineData = Readln('Liste1') 
+      Data = Readln('Liste2') 
+      If LineData = '' Then Iterate
+      If Left(LineData,1) ='\' Then Do
+        Call Writeln('Output1',Linedata)
+        Call Writeln('Output2',Data)
+        Iterate
+      End
+      If Word(LineData,1) = File then Do
+        Tmp = Left(LineData,39)||Answer
+        Call Writeln('Output1',Tmp)
+        Parse Var Tmp 1 fname 21 FileSize Date Desc
+        If LastCall <= Date then New = '*'
+        Else New = ' '
+        Date = '19'||Date
+        InternalDate = Date('I',Date,'S')
+        If ActualDate = InternalDate then Date = 'Today!   '
+        Else Date = DelStr(Date('N',Date,'S'),8,2)
+        Desc = Strip(Desc,'L')
+        If Desc = '' Then Desc = PUR||'- No Description! -'
+        If Left(Desc,1) ~='[' & NumFiDl = 1 Then Desc = '[0] '||Desc
+        Desc = Left(Desc,35)
+        If NumFiDl = 1 then Desc = PUR||Insert(CYA,Desc,Pos(']',Desc))
+        Else Desc = CYA||Desc
+        Call Writeln('Output2',WHI||fname||' '||CYA||Right((FileSize % 1024)||'K',5)||' '||YEL||Date||' '||RED||New||' '||Desc)
+      End
+      Else Do
+        Call Writeln('Output1',Linedata)
+        Call Writeln('Output2',Data)
+      End
+    End
+    Call Close_IO
+    Address Command 'Copy T:Files.BBS'||node Path||'Files.BBS'
+    Call CleanUp
+    Call Rename('T:FileList.New'||node,'T:FileList'||node)
+    Call LogThis('|','Edited file description of '||File||'.')
+    Call Open('Input',ListName,'R')
+  End
+Return
+
+Move_File:
+  Refresh = 0
+  action = 'Filename to move'
+  Call AFR ; File = result
+  If File = '###NOTHING' then Return
+  Call Position(1,Screen+6)
+  texte = 'Number of the destination area ('||CYA||'?'||OFF||WHI||' = Area List)'
+  Query CEP||OFF||WHI||texte||BLU||' :'||YEL
+  Answer = result
+  If Answer = '?' then Do
+    Refresh = 1
+    Cls
+    If Exists('BBS:Text/FileLibs.'||Right(Useraccess,3,'0')||'.ANSI') then sendmenu 'FileLibs'
+    Else ListFileAreas
+    print
+    texte = 'Number of the destination area'
+    Query OFF||WHI||texte||BLU||' :'||YEL ; answer = result
+  End
+
+  If Answer = '###PANIC' then Call Quit(1)
+  If DataType(Answer) = 'NUM' & Answer ~= 0 & Answer ~= AreaNumber then Do
+    FileArea Answer ; tmp = result  /* changes to specified file area */
+    SystemInfo '7' ; DestPath=result
+    SystemInfo '2' ; DestAreaNumber=result
+    If tmp = 0 then do     /* change not successful */
+      Send UP
+      texte = 'Invalid Area!'
+      Call WarnPrompt(Texte,'L')
+      FileArea AreaNumber
+      Return
+    End
+    Else Do
+      Call GetBrowseInfo
+      Call Position(1,Screen+6)
+      Send CEL||WHI||'Updating listing... Please wait!'
+      Call Close('Input')
+      Call Open_IO
+      Do while Eof('Liste1') = 0
+        LineData = Readln('Liste1')
+        Data = Readln('Liste2') 
+        If Data ~= '' & Upper(WHI||File) ~= Upper(Word(Data,1)) Then Call Writeln('Output2',Data)
+        If LineData = '' then Iterate
+        If Upper(Word(Linedata,1)) = Upper(File) Then Do
+          Call Open('Dest',DestPath||'Files.BBS','A')
+          Call Writeln('Dest',LineData)
+          Call Close('Dest')
+          Iterate
+        End
+        Call Writeln('Output1',Linedata)
+      End
+      Call Close_IO
+      Address Command 'Copy T:Files.BBS'||node Path||'Files.BBS'
+      Call CleanUp
+      Call Rename('T:FileList.New'||node,'T:FileList'||node)
+      Call Open('Input',ListName,'R')
+      If Exists(Path||File) then Address Command 'Copy '||Path||File DestPath||' CLONE'
+      If Exists(Path||File||'.Desc') then Address Command 'Copy '||Path||File||'.Desc '||DestPath||' CLONE'
+      Call Delete(Path||File)
+      MaxLines = MaxLines -1
+      Max = Max - 1
+      MaxTotal = MaxTotal -1
+      Call Delete(Path||File||'.Desc')
+      Call LogThis('|','Moved '''||File||''' from Area '||AreaNumber||' to Area '||DestAreaNumber||'.')
+      FileArea AreaNumber
+      Call Open('Input',ListName,'R')
+    End
+  End
+Return
+
+Del_File:
+  action = 'Filename to delete'
+  Call AFR ; File = result
+  If File = '###NOTHING' then Return
+  Call GetBrowseInfo
+  Call Position(1,Screen+6)
+  QueryN CEP||YEL||'Remove file '''||WHI||FIle||YEL||''' from listing? '||WHI
+  Answer = Upper(Result)
+  If Answer = 'Y' then do
+    Call Position(1,Screen+7)
+    Send CEL||WHI||'Updating listing... Please wait!'
+    Call Open_IO
+    Do while Eof('Liste1') = 0
+      Data = Readln('Liste2') 
+      LineData = Readln('Liste1') 
+      If Data ~= '' & Upper(WHI||File) ~= Upper(Word(Data,1)) Then Call Writeln('Output2',Data)
+      If LineData ~= '' & Upper(Word(Linedata,1)) ~= Upper(File) Then Call Writeln('Output1',Linedata)
+    End
+    Call Close_IO
+    Address Command 'Copy T:Files.BBS'||node Path||'Files.BBS'
+    Call CleanUp
+    Call Rename('T:FileList.New'||node,'T:FileList'||node)
+    Call Open('Input',ListName,'R')
+    Call LogThis('|','Removed '''||File||''' from listing.')
+    MaxLines = MaxLines -1
+    Max = Max - 1
+    MaxTotal = MaxTotal -1
+  End
+  Call Position(1,Screen+6)
+  QueryN CEP||YEL||'Remove file '''||WHI||FIle||YEL||''' from drive? '||WHI
+  Answer = Upper(Result)
+  If Answer = 'Y' then do
+    Call Delete(Path||File)
+    Call Delete(Path||File||'.Desc')
+    Call LogThis('|','Removed '''||File||''' from drive.')
+  End
+Return
+
+
+Open_IO:
+  Call Open('Liste1',Path||'Files.BBS','R')
+  Call Open('Output2','T:FileList.New'||node,'W')
+  Call Open('Output1','T:Files.BBS'||node,'W')
+  Call Open('Liste2','T:FileList'||node,'R')
+Return
+
+Close_IO:
+  Call Close('Liste1')
+  Call Close('Output1')
+  Call Close('Input')
+  Call Close('Liste2')
+  Call Close('Output2')
+Return
+
+ASCII_Rtn:
+  If LogActive = 1 then Do
+    If ~Exists(LogFile||Node) then tmp = 'W'
+    Else tmp = 'A'
+    Call Open('ScrollLog',LogFile||Node,tmp)
+    Call LogThis('*',Name||' entered FileScroller.')
+    Call LogThis('*','ASCII user. Fallback to normal listing.')
+  End
+  Cls
+  ListFiles
+  print
+  If LogActive = 1 then Do
+    Call LogThis('*','Exiting FileScroller.')
+    Call Close('ScrollLog')
+  End
+Exit
+
+CleanList:
+  Call Delete('T:FileList'||node||'.lha')
+  Call Delete('T:FileList'||node||'.txt')
+  Call Delete('T:FileList'||(node+10))
+  Call Delete('T:ListInfos'||(node+10))
+  Call Delete('T:Files.BBS'||node)
+Return
+
+CleanUp:
+  Call Delete('T:FileList'||node)
+  Call Delete('T:ListInfos'||node)
+  Call Delete('T:FileSorted'||node)
+  Call Delete('T:CutOffList'||node)
+  Call Delete('T:Files.BBS'||node)
+  Call Delete('T:FileList'||node||'.lha')
+  Call Delete('T:FileList'||node||'.txt')
+  Call Delete('T:FileList'||(node+10))
+  Call Delete('T:ListInfos'||(node+10))
+Return
+
+Quit:
+Arg tmp
+Call CleanUp
+If LogActive = 1 then Do
+  If Tmp then Call LogThis('!','Carrier lost...')
+  Else Call LogThis('*','Leaving FileScroller.')
+  Call Close('ScrollLog')
+End
+If Tmp then LogEntry 'Carrier lost in FileScroller.'
+Transmit CEL
+Exit
+
+Check_Access:
+  freply=1
+  systeminfo '2'; thisarea=result
+  DLaccess=faccess.thisarea
+  if useraccess < DLaccess then do
+    print
+    texte =  BRI||YEL||'Sorry - you may not download in this area.  '||OFF
+    Call Warnprompt(Texte,'P')  /* clear to end of page */
+    freply=0
+  end
+return freply
+
+/*------------------------------------------------*/
+
+SYNTAX:
+   Error = rc
+   print
+   Transmit CEL||RED||'---CRASH!!! Line' SIGL
+   Texte = 'FileScroller crashed at line '||SIGL||'.'
+trace off
+   LogEntry Texte
+   If LogActive = 1 then do
+     Call LogThis('!',Texte)
+     Call LogThis('!','Error '||Error||' - '||ErrorText(Error))
+   End
+   Send CEL ; Continue
+   Cls
+Exit
+
+FAILURE:
+   Error = rc
+   print
+   Transmit CEL||RED||'---CRASH!!! Line' SIGL
+   Texte = 'FileScroller crashed at line '||SIGL||'.'
+trace off
+   LogEntry Texte
+   If LogActive = 1 then do
+     Call LogThis('!',Texte)
+     Call LogThis('!','Error '||Error||' - '||ErrorText(Error))
+   End
+   Send CEL ; Continue
+   Cls
+Exit
+
+/* That's it! */

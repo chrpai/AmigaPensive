@@ -1,0 +1,226 @@
+                     xprzvoice.library - Benutzerinfos
+                     ---------------------------------
+
+ - Die Voicemodus-Unterstützung für das ZyXEL-Modem und jedes
+   XPR-fähige Terminalprogramm
+
+0) Rechtliche Grundlagen
+------------------------
+
+Das Programm ist PD, was heißt, jeder kann es weiterverbreiten wie er will.
+Ebenso kann das Programm auch über PD-Serien verteilt werden (ich bitte
+darum :-).
+
+Ausgenommen folgendes:
+
+ o Das Archiv muß in seiner ursprünglichen Form erhalten bleiben, es darf
+   nicht weiterverbreitet werden, wenn Files verändert, hinzugefügt oder
+   weggelassen werden.
+   Displayme-Files, wie sie diverse Boxen in ihren Archiven reinpacken,
+   fallen auch unter dieser Beschränkung.
+
+ o Der Vertreiber darf keine Kosten verlangen, die über NACHVOLLZIEHBARE
+   Datenträgerkosten (und bei Postversand auch Porto...) hinausgehen.
+   Da eine Diskette knapp eine Mark kostet, ist es Wucher, für eine
+   volle PD-Diskette 4.- DM zu verlangen.
+
+ o Kein Programm in diesem Paket darf verändert und weiterverteilt werden -
+   Anderenfalls würde jeder "seine" Version herausbringen und keiner
+   würde mehr durchblicken... Schaut euch nur mal die diversen
+   SoundTracker-Clones und das Durcheinander mit der xprzmodem.library
+   an...
+   Falls Fehler in diesem Programm sind, dann kann derjenige mir einen
+   Hinweis geben.
+
+
+1) Inhalt
+---------
+
+Zum Vergleich mal den Archivinhalt, wie es sein müßte.
+
+ xprzvoice.doc          - Dieses Info.
+ xprzvoice.library      - Die Library, um die es geht.
+ MadLaugh.ZVOC          - Ein Beispiel-File, das man abspielen kann.
+
+
+Falls irgendetwas zuviel ist oder fehlt, dann bitte beim SysOp oder
+Vertreiber beschweren.
+
+
+2) Installation
+---------------
+
+Einfach die xprzvoice.library ins LIBS:-Verzeichnis kopieren.
+Danach das Terminalprogramm starten und die Library als XPR-Library
+aussuchen.
+Wie das im einzelnen von sich geht, muß jeder selbst herausfinden, da das
+von Programm zu Programm unterschiedlich ist.
+
+
+2.1) Erster Testlauf
+--------------------
+
+Wenn das Terminalprogramm sich dann nicht beschwert hat, (Library nicht
+gefunden, konnte nicht öffnen ect...) dann folgendes:
+
+ 1. Übertragungsgeschwindigkeit auf 38400 oder höher stellen
+
+ 2. "AT+FCLASS=8" <RETURN> tippen
+
+ 3. Nach dem OK "AT+VSM=2" <RETURN> tippen
+
+ 4. Nach diesem OK "AT+VLS=16" <RETURN> tippen
+
+* Mit dem ersten Befehl wurde das ZyXEL-Modem in den Voicemodus geschaltet,
+  mit dem zweiten die ADPCM-2-Kompression gewählt und mit dem dritten
+  der interne Lautsprecher zur Ausgabe aufgeschaltet.
+
+ 5. Wähle aus dem Transfermenü "Upload" und mit dem (sicherlich
+    erscheinenden) Filerequester das File "MadLaugh.ZVOC" aus.
+
+* Läuft die Übertragung, dann wird in 5000er-Schritten gezählt, und nach
+  einer kurzen Zeit wird ein Sample im Modem abgespielt.
+  Ist der Computer fertig, so wird das Statusfenster vom Upload
+  verschwinden und man kann sofort wieder Befehle zum Modem schicken.
+
+ 6. "AT+VLS=0Z" <RETURN> tippen
+
+* Damit wird das Modem wieder zurückgestellt.
+
+Falls irgendetwas schiefgelaufen ist, bitte unter "Fehlermeldungen"
+nachschlagen....
+
+
+3) Funktionen
+-------------
+
+Ganz einfach: Upload spielt ein Sample ab, während Download ein Sample
+aufnimmt.
+Das, was die Library als Initstring erwartet (bei ZModem lautet dieser
+"K0,Q0,R1,PRAM:" oder so, nur zur Verdeutlichung was ich meine) ist die
+Anzahl der Bytes, die maximal aufgenommen werden, also die zeitliche
+Begrenzung des Samples.
+
+Dabei übernimmt diese Library vom Start (der Anweisung, in welche Richtung
+die Daten fließen) bis zum Ende (der Abschlußkennung <DLE><ETX>) den
+gesamten Datentransfer auf sich, ebenso die XON/XOFF-Erkennung, sodaß man
+sich darum nicht mehr sorgen braucht.
+
+Alles, was außerhalb der xpr-Library noch geschehen muß, ist das Modem für
+Sprache zu initialisieren (eben der Befehl AT+FCLASS=8), den Kompressions-
+algorithmus (CELP, ADPCM2, ADPCM3) und den Tonkanal (Lautsprecher, Mikrofon
+oder Telefonleitung) auszusuchen und die Übertragung (Up- oder Download) zu
+starten. Ein Beispiel ist ja schon genannt worden...
+
+
+4) Fehlermeldungen
+------------------
+
+Neben den üblichen "Sending File", "Receiving File", "Aborting...",
+"Aborted" und "Done" gibt es noch diese, die allerdings nur beim Abspielen
+(Upload) von Sprachdaten auftreten:
+
+ "Modem went mad"
+
+  Das heißt, das die Bytes, die an das Modem geschickt wurden, wieder
+  zurückgeschickt wurden und nicht als Sprachdaten erkannt wurden.
+  Das liegt entweder daran, daß ein falsches File abgespielt wurde oder
+  kein Ausgabekanal offen war.
+  Gegebenenfalls muß man einige Male "at" <RETURN> tippen, ehe sich das
+  Modem wieder beruhigt, und statt irgendwelcher Schrottzeichen wieder
+  ein "OK" sendet.
+
+ "XOFF without XON"
+
+  Normalerweise kommt es nicht vor... Es bedeutet, daß das Modem die
+  Übertragung (mittels XOFF) gestoppt, aber nicht innerhalb einer
+  Zeitspanne wieder freigegeben hat.
+
+ "Aborted"
+
+  Falls das beim Upload auftaucht ohne daß man selbst abgebrochen hat,
+  heißt das, das ein Besetztzeichen (die Gegenstelle hat aufgelegt)
+  oder ein Faxrufton erkannt wurde und es nicht sinnvoll ist, weiter
+  sprachdaten abzuspielen.
+
+5) Bugs?
+--------
+
+Hmmm... Jetzt kommt das Unangenehme... :-/
+
+Fehler, die zum Absturz des Systems oder des Programms führten, sind mir
+nicht bekannt.
+
+Folgendes allerdings:
+
+Ein aufgenommenes Sample vom ZyXEL hat keine Endekennung, da der Empfang
+nach der voreingestellten Anzahl Bytes automatisch stoppt und der Rest, der
+vom Modem kommt, ignoriert wird.
+Soweit nicht schlimm, denn beim Senden wird die Endekennung automatisch
+angehängt, sodaß man sofort wieder im Befehlsmodus landet.
+
+---
+
+Will man mehrere Operationen hintereinander machen (wie Sample abspielen
+und aufnehmen), dann muß man dazwischen denselben Ausgabekanal noch einmal
+aufschalten (also den AT+VLS=x - Befehl mit denselben x nocheinmal senden).
+
+---
+
+NComm hat hin und wieder Probleme bekommen, wenn es seine Balkengrafik
+anzeigen soll - da wurde der untere Bildschirmbereich verhunzt, aber alles
+lief ohne Schwierigkeiten weiter. Vermute mal, es kommt mit den fehlenden
+Übertragungszeiten nicht zurecht..
+
+---
+
+Zumindest bei NComm muß die Anzahl maximal zu empfangender Bytes direkt mit
+dem Initstring angegeben werden, da bei der Abfrage ("Enter maximum receive
+Bytes") der Wert ignoriert wird.
+In meiner Library konnte ich keinen Fehler ausmachen....
+
+---
+
+Nehme ich Files in ADPCM-3-Kompression und spiele sie wieder ab, dann kommt
+nur ein häßliches Rauschen und Quietschen aus den Lautsprecher.
+
+
+6) Zukünftiges
+--------------
+
+ o Erstmal Bugs beseitigen (sofern sie bei mir liegen) oder (falls nicht
+   allzu aufwendig) Workarounds kreieren.
+
+ o Rückgabe des Abbruchgrunds beim Abspielen der Sounddaten
+   (Per environment-Variable geht m.W. nicht, da die eine Datei ist
+   und ich die dos.library aus der xpr-Lib nicht benutzen darf...)
+   Vielleicht Speicherung in einem unbenutzten S-Register?
+   Vorschläge her....
+
+ o Warte auf Vorschläge...
+
+
+7) Vergangenes
+--------------
+
+ 10-03-93  Version 1.00 - Erste offiziell verbreitete Version
+
+
+8) Disclaimer
+-------------
+
+Obwohl ich mich bemüht habe, sämtliche schweren Fehler auszumerzen und
+systemkonform zu programmieren, kann ich nicht dafür garantieren, daß das
+Programm auf Deinen Rechner sauber läuft.
+
+Sämtliche Risiken in Bezug auf Datensicherheit und Hardware liegen beim
+Benutzer.
+
+
+9) Kontaktadresse
+-----------------
+
+Briefe, Flames, Fehlerberichte (huh?) und Ähnliches bitte dorthin:
+
+        Fido:  Carsten Pluntke @ 2:2401/306.5
+

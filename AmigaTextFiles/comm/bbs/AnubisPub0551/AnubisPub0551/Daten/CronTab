@@ -1,0 +1,62 @@
+; CronTable für Anubis                            1991/93 Marc Schröer/ Olli Graf
+
+; Die verschiedenen Felder :
+;
+; #bez:		- Die Bezeichnung des CronJobs
+; #zeit:	- Die Zeiten, zu denen der Job ausgeführt werden soll.
+;		  Format: Stunde Minute Tag Monat Wochentag 
+;			  *     = Jokerzeichen
+;			  x,y,z = Verschiedene Möglichkeiten
+;		  Wertangaben :
+;			 Tag..........: 1 = Sonntag ... 7 = Samstag
+;			 Monat........: 1 = Januar ... 12 = Dezember
+; #type:	- Der Typ des Jobs. Hierbei wird unterschieden :
+;		    DOSCOM	- Der Job ist ein AmigaDOS(tm) Befehl
+;		    AREXX	- Der Job ist ein ARexx Script (z.Zt. nicht unterstützt)
+;		    INTERN	- Der Job ist ein internes Kommando (z.Zt. nicht unterstützt)
+; #flags:	- spezielle Zusatzflags für einen Job :
+;    	            LOGOFF	- User vor der Ausführung rauswerfen
+;  	            SHUTDOWN	- ANUBIS wird komplett beendet, dann der Job ausgeführt
+;		    CLOSESER	- serielle Schnittstelle schließen (added OG)
+;		    NOUSER	- Der Job wird nur ausgeführt, wenn kein User
+;				  eingeloggt ist.
+;		    DISABLE	- Dieser Job ist ausgeschaltet und wird nicht
+;				  ausgeführt.
+;		    SPOOL	- Der Job wird aufgespoolt und zum nächstmöglichen
+;				  Zeitpunkt ausgeführt (in Verbindung mit NOUSER).
+;		  Die einzelnen Flags werden mit '|' oder ' ' voneinander ge-
+;		  trennt.
+; #command:	- Der Befehl, der ausgeführt werden soll
+; ###		- Endkennzeichnung für einen Eintrag.
+
+#bez:NetCall AWorld
+#zeit:7 30 * * *
+#flags:SHUTDOWN|DISABLE
+#command:run c:Execute zpoll
+###
+
+#bez:Fileliste generieren
+#zeit:10 15 * * *
+#flags:NOUSER|SPOOL
+#command:Run AnubisTools:CreateFRL
+###
+
+#bez:Backup User
+#zeit:9 0 * * *
+#flags:NOUSER|SPOOL
+#command:Copy Anubis:Daten/Userliste dh1:Backup/Userliste.bak
+###
+
+#bez:Backup Bretter
+#zeit:20 30 * * *
+#flags:NOUSER|SPOOL
+#command:copy Anubis:Daten/Brettliste dh1:Backup/Brettliste.bak
+###
+
+#bez:Backup Points
+#zeit:2 30 * * *
+#flags:NOUSER|SPOOL
+#command:copy Anubis:Daten/Pointliste dh1:Backup/Pointliste.bak
+###
+
+; Ende des Files

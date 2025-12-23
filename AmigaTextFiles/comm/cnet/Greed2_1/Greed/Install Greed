@@ -1,0 +1,346 @@
+; $VER: Install Greed Version 2.1  (15 March 1995)
+; This script can be distributed with the Greed2.1 Program by
+; John Shaffer & Randy Dethman & Chip Chambers
+; Groovy Installer script by Spike!
+
+; Use these Icon Tooltypes/CLI options:
+; APPNAME=Greed 2.1
+;
+
+;check for CNet...
+(working "Locating CNet BBS...")
+(set Cnet (getassign "CNet"))
+(if (getassign "Systext")
+	(if (getassign "Pfiles")
+		(if (getassign "News")
+			(if Cnet
+				((message "\n\nFound CNet BBS at\n"Cnet)
+				(transcript "\n\nFound CNet BBS at\n"Cnet)
+				)
+				(abort "\n\nYou must have CNet installed, in order to install Greed.")
+			)
+			(abort "\n\nYou must have CNet installed, in order to install Greed.")
+		)
+		(abort "\n\nYou must have CNet installed, in order to install Greed.")
+	)
+	(abort "\n\nYou must have CNet installed, in order to install Greed.")
+)
+
+(set @default-dest  "Pfiles:")
+; *** Can I search Pfiles:#?Greed to locate a sub-dir pre-installation?
+(if (> @user-level 0)
+	(if (exists "Pfiles:Greed" (noreq))
+		(set @default-dest "Pfiles:Greed")
+	)
+	(if (exists "Pfiles:Greed" (noreq))
+		(set @default-dest "Pfiles:Greed")
+		(	(makedir "Pfiles:Greed" )
+			(set @default-dest "Pfiles:Greed")
+		)
+	)
+)
+
+(set @default-dest
+	(askdir 
+		(default @default-dest)
+		(prompt "Please Select Directory to Install Greed:")
+		(help "Select the actual directory that the P-file will be "
+			"installed in.\n\nIf you wish it to be installed in a "
+			"drawer called \"Greed\", you must create it.\n\n"
+			"If you choose to install in the same directory this "
+			"archive was unpacked to, less copying will result.\n\n"
+			@askdir-help)
+	)
+)
+
+(if (<> (pathonly @icon) @default-dest)
+	(set tttypes
+			(askoptions
+				(choices "Commodore C/G [tt1]" "IBM/ANSI [tt2]" "RIP [tt4]")
+				(default 7)
+				(prompt "Select Additional Terminal Types to Install:")
+				(help "Along with the default terminal screens, Greed contains "
+				"files for these standard CNet terminal types.\n\n"
+				"Installing these additional terminal screens is "
+				"optional.\n\n" @askoptions-help)
+			)
+	)
+)
+
+(working "Checking for older Greed modules...")
+(set GreedModDefault 3)
+(foreach @default-dest "Greed?.#?"
+	(set GreedModDefault 1)
+)
+(foreach @default-dest "Greed"
+	(set GreedModDefault 1)
+)
+
+(set Greed-modules
+	(askoptions
+		(choices "Greed Winner's News" "Auto-News during sys.welcome")
+		(default GreedModDefault)
+		(prompt "Additional Greed Features to Install:\n"
+		"(Do NOT choose Auto-News if you are updating a prior installation of Greed)")
+		(help "Each week, when CNet's AutoMaint resets the Greed game, "
+			"congratulatory mail is sent to the winners in each "
+			"catagory.\n\nGreed also has an optional "
+			"\"Winner's News\" file that may be viewed in your "
+			"\"News:\" subsystem.\n\nThe \"Winner's News\" may also "
+			"be automatically displayed by the sys.welcome files "
+			"during the first login for each user after Greed "
+			"has been reset.\n\n"
+			"If you are updating a previously installed version of "
+			"Greed, you should NOT select the Auto-News again.\n\n"
+			@askoptions-help)
+	)
+)
+
+;if News: selected, ask dir for Greed Winners, else use Greed's dir...
+(set default-news @default-dest)
+(if (BITAND Greed-modules 1)
+	(set default-news
+		(askdir 
+			(default "News:")
+			(prompt "Please Select Directory for Winner's News:")
+			(help "Select the actual directory that the \"Greed Winners\" "
+				"file will be created in.\n\nYou will need "
+				"to add this as a News item in CNet.\n\n" @askdir-help)
+		)
+	)
+	(set default-news @default-dest)
+)
+(set minbonustime 5)
+(set maxbonustime 30)
+(set bonusfiles 5)
+(set bonuscreds 1000000)
+(set pfilepoints 0)
+(if (= @user-level 2)
+	(
+	(set minbonustime 0)
+	(set maxbonustime
+		(asknumber (prompt "Enter Maximum Bonustime to be awarded to players for making the Top 5 Winners List.\n\n"
+			"You may enter \"0\" to disable this feature.")
+			(help "This is the maximum amount of time-for-day that will be "
+				"awarded when a player makes the top 5 listing.\n"
+				"Entering a zero will disable the awarding of connect time to winners.\n"
+				@asknumber-help)
+			(default 30)
+		)
+	)
+	(if (> maxbonustime  0)
+		(set minbonustime
+			(asknumber (prompt "Enter Minimum Bonustime to be awarded to players for making the Top 5 Winners List.")
+				(help "This is the minimum amount of time-for-day that will be "
+					"awarded when a player makes the top 5 listing.\n"
+					@asknumber-help)
+				(range 0 maxbonustime)
+				(default 5)
+			)
+		)
+	)
+	(set bonusfiles
+		(asknumber (prompt "Enter Bonus File Credits to be awarded to the Top Weekly Winners.\n\nYou may enter \"0\" to disable this feature.")
+			(help "This is the number of File Credits that will be "
+				"awarded to the winners at the end of each week's tournament.\n"
+				"If you do not wish this, or your BBS does not use File Credits, "
+				"enter a zero to disable the awarding of File Credits.\n"
+				"You may choose to award any combination of File Credits, Byte Credits, PFile Points, or nothing at all.\n"
+				@asknumber-help)
+			(default 5)
+		)
+	)
+	(set bonuscreds
+		(asknumber (prompt "Enter Bonus Byte Credits to be awarded to the Top Weekly Winners.\n\nYou may enter \"0\" to disable this feature.")
+			(help "This is the number of Byte Credits that will be "
+				"awarded to the winners at the end of each week's tournament.\n"
+				"If you do not wish this, or your BBS does not use Byte Credits, "
+				"enter a zero to disable the awarding of Byte Credits.\n"
+				"You may choose to award any combination of File Credits, Byte Credits, PFile Points, or nothing at all.\n"
+				@asknumber-help)
+			(default 1000000)
+		)
+	)
+
+	(set pfilepoints
+		(asknumber (prompt "Enter the PFile Points to be awarded to the Top Weekly Winners.\n\nYou may enter \"0\" to disable this feature.")
+			(help "This is the number of PFile Points that will be "
+				"awarded to the winners at the end of each week's tournament.\n"
+				"If you do not wish this, or your BBS does not use PFile Points, "
+				"enter a zero to disable the awarding of PFile Points.\n"
+				"You may choose to award any combination of File Credits, Byte Credits, PFile Points, or nothing at all.\n"
+				@asknumber-help)
+			(default 0)
+		)
+	)
+	)
+)
+(complete 22)
+(if (<> (pathonly @icon) @default-dest)
+	(
+
+	(foreach @default-dest "(Greed?.#?|GreedNewsDate)"
+		(working "Deleting old Greed modules...")
+		(delete (tackon @default-dest @each-name)
+		(confirm "expert")
+		)
+	)
+
+	(copyfiles
+		(dest @default-dest)
+		(source "")
+		(prompt "Copying Greed Modules...")
+		(pattern "Greed#?")
+	)
+	(complete 30)
+
+	(copyfiles
+		(dest @default-dest)
+		(source "")
+		(prompt "Copying Default Screens...")
+		(pattern "sys.#?")
+	)
+	(complete 38)
+
+;if (BITAND tttypes 1) copyfiles tt1#?
+	(if (BITAND tttypes 1)
+		(copyfiles
+			(dest @default-dest)
+			(source "")
+			(prompt "Copying C=C/G Screens...")
+			(pattern "tt1.#?")
+		)
+	)
+	(complete 45)
+
+;if (BITAND tttypes 2) copyfiles tt2#?
+	(if (BITAND tttypes 2)
+		(copyfiles
+			(dest @default-dest)
+			(source "")
+			(prompt "Copying IBM/ANSI Screens...")
+			(pattern "tt2.#?")
+		)
+	)
+	(complete 57)
+
+;if (BITAND tttypes 4) copyfiles tt4#?
+	(if (BITAND tttypes 4)
+		(copyfiles
+			(dest @default-dest)
+			(source "")
+			(prompt "Copying RIP Screens...")
+			(pattern "tt4.#?")
+		)
+	)
+	)
+)
+(complete 69)
+
+;Build Pfiles:Greed.Config file...
+(set GreedPath (tackon @default-dest "x"))
+(set GreedPath (substr GreedPath 0 (- (strlen GreedPath) 1)))
+
+(working "Creating Pfiles:Greed.Config file...\n")
+(textfile
+	(dest "Pfiles:Greed.Config")
+	(append (cat ";path to game, with trailing '/':\n"
+		GreedPath "\n"
+		";path to news file:\n"
+		(tackon default-news "Greed Winners") "\n"
+		";MIN bonustime for winners\n"
+		minbonustime "\n"
+		";MAX bonustime for winners (or 0)\n"
+		maxbonustime "\n"
+		";bonusfiles for weekly winners (or 0):\n"
+		bonusfiles "\n"
+		";bonuscreds for weekly winners (or 0):\n"
+		bonuscreds "\n"
+		";Pfiles points for weekly winners (or 0):\n"
+		pfilepoints "\n"))
+)
+;GreedPath='Pfiles:SinglePlayer/Greed/' <<final '/' important!
+;NewsFile='News:Greed Winners'
+(complete 86)
+
+;if AutoNews selected, add line to "systext:xxx.welcome" files.
+
+(if (BITAND Greed-modules 2)
+	(foreach "Systext:" "???.welcome"
+			(textfile
+				(dest (tackon "systext:" @each-name))
+				(include (tackon "Systext:" @each-name))
+				(append (cat "#0 " (tackon @default-dest "GreedWelcome") "}\n" ))
+			)
+	)
+)
+(complete 99)
+
+(if (NOT @pretend)
+	(message "\n\nPlease add \"" (tackon @default-dest "Greed") "\" to your P-files list in "
+		"CNet.\n\nType = AREXX")
+)
+
+(if (> @user-level 0)
+(transcript "\n\nPlease add \"" (tackon @default-dest "Greed") "\" to your P-files list in "
+	"CNet.\n\nType = AREXX")
+)
+(if (NOT @pretend)
+	(message "\n\nPlease add \""(tackon @default-dest "GreedMaint") "\" to your Amaint events.\n\n"
+		"RunARexx " (tackon @default-dest "GreedMaint") "\nSet to occur ONE day a week.")
+)
+
+(if (> @user-level 0)
+(transcript "\n\nPlease add \"" (tackon @default-dest "GreedMaint") "\" to your Amaint events.\n\n"
+	"RunARexx " (tackon @default-dest "GreedMaint") "\nSet to occur ONE day a week.")
+)
+
+(if (BITAND Greed-modules 1)
+	(if (NOT @pretend)
+		((message "\n\nPlease add \"" (tackon default-news "Greed Winners") "\" to your News "
+		"system.\n\nType = TEXT")
+	)
+	(if (> @user-level 0)
+		(transcript "\n\nPlease add \"" (tackon default-news "Greed Winners") "\" to your News "
+		"system.\n\nType = TEXT")
+	)
+	)
+)
+
+(if (= @user-level 0)
+	(
+		(textfile
+			(dest "T:GreedMessage")
+			(append "Please add \"" (tackon @default-dest "Greed") "\" to your P-files "
+			"list in CNet.\n\nType = AREXX"
+			"\n----------------------------------------"
+			"\nPlease add \""(tackon @default-dest "GreedMaint") "\" to your Amaint events.\n\n"
+			"RunARexx "(tackon @default-dest "GreedMaint") "\nSet to occur ONE day a week."
+			"\n----------------------------------------"
+			"\nPlease add \"" (tackon default-news "Greed Winnerss") "\" to your News "
+			"system.\n\nType = TEXT"
+			"\n----------------------------------------"
+			"\nAnother wonder from:\nThe Codex BBS\nJonesboro, GA, USA\n(770) 473-6173"
+			)
+		)
+		(if (exists "sys:utilities/more" (noreq))
+			(
+				(run "run sys:utilities/more T:GreedMessage")
+			)
+		)
+	)
+)
+
+(if (> @user-level 0)
+(transcript "\n\nAnother wonder from:\nThe Codex BBS\nJonesboro, GA, USA\n(770) 473-6173")
+)
+(complete 101)
+
+(if (OR (exists "sys:utilities/more" (noreq)) (> @user-level 0))
+	(
+	(exit "Another wonder from:\nThe Codex BBS\nJonesboro, GA, USA\n(770) 473-6173")
+	)
+	(
+	(exit "Please read the file\nT:GreedMessage\nfor specific instructions to active Greed in CNet.")
+	)
+)

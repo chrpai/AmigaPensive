@@ -1,0 +1,310 @@
+@Database HBBSMultiTop
+
+@Node Main "HBBSMultiTop.Guide"
+
+  HBBSMultiTop
+  ============
+
+   This utility is a program to create stats and listings of various
+   things, e.g. Top Uploaders, Downloaders, Callers etc.
+
+   It takes a template file (see hbbs:utils/hbbsmultitop_mts/#?.mt for
+   examples) and parses it to create an output file.
+
+   You can make it parse several input files and create several output files
+   at the same time.
+
+   PLEASE READ ALL OF THIS FILE TO GAIN BEST USE FROM THIS PROGRAM!!
+
+   Usage
+   =====
+                               
+   HBBSMultiTop [PROCESSCONFS] [FROM <listfile>] [<in-template> <out-ansi>...]
+
+   e.g  say you had a .mt file called topup.mt and another called topdown.mt
+   you could use:
+
+     HBBSMultiTop topup.mt topup.txt topdown.mt topdown.txt
+
+   It would then create the two output files called topup.txt and
+   topdown.txt
+   
+   if you had a .mt file that contains conference @^@ codes then you will
+   need to specify PROCESSCONFS as the first command line paramater or
+   your output files will still contain the @^@ codes in un-modified form.
+   
+   e.g.
+
+     HBBSMultiTop PROCESSCONFS conf1topup.mt conf1topup.txt
+
+   Try the example template, test.mt
+   
+     HBBSMultiTop PROCESSCONFS test.mt ram:test.txt
+   
+   You can get HBBSMultiTop to process multiple template files just
+   by specifiying pairs of template filenames and output filenames
+   on the command line, e.g.
+   
+   HBBSMultiTop filea.mt filea.out fileb.mt fileb.out filec.mt filec.out
+   
+   Or, instead of specifiying loads of filenames on the command line, which
+   can get fairly big if you create lots of screens, you can create a
+   listfile which is a file containing two file names per line, seperated
+   by a comma, the first in the name of the template file, the second is
+   the name of the output filename.
+   
+   e.g.
+   
+   filea.mt,filea.out
+   fileb.mt,fileb.out
+   filec.mt,filec.out
+   filed.mt,filed.out
+   
+   blank lines are allowed, lines starting with a ; will be skipped (so
+   you can comment your files.  you can pad filenames out with spaces
+   (not tabs) if you want.
+   
+   
+   The PROCESSCONFS option is only present to speed things up on BBS's that
+   don't use conference stats.
+   
+   Template Files
+   ==============
+
+   The template (.mt) files are very similar in format to @{"HBBS Screen files" link HBBS:Docs/Reference/Screens.guide/MAIN}
+   apart from the following differences:
+
+     * The file need not start with @^@, but if it contains @^@ codes that
+       HBBSMultiTop does not recognise it should.
+
+     * @^@ sequences that are not recognised by HBBSMultitop CAN be used
+       but will be left as they appear (i.e. they will not be stripped)
+       This is so that when HBBS displays the screen file the remaining
+       @^@ codes will be displayed!  Oh my god, just how cool is this...
+
+
+   @^@ Codes you can specify
+   =========================
+
+     TBUH = top bytes uploader handle
+     TBUB = top bytes uploader bytes
+     TBUF = top bytes uploader files
+     TBUG = top bytes uploader group
+
+     BBUH = best bytes uploader handle
+     BBUB = best bytes uploader bytes
+     BBUF = best bytes uploader files
+     BBUG = best bytes uploader group
+     BBUP = best bytes uploader points
+
+     TBDH = top bytes downloader handle
+     TBDB = top bytes downloader bytes
+     TBDF = top bytes downloader files
+     TBDG = top bytes downloader group
+
+     TFUH = top files uploader handle
+     TFUB = top files uploader bytes
+     TFUF = top files uploader files
+     TFUG = top files uploader group
+
+     TFDH = top files downloader handle
+     TFDB = top files downloader bytes
+     TFDF = top files downloader files
+     TFDG = top files downloader group
+
+     TMWH = top message writer handle
+     TMWG = top message writer group
+     TMWF = top message writer messages
+
+     TCH = top caller handle
+     TCG = top caller group
+     TCB = top caller total bytes
+     TCD = top caller downloaded bytes
+     TCU = top caller uploaded bytes
+     TCC = top caller calls
+
+     BCUH = Best CPS Up Handle
+     BCUG = Best CPS Up Group
+     BCUC = Best CPS Up CPS
+
+     BCDH = Best CPS Down Handle
+     BCDG = Best CPS Down Group
+     BCDC = Best CPS Down CPS                                          
+
+     TBU  = Total Bytes Uploaded
+     TFU  = Total Files Uploaded
+     TBD  = Total Bytes Downloaded
+     TFD  = Total Files Downloaded
+     TC   = Total Calls
+     TM   = Total Messages
+     BCU  = Best Ever CPS Up
+     BCD  = Best Ever CPS Down
+
+     C#TBUH = This week's conference top byte uploaders handle for conference #
+     C#TBUB = This week's conference top byte uploaders bytes for conference #
+     C#TBUF = This week's conference top byte uploaders files for conference #
+     C#TBUG = This week's conference top byte uploaders group for conference #
+     
+     C#N = The name of the conference.
+
+     WSD = Week start date.
+     WC = Calls this week
+
+     * more to come, e-mail me if you want anything in particular..
+
+   
+   Formatting
+   ==========
+   
+     Formatting @^@ codes is also possible, here is how you do it:
+     
+     @^<formatspec>^<code>@
+     
+     formatspec is:
+     
+     [-][<length>][.<forcelength>]
+     
+     the '-' specifies left justification, right justification is the default
+     
+     e.g.
+     
+     -5     or @^-5^<code>@    display 5 chars (or more), left justified
+     
+     -5.5   or @^-5.5^<code>@  display 5 chars (max), left justified    
+     
+     5      or @^5^<code>@     display 5 chars (or more), right justified
+                               
+     5.5    or @^5.5^<code>@   display 5 chars (max), right justified    
+
+     there's no center justification marker (yet)
+     
+     you can also pad a code with spaces after the code name, e.g.
+     
+     @^-30.30^TBUH                @
+     
+     this is handy for making template files easier to read. e.g.
+
+     ---- cut here ----
+     
+     Handle               Group                Bytes
+     ==================== ==================== ===============
+     @^-20.20^TBUH      @ @^-20.20^TBUG      @ @^15.15^TBUB  @
+
+     ---- cut here ----
+
+   Examples screen files
+   =====================
+
+   ---- cut here ----
+
+   Top Five Uploaders!
+
+     @^-15.15^TBUH@ @^-20.20^TBUG@ with @^10.10^TBUB@ bytes in @^4.4^TBUF@ files
+     @^-15.15^TBUH@ @^-20.20^TBUG@ with @^10.10^TBUB@ bytes in @^4.4^TBUF@ files
+     @^-15.15^TBUH@ @^-20.20^TBUG@ with @^10.10^TBUB@ bytes in @^4.4^TBUF@ files
+     @^-15.15^TBUH@ @^-20.20^TBUG@ with @^10.10^TBUB@ bytes in @^4.4^TBUF@ files
+     @^-15.15^TBUH@ @^-20.20^TBUG@ with @^10.10^TBUB@ bytes in @^4.4^TBUF@ files
+
+   ---- cut here ----
+
+   The above example would look like this:
+
+     Top Five Uploaders!
+
+       Hydra           [=- dAT'97 -=]       with  108645968 bytes in  358 files
+       mR pINk         Real Time Recording  with   19730211 bytes in   73 files
+       wizdom          data division!       with   10935548 bytes in   36 files
+       [-CJA-]         [-hELLFiRE-]         with    1261781 bytes in    6 files
+       MoRv            no                   with    1000000 bytes in      files
+
+
+   Notice that each time TBUH is used the user next in the list of top byte
+   uploaders will be used the next time TBUH is specified..
+   The same applies to TBDH, TFUH etc... (???H)
+
+   Also notice that the user MoRv had not uploaded any files but has been
+   awarded 1MB free creds..
+
+   Example of a MultiChart
+   =======================
+
+   You can also mix charts together, no other multi top generators can do this!
+
+   Here we mix top byte downloaders with top message writers in the same
+   template file.
+
+   Only HBBSMultiTop can do this:
+
+   ---- cut here ----
+
+   Top Three Leechers!
+
+     @^-15.15^TBDH@ / @^-20.20^TBDG@ with @^10.10^TBDB@ bytes in @^4.4^TBDF@ files
+     @^-15.15^TBDH@ / @^-20.20^TBDG@ with @^10.10^TBDB@ bytes in @^4.4^TBDF@ files
+     @^-15.15^TBDH@ / @^-20.20^TBDG@ with @^10.10^TBDB@ bytes in @^4.4^TBDF@ files
+
+   Kewlest message writers!
+
+     @^-15.15^TMWH@ / @^-20.20^TMWG@ with @^10.10^TMWM@ messages
+     @^-15.15^TMWH@ / @^-20.20^TMWG@ with @^10.10^TMWM@ messages
+     @^-15.15^TMWH@ / @^-20.20^TMWG@ with @^10.10^TMWM@ messages
+
+   Stats:
+
+      Total Bytes Up   @^-10.10^TBU@   Total Files Up   @^TFU@
+      Total Bytes Down @^-10.10^TBD@   Total Files Down @^TFD@
+
+   ---- cut here ----
+
+
+
+   Of course, you're not limited to doing 3 or 5 users at a time..  you can use
+   the paramaters as many times as you like!
+
+   You can mix ansi escape sequences in the file as well, but not within @^@'s
+   (obviously!).
+
+   If you use (say) "TBUH" 22 times in a file and you only have 20 users, the
+   last two TBU?'s are replaced with blanks.
+
+   For further print format specification details see @{"Screens.Guide" link HBBS:Docs/Reference/Screens.guide/Main}
+
+   You must use a TBUH either first or last because if you used the following
+   paramaters in this order: @^TBUG@ @^TBUB@ @^TBUH@ @^TBUF@
+   You'd find that it does not work very well as the first three TBU?'s
+   would be from the Number 1 Top Byte Uploader, then the TBUF would be from
+   the 2nd best Top Byte Uploader.
+   
+   With the conference items, you *must* use the Cn*H first.
+   
+   Now that HBBSMultiTop does conference charts you need to install the 
+   @{"statsgenerator" link HBBS:Docs/Doors/StatsGenerator.guide/MAIN} door, or it won't be able to get any conference data.
+   
+   The conference data for each users is stored as:
+   
+     HBBS:System/Data/Users/#?/ConfStats.CFG
+   
+   
+   There is an example multitop template file called test.mt.  Experiment
+   with copies of this file so you understand how it works.
+   
+   Note:
+   =====
+
+   HBBS's "Control" program *must* be running to use HBBSMultiTop
+
+   Kewl:
+   =====
+
+   Try running:
+
+   "HBBS:Utils/HBBSMultiTop HBBS:Utils/HBBSMultiTop.guide ram:test.guide"
+
+   And then open ram:test.guide in multiview or amigaguide to see the
+   above examples with the results
+   filled in!! (how cool is that?)
+   
+@EndNode
+
+
+

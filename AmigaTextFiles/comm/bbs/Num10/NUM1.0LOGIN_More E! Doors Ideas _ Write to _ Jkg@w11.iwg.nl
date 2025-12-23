@@ -1,0 +1,4 @@
+/* Next User Message v1.0 by Inorix Scripts!
+   This file is the 'showfile'.
+*/
+OPTIONS RESULTS;CHANGEWHAT='Num v1.0';PATH='Doors:Num/';GU=GETUSER;TR=TRANSMIT;SS=SENDSTRING;QU=QUERY;CALL OPEN(file1,path||'Message.num','R');name=READLN(file1);bericht=READLN(file1);CLS;TR '\!2\c6                     Next User Message v1.0 \c7by \c3Inorix Scripts';TR '\c7=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=';TR '\c3Here is a message from \c5'name'\c3 to YOU! :';TR '\c6Message ->\q1\cc' bericht'\q1';TR '\c7=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=';TR '\n1\c3Press any key!';GETCHAR

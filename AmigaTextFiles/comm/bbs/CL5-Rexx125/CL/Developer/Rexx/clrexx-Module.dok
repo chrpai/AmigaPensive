@@ -1,0 +1,135 @@
+Programmierrichtlinien für clrexx-Module, Rev. 01
+=================================================
+ © 1996 Ralf Ramge
+
+
+Die clrexx-Module sind ARexx-Skripte, welchen den ARexx-Programmierern  die
+Möglichkeit bieten, darin enthaltene Routinen ähnlich Library-Funktionen in
+eigenen Skripten zu nutzen.
+
+Um eine einheitliche Verwendungsweise der clrexx-Module zu ermöglichen  und
+Kompatibilitätsprobleme  zu  vermeiden, sind clrexx-Module entsprechend den
+Angaben dieses Dokuments zu programmieren bzw. zu benutzen.
+
+1. Allgemeines
+--------------
+
+Die   clrexx-Module   befinden    sich    stets    in    dem    Verzeichnis
+CONNECTLINE:Rexx/Modules  und  sind an dem Suffix .clrexxmod des Filenamens
+erkennbar. Die Benutzung durch eigene ARexx-Skripte bzw.  Batches  ist  auf
+folgende Methoden möglich:
+
+    - synchroner Aufruf
+
+      rx <clrexx-Modul> <Funktion> [<Parameterliste>]
+
+      Bei diesem Aufruf wartet das eigene Skript auf das Ende der Bearbei-
+      tung und sämtliche Ein- und Ausgaben des clrexx-Modules erfolgen im
+      aktuellen Fenster. Fehlermeldungen des clrexx-Moduls erfolgen mit-
+      tels Returncodes.
+
+    - asynchroner Aufruf 1
+
+      run >NIL: rx <clrexx-Modul> <Funktion> [<Parameterliste>]
+
+      Das eigene Skript wartet mit der Abarbeitung nicht auf das clrexx-
+      Modul, es erfolgen keine Ausgaben des Moduls.
+
+    - asynchroner Aufruf 2
+
+      run ><Datei>: rx <clrexx-Modul> <Funktion> [<Parameterliste>]
+
+      Das eigene Skript wartet mit der Abarbeitung nicht auf das clrexx-
+      Modul, Ausgaben des Moduls erfolgen in einer temporären Datei.
+      Diese Datei ist vom eigenen Skript nach ihrer Benutzung zu lösch-
+      en.
+
+    - asynchroner Aufruf 3
+
+      run rx <clrexx-Modul> <Funktion> [<Parameterliste>]
+
+      Das eigene Skript wartet mit der Abarbeitung nicht auf das clrexx-
+      Modul, sämtliche Ausgaben des clrexx-Moduls erfolgen im aktuellen
+      Fenster.
+
+Innerhalb der  Skripte/Batches  sollte  die  benötigte  Versionsnummer  des
+clrexx-Moduls angegeben, besser noch überprüft werden.
+
+
+2. Programmierung von clrexx-Modulen
+------------------------------------
+
+2.1 Dokumentation
+-----------------
+
+Jedes clrexx-Modul muß in seinem Header einen Versionsstring enthalten,  um
+ein stabiles Laufen von Skripten/Batches garantieren zu können.
+
+Die  einzelnen  Funktionen  und  die  benötigten  Übergabeparameter  werden
+innerhalb des Skriptes oder in einer eigenen Dokumentation genau erläutert.
+
+
+2.2 Analyse der Parameterliste
+------------------------------
+
+Ein clrexx-Modul verarbeitet  eine  beliebig  lange  Parameterliste,  deren
+einzelne  Parameter  als  ein String werden. Die einzelnen Parameter können
+durch Leerzeichen oder Kommata getrennt sein, eine eventuelle  Wandlung  in
+upper-  bzw.  lowercase  ist  vom  clrexx-Modul  vorzunehmen.  Beim  ersten
+Parameter handelt es sich stets um den Namen der gewünschten Funktion,  die
+Benutzung   eventueller   weiterer   Parameter  ist  optional  und  in  den
+Beschreibungen der jeweiligen  Funktion  dokumentiert.  Auf  eine  korrekte
+Reihenfolge  der  Parameter  braucht  innerhalb  eines  clrexx-Moduls nicht
+geprüft zu werden.
+
+
+2.3 Nutzung von Libraries
+-------------------------
+
+Jedes clrexx-Modul muß gewährleisten, daß  die  cl_rexx.library  auf  jeden
+Fall  geöffnet  wurde.  War  dies nicht möglich, wird der Returncode 10 vom
+clrexx-Modul  zurückgegeben,  bzw.  auf  die  Nutzung  von  Funktionen  der
+cl_rexx.library  vollständig  verzichtet.  Benutzte  Libraries  sind  nicht
+wieder mittels REMLIB() freizugeben. Die Benutzung  von  anderen  Libraries
+als  der  cl_rexx.library  und  der  rexxsupport.library  sollte  vermieden
+werden.
+
+
+2.4 STDIO innerhalb des clrexx-Moduls
+-------------------------------------
+
+Die generelle Nutzung von eigenen Fenstern und Eingaben des  Benutzers  ist
+nur   dann   möglicht,  wenn  sie  vom  aufrufenden  Skript  mittels  eines
+übergebenen Parameters ausdrücklich erlaubt wurde. STDIN und STDOUT  dürfen
+ohne  diese  Erlaubnis nicht geschlossen werden. Bei allen Eingaben, welche
+von einem CL-Port  erfolgen,  muß  ein  Carriercheck  erfolgen;  wurde  der
+Carrier  verloren,  so  teilt das clrexx-Modul dies durch den Returncode -1
+mit und beendet sich umgehend selbst. Es ist  darauf  zu  achten,  daß  die
+Funktionen des clrexx-Moduls von einem Port aus genutzt werden können.
+
+
+2.5 Der innere Aufbau eines clrexx-Moduls
+-----------------------------------------
+
+Die einzelnen Funktionen des clrexx-Moduls sind  als  solche  auch  in  dem
+Modul  enthalten, riesige SELECT...OTHERWISE oder IF...THEN-Konstrukte sind
+nicht zulässig. Die Ansteuerung der jeweiligen Routinen erfolgt stets durch
+den internen ARexx-Befehl CALL().
+
+Das Skript ist angemessen zu dokumentieren und übersichtlich zu  gestalten.
+Der  Name  der  jeweils  mit  CALL()  aufgerufen  Funktion  entspricht  dem
+Funktionsnamen im  uppercase,  welcher  vom  aufrufenden  Skript/Batch  dem
+clrexx-Modul  übergeben  wird,  ggf.  ohne  Leerzeichen  im Funktionsnamen.
+Subroutinen können beliebig eingefügt werden und sie daran  erkennbar,  daß
+ihre Namen ausschließlich Zeichen im lowercase enthalten.
+
+
+2.6 Der Ablauf des clrexx-Moduls
+--------------------------------
+
+Sollte  die  Funktion   des   clrexx-Moduls   rechenintensive   Operationen
+durchführen, so ist die gewünschte Priorität des clrexx-Moduls entsprechend
+eines vom aufrufenden Skript bzw. Batch übergebenen  optionalen  Parameters
+oder einer ENV-Variablen zu  setzen.  Ist dieser Parameter nicht vorhanden,
+so ist die Priorität stets 0 (Defaultwert).
+

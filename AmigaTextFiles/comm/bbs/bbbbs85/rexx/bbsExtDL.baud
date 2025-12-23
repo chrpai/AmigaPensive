@@ -1,0 +1,659 @@
+/* $VERS: bbsExtDL.baud 8.4 (21.1.95)
+copyright 1992-95 Richard Lee Stockton
+        FREELY DISTRIBUTABLE
+
+Allows BBBBS user to download from extra devices like CD drives.
+Keeps track of time left to this user, and watches for hangup.
+
+Just ignores file or directory names that contain spaces
+ because BBBBS would be unable to download them anyway.
+
+Ignores icons (files that end in .info).
+
+A textfile in BBS:Lists, CD_Exclude, controls exclusion of
+ drawers on certain CDs that contain copyright files. Other
+ specific files or directories can be excluded by adding
+ their paths to the CD_Exclude textfile, one path per line.
+
+Super-sysop may select very large directories and have their
+ formatted display lists cached as textfiles in bbspath'Cache'.
+ This can greatly improve access time for very large drawers,
+ especially if they contain sub-directories.
+*/
+
+SIGNAL ON BREAK_C
+SIGNAL ON BREAK_E
+PARSE ARG name level maxtime linesperpage colorflag devlist 
+
+exclude=''
+bbspath=GETCLIP('BBS_path')
+x=OPEN(f,bbspath'Lists/CD_Exclude','R')
+IF x~=0 THEN exclude=READCH(f,65000)
+CALL CLOSE(f)
+exclude=UPPER(TRANSLATE(exclude,' ','0A'x))
+
+lists.=''
+lists.0=0
+maxtime=maxtime-30
+CALL TIME('R')
+CR='0D'x
+def='[0m'
+bak2='[42m'
+pen3='[33m'
+IF colorflag~=1 THEN
+  DO
+    def=''
+    bak2=''
+    pen3=''
+  END
+OPTIONS PROMPT 'Press RETURN'
+SAY CR
+x=OPEN(f,bbspath'BBS_TEXT/EXT_INFO','R')
+IF x=0 THEN SAY bbspath'BBS_TEXT/EXT_INFO failed to open!'CR
+ELSE
+  DO
+    DO i=1 WHILE ~EOF(f)
+      SAY READLN(f)||CR
+      IF (i+2)//linesperpage=0 THEN
+        DO
+          PULL junk
+          SAY '1B'x'M'||'1B'x'M'CR
+        END
+    END
+    CALL CLOSE(f)
+  END
+selected=''
+path=''
+templist=devlist
+devlist=''
+longest=0
+CALL PRAGMA('W','N')  /* disk requesters OFF */
+CALL PRAGMA('D',bbspath'Information')
+test3=PRAGMA('D')
+DO i=1 TO WORDS(templist)
+  test=WORD(templist,i)
+  IF ~EXISTS(test) THEN ITERATE i
+  IF SHOWLIST('A',UPPER(LEFT(test,LENGTH(test)-1))) THEN test2=test
+  ELSE
+    DO
+      CALL PRAGMA('D',test)
+      test2=PRAGMA('D')
+      IF test2=test3 THEN ITERATE i
+      IF WORDS(test2)>1 THEN test2=test
+    END
+  devlist=STRIP(devlist test2)
+  IF LENGTH(test2)>longest THEN longest=LENGTH(test2)
+END
+cols=76%(longest+8)
+IF devlist='' THEN
+  DO
+    SAY CR
+    SAY '*** Sorry, no External Devices are available! ***'CR
+    SAY CR
+    PULL junk
+    EXIT('')
+  END
+
+picklist=devlist
+IF WORDS(picklist)=1 THEN
+  DO
+    path=picklist
+    IF RIGHT(path,1)~=':' THEN path=path'/'
+    picklist=makepicklist()
+  END
+ELSE
+  DO
+    lists.0=1
+    dirs=WORDS(devlist)
+  END
+CALL checkdcd()
+
+OPTIONS PROMPT 'Press RETURN'
+PULL junk
+
+DO loop=1
+  CALL checkdcd()
+  test=TIME('E')
+  IF test>(maxtime-100) THEN
+    DO
+      SAY CR
+      IF test>maxtime THEN
+        DO
+          SAY '*** This session''s time is expiring! ***'CR
+          SAY CR
+          LEAVE loop
+        END
+      ELSE SAY '*** Less than 2 minutes remaining! ***'CR
+      SAY CR
+    END
+  filename=pick(picklist)
+  IF filename='' THEN
+    DO
+      temp=path
+      IF RIGHT(temp,1)='/' THEN temp=LEFT(temp,LENGTH(temp)-1)
+      IF FIND(UPPER(devlist),UPPER(temp))>0 THEN
+        DO
+          IF WORDS(devlist)=1 THEN ITERATE loop
+          picklist=devlist
+          path=''
+          ITERATE loop
+        END
+      ELSE
+        DO
+          test=RIGHT(path,1)
+          IF test='/' THEN path=LEFT(path,LENGTH(path)-1)
+          slash=LASTPOS('/',path)
+          IF slash=0 THEN slash=LASTPOS(':',path)
+          path=LEFT(path,slash)
+        END
+    END
+  IF filename=':-)' THEN ITERATE loop
+  tempath=path||filename
+  temp=WORD(STATEF(tempath),1)
+  IF temp='FILE' THEN
+    DO
+      IF FIND(UPPER(selected),UPPER(tempath))=0 THEN
+        selected=selected tempath
+      ELSE selected=DELWORD(selected,FIND(UPPER(selected),UPPER(tempath)),1)
+      shosel=''
+      ITERATE loop
+    END
+  ELSE IF temp='DIR' THEN
+    DO
+      path=tempath
+      test=RIGHT(path,1)
+      IF test~='' & test~='/' & test~=':' THEN path=path'/'
+    END
+  ELSE IF UPPER(filename)='DONE' THEN LEAVE loop
+  IF path~='' THEN picklist=makepicklist()
+END
+selected=STRIP(selected)
+test=''
+IF WORDS(selected)=1 THEN test=UPPER(RIGHT(selected,4))
+IF selected~='' & test~='.LHA' & test~='.LZH' & test~='.DMS' & test~='.ZOO' THEN
+  DO
+    SAY CR
+    SAY 'You may choose to have your selection(s) archived using LhA.'CR
+    SAY 'This makes downloading faster, if the files are not already compressed.'CR
+    SAY 'The completed archive will be attached to email addressed to you.'CR
+    SAY CR
+    OPTIONS PROMPT 'Archive selected files? (nY) > '
+    PULL temp
+    IF LEFT(temp,1)~='N' THEN
+      DO
+        ADDRESS AREXX bbsArcExt.rexx name selected
+        selected=''
+        SAY CR
+        IF ADDRESS()='BAUD' THEN
+          DO
+            SAY 'BBBBS will notify you online when your archive is ready.'CR
+            SAY CR
+          END
+      END
+  END
+IF ADDRESS()='BAUD' THEN SAY 'Returning to the BBS...'CR
+SAY CR
+EXIT selected
+
+
+checkdcd:
+IF ADDRESS()~='BAUD' THEN RETURN
+dcd
+IF RC~=0 THEN RETURN
+CALL DELAY(128)
+dcd
+IF RC=0 THEN
+  DO
+    SAY CR
+    SAY '*** Lost Carrier while using bbsExtDL.baud ***'CR
+    EXIT('')
+  END
+xmsg=GETCLIP('BBS_MESSAGE')
+IF xmsg~='' THEN
+  DO
+    SAY CR
+    SAY bak2' Message From BBBBS: 'def||CR
+    SAY xmsg||CR
+    SAY CR
+    CALL SETCLIP('BBS_MESSAGE')
+    CALL getinput(1 1 pen3'      Press RETURN 'def)
+  END
+IF POS('G',GETCLIP('BBS_COMMAND'))>0 THEN EXIT
+RETURN
+
+
+makepicklist:
+IF path='' THEN RETURN ''
+IF STORAGE()<100000 THEN
+  DO
+    lists.=''
+    lists.0=0
+    IF WORDS(devlist)>1 THEN
+      DO
+        lists.0=1
+        lists.1.0=devlist
+      END
+  END
+DO i=1 TO lists.0
+  IF path=lists.i THEN RETURN lists.i.0
+END
+cname=STRIP(RIGHT(COMPRESS(path,' ._-:/'),29))
+IF cname~='' & EXISTS(bbspath'Cache/'cname) THEN
+  DO cloop=1 TO 1
+    k=lists.0+1
+    lists.0=k
+    x=OPEN(f,bbspath'Cache/'cname'.','R')
+    IF x=0 THEN SAY bbspath'Cache/'cname'. failed to open!'CR
+    ELSE
+      DO
+        cpath=READLN(f)
+        IF cpath=path THEN lists.k=path
+        ELSE
+          DO
+            IF level=99 THEN
+              SAY path 'does not match cache path in' cname'. !'CR
+            CALL CLOSE(f)
+            lists.0=lists.0-1
+            LEAVE cloop
+          END
+        DO i=1
+          line=READLN(f)
+          IF EOF(f) THEN LEAVE i
+          IF colorflag~=1 THEN
+            DO
+              n=POS('1B'x,line)
+              DO WHILE n>0
+                DO m=2
+                  IF DATATYPE(SUBSTR(line,n+m,1),'M') | (n+m+1)>LENGTH(line) THEN
+                    leave m
+                END
+                line=DELSTR(line,n,m+1)
+                n=POS('1B'x,line)
+              END
+            END
+          lists.k.i=line
+        END
+        CALL CLOSE(f)
+        lists.k.ROWS=i-1
+      END
+    x=OPEN(f,bbspath'Cache/'cname,'R')
+    IF x=0 THEN
+      DO
+        SAY bbspath'Cache/cname failed to open!'CR
+        CALL CLOSE(f)
+        lists.0=lists.0-1
+        LEAVE cloop
+      END
+    ELSE
+      DO
+        plist=READCH(f,65000)
+        CALL CLOSE(f)
+        lists.k.0=plist
+        RETURN plist
+      END
+  END
+SAY 'Loading...'CR
+CALL FileList(path'*',filelist,'F','N')
+IF filelist.0>1 THEN CALL QSORT(1,filelist.0,filelist)
+CALL FileList(path'*',dirlist,'D','N')
+IF dirlist.0>1 THEN CALL QSORT(1,dirlist.0,dirlist)
+plist=''
+dirs=0
+longest=0
+DO i=1 TO filelist.0
+  IF WORDS(filelist.i)~=1 THEN ITERATE i
+  IF filelist.i='' THEN ITERATE i
+  IF UPPER(RIGHT(filelist.i,5))='.INFO' THEN ITERATE i
+  IF FIND(exclude,UPPER(path||filelist.i))>0 THEN ITERATE i
+  plist=STRIP(plist filelist.i)
+  IF LENGTH(filelist.i)>longest THEN longest=LENGTH(filelist.i)
+END
+DO i=1 TO dirlist.0
+  IF WORDS(dirlist.i)~=1 THEN ITERATE i
+  IF FIND(exclude,UPPER(path||dirlist.i))>0 THEN ITERATE i
+  plist=STRIP(plist dirlist.i)
+  IF LENGTH(dirlist.i)>longest THEN longest=LENGTH(dirlist.i)
+  dirs=dirs+1
+END
+cols=76%(longest+9)
+lists.0=lists.0+1
+i=lists.0
+lists.i=path
+lists.i.0=plist
+DROP filelist. dirlist. 
+RETURN plist
+
+
+pick:
+PARSE ARG list 
+CALL postuser('CD:' path)
+selection=''
+DO k=1 TO lists.0
+  IF path=lists.k THEN LEAVE k
+END
+IF ~DATATYPE(lists.k.ROWS,'N') THEN
+  DO
+    items=WORDS(list)
+    IF items<75 & dirs<25 THEN SAY 'Formatting' items 'items...'CR
+    ELSE SAY 'Please be patient, formatting' items 'items may take a while the first time...'CR
+    lists.k.ROWS=(items%cols)+((items//cols)>0)
+    IF cols>items THEN cols=items
+    IF cols<1 THEN cols=1
+    longest=(76%cols)-8
+    lists.k=path
+    DO j=0 TO cols-1
+      DO i=1 TO lists.k.ROWS
+        thisnum=j*lists.k.ROWS+i
+        IF thisnum<=items THEN
+          DO
+            thisitem=WORD(list,thisnum)
+            filestat=STATEF(path||thisitem)
+            thisitem=LEFT(thisitem,longest)' '
+            IF WORD(filestat,1)='DIR' THEN
+              lists.k.i=lists.k.i||pen3'(dir) 'thisitem||def
+            ELSE
+              DO
+                bytes=WORD(filestat,2)
+                IF bytes<10000 THEN 
+                  lists.k.i=lists.k.i||RIGHT(bytes,5) thisitem
+                ELSE IF bytes>1023999 THEN 
+                  lists.k.i=lists.k.i||RIGHT(bytes%1024000,4)'m' thisitem
+                ELSE lists.k.i=lists.k.i||RIGHT(bytes%1024,4)'k' thisitem
+              END
+          END
+      END
+    END
+    IF level=99 & items>24 THEN
+      DO
+        SAY items 'items,' dirs 'dirs,' lists.k.ROWS 'rows'
+        OPTIONS PROMPT 'FileCache' path'? (Ny) > '
+        PULL junk
+        junk=LEFT(junk,1)
+        IF junk='Y' THEN
+          DO
+            CALL MAKEDIR(bbspath'Cache')
+            cname=STRIP(RIGHT(COMPRESS(path,' ._-:/'),29))
+            x=OPEN(f,bbspath'Cache/'cname,'W')
+            IF x=0 THEN SAY 'Unable to open cache file' cname'!'CR
+            ELSE
+              DO
+                CALL WRITECH(f,list)
+                CALL CLOSE(f)
+              END
+            x=OPEN(f,bbspath'Cache/'cname'.','W')
+            IF x=0 THEN
+              DO
+                SAY 'Unable to open cache file' cname'. !'CR
+                CALL DELETE(bbspath'Cache/'cname)
+              END
+            ELSE
+              DO
+                CALL WRITELN(f,path)
+                DO i=1 TO lists.k.ROWS
+                  CALL WRITELN(f,TRIM(lists.k.i))
+                END
+                CALL CLOSE(f)
+                SAY path 'has been cached.'CR
+              END
+          END
+      END
+  END
+IF selected~='' THEN
+  DO
+    SAY CR
+    w=WORDS(selected)
+    temp=pen3' 'w def'selected files.'
+    IF shosel~=1 THEN
+      DO
+        SAY pen3'selected:'def||CR
+        DO i=1 TO w
+          SAY WORD(selected,i)||CR
+        END
+      END
+    ELSE temp='Enter' pen3'SHOW S'def'elected to display'temp
+    SAY temp||CR
+    IF w>5 THEN shosel=1
+  END
+SAY CR
+SAY 'current path ='pen3 path||def||CR
+SAY LEFT('-',75,'-')||CR
+OPTIONS PROMPT ' - ['pen3'N'def']on-stop  ['pen3'Q'def']uit  ['pen3'RETURN'def']=Continue - '
+DO i=1 TO lists.k.ROWS
+  SAY TRIM(lists.k.i)||CR
+  IF (i+2)//(linesperpage-1)=0 & nonstop~=1 THEN
+    DO
+      CALL whodat()
+      PULL junk
+      IF LEFT(UPPER(junk),1)='Q' THEN LEAVE i
+      IF LEFT(UPPER(junk),1)='N' THEN nonstop=1
+      IF colorflag=1 THEN SAY '1B'x'M'||LEFT('',75)||'1B'x'M'||CR
+    END
+END
+nonstop=0
+SAY LEFT('-',75,'-')||CR
+CALL whodat()
+readflag=0
+DO getloop=1
+  pstring=showtime()'   Enter ''?'' for HELP > '
+  OPTIONS PROMPT pstring
+  PARSE PULL selection 
+  IF selection='?' THEN
+    DO
+      CALL help()
+      OPTIONS PROMPT 'Press RETURN'
+      PULL junk
+      selection=';-)'
+      LEAVE getloop
+    END
+  IF LEFT(selection,1)='/' THEN selection=STRIP(SUBSTR(selection,2))
+  IF WORDS(selection)>1 THEN
+    DO
+      IF LEFT(UPPER(selection),6)='SHOW S' THEN
+        DO
+          shosel=''
+          selection=';-)'
+          LEAVE getloop
+        END
+      IF UPPER(selection)='SELECT ALL' THEN
+        DO
+          IF path='' | RIGHT(path,1)=':' | POS(UPPER(path),UPPER(devlist))>0 THEN
+            DO
+              SAY CR
+              SAY pen3'*** Archiving entire devices at one time is NOT allowed! ***'def||CR
+              SAY CR
+              ITERATE getloop
+            END
+          CALL selall(path)
+          shosel=''
+          selection=':-)'
+          LEAVE getloop
+        END
+      ELSE IF UPPER(WORD(selection,1))='READ' THEN
+        DO
+          readflag=1
+          selection=STRIP(DELWORD(selection,1,1))
+        END
+      ELSE IF UPPER(WORD(selection,1))='CD' THEN selection=SUBSTR(selection,4)
+      ELSE IF UPPER(WORD(selection,1))='DIR' THEN selection=SUBSTR(selection,5)
+    END
+  i=FIND('DONE' UPPER(list),UPPER(selection))
+  IF i=0 THEN
+    DO
+      i=FIND('DONE' UPPER(list),UPPER(selection':'))
+      IF i=0 THEN
+        DO
+          IF UPPER(selection)='KINGFISHER' THEN
+            DO
+              IF EXISTS('rexx:KingFisher.rexx') THEN
+                CALL KingFisher.rexx(name '. .' colorflag maxtime)
+              ELSE IF EXISTS(bbspath'rexxDoors/KingFisher.rexx') THEN
+                DO
+                  curdir=PRAGMA('D',bbspath'rexxDoors')
+                  CALL KingFisher.rexx(name '. .' colorflag maxtime)
+                  curdir=PRAGMA('D',curdir)
+                END
+              ELSE SAY 'KingFisher.rexx not found!'CR
+              ITERATE getloop
+            END
+          ELSE IF UPPER(selection)='Q' THEN selection='DONE'
+          ELSE ITERATE getloop
+        END
+      ELSE selection=selection':'
+    END
+  IF selection='' & path='' THEN ITERATE getloop
+  ELSE IF i>1 THEN selection=WORD(list,i-1)
+  IF readflag=1 THEN
+    DO
+      endtest=UPPER(RIGHT(selection,4))
+      IF FIND('.ARC .DMS .LZH .LHA .ZIP .ZOO',endtest)>0 THEN
+        DO
+          CALL Contents.rexx(path||selection)
+          IF EXISTS('RAM:CONTENTS') THEN CALL showtext('RAM: CONTENTS')
+        END
+      ELSE CALL showtext(path selection)
+      readflag=0
+      selection=';-)'
+    END
+  LEAVE getloop
+END
+RETURN selection
+
+
+selall: PROCEDURE EXPOSE selected pen3 def CR
+PARSE ARG dir .
+IF FIND(exclude,UPPER(dir))>0 THEN RETURN
+SAY 'Processing'pen3 dir||def||CR
+IF RIGHT(dir,1)~='/' THEN dir=dir'/'
+filelist.=''
+CALL FileList(dir'*',filelist,'F','F')
+DO i=1 TO filelist.0
+  IF filelist.i='' THEN ITERATE i
+  IF FIND(UPPER(selected),UPPER(filelist.i))=0 & FIND(UPPER(selected),'22'x||UPPER(filelist.i)'22'x)=0 THEN
+    DO
+      IF WORDS(filelist.i)>1 THEN
+        DO
+          SAY 'Space(s) in filename!  Unable to archive' filelist.i'.'CR
+          ITERATE i
+        END
+      selected=STRIP(selected filelist.i)
+    END
+  ELSE IF FIND(UPPER(selected),'22'x||UPPER(filelist.i)'22'x)>0 THEN
+    selected=DELWORD(selected,FIND(UPPER(selected),'22'x||UPPER(filelist.i)'22'x),1)
+  ELSE selected=DELWORD(selected,FIND(UPPER(selected),UPPER(filelist.i)),1)
+END
+dirlist.=''
+IF FileList(dir'*',dirlist,'D','F')=0 THEN RETURN
+DO j=1 TO dirlist.0
+  CALL selall(dirlist.j)
+END
+RETURN
+
+
+showtext:
+PARSE ARG tpath' 'textfile 
+test=RIGHT(tpath,1)
+IF test~='' & test~=':' & test~='/' THEN tpath=tpath'/'
+x=OPEN(f,STRIP(tpath||textfile),'R')
+IF x=0 THEN RETURN
+test=READCH(f,64)
+mask=XRANGE(,'06'x)||XRANGE('0E'x,'1A'x)||XRANGE('1C'x,'1F'x)
+IF VERIFY(test,mask,'M')>0 THEN
+  DO
+    CALL CLOSE(f)
+    testloc=VERIFY(test,mask,'M')
+    SAY '*** not an archive or a text file! ***'CR
+    SAY 'Character number' testloc 'is ASCII' C2D(SUBSTR(test,testloc,1))||CR
+    RETURN
+  END
+CALL SEEK(f,0,'B')
+OPTIONS PROMPT ' - ['pen3'N'def']on-stop  ['pen3'Q'def']uit  ['pen3'RETURN'def']=Continue - '
+SAY CR
+SAY '-' tpath||textfile '-'CR
+DO i=1 WHILE ~EOF(f)
+  SAY COMPRESS(READLN(f),CR||'0C'x)||CR
+  IF i//(linesperpage-1)=0 & nonstop~=1 THEN
+    DO
+      CALL whodat()
+      PULL junk
+      IF LEFT(UPPER(junk),1)='Q' THEN LEAVE i
+      IF LEFT(UPPER(junk),1)='N' THEN nonstop=1
+      IF colorflag=1 | ADDRESS()~='BAUD'THEN
+        SAY '1B'x'M'||LEFT('',60)||'1B'x'M'||CR
+    END
+END
+CALL CLOSE(f)
+IF i//(linesperpage-1)>1 THEN
+  DO
+    OPTIONS PROMPT ' - ['pen3'RETURN'def']=Continue - '
+    PULL junk
+  END
+nonstop=0
+RETURN
+
+
+whodat:
+IF ADDRESS()~='BAUD' THEN RETURN
+MSG RIGHT(' ',66-LENGTH(name)) '1B'x'M'||'[30m'||'[41m'||' 'name' level 'level' '||'[0m'
+CALL checkdcd()
+RETURN
+
+
+help:
+SAY CR
+SAY CR
+SAY pen3'- HELP -'def
+SAY CR
+SAY 'You can navigate through directory levels using the following commands.'CR
+SAY 'Remember that the name must appear in the display before you can select it.'CR
+SAY 'Filenames are displayed with their filesizes on the left, and directories'CR
+SAY 'will have a' pen3'(dir)'def' on their left.'CR
+SAY CR
+SAY 'To select an item from the displayed list, enter its name as displayed.'CR
+SAY 'If the selected item is a' pen3'directory'def', its contents will be displayed.'CR
+SAY 'If the selected item is a file, it is added to the ''selected'' list.'CR
+SAY 'To remove a selected file from the list, enter its name again.'CR
+SAY CR
+SAY 'To display the parent directory, enter an ''empty'' RETURN'CR
+SAY 'To read a textfile or see the contents of an archive, enter' pen3'READ'def 'filename.'CR
+SAY 'To select ALL items from the current display, including the contents of all'CR
+SAY 'displayed directories and their sub-directories, enter 'pen3'SELECT ALL'def'.'CR
+SAY CR
+IF EXISTS('rexx:KingFisher.rexx') | EXISTS(bbspath'rexxDoors/KingFisher.rexx') THEN
+  SAY 'Enter 'pen3'KINGFISHER'def' to use the online search utility.'CR
+SAY CR
+SAY 'Enter'pen3 'DONE' def'to return to the BBS (and download any selected files)'CR
+SAY CR
+RETURN
+
+
+postuser:
+IF ADDRESS()~='BAUD' | ~SHOW('P','BBSPOST') THEN RETURN
+PARSE ARG parg 
+ptext=GETCLIP('BBSPOST4')
+IF WORDS(ptext)>4 THEN ptext=LEFT(ptext,WORDINDEX(ptext,5)-1)
+ptext=STRIP(ptext)
+ptext=CENTER(ptext'   'parg,74)
+CALL SETCLIP('BBSPOST4',ptext)
+ADDRESS BBSPOST 'UPDATE'
+RETURN
+
+
+showtime:
+mins=(maxtime-TIME('E'))%60
+secs=TRUNC((maxtime-TIME('E'))//60)
+IF secs<10 THEN secs='0'secs
+RETURN 'Time Remaining: 'mins':'secs
+
+
+BREAK_E:
+SAY CR
+SAY pen3'*** CONTROL-E BREAK ***'def||CR
+i=999999
+RETURN ''
+
+
+BREAK_C:
+SAY CR
+EXIT ''
+
+/* bbsExtDL.baud */

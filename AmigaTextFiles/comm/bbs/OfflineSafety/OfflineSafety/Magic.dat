@@ -1,0 +1,34 @@
+/* You would place this somewhere in your grab command etc. */
+
+    rexx("SaveUser");
+    dos("BBS:Util/DoHighReadMagic \(GetUserPath(GetUserName())) SAVE");
+
+/* It is important to save the user file first, because DoHighReadMagic
+   accesses the User.dat file in the user's directory. This must of course
+   be executed before running TechQWK or TechWWF... */
+
+
+
+/* This is a full command that restores the message pointers. */
+
+Command "restore" (G: N:3) {
+    $user = GetUserName();
+    $time = GetTimeLeft();
+    rexx("SaveUser");
+    dos("BBS:Util/DoHighReadMagic \(GetUserPath(GetUserName())) LOAD");
+    rexx("LoadUser \($user)");
+    rexx("SetTimeLeft \($time)");
+    rexx("SendModem \(27)[33mMessage pointers restored.\(27)[0m\(13)\(10)");
+    rexx("LogEntry Restoring message pointers");
+};
+
+/* Here we save the user first so that we don't lose any changes etc.
+   Then we do magic on the file, and load the user back. TechnoBBS
+   seems to mess up the user's time left, so we need to patch it. */
+
+/* Note! DoHighReadMagic produces some output to stdout, but I am not
+   redirecting it to TECHIO: here, because I don't think the user wants
+   to see the technical details... However, you might want to do this
+   in the restore command. The user will then see the error message if
+   an error would occur. */
+

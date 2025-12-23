@@ -1,0 +1,81 @@
+/* Looks up the specified node in the nodelist and displays some info about
+   it.  The most obvious place to install it would in in your Message.Rx file
+   as a command off the message menu.
+   
+   NOTE: Requires TrapDoor's traplist.library.
+*/
+
+options results
+signal on error
+
+call open('out','ram:x',w)
+call writeln('out',address())
+call close('out')
+CSI		= '1b'x||'['
+CLREOL	= CSI'K'
+OFF		= CSI'0m'
+BO		= CSI'1m'
+UL		= CSI'4m'
+IT		= CSI'3m'
+CRLF	= '0d'x||'0a'x
+FF		= '0c'x
+
+privacc = 240					/* Set this to your privileged access level */
+userinfo 'o' ; access=result
+userinfo 'x' ; ansi=result
+
+if ansi='ON' then do
+	CLI = CSI'37m' ; CLP = CSI'36m' ; CLT = CSI'31m' ; CLE = CSI'31m'
+end
+else do
+	CLI = '' ; CLP = '' ; CLT = '' ; CLE = ''
+end	
+
+query CRLF||CLP||'Enter node to look up:' CLI
+fqfa=result
+if fqfa='###PANIC' then exit 10
+
+if ~show('Libraries', 'traplist.library') then do
+	if ~addlib('traplist.library', 0, -30, 0) then do
+		sendstring CLT||"Couldn't open traplist.library."||CLI
+		exit 20
+	end
+end
+
+data = FindNode(fqfa, 'All', 'NodeList:')
+ok   = left(data, 2)
+data = delstr(data, 1, 2)
+
+if ~ok then do
+    transmit CRLF||CLE||data||OFF
+    exit 10
+    end
+
+node. = ''
+parse var data node.Addr "," node.Sysop "," node.System "," node.Phone "," node.City "," node.Password "," node.Baud "," node.Cost "," node.Region "," node.HUB "," node.Flags
+
+transmit
+transmit UL||CLI||node.System node.Addr 'Sysop' node.Sysop ||OFF||":"CRLF
+sendstring CLP||'  Phone'||CLT||':' CLI||left(node.Phone,20)
+transmit CLP||'Max. Baud'||CLT||':' CLI||node.Baud
+sendstring CLP||'  City'||CLT||':' CLI||left(node.City,21)
+transmit CLP||'Region'||CLT||':' CLI||node.Region
+sendstring CLP||'  HUB'||CLT||':' CLI||left(node.HUB,22)
+transmit CLP||'Flags'||CLT||':' CLI||node.Flags
+if access>=privacc then do
+	sendstring CLP||'  Password'||CLT||':' CLI||left(node.Password,17)
+	transmit CLP||'Cost'||CLT||':' CLI||node.Cost
+end
+
+transmit
+
+continue
+
+exit
+
+error:
+	if rc=10 then do
+		say 'ARexx script halted for some reason.'
+		exit
+	end
+	return

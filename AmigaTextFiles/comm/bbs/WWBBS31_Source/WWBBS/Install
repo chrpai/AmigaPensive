@@ -1,0 +1,160 @@
+(set is-installed
+	(exists "WWBBS:" (noreq))
+)
+
+(if is-installed
+	(
+		(message "If World Wide BBS is currently running, then quit the program before continuing.")
+		(run "Avail >NIL: FLUSH")
+		(run "Assign WWBBSAUX: DISMOUNT")
+		(run "Resident WWBBS:BBSRx REMOVE")
+		(set @default-dest (expandpath "WWBBS:"))
+	)
+	(
+		(set default-dest
+			(askdir
+				(prompt "Where would you like to install World Wide BBS?\n(A directory will be created)")
+				(help @askdir-help)
+				(default @default-dest)
+			)
+		)
+
+		(set @default-dest default-dest)
+
+		(set @default-dest
+			(tackon @default-dest "WWBBS")
+		)
+	)
+)
+
+(message "Installing World Wide BBS in\n" @default-dest)
+
+(set wwbbs-dir @default-dest)
+
+(if (NOT is-installed)
+	(makedir wwbbs-dir
+		(prompt "Create new directory\n" wwbbs-dir)
+		(help @makedir-help)
+		(infos)
+	)
+)
+
+(if (NOT is-installed)
+	(makeassign "WWBBS" wwbbs-dir)
+)
+
+(copylib
+	(prompt "Copy wwbbs.library to LIBS:")
+	(help @copylib-help)
+	(source "Libs/wwbbs.library")
+	(dest "LIBS:")
+	(confirm)
+)
+
+(copyfiles
+	(prompt "Copy handler")
+	(help @copyfiles-help)
+	(source "L/wwbbsaux-handler")
+	(dest "L:")
+	(confirm)
+)
+
+(copyfiles
+	(prompt "Copy DOS driver")
+	(help @copyfiles-help)
+	(source "DOSDrivers/WWBBSAUX")
+	(dest "DEVS:DOSDrivers")
+	(infos)
+	(confirm)
+)
+
+(copyfiles
+	(prompt "Copy binaries")
+	(help @copyfiles-help)
+	(source "Bin")
+	(dest "WWBBS:")
+	(all)
+	(infos)
+	(confirm)
+)
+
+(set copy-config
+	(if is-installed
+		(askbool
+			(prompt "Do you wish to copy over your old config files?")
+			(help "")
+			(default 0)
+		)
+		1
+	)
+)
+
+(if copy-config
+	(copyfiles
+		(prompt "Copy config files")
+		(help @copyfiles-help)
+		(source "Config")
+		(dest "WWBBS:")
+		(all)
+		(confirm)
+	)
+)
+
+(set copy-rexx
+	(if is-installed
+		(askbool
+			(prompt "Do you wish to copy over your old rexx script files?")
+			(help "")
+			(default 0)
+		)
+		1
+	)
+)
+
+(if copy-rexx
+	(copyfiles
+		(prompt "Copy REXX files")
+		(help @copyfiles-help)
+		(source "Rexx")
+		(dest "WWBBS:Rexx")
+		(all)
+		(confirm)
+	)
+)
+
+(makedir "WWBBS:Users"
+	(prompt "Create new directory\nWWBBS:Users")
+	(help @makedir-help)
+)
+
+(makedir "WWBBS:Logs"
+	(prompt "Create new directory\nWWBBS:Logs")
+	(help @makedir-help)
+)
+
+(makedir "WWBBS:Menus"
+	(prompt "Create new directory\nWWBBS:Menus")
+	(help @makedir-help)
+)
+
+(makedir "WWBBS:Messages"
+	(prompt "Create new directory\nWWBBS:Messages")
+	(help @makedir-help)
+)
+
+(if
+	(exists "WWBBS:BBSRx")
+	(protect "WWBBS:BBSRx" "+P")
+)
+
+(if (NOT is-installed)
+	(startup "World Wide BBS"
+		(prompt "Add assign to S:User-startup")
+		(help @startup-help)
+		(command "Assign WWBBS: \"" wwbbs-dir "\"\n")
+		(command "Resident WWBBS:BBSRx")
+	)
+)
+
+(run "Resident WWBBS:BBSRx")
+(run "Mount DEVS:DOSDrivers/WWBBSAUX")

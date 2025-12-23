@@ -1,0 +1,2488 @@
+' PlutDoor Point Pickup Door:
+'
+' By Peter Deane
+'
+' (c) 1992-1995
+'
+'
+testingit!=FALSE
+'
+MODE 1
+ON ERROR GOSUB woops
+'
+'
+versnum$="$VER: PlutDoor 1.00 (22-Aug-95)kyj"
+versnum$="1.00"
+versdate$="22-Aug-95"
+doorname$="PlutDoor"
+'
+'
+DIM ansi$(10)
+DIM m68%(15)
+DIM m67%(15)
+DIM aka$(10)
+DIM aka%(10,4)
+'
+cr$=CHR$(13)+CHR$(10)
+de$=CHR$(8)+" "+CHR$(8)
+esc$=CHR$(27)
+'
+timeon%=CINT(TIMER/200)
+'
+' Parse command line.
+'
+problem!=FALSE
+cline$=_dosCmd$
+'
+IF testingit!
+  cline$="-uRay Markham -b19200 -t40 -pBBS:Doorfiles1/door227 -s0"
+ENDIF
+'
+IF LEN(cline$)
+  '
+  IF INSTR(cline$,"-u")=0
+    problem!=TRUE
+  ELSE
+    uu%=INSTR(cline$,"-u")
+    ll%=LEN(cline$)
+    uname$=RIGHT$(cline$,ll%-2)
+    '
+    IF INSTR(uname$,"-b")=0
+      problem!=TRUE
+    ELSE
+      bb%=INSTR(uname$,"-b")
+      ll%=LEN(uname$)
+      baud$=RIGHT$(uname$,(ll%-bb%-1))
+      uname$=LEFT$(uname$,bb%-2)
+      uname$=TRIM$(uname$)
+      '
+      IF INSTR(baud$,"-t")=0
+        problem!=TRUE
+      ELSE
+        tt%=INSTR(baud$,"-t")
+        ll%=LEN(baud$)
+        tpc$=RIGHT$(baud$,ll%-tt%-1)
+        baud$=LEFT$(baud$,tt%-2)
+        '
+        IF INSTR(tpc$,"-p")=0
+          problem!=TRUE
+        ELSE
+          pp%=INSTR(tpc$,"-p")
+          ll%=LEN(tpc$)
+          '
+          path$=RIGHT$(tpc$,ll%-pp%-1)
+          tpc$=LEFT$(tpc$,pp%-2)
+          '
+          IF INSTR(path$,"-s")=0
+            problem!=TRUE
+          ELSE
+            ss%=INSTR(path$,"-s")
+            ll%=LEN(path$)
+            '
+            ring$=RIGHT$(path$,ll%-ss%-1)
+            path$=LEFT$(path$,ss%-2)
+          ENDIF
+          path$=TRIM$(path$)
+          IF RIGHT$(path$,1)<>"/" AND RIGHT$(path$,1)<>":"
+            path$=path$+"/"
+          ENDIF
+          '
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+  '
+  '
+ELSE
+  problem!=TRUE
+  IF EXIST("RAM:Userdata")
+    '
+    OPEN "I",#2,"Ram:Userdata",1024
+    LINE INPUT #2,tpc$      ! Remaining time in minutes
+    LINE INPUT #2,uname$    ! User's name
+    LINE INPUT #2,id$       ! User number
+    LINE INPUT #2,lev$      ! Security of caller (1-9)
+    LINE INPUT #2,baud$     ! Baud rate
+    LINE INPUT #2,ring$     ! Local (=0) or remote (=1)
+    LINE INPUT #2,path$     ! The pathname for the door to use
+    CLOSE #2
+    problem!=FALSE
+    '
+  ENDIF
+  '
+ENDIF
+'
+'
+IF problem!
+  '
+  PRINT "Error in setting up"
+  PRINT
+  PRINT "Usage details:"
+  PRINT
+  PRINT "PlutDoor -u<User Name> -b<Baud> -t<Time> -p<Path> -s<0|1>"
+  PRINT
+  PRINT "-u<User Name> should NOT be in inverted commas"
+  PRINT "-b<Baud>      is the locked modem (DTE) speed"
+  PRINT "-t<Time>      is the time remaining for the user"
+  PRINT "-p<Path>      is the pathname for config/userdir etc"
+  PRINT "-s<0|1>       serial type. -s0 = local, -s1 = remote"
+  PRINT
+  PRINT "-u, -b, -t, -p, -s are all case-sensitive!"
+  PRINT
+  PRINT "If the door is run with no command line, a Metro ram:userdata"
+  PRINT "file is searched for. If found the door will also run."
+  PRINT
+  PRINT "This window will close in 10 seconds...."
+  DELAY 10
+  END
+ENDIF
+'
+' Real baud rate now dummied to DTE speed.
+'
+realbaud$=baud$
+'
+' Go for more info from the doordata file if it's there
+'
+IF EXIST("ram:doordata")
+  OPEN "I",#2,"ram:doordata",16384
+  LINE INPUT #2,temp$
+  LINE INPUT #2,realbaud$
+  LINE INPUT #2,temp$
+  LINE INPUT #2,temp$
+  LINE INPUT #2,temp$
+  LINE INPUT #2,temp$
+  LINE INPUT #2,ansi$
+  CLOSE #2
+  ansi!=VAL(ansi$)
+  askansi!=FALSE
+ELSE
+  askansi!=TRUE
+ENDIF
+'
+@lowercase(uname$)
+uname$=lcase$
+'
+'
+@find.config
+'
+'
+IF config$="XXX"
+  PRINT "No config file could be found"
+  PRINT "We look in the directory "+path$
+  PRINT "for it. Please check that either."
+  PRINT "the config exists or the command"
+  PRINT "line is correct."
+  PRINT
+  PRINT "This window will close in 10 seconds...."
+  DELAY 10
+  END
+ENDIF
+'
+' First write to log makes sure we've got one, so this'll work
+' under WB 1.3.  All subsequent log writes use APPEND mode, and
+' don't have to do an If Exist() all the time.  Faster logging.
+'
+IF EXIST(logfile$)
+  OPEN "A",#54,logfile$,4096
+ELSE
+  OPEN "O",#54,logfile$,4096
+ENDIF
+'
+PRINT #54,CHR$(10)+"% ";
+@dateconv(DATE$)
+PRINT #54,pd.date$;" ";
+PRINT #54,TIME$;"  ";
+PRINT #54,"PlutDoor V"+versnum$+" opened"
+CLOSE #54
+'
+@log(logfile$,"%","Online user: "+uname$)
+'
+' find screen size required from PlutDoor.cfg
+'
+sw%=VAL(winw$)
+sh%=VAL(winh$)
+sx%=0
+sy%=0
+'
+' convert strings to numbers
+'
+bd%=VAL(baud$)
+tpc%=VAL(tpc$)
+id%=VAL(id$)
+lev%=VAL(lev$)
+IF VAL(ring$)
+  ring!=TRUE
+ELSE
+  ring!=FALSE
+ENDIF
+'
+'
+scrnht%=23
+'
+@open_screen
+@main_window
+'
+arplib$="arp.library"+CHR$(0)
+arpbase%=OpenLibrary(V:arplib$,0)
+'
+IF ring!=TRUE
+  @open_serial
+  PAUSE 24
+  @set_baud(bd%)
+ENDIF
+'
+' ======================================================================
+'
+' We're in, hit em hard and good!
+'
+' reset terminal
+@msend(esc$+"[0;40;37m"+CHR$(12)+cr$)
+IF car%>0
+  GOTO finish
+ENDIF
+'
+@killkeys
+IF askansi!=TRUE
+  @checkansi
+ENDIF
+'
+IF car%>0
+  GOTO finish
+ENDIF
+@setansi
+abscontin!=FALSE
+'
+' ======================================================================
+main:
+' ======================================================================
+@tchk
+IF car%>0
+  GOTO finish
+ENDIF
+'
+@banner
+IF car%>0
+  GOTO finish
+ENDIF
+'
+@msend(CHR$(12))
+'
+fl$=userdir$+uname$
+'
+IF NOT EXIST(fl$)
+  @log(logfile$,"%","No config setup for this user")
+  '
+  @msend(ansi$(2)+"To use this door, the sysop has to set you up an account."+cr$)
+  @msend("No account for '"+uname$+"' could be found."+cr$+cr$)
+  IF car%>0
+    GOTO finish
+  ENDIF
+  '
+  @killkeys
+  @msend(ansi$(3)+"Do you wish to read more about this door (Y/n)? ")
+  @mget(3,1,1,1)
+  IF in$="NO" OR car%>0
+    GOTO finish
+  ENDIF
+  @log(logfile$,"%","User asked for more info")
+  '
+  @msend(CHR$(12)+ansi$(6))
+  @seq.out(textdir$+"New_User.txt")
+  IF car%>0
+    GOTO finish
+  ENDIF
+  @press
+  IF car%>0
+    GOTO finish
+  ENDIF
+  @msend(ansi$(0)+cr$+cr$)
+  @killkeys
+  @tchk
+  IF car%>0
+    GOTO finish
+  ENDIF
+  @msend(ansi$(5)+"Do you wish to download further info (y/N)? ")
+  @mget(3,1,0,1)
+  IF in$="NO" OR car%>0
+    GOTO finish
+  ENDIF
+  @chooseproto
+  IF car%>0
+    GOTO finish
+  ENDIF
+  @log(logfile$,"%","User downloaded more info")
+  @xfer(protocol%,"S",textdir$+"New_User.lha",1)
+  '
+  GOTO finish
+ENDIF
+'
+@find.user
+@log(logfile$,"%","User has an account")
+@embed_convert(freqhandler$)
+freqhandler$=embed$
+'
+tries%=0
+leaveloop!=FALSE
+'
+DO WHILE tries%<3
+  '
+  @killkeys
+  @msend(cr$+cr$+ansi$(2)+"Enter your mail session password: "+ansi$(1))
+  @mget(6,10,0,1)
+  IF car%>0
+    leaveloop!=TRUE
+    tries%=99
+  ENDIF
+  incoming$=in$
+  incoming$=TRIM$(incoming$)
+  IF password$<>incoming$
+    @msend(cr$+CHR$(7)+ansi$(6)+"Incorrect. You only have three tries!"+cr$)
+    IF tries%<2
+      @msend(cr$+ansi$(3)+"(this is not necessarily the same as the BBS password)"+cr$)
+    ENDIF
+    @log(logfile$,"%","User entered wrong password ('"+incoming$+"')")
+    INC tries%
+  ELSE
+    leaveloop!=TRUE
+  ENDIF
+  '
+LOOP UNTIL leaveloop!
+'
+IF tries%>=3
+  '
+  @killkeys
+  @log(logfile$,"%","User excluded from door!!!")
+  @msend(cr$+cr$+ansi$(1)+"You have incorrectly entered the password three times now.")
+  @msend(cr$+cr$+"To disable any further fraudulent attempts, your account will be renamed.")
+  @msend(cr$+cr$+ansi$(5)+"You must now contact the sysop to access this account!")
+  @killkeys
+  @press
+  '
+  IF EXIST(userdir$+uname$)
+    IF EXIST(userdir$+uname$+".BadPwd")
+      KILL userdir$+uname$+".BadPwd"
+    ENDIF
+    '
+    NAME userdir$+uname$ AS userdir$+uname$+".BadPwd"
+    @log(logfile$,"%","Renaming "+userdir$+uname$)
+    @log(logfile$,"%","as "+userdir$+uname$+".BadPwd")
+    '
+  ENDIF
+  GOTO finish
+ENDIF
+'
+' okay, our user is in and all legit...
+@log(logfile$,"%","User entered correct password")
+'
+OPEN "O",#9,userdir$+uname$+".RLO",24
+'
+FOR k%=0 TO 9
+  '
+  IF aka$(k%)<>""
+    @msend(cr$+ansi$(5)+"Mail for AKA: "+ansi$(1)+aka$(k%)+cr$)
+    '
+    core$=STR$(aka%(k%,1))+"."+STR$(aka%(k%,2))+"."+STR$(aka%(k%,3))+"."+STR$(aka%(k%,4))+"."
+    '
+    IF EXIST(outbound$+core$+"HUT")
+      PRINT #9,"@"+outbound$+core$+"HUT"
+      @msend(ansi$(6)+outbound$+core$+"HUT"+cr$)
+    ENDIF
+    IF EXIST(outbound$+core$+"CUT")
+      PRINT #9,"@"+outbound$+core$+"CUT"
+      @msend(ansi$(6)+outbound$+core$+"CUT"+cr$)
+    ENDIF
+    IF EXIST(outbound$+core$+"DUT")
+      PRINT #9,"@"+outbound$+core$+"DUT"
+      @msend(ansi$(6)+outbound$+core$+"DUT"+cr$)
+    ENDIF
+    IF EXIST(outbound$+core$+"OUT")
+      PRINT #9,"@"+outbound$+core$+"OUT"
+      @msend(ansi$(6)+"@"+outbound$+core$+"OUT"+cr$)
+    ENDIF
+    '
+    IF EXIST(outbound$+core$+"FLO")
+      OPEN "I",#2,outbound$+core$+"FLO",1024
+      WHILE NOT EOF(#2)
+        LINE INPUT #2,xx$
+        IF LEFT$(xx$,1)<>"~"
+          PRINT #9,xx$
+          @msend(ansi$(6)+xx$+cr$)
+        ENDIF
+      WEND
+      CLOSE #2
+      '
+    ENDIF
+    '
+    IF EXIST(outbound$+core$+"HLO")
+      OPEN "I",#2,outbound$+core$+"HLO",1024
+      WHILE NOT EOF(#2)
+        LINE INPUT #2,xx$
+        IF LEFT$(xx$,1)<>"~"
+          PRINT #9,xx$
+          @msend(ansi$(6)+xx$+cr$)
+        ENDIF
+      WEND
+      CLOSE #2
+      '
+    ENDIF
+    '
+    IF EXIST(outbound$+core$+"CLO")
+      OPEN "I",#2,outbound$+core$+"CLO",1024
+      WHILE NOT EOF(#2)
+        LINE INPUT #2,xx$
+        IF LEFT$(xx$,1)<>"~"
+          PRINT #9,xx$
+          @msend(ansi$(6)+xx$+cr$)
+        ENDIF
+      WEND
+      CLOSE #2
+      '
+    ENDIF
+    '
+    IF EXIST(outbound$+core$+"DLO")
+      OPEN "I",#2,outbound$+core$+"DLO",1024
+      WHILE NOT EOF(#2)
+        LINE INPUT #2,xx$
+        IF LEFT$(xx$,1)<>"~"
+          PRINT #9,xx$
+          @msend(ansi$(6)+xx$+cr$)
+        ENDIF
+      WEND
+      CLOSE #2
+      '
+    ENDIF
+    '
+  ENDIF
+  '
+NEXT k%
+'
+CLOSE #9
+@killkeys
+@press
+'
+'
+@msend(CHR$(12)+cr$)
+@msend(ansi$(7)+"   ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿"+cr$)
+@msend("   ³   "+ansi$(2)+"P l u t D o o r  "+ansi$(5)+"  -  "+ansi$(6)+"P i c k i n g   U p   Y o u r   M a i l   "+ansi$(7)+"³"+cr$)
+@msend("   ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ"+cr$+cr$)
+'
+@msend(ansi$(7)+"------------------------------      ------"+cr$)
+@msend(ansi$(3)+"Summary of mail/files for you:      Bytes:"+cr$)
+@msend(ansi$(7)+"------------------------------      ------"+cr$+cr$)
+'
+OPEN "I",#2,userdir$+uname$+".RLO",1024
+'
+totalbytes%=0
+totalfiles%=0
+rlolen%=0
+'
+WHILE NOT EOF(#2)
+  LINE INPUT #2,xx$
+  IF LEFT$(xx$,1)="~"
+    xx$="~~"+xx$
+  ENDIF
+  IF LEFT$(xx$,1)="^" OR LEFT$(xx$,1)="@" OR LEFT$(xx$,1)="#" OR LEFT$(xx$,1)="-"
+    xx$=RIGHT$(xx$,LEN(xx$)-1)
+  ENDIF
+  '
+  IF LEFT$(xx$,1)<>"~"
+    IF EXIST(xx$)
+      spaceout(xx$,36)
+      @msend(ansi$(6)+xx$+SPACE$(spc%))
+      OPEN "I",#5,xx$,10
+      xx%=LOF(#5)
+      CLOSE #5
+      INC totalfiles%
+      totalbytes%=totalbytes%+xx%
+      @spaceout(STR$(xx%),6)
+      @msend(ansi$(2)+SPACE$(spc%)+STR$(xx%)+cr$)
+      rlolen%=rlolen%+LEN(xx$)
+    ELSE
+      xx%=0
+    ENDIF
+  ENDIF
+  '
+  IF totalfiles% MOD 23=16
+    @killkeys
+    @pagepause
+  ENDIF
+  '
+WEND
+CLOSE #2
+@msend(cr$+SPACE$(36)+ansi$(1)+"------")
+@spaceout(STR$(totalbytes%),6)
+@msend(cr$+SPACE$(36+spc%)+STR$(totalbytes%))
+@msend(cr$+SPACE$(36)+ansi$(1)+"------"+cr$)
+@killkeys
+@pagepause
+'
+sends%=(rlolen%/200)+1
+'
+@log(logfile$,"%","User has "+STR$(totalbytes%)+" bytes in "+STR$(totalfiles%)+" files here")
+'
+a$="This will take "+STR$(sends%)+" batch send"
+IF sends%<>1
+  a$=a$+"s"
+ENDIF
+@log(logfile$,"%",a$)
+'
+IF totalfiles%=0
+  @msend(cr$+cr$+ansi$(3)+"Well, whaddya know? No mail!")
+  @press
+  GOTO nomailjump
+ENDIF
+'
+'
+@msend(cr$+ansi$(5)+"The transfer consists of "+STR$(totalfiles%)+" file(s),")
+@msend(cr$+ansi$(5)+"which will require "+STR$(sends%)+" batch send")
+IF sends%<>1
+  @msend("s."+cr$)
+ELSE
+  @msend("."+cr$)
+ENDIF
+@msend(cr$+ansi$(2)+"At  1200 baud non-MNP, approx "+ansi$(3)+STR$(ROUND((totalbytes%/115)/60))+ansi$(2)+" mins")
+@msend(cr$+ansi$(2)+"At  2400 baud non-MNP, approx "+ansi$(3)+STR$(ROUND((totalbytes%/230)/60))+ansi$(2)+" mins")
+@msend(cr$+ansi$(2)+"At  2400 baud MNP-4,   approx "+ansi$(3)+STR$(ROUND((totalbytes%/270)/60))+ansi$(2)+" mins")
+@msend(cr$+ansi$(2)+"At  9600 baud non-MNP, approx "+ansi$(3)+STR$(ROUND((totalbytes%/940)/60))+ansi$(2)+" mins")
+@msend(cr$+ansi$(2)+"At  9600 baud MNP-4,   approx "+ansi$(3)+STR$(ROUND((totalbytes%/1100)/60))+ansi$(2)+" mins")
+@msend(cr$+ansi$(2)+"At 14400 baud non-MNP, approx "+ansi$(3)+STR$(ROUND((totalbytes%/1400)/60))+ansi$(2)+" mins")
+@msend(cr$+ansi$(2)+"At 14400 baud MNP-4,   approx "+ansi$(3)+STR$(ROUND((totalbytes%/1650)/60))+ansi$(2)+" mins")
+@msend(cr$+ansi$(2)+"At 28800 baud non-MNP, approx "+ansi$(3)+STR$(ROUND((totalbytes%/2800)/60))+ansi$(2)+" mins")
+@msend(cr$+ansi$(2)+"At 28800 baud MNP-4,   approx "+ansi$(3)+STR$(ROUND((totalbytes%/3100)/60))+ansi$(2)+" mins")
+@killkeys
+@press
+@killkeys
+@msend(cr$+ansi$(1)+CHR$(7)+"Commence the download (Y/n)? ")
+@mget(3,1,1,1)
+IF car%>0
+  GOTO finish
+ENDIF
+IF in$="NO"
+  @log(logfile$,"%","User rejected the download")
+  GOTO nomailjump
+ENDIF
+'
+'
+@chooseproto
+IF car%>0
+  GOTO finish
+ENDIF
+'
+@killkeys
+@msend(cr$+cr$)
+SELECT protocol%
+CASE 1
+  @msend(ansi$(5)+"(Last chance) Commence SZmodem download (Y/n)? ")
+CASE 2
+  @msend(ansi$(5)+"(Last chance) Commence Ymodem download (Y/n)? ")
+DEFAULT
+  @msend(ansi$(5)+"(Last chance) Commence Zmodem download (Y/n)? ")
+ENDSELECT
+'
+@mget(3,1,1,1)
+IF car%>0
+  GOTO finish
+ELSE IF in$="NO"
+  @log(logfile$,"%","User rejected the download")
+  GOTO nomailjump
+ENDIF
+'
+'
+'
+OPEN "I",#2,userdir$+uname$+".RLO",1024
+'
+persend%=totalfiles%/sends%
+'
+cmdline$=""
+jj%=1
+WHILE jj%<sends%
+  @msend(ansi$(3)+cr$+"Copying and renaming files...")
+  '
+  FOR k%=1 TO persend%
+    LINE INPUT #2,xx$
+    IF LEFT$(xx$,1)<>"~"
+      cmdline%=cmdline%+LEN(xx$)+1
+      '
+      IF LEFT$(xx$,1)="#"
+        a$=HEX$(TIMER,8)
+        fl$=RIGHT$(xx$,LEN(xx$)-1)
+        mo$=RIGHT$(fl$,4)
+        ex$="Copy "+CHR$(34)+fl$+CHR$(34)+" to "+CHR$(34)+xferdir$+a$+mo$+CHR$(34)
+        @log(logfile$,"%",ex$)
+        EXEC ex$,-1,-1
+        @msend(".")
+        fl$=xferdir$+a$+mo$
+      ELSE IF LEFT$(xx$,1)="@"
+        a$=HEX$(TIMER,8)
+        fl$=RIGHT$(xx$,LEN(xx$)-1)
+        ex$="Copy "+CHR$(34)+fl$+CHR$(34)+" to "+CHR$(34)+xferdir$+a$+".PKT"+CHR$(34)
+        @log(logfile$,"%",ex$)
+        EXEC ex$,-1,-1
+        @msend(".")
+        fl$=xferdir$+a$+".PKT"
+      ELSE IF LEFT$(xx$,1)="^"
+        fl$=RIGHT$(xx$,LEN(xx$)-1)
+      ELSE IF LEFT$(xx$,1)="-"
+        fl$=RIGHT$(xx$,LEN(xx$)-1)
+      ELSE
+        fl$=xx$
+      ENDIF
+      '
+      fl$=TRIM$(fl$)
+      '
+      IF EXIST(fl$)
+        cmdline$=cmdline$+fl$+" "
+        '
+      ENDIF
+    ENDIF
+    '
+  NEXT k%
+  '
+  @msend(cr$+cr$)
+  @xfer(protocol%,"S",cmdline$,persend%)
+  cmdline$=""
+  '
+  jumpout!=FALSE
+  '
+  @log(logfile$,"%","Download "+STR$(jj%)+" returned "+STR$(m67%(0)))
+  IF xfer.ret!=FALSE
+    @msend(cr$+cr$+"File transfer failed!!")
+    @msend(cr$+cr$+ansi$(1)+"Quit downloading (Y/n)? ")
+    @mget(3,1,1,1)
+    IF in$="YES" OR car%>0
+      jumpout!=TRUE
+      jj%=sends%+99
+      IF in$="YES"
+        @log(logfile$,"%","User quits download")
+      ENDIF
+    ENDIF
+  ENDIF
+  '
+  IF NOT jumpout!
+    @msend(cr$+cr$+ansi$(1)+"Ready for next (Y/n)? ")
+    @mget(3,1,1,1)
+    IF in$="NO" OR car%>0
+      jumpout!=TRUE
+      jj%=sends%+99
+      IF in$="NO"
+        @log(logfile$,"%","User quits download")
+      ENDIF
+    ENDIF
+    INC jj%
+  ENDIF
+  '
+WEND
+'
+IF car%>0
+  CLOSE #2
+  GOTO finish
+ENDIF
+IF jumpout!
+  CLOSE #2
+  GOTO nomailjump
+ENDIF
+'
+'
+cmdline$=""
+persend%=0
+@msend(ansi$(3)+cr$+"Copying and renaming files...")
+WHILE NOT EOF(#2)
+  LINE INPUT #2,xx$
+  IF LEFT$(xx$,1)<>"~"
+    cmdline%=cmdline%+LEN(xx$)+1
+    '
+    IF LEFT$(xx$,1)="#"
+      a$=HEX$(TIMER,8)
+      fl$=RIGHT$(xx$,LEN(xx$)-1)
+      mo$=RIGHT$(fl$,4)
+      ex$="Copy "+CHR$(34)+fl$+CHR$(34)+" to "+CHR$(34)+xferdir$+a$+mo$+CHR$(34)
+      @log(logfile$,"%",ex$)
+      EXEC ex$,-1,-1
+      @msend(".")
+      fl$=xferdir$+a$+mo$
+    ELSE IF LEFT$(xx$,1)="@"
+      a$=HEX$(TIMER,8)
+      fl$=RIGHT$(xx$,LEN(xx$)-1)
+      ex$="Copy "+CHR$(34)+fl$+CHR$(34)+" to "+CHR$(34)+xferdir$+a$+".PKT"+CHR$(34)
+      @log(logfile$,"%",ex$)
+      EXEC ex$,-1,-1
+      @msend(".")
+      fl$=xferdir$+a$+".PKT"
+    ELSE IF LEFT$(xx$,1)="^"
+      fl$=RIGHT$(xx$,LEN(xx$)-1)
+    ELSE IF LEFT$(xx$,1)="-"
+      fl$=RIGHT$(xx$,LEN(xx$)-1)
+    ELSE
+      fl$=xx$
+    ENDIF
+    '
+    fl$=TRIM$(fl$)
+    '
+    IF EXIST(fl$)
+      cmdline$=cmdline$+fl$+" "
+      INC persend%
+      '
+    ENDIF
+  ENDIF
+  '
+WEND
+CLOSE #2
+'
+@msend(cr$+cr$)
+@xfer(protocol%,"S",cmdline$,persend%)
+@log(logfile$,"%","Download "+STR$(jj%)+" returned "+STR$(m67%(0)))
+'
+IF xfer.ret!=FALSE
+  @msend(cr$+cr$+"File transfer failed!!")
+  @msend(cr$+cr$+ansi$(1)+"Do you want to quit (Y/n)? ")
+  @mget(3,1,1,1)
+  IF in$="YES" OR car%>0
+    IF in$="YES"
+      @log(logfile$,"%","User elects to quit")
+    ENDIF
+    GOTO finish
+  ENDIF
+ENDIF
+'
+@beepthree
+@msend(cr$+cr$+cr$+ansi$(3)+"Okay. Now the file transfer is over.")
+@msend(cr$+"If the transfer was succesful, you will want")
+@msend(cr$+"us to clean up the directories, so you don't")
+@msend(cr$+"get this mail sent to you again.")
+@msend(cr$+cr$+ansi$(5)+"This command will be final!")
+@msend(cr$+cr$+ansi$(2)+"Shall we clean up the directories (Y/n)? ")
+@mget(3,1,1,1)
+IF car%>0
+  GOTO finish
+ENDIF
+IF in$="NO"
+  @log(logfile$,"%","NO directory purging selected")
+  GOTO nomailjump
+ENDIF
+'
+@msend(cr$+cr$+ansi$(6)+"Are you sure (Y/n)? ")
+@mget(3,1,1,1)
+IF car%>0
+  GOTO finish
+ENDIF
+IF in$="NO"
+  @log(logfile$,"%","NO directory purging selected")
+  GOTO nomailjump
+ENDIF
+'
+OPEN "I",#2,userdir$+uname$+".RLO",1024
+@log(logfile$,"%","Purging "+outbound$+" directory")
+'
+WHILE NOT EOF(#2)
+  LINE INPUT #2,xx$
+  '
+  IF LEFT$(xx$,1)="#"
+    fl$=RIGHT$(xx$,LEN(xx$)-1)
+    @msend(cr$+ansi$(5)+"Truncating "+fl$+" to zero bytes")
+    @log(logfile$,"%","Truncating "+fl$+" to zero bytes")
+    OPEN "O",#5,fl$,24
+    PRINT #5,"";
+    CLOSE #5
+  ELSE IF LEFT$(xx$,1)="@" OR LEFT$(xx$,1)="^" OR LEFT$(xx$,1)="-"
+    fl$=RIGHT$(xx$,LEN(xx$)-1)
+    @msend(cr$+ansi$(1)+"Deleting "+fl$)
+    @log(logfile$,"%","Deleting "+fl$)
+    IF EXIST(fl$)
+      KILL fl$
+    ENDIF
+  ENDIF
+  '
+WEND
+'
+CLOSE #2
+'
+FOR k%=0 TO 9
+  core$=outbound$+STR$(aka%(k%,1))+"."+STR$(aka%(k%,2))+"."+STR$(aka%(k%,3))+"."+STR$(aka%(k%,4))+"."
+  IF EXIST(core$+"FLO")
+    @log(logfile$,"%","Deleting "+core$+"FLO")
+    @msend(cr$+ansi$(3)+"Deleting "+core$+"FLO")
+    KILL core$+"FLO"
+  ENDIF
+  IF EXIST(core$+"HLO")
+    @log(logfile$,"%","Deleting "+core$+"HLO")
+    @msend(cr$+ansi$(3)+"Deleting "+core$+"HLO")
+    KILL core$+"HLO"
+  ENDIF
+  IF EXIST(core$+"CLO")
+    @log(logfile$,"%","Deleting "+core$+"CLO")
+    @msend(cr$+ansi$(3)+"Deleting "+core$+"CLO")
+    KILL core$+"CLO"
+  ENDIF
+  IF EXIST(core$+"DLO")
+    @log(logfile$,"%","Deleting "+core$+"DLO")
+    @msend(cr$+ansi$(3)+"Deleting "+core$+"DLO")
+    KILL core$+"DLO"
+  ENDIF
+NEXT k%
+@press
+'
+nomailjump:
+'
+ex$="Delete "+xferdir$+"#?"
+@log(logfile$,"%",ex$)
+EXEC ex$,-1,-1
+'
+IF ring!
+  @chk_car
+ENDIF
+IF car%>0
+  GOTO finish
+ENDIF
+'
+' They're sending mail TO US
+'
+@msend(CHR$(12)+ansi$(0))
+@msend(ansi$(7)+"   ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿"+cr$)
+@msend("   ³ "+ansi$(2)+"P l u t D o o r "+ansi$(5)+" - "+ansi$(3)+"S e n d i n g   U s   Y o u r   R e p l i e s  "+ansi$(7)+"³"+cr$)
+@msend("   ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ"+cr$+cr$)
+'
+IF EXIST(userdir$+uname$+".RLO")
+  @log(logfile$,"%","Deleting .RLO file")
+  KILL userdir$+uname$+".RLO"
+ENDIF
+'
+@msend(ansi$(1)+"F'reqs are now also available - just ensure the extension is '.REQ'."+cr$+cr$)
+@msend(ansi$(6)+"Do you have mail or F'reqs to send back (y/N)? ")
+@mget(3,1,0,1)
+'
+IF in$="NO" OR car%>0
+  IF in$="NO"
+    @log(logfile$,"%","User has nothing for us :-(")
+  ENDIF
+  GOTO finish
+ENDIF
+'
+@log(logfile$,"%","User says there is mail for us!")
+@chooseproto
+@xfer(protocol%,"R","",10)
+@log(logfile$,"%","Upload returned "+STR$(m67%(0)))
+'
+DIR xferdir$ TO "ram:pl.foo"
+'
+IF NOT EXIST("Ram:pl.foo")
+  @log(logfile$,"%","No files received!")
+  @msend(cr$+cr$+"no files received!")
+  @press
+  GOTO finish
+ENDIF
+'
+@msend(cr$+ansi$(6)+"Copying your files to "+inbound$+"..."+cr$)
+OPEN "I",#2,"ram:pl.foo",1024
+'
+IF LOF(#2)=0
+  CLOSE #2
+  @log(logfile$,"%","No files received!")
+  @msend(cr$+cr$+"no files received!")
+  @press
+  GOTO finish
+ENDIF
+'
+WHILE NOT EOF(#2)
+  LINE INPUT #2,xx$
+  xx$=TRIM$(xx$)
+  @log(logfile$,"%","Received file: "+xx$)
+  callfreq!=FALSE
+  @msend(cr$+ansi$(2)+"Received file: "+ansi$(1)+xx$)
+  xx$=UPPER$(xx$)
+  '
+  IF LEN(xx$)<4
+    xx$="XXX.XXX"
+  ENDIF
+  '
+  mo$=RIGHT$(xx$,4)
+  mo.short$=MID$(mo$,2,2)
+  pewdy$=HEX$(TIMER,8)
+  '
+  IF mo$=".REQ"
+    @msend(cr$+cr$+CHR$(7)+ansi$(3)+"Calling File Request Server...")
+    @log(logfile$,"%","Calling F'req Server")
+    callfreq!=TRUE
+    ex$="copy "+xx$+" to Ram:PlutDoor.REQ"
+    EXEC ex$,-1,-1
+    ex$="Delete "+xx$
+    EXEC ex$,-1,-1
+    ex$=freqhandler$
+  ELSE IF mo$=".OUT" OR mo$=".DUT" OR mo$=".CUT" OR mo$=".HUT" OR mo$=".PKT"
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+".PKT"
+    @log(logfile$,"%","Renamed "+xx$+" as "+pewdy$+".PKT")
+  ELSE IF mo.short$="MO"
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+mo$
+    @log(logfile$,"%","Renamed "+xx$+" as "+pewdy$+mo$)
+  ELSE IF mo.short$="TU"
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+mo$
+    @log(logfile$,"%","Renamed "+xx$+" as "+pewdy$+mo$)
+  ELSE IF mo.short$="WE"
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+mo$
+    @log(logfile$,"%","Renamed "+xx$+" as "+pewdy$+mo$)
+  ELSE IF mo.short$="TH"
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+mo$
+    @log(logfile$,"%","Renamed "+xx$+" as "+pewdy$+mo$)
+  ELSE IF mo.short$="FR"
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+mo$
+    @log(logfile$,"%","Renamed "+xx$+" as "+pewdy$+mo$)
+  ELSE IF mo.short$="SA"
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+mo$
+    @log(logfile$,"%","Renamed "+xx$+" as "+pewdy$+mo$)
+  ELSE IF mo.short$="SU"
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+mo$
+    @log(logfile$,"%","Renamed "+xx$+" as "+pewdy$+mo$)
+  ELSE IF mo$=".FLO"
+    @msend(cr$+ansi$(6)+"Please DON'T send *.FLO files back! Deleting this one!"+CHR$(7))
+    ex$="Delete "+xferdir$+xx$
+  ELSE IF mo$=".HLO"
+    @msend(cr$+ansi$(6)+"Please DON'T send *.HLO files back! Deleting this one!"+CHR$(7))
+    ex$="Delete "+xferdir$+xx$
+  ELSE IF mo$=".CLO"
+    @msend(cr$+ansi$(6)+"Please DON'T send *.CLO files back! Deleting this one!"+CHR$(7))
+    ex$="Delete "+xferdir$+xx$
+  ELSE IF mo$=".DLO"
+    @msend(cr$+ansi$(6)+"Please DON'T send *.DLO files back! Deleting this one!"+CHR$(7))
+    ex$="Delete "+xferdir$+xx$
+  ELSE IF NOT EXIST(inbound$+xx$)
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$
+  ELSE
+    ex$="Copy "+xferdir$+xx$+" to "+inbound$+pewdy$+mo$
+    @log(logfile$,"%","No MAIL filename avail. Renaming to "+pewdy$+mo$)
+  ENDIF
+  '
+  EXEC ex$,-1,-1
+  '
+  IF callfreq!=TRUE
+    @msend(".... file server returns!"+cr$)
+    IF EXIST("Ram:PlutDoor.REQ")
+      KILL "Ram:PlutDoor.REQ"
+    ENDIF
+  ENDIF
+  '
+WEND
+CLOSE #2
+'
+'
+cmdline%=0
+cmdline$=""
+sends%=0
+this%=0
+jumpout!=FALSE
+'
+IF EXIST(userdir$+uname$+".RLO")
+  OPEN "I",#2,userdir$+uname$+".RLO",1024
+  '
+  DO WHILE NOT EOF(#2)
+    LINE INPUT #2,xx$
+    xx$=TRIM$(xx$)
+    '
+    IF LEFT$(xx$)="^"
+      xx$=RIGHT$(xx$,LEN(xx$)-1)
+    ELSE IF LEFT$(xx$)="-"
+      xx$=RIGHT$(xx$,LEN(xx$)-1)
+    ENDIF
+    '
+    IF EXIST(xx$)
+      INC this%
+      cmdline$=cmdline$+" "+xx$
+      cmdline%=LEN(cmdline$)
+    ENDIF
+    '
+    IF cmdline%>180
+      INC sends%
+      @msend(cr$+cr$)
+      @msend(ansi$(7)+"File send # "+STR$(sends%))
+      @xfer(protocol%,"S",cmdline$,this%)
+      @log(logfile$,"%","Download "+STR$(sends%)+" returned "+STR$(m67%(0)))
+      this%=0
+      cmdline$=""
+      '
+      IF (xfer.ret!=FALSE) AND (car%=0)
+        @msend(cr$+cr$+"File transfer failed!!")
+        @msend(cr$+cr$+ansi$(1)+"Do you want to quit (Y/n)? ")
+        @mget(3,1,1,1)
+        IF in$="YES" OR car%>0
+          IF in$="YES"
+            @log(logfile$,"%","User elects to quit")
+          ENDIF
+          jumpout!=TRUE
+        ENDIF
+      ENDIF
+    ENDIF
+    IF car%>0
+      jumpout!=TRUE
+    ENDIF
+    '
+  LOOP UNTIL jumpout!=TRUE
+  '
+  CLOSE #2
+ENDIF
+IF cmdline$<>""
+  '
+  INC sends%
+  @msend(cr$+cr$)
+  @msend(ansi$(7)+"File send # "+STR$(sends%))
+  @xfer(protocol%,"S",cmdline$,this%)
+  @log(logfile$,"%","Download "+STR$(sends%)+" returned "+STR$(m67%(0)))
+  '
+ENDIF
+'
+'
+@msend(cr$+cr$+ansi$(5)+"Thank you. Until we meet again...")
+'
+DELAY 1
+'
+bye:
+'
+xq3%=0
+'
+finish:
+'
+@killkeys
+@msend(CHR$(12)+cr$+cr$+ansi$(0))
+@msend(cr$+"Program  : "+doorname$)
+@msend(cr$+"Author   : Peter Deane")
+@msend(cr$+"Version  : "+versnum$)
+@msend(cr$+"Date     : "+versdate$)
+@msend(cr$+"Language : GFA Basic"+cr$)
+@pagepause
+@msend("Reloading: "+bbsname$+cr$+cr$)
+'
+IF EXIST("RAM:userdata")
+  KILL "RAM:userdata"
+ENDIF
+'
+IF EXIST("t:Xfers.temp")
+  KILL "t:Xfers.temp"
+ENDIF
+'
+IF EXIST("ram:pl.foo")
+  KILL "ram:pl.foo"
+ENDIF
+'
+IF arpbase%
+  ~CloseLibrary(arpbase%)
+ENDIF
+'
+ex$="delete "+xferdir$+"#?"
+@log(logfile$,"%",ex$)
+EXEC ex$,-1,-1
+'
+ex$="delete T:#?.PKT"
+@log(logfile$,"%",ex$)
+EXEC ex$,-1,-1
+'
+IF EXIST(userdir$+uname$+".RLO")
+  @log(logfile$,"%","Deleting .RLO file")
+  KILL userdir$+uname$+".RLO"
+ENDIF
+'
+IF ring!=TRUE
+  IF car%>0
+    @log(logfile$,"%","User dropped carrier!")
+  ENDIF
+  @close_serial
+ENDIF
+'
+CLOSES 1
+'
+@log(logfile$,"%","PlutDoor V"+versnum$+" closed"+CHR$(10))
+'
+CLEAR
+END
+'
+'
+PROCEDURE woops
+  '
+  @log(logfile$,"%","Entered Error Trapping Code!!")
+  @msend(cr$+CHR$(7)+cr$+ansi$(1)+"Woops - FATAL ERROR!!"+cr$)
+  @msend(cr$+CHR$(7)+"This will be logged for the sysop. You may even be able"+cr$)
+  @msend("to re-run the door, and have it work fine - just try to avoid what you"+cr$)
+  @msend("just did then!"+cr$)
+  @msend(cr$+cr$+"Exiting door now. Please hold")
+  DELAY 1
+  @msend("..5..")
+  DELAY 1
+  @msend("4..")
+  DELAY 1
+  @msend("3..")
+  DELAY 1
+  @msend("2..")
+  DELAY 1
+  @msend("1..")
+  DELAY 1
+  @msend("0..")
+  '
+  RESUME finish
+  '
+RETURN
+'
+'
+'
+'
+'
+'
+PROCEDURE open_serial
+  '
+  cmd_read%=2              ! Similar to INPUT #1,
+  cmd_write%=3             ! Similar to PRINT #1,
+  cmd_clear%=5
+  sdcmd_break%=10          ! Special Serial Device commands
+  sdcmd_query%=9           ! This command polls the serial device for how many chars to read
+  sdcmd_setparams%=11      ! We will use this to adjust the buffer size **********
+  '
+  io.command%=28           ! 2 byte command to perform (see directly above)
+  io.flags%=30             ! 1 byte
+  io.error%=31             ! 1 byte error # of last command
+  io.actual%=32            ! 4 byte actual bytes read or written
+  io.length%=36            ! 4 byte length of data to read or write
+  io.data%=40              ! 4 byte address of data to send or recieve
+  io.offset%=44            ! 4 byte ???
+  io.ctlchar%=48           ! 4 byte handshaking = $11130000
+  io.rbufflen%=52          ! 4 byte suggested size of the hardware buffer (16K ?)
+  io.extflags%=56          ! 4 byte parity flags for serial port/modem
+  io.baud%=60              ! 4 byte actual baud rate to use (1200, 2400, etc.)
+  io.brktime%=64           ! 4 byte break time in micro seconds (250000 ?)
+  io.termarray%=68         ! 8 byte a list of 8 termination characters (???????)
+  io.readlen%=76           ! 1 byte # of bits per read character (7-8)
+  io.writelen%=77          ! 1 byte # of bits per write character (should be same as read)
+  io.stopbits%=78          ! 1 byte # of stop bits (1 or 2)
+  io.serflags%=79          ! 1 byte serial port flags -
+  '
+  iof_quick%=1
+  '
+  serf_7wire|=4
+  serf_eofmode|=64
+  serf_parity_odd|=2
+  serf_parity_on|=1
+  serf_queuedbrk|=8
+  serf_rad_boogie|=16
+  serf_shared|=32         !This is the flag to set at OpenDevice for shared mode
+  serf_xdisabled|=128     !this flag should also be set at OpenDevice
+  '
+  io.status%=80           ! 2 bytes set when we issue a SDCMD_QUERY
+  '                      Bit# | what its for
+  '                         0 = reserved
+  '                         1 = reserved
+  '                         2 = ring indicator on 500/2000
+  '                         3 = Data set ready      (DSR)
+  '                         4 = Clear To Send       (CTS)
+  '                         5 = Carrier Detect      (CD)
+  '                         6 = Ready to send       (RTS)
+  '                         7 = Data Terminal Ready (DTR)
+  '                         8 = Read overrun
+  '                         9 = Break sent
+  '                        10 = Break recieved
+  '                        11 = transmit x-OFFed
+  '                        12 = receive x-OFFed
+  '
+  sizeof_extserio%=82      ! The size of the ExtSerIO struct
+  '
+  '
+  ' open the modem
+  '
+  device_name$=device$+CHR$(0)
+  '
+  write_port%=CreatePort(0,0)
+  write_io%=CreateExtIO(write_port%,sizeof_extserio%)
+  read_port%=CreatePort(0,0)
+  read_io%=CreateExtIO(read_port%,sizeof_extserio%)
+  '
+  ' serf_7wire| is the flag for CTS/RTS
+  '
+  POKE write_io%+io.serflags%,serf_7wire|+serf_shared|+serf_xdisabled|
+  '
+  ~OpenDevice(V:device_name$,unit%,write_io%,0) ! Open the device
+  '
+  LPOKE write_io%+io.baud%,bd%                  ! baud rate
+  POKE write_io%+io.readlen%,8                  ! # read bits
+  POKE write_io%+io.writelen%,8                 ! # write bits
+  POKE write_io%+io.stopbits,1                  ! Stop bits - 1 please
+  LPOKE write_io%+io.ctlchar%,&H1113000         ! handshaking
+  LPOKE write_io%+io.rbufflen%,512              ! hardware buffer size
+  DPOKE write_io%+io.command%,sdcmd_setparams%
+  ~DoIO(write_io%)
+  '
+  ' now copy the write_io request into the read_io request
+  '
+  FOR a%=20 TO sizeof_extserio%
+    POKE read_io%+a%,PEEK(write_io%+a%)
+  NEXT a%
+RETURN
+'
+PROCEDURE close_serial
+  ' close the modem
+  ~AbortIO(write_io%)
+  ~WaitIO(write_io%)
+  ~CloseDevice(write_io%)
+  '
+  ' free up the memory of the IO request structure (must be 88!)
+  '
+  ~MFREE(write_io%,88)
+  ~MFREE(read_io%,88)
+  '
+  ' Delete the message port
+  '
+  ~DeletePort(write_port%)
+  ~DeletePort(read_port%)
+RETURN
+'
+'
+PROCEDURE ser_recv1
+  ' read in data 1 byte at a time like a$=INPUT$(1,1)
+  '
+  ' first we check to see if there is any incoming data, and if so store the
+  ' number of characters waiting in the variable waiting%
+  '
+  r_data$=""
+  DPOKE read_io%+io.command%,sdcmd_query%
+  ~DoIO(read_io%)
+  waiting%=LPEEK(read_io%+io.actual%)
+  IF waiting%<>0
+    r_data$=SPACE$(1)
+    DPOKE read_io%+io.command%,cmd_read%
+    LPOKE read_io%+io.length%,1
+    LPOKE read_io%+io.data%,V:r_data$
+    ~DoIO(read_io%)
+  ENDIF
+RETURN
+'
+PROCEDURE ser_purge
+  DPOKE read_io%+io.command%,cmd_clear%
+  ~DoIO(read_io%)
+RETURN
+'
+PROCEDURE killkeys
+  IF ring!
+    @ser_purge
+  ENDIF
+  WHILE INKEY$<>""
+    foo$=INKEY$
+  WEND
+RETURN
+'
+PROCEDURE chk_car
+  ' no carrier=-1  |  valid carrier=0
+  '
+  DPOKE write_io%+io.command%,sdcmd_query%
+  ~DoIO(write_io%)
+  status&=DPEEK(write_io%+io.status%)
+  car!=BTST(status&,5)
+  IF car!=TRUE
+    car%=20
+  ENDIF
+RETURN
+'
+PROCEDURE set_baud(baud%)
+  '
+  ' baud%        = actual baud rate (300,1200,2400,etc)
+  '
+  LPOKE write_io%+io.baud%,baud%
+  DPOKE write_io%+io.command%,sdcmd_setparams%
+  ~DoIO(write_io%)
+RETURN
+'
+PROCEDURE mget(intype%,inlength%,yesdef!,wait!)
+  '
+  ' [Usage @Mget(intype%,inlength%,yesdef!,wait!) ]
+  '
+  ' input type= 0  Hot key response. Converted to uppercase. Always 1 char
+  '           = 1  Normal Upper/Lowercase text input.
+  '           = 2  UPPERCASE only text input
+  '           = 3  Yes/No response. Will default to YES if yesdef!=TRUE
+  '           = 4  Numerical input only
+  '           = 5  For the Metro Line Editor's use
+  '           = 6  Non-echoed, all uppercase password stuff
+  '           = 9  No echoing, converted to uppercase.
+  '
+  ' input length   Just how many chars you want (max)
+  '
+  ' yesdef!   = TRUE then if <rtn> pressed, default is 'YES'+cr$
+  '           = FALSE then if <rtn> pressed, default is 'NO'+cr$
+  '
+  ' wait!     = TRUE, we'll wait until something is input
+  '           = FALSE then if nothing pressed, we'll return and return
+  '             in$=""
+  '
+  '
+  LOCAL cd%,a$,key$,keyy%,b%,in1$,idle%,llen%
+  '
+  idle%=CINT(TIMER/200)
+  ' /\ can't have them taking all day!
+  '
+  key$=""
+  in$=""
+  in1$=""
+  a%=0
+  keyy!=FALSE
+  b%=0
+  '
+  DO
+    '
+    IF MOUSEK=3
+      ALERT 0,"REALLY kill "+doorname$+" ?",2,"Yes|No",xx%
+      IF xx%=1
+        car%=999
+        keyy!=TRUE
+        abort!=TRUE
+        '
+      ENDIF
+    ENDIF
+    ' /\ a way out...
+    '
+    IF ring!=TRUE
+      @chk_car
+      IF car!=TRUE
+        keyy!=TRUE
+        abort!=TRUE
+        ' set all the flags for an early departure! :-)
+      ENDIF
+    ENDIF
+    '
+    key$=INKEY$
+    '
+    IF LEN(key$)>1 AND LEFT$(key$,1)=CHR$(155)
+      '
+      xx%=ASC(MID$(key$,2,1))
+      IF xx%=48         ! F1
+        ALERT 0,"Really kick em off?",2,"Yes|No",xx%
+        IF xx%=1
+          car%=20
+          keyy!=TRUE
+          abort!=TRUE
+        ENDIF
+      ENDIF
+      IF xx%=50         ! F3
+        IF icon!=TRUE
+          icon!=FALSE
+          CLOSEW #2
+        ELSE
+          icon!=TRUE
+          CLOSEW #2
+        ENDIF
+        @main_window
+        ~ActivateWindow(WINDOW(2))
+      ENDIF
+    ENDIF
+    '
+    EXIT IF car!=TRUE
+    '
+    IF ring!=TRUE AND key$=""
+      ' sep test for ring!=TRUE cos if no user - no modem!
+      @ser_recv1
+      IF r_data$<>""
+        key$=r_data$
+      ENDIF
+    ENDIF
+    '
+    IF key$=CHR$(19)
+      ' Wow, they pressed ctrl-S. Let's pause a bit.
+      pau$=""
+      hold%=CINT(TIMER/200)
+      '
+      WHILE CINT(TIMER/200)<hold%+45
+        ' pause for a MAXIMUM of /\ 45 seconds
+        pau$=INKEY$
+        IF ring!=TRUE
+          @ser_recv1
+          pau$=r_data$
+        ENDIF
+        EXIT IF pau$<>""
+      WEND
+      '
+      key$=""
+      pau$=""
+    ENDIF
+    '
+    ' This seemingly works well, but watchit if you are hotkeying a menu
+    ' and using "S" or "N" as the keypresses- Remember to reset abort!
+    ' \/ just in case it throws something a bit later on!
+    '
+    IF wait!=FALSE
+      keyy!=TRUE
+      IF key$=" " OR key$="N" OR key$="S" OR key$="n" OR key$="s" OR key$=CHR$(3)
+        abort!=TRUE
+      ENDIF
+    ENDIF
+    '
+    IF key$=""
+      GOTO getjump1
+      ' /\ not worth running through the processing any further
+    ENDIF
+    '
+    a%=ASC(key$)
+    b%=LEN(in$)
+    '
+    IF (a%=8 OR a%=127) AND LEN(in$)>=1
+      in$=LEFT$(in$,b%-1)
+      DEC b%
+      @msend(de$)
+    ENDIF
+    '
+    IF b%=inlength%
+      GOTO getjump1
+    ENDIF
+    '
+    IF intype%=0
+      IF a%>31 AND a%<126
+        key$=UPPER$(key$)
+        @msend(key$+cr$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=1 AND a%>31 AND a%<126
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=2 AND a%>31 AND a%<126
+      key$=UPPER$(key$)
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=3
+      IF a%=13 AND yesdef!=TRUE
+        @msend("YES")
+        in$="YES"
+        keyy!=TRUE
+      ELSE IF a%=13 AND yesdef!=FALSE
+        @msend("NO")
+        in$="NO"
+        keyy!=TRUE
+      ELSE IF a%=89 OR a%=121
+        @msend("YES"+cr$)
+        in$="YES"
+        keyy!=TRUE
+      ELSE IF a%=78 OR a%=110
+        @msend("NO"+cr$)
+        in$="NO"
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=4 AND a%>47 AND a%<58
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=5
+      '
+      ' DO NOT USE THIS unless using the line editor!!
+      ' this will rely on dim'ing ln$() and keeping ln% as the line #
+      '
+      llen%=LEN(ln$(ln%))
+      IF (a%=8 OR a%=127) AND llen%>=1
+        ln$(ln%)=LEFT$(ln$(ln%),llen%-1)
+        @msend(de$)
+        keyy!=TRUE
+      ELSE IF a%=13
+        in$=key$
+        keyy!=TRUE
+      ELSE IF a%=9
+        @msend("        ")
+        in$="        "
+        keyy!=TRUE
+      ELSE IF (a%>=loascii%) AND (a%<>125) AND (a%<=hiascii%)
+        @msend(key$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=6 AND a%>31 AND a%<126
+      key$=UPPER$(key$)
+      @msend("*")
+      in$=in$+key$
+      '
+    ELSE IF intype%=9
+      ' no echoing of input and conversion to uppercase very handy -
+      ' won't mess up your menus, etc, if they press the wrong keys.
+      ' Remember to echo it yourself if so required... (ie @msend(in$))
+      '
+      IF (a%>31 AND a%<126) OR a%=13
+        key$=UPPER$(key$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+      ' \/ Of modem get types!
+    ENDIF
+    '
+    ' Well, if we needed to jump, come to here...
+    getjump1:
+    '
+    ' Handle our carriage returns..
+    IF a%=13
+      IF (intype%<>5 AND intype%<>9)
+        @msend(cr$)
+      ENDIF
+      keyy!=TRUE
+    ENDIF
+    ' Look after idle timer
+    '
+    IF CINT(TIMER/200)>idle%+300
+      car%=5
+      keyy!=TRUE
+      abort!=TRUE
+    ENDIF
+    '
+  LOOP UNTIL keyy!=TRUE
+  '
+RETURN
+'
+PROCEDURE msend(d$)
+  '
+  ' [Sends the string out to the screen and modem if needed]
+  '
+  IF ring!=TRUE
+    @chk_car
+    IF car!=FALSE
+      ' send data string fred$ out to modem
+      DPOKE write_io%+io.command%,cmd_write%
+      LPOKE write_io%+io.length%,LEN(d$)
+      LPOKE write_io%+io.data%,V:d$
+      ~DoIO(write_io%)
+    ENDIF
+  ENDIF
+  IF NOT icon!
+    PRINT d$;
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE xfer(prot%,way$,flnm$,numfiles%)
+  '
+  IF ring!
+    @chk_car
+  ENDIF
+  '
+  IF car%>0
+    GOTO xferexit
+  ENDIF
+  '
+  FRONTS 1
+  '
+  '  prot%= a number from 0-2 - the selected protocol
+  '  way$= "r" or "s"  (receive or send)
+  '  flnm$=filename to send!
+  '
+  ' We need:
+  '        npud$= name of program to call
+  '        cpud$= command line to give it
+  '
+  CHDIR xferdir$
+  '
+  way$=" "+LEFT$(way$,1)+" "  ! first char only PLUS leading/trailing spaces
+  IF way$<>" R " AND way$<>" S "
+    back%=50
+    GOTO xferdone
+  ENDIF
+  '
+  IF EXIST("t:Xfers.temp")
+    KILL "t:Xfers.temp"     ! in case we haven't cleaned up
+  ENDIF
+  '
+  IF prot%=1
+    ' SZmodem
+    npud$="xprd"
+    IF way$=" S "
+      cpud$="-f -s -c -d"+device$+" -u"+STR$(unit%)+" -x"+STR$(bd%)+" -lxprszmodem.library -oTN,OR,B1,F0,AN,DN,KY,SN,RN S "+flnm$
+    ELSE
+      cpud$="-f -s -c -d"+device$+" -u"+STR$(unit%)+" -x"+STR$(bd%)+" -lxprszmodem.library -oTN,B1,F0,AN,DN,KY,SN,RN,P"+xferdir$+" R ram:Foo"
+    ENDIF
+  ELSE IF prot%=2
+    ' Ymodem
+    npud$="xprd"
+    IF way$=" S "
+      cpud$="-f -s -c -d"+device$+" -u"+STR$(unit%)+" -x"+STR$(bd%)+" -lxprymodem.library -oYB,Z1,C1,B1,O"+xferdir$+" S "+flnm$
+    ELSE
+      cpud$="-f -s -c -d"+device$+" -u"+STR$(unit%)+" -x"+STR$(bd%)+" -lxprymodem.library -oYB,Z1,C1,B1,O"+xferdir$+" R Ram:Foo "
+    ENDIF
+  ELSE
+    ' Zmodem
+    npud$="xprd"
+    IF way$=" S "
+      cpud$="-f -s -c -d"+device$+" -u"+STR$(unit%)+" -x"+STR$(bd%)+" -lxprzmodem.library -oTN,OR,B1,F0,AN,DN,KY,SN,RN S "+flnm$
+    ELSE
+      cpud$="-f -s -c -d"+device$+" -u"+STR$(unit%)+" -x"+STR$(bd%)+" -lxprzmodem.library -oTN,ON,B1,F0,AN,DN,KY,SN,RN,P"+xferdir$+" R ram:Foo"
+    ENDIF
+  ENDIF
+  '
+  IF way$=" S "
+    @msend(cr$+CHR$(7)+ansi$(1)+"Sending file now. Hold Ctrl-X to abort!"+cr$)
+  ELSE
+    @msend(cr$+CHR$(7)+ansi$(1)+"Please start sending file now. Hold Ctrl-X to abort!"+cr$)
+  ENDIF
+  '
+  npud$=npud$+CHR$(0)
+  cpud$=cpud$+CHR$(0)
+  npud%=V:npud$
+  cpud%=V:cpud$
+  @syncrun(npud%,cpud%)
+  '
+  xferdone:
+  @beepthree
+  IF ring!
+    @chk_car
+  ENDIF
+  IF car%>0
+    m67%(0)=20
+    GOTO xferexit
+  ENDIF
+  '
+  @msend(cr$+cr$+ansi$(6)+"Protocol returned "+ansi$(1)+STR$(m67%(0)))
+  '
+  IF m67%(0)=0
+    @msend(ansi$(6)+" our guess:"+ansi$(2)+"  File Transfer Succesful!")
+    xfer.ret!=TRUE
+  ELSE
+    @msend(ansi$(6)+" our guess:"+ansi$(1)+"  File Transfer FAILED!!!!")
+    xfer.ret!=FALSE
+  ENDIF
+  '
+  @press
+  xferexit:
+RETURN
+'
+'
+PROCEDURE syncrun(name%,command%)
+  '
+  ' name%   =address of file to syncrun
+  ' command%=address of the command line for that command.
+  ' in%, out%=0
+  IF arpbase%
+    m67%(8)=name%
+    m67%(9)=command%
+    m67%(0)=0
+    m67%(1)=0
+    m67%(14)=arpbase%
+    RCALL arpbase%-540,m67%()
+  ENDIF
+  IF arpbase%=0
+    m67%(0)=20
+  ENDIF
+RETURN
+'
+'
+PROCEDURE press
+  @msend(cr$+cr$+ansi$(0)+"[Any_Key]")
+  @mget(0,1,1,1)
+RETURN
+'
+'
+PROCEDURE open_screen
+  OPENS 1,sx%,sy%,sw%,sh%,3,32768
+  IF ring!=TRUE
+    IF actwin!=FALSE
+      BACKS 1
+    ENDIF
+  ENDIF
+  '
+  SETCOLOR 0,&H0
+  SETCOLOR 1,&HF11
+  SETCOLOR 2,&H1F1
+  SETCOLOR 3,&HFF1
+  SETCOLOR 4,&H55F
+  SETCOLOR 5,&HF1F
+  SETCOLOR 6,&H1FF
+  SETCOLOR 7,&HFFF
+RETURN
+'
+PROCEDURE main_window
+  OPENW #2,0,11,sw%,sh%-11,0,2304,1
+  IF icon!=TRUE
+    PRINT
+    PRINT
+    PRINT ansi4$+"                        Now running in ICONISED mode"
+    PRINT
+    PRINT ansi3$+"                           NO local console output"
+    PRINT
+    PRINT ansi5$+"                       Press F3 to un-iconise the door"
+  ENDIF
+  '
+  xx$=doorname$+" V"+versnum$+"    User: ["+uname$+"]  "
+  IF ring!=TRUE
+    xx$=xx$+"Remote - Baud:"+realbaud$
+  ELSE
+    xx$=xx$+"Local"
+  ENDIF
+  TITLEW #2,"",xx$
+  TITLES #1,xx$
+  IF ring!=FALSE
+    ~ActivateWindow(WINDOW(2))
+  ENDIF
+  IF actwin!=TRUE
+    ~ActivateWindow(WINDOW(2))
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE seq.out(file$)
+  '
+  IF NOT EXIST(file$)
+    @msend(cr$+cr$+ansi$(1)+"'"+file$+"' Not found..."+ansi$(7))
+    ' @press
+  ELSE
+    lncount%=0
+    OPEN "I",#2,file$,4096
+    '
+    DO UNTIL EOF(#2)
+      LINE INPUT #2,text$
+      INC lncount%
+      @msend(text$+cr$)
+      @mget(9,1,0,0)
+      IF lncount%>=scrnht%
+        @pagepause
+      ENDIF
+      '
+      EXIT IF (car%>0) OR abort!=TRUE
+    LOOP
+    '
+    CLOSE #2
+  ENDIF
+  '
+  IF car%<=0
+    abort!=FALSE
+    contin!=FALSE
+    @msend(ansi$(0))
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE pagepause
+  '
+  @tchk
+  IF contin!=TRUE OR abscontin!=TRUE OR car%>0
+    GOTO pagepauseexit
+  ENDIF
+  '
+  @msend("More (Y/n/c)?")
+  @mget(9,1,0,1)
+  IF car%>0
+    GOTO pagepauseexit
+  ENDIF
+  @msend(de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$)
+  '
+  IF in$=" " OR in$="N" OR in$="S"
+    abort!=TRUE
+  ELSE IF in$="C"
+    contin!=TRUE
+  ENDIF
+  '
+  pagepauseexit:
+  lncount%=0
+  '
+RETURN
+'
+'
+PROCEDURE log(log$,prefix$,entry$)
+  '
+  ' creates a Trapdoor-style log entry
+  ' Inputs:
+  '        log$  (filename of the log)
+  '      prefix$ (one character at the start)
+  '      entry$  (text to add)
+  '
+  IF EXIST(log$)
+    OPEN "A",#54,log$,4096
+  ELSE
+    OPEN "O",#54,log$,4096
+  ENDIF
+  '
+  PRINT #54,LEFT$(prefix$,1);" ";
+  @dateconv(DATE$)
+  PRINT #54,pd.date$;" ";
+  PRINT #54,TIME$;"  ";
+  IF LEN(entry$)<=58
+    PRINT #54,entry$
+  ELSE
+    aa%=RINSTR(entry$," ",58)
+    IF aa%=0
+      PRINT #54,LEFT$(entry$,58)
+      PRINT #54,SPACE$(24);"..";RIGHT$(entry$,LEN(entry$)-58)
+    ELSE
+      PRINT #54,LEFT$(entry$,aa%)
+      PRINT #54,SPACE$(24);"..";RIGHT$(entry$,LEN(entry$)-aa%)
+    ENDIF
+  ENDIF
+  CLOSE #54
+RETURN
+'
+'
+PROCEDURE dateconv(pddt$)
+  '
+  ' converts date to Fido style DD Mmm YY
+  ' string to use in program is pd.date$
+  ' pd.date$ is always of the form DD Mmm YY (ie 9 chars long)
+  '
+  LOCAL pd.temp$,pd.date1$,pd.date2$,pd.date3$,pd.month%,pd.month$
+  '
+  pd.date1$=LEFT$(pddt$,2)
+  pd.date2$=MID$(pddt$,4,2)
+  pd.date3$=RIGHT$(pddt$,2)
+  pd.month%=VAL(pddt$)
+  '
+  SELECT pd.month%
+    '
+  CASE 1
+    pd.month$="Jan"
+  CASE 2
+    pd.month$="Feb"
+  CASE 3
+    pd.month$="Mar"
+  CASE 4
+    pd.month$="Apr"
+  CASE 5
+    pd.month$="May"
+  CASE 6
+    pd.month$="Jun"
+  CASE 7
+    pd.month$="Jul"
+  CASE 8
+    pd.month$="Aug"
+  CASE 9
+    pd.month$="Sep"
+  CASE 10
+    pd.month$="Oct"
+  CASE 11
+    pd.month$="Nov"
+  CASE 12
+    pd.month$="Dec"
+  DEFAULT
+    pd.month$="???"
+  ENDSELECT
+  pd.date$=pd.date2$+" "+pd.month$+" "+pd.date3$
+  '
+RETURN
+'
+'
+PROCEDURE tchk
+  timenow%=CINT(TIMER/200)
+  ctime%=(timenow%-timeon%)
+  ctime%=CINT(ctime%/60)
+  rtime%=tpc%-ctime%
+  '
+  IF rtime%<=0
+    @msend(ansi$(1)+CHR$(7)+cr$+cr$+"Sorry, time limit exceeded!!"+CHR$(7))
+    DELAY 2
+    car%=2
+    timewarn1!=TRUE
+    timewarn2!=TRUE
+    timewarn5!=TRUE
+  ENDIF
+  IF rtime%>5
+    timewarn1!=FALSE
+    timewarn2!=FALSE
+    timewarn5!=FALSE
+  ENDIF
+  IF rtime%<=1 AND timewarn1!=FALSE
+    @msend(ansi$(1)+cr$+cr$+"WARNING: 1 Minute or Less Remaining This Call!"+cr$)
+    DELAY 2
+    timewarn1!=TRUE
+    timewarn2!=TRUE
+    timewarn5!=TRUE
+  ENDIF
+  IF rtime%<=2 AND timewarn2!=FALSE
+    @msend(ansi$(1)+cr$+cr$+"WARNING: 2 Minutes or Less Remaining This Call!"+cr$)
+    DELAY 1
+    timewarn2!=TRUE
+    timewarn5!=TRUE
+  ENDIF
+  IF rtime%<=5 AND timewarn5!=FALSE
+    @msend(ansi$(1)+cr$+cr$+"WARNING: 5 Minutes or Less Remaining This Call!"+cr$)
+    DELAY 1
+    timewarn5!=TRUE
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE timeconv
+  ' Pd.time$ is always 'HH:MM:SS xM' (ie 11 chars long) a leading 0 if needed
+  '
+  LOCAL t.t%
+  '
+  time1$=TIME$
+  t.t%=VAL(LEFT$(time1$,2))
+  IF t.t%>11
+    a$=" PM"
+  ELSE
+    a$=" AM"
+  ENDIF
+  '
+  IF t.t%=0
+    t.t%=12
+    time1$=STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%<10
+    time1$="0"+STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%>21
+    t.t%=t.t%-12
+    time1$=STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%>12
+    t.t%=t.t%-12
+    time1$="0"+STR$(t.t%)+RIGHT$(time1$,6)
+  ENDIF
+  pd.time$=time1$+a$
+  '
+RETURN
+'
+'
+PROCEDURE checkansi
+  '
+  @msend(cr$+cr$+ansi$(3)+"Do you want ANSI (Y/n)? ")
+  @mget(3,1,1,1)
+  IF car%>0
+    GOTO checkansiexit
+  ENDIF
+  '
+  IF in$="YES"
+    ansi!=TRUE
+  ELSE
+    ansi!=FALSE
+  ENDIF
+  checkansiexit:
+  '
+RETURN
+'
+'
+PROCEDURE setansi
+  '
+  IF ansi!=TRUE
+    ansi$(1)=esc$+"[31m"
+    ansi$(2)=esc$+"[32m"
+    ansi$(3)=esc$+"[33m"
+    ansi$(4)=esc$+"[34m"
+    ansi$(5)=esc$+"[35m"
+    ansi$(6)=esc$+"[36m"
+    ansi$(7)=esc$+"[37m"
+    ansi$(8)=esc$+"[1m"
+    ansi$(9)=esc$+"[3m"
+    ansi$(10)=esc$+"[4m"
+  ELSE
+    FOR kk%=1 TO 10
+      ansi$(kk%)=""
+    NEXT kk%
+  ENDIF
+  ' regardless of setting, this is needed for safety!
+  ansi$(0)=esc$+"[0;37;40m"
+  @msend(ansi$(0))
+RETURN
+'
+'
+PROCEDURE beepthree
+  @msend(CHR$(7))
+  PAUSE 5
+  @msend(CHR$(7))
+  PAUSE 5
+  @msend(CHR$(7))
+  PAUSE 5
+RETURN
+'
+'
+PROCEDURE lowercase(ucase$)
+  '
+  LOCAL ad%,ad2%
+  ad%=0
+  ad2%=0
+  '
+  ucase$=UPPER$(ucase$)
+  lcase$=UPPER$(ucase$)
+  IF LEN(ucase$)<1 OR LEN(ucase$)>56
+    GOTO noworkjump
+  ENDIF
+  '
+  ad%=AllocMem(60,0)
+  IF ad%=0
+    GOTO noworkjump
+  ENDIF
+  ad2%=AllocMem(60,0)
+  IF ad2%=0
+    GOTO noworkjump
+  ENDIF
+  '
+  FOR k%=0 TO 59
+    POKE ad%+k%,0
+    POKE ad2%+k%,0
+  NEXT k%
+  '
+  FOR k%=1 TO LEN(ucase$)
+    POKE ad%+(k%-1),ASC(MID$(ucase$,k%,1))
+    POKE ad2%+(k%-1),ASC(MID$(ucase$,k%,1))
+  NEXT k%
+  '
+  FOR k%=1 TO 60
+    ' start at second char. Leave first one alone!
+    temp|=PEEK(ad%+k%)
+    IF temp|>64 AND temp|<91
+      IF PEEK(ad%+k%-1)>64 AND PEEK(ad%+k%-1)<91
+        temp|=BSET(temp|,5)
+        POKE ad2%+k%,temp|
+      ENDIF
+    ENDIF
+  NEXT k%
+  '
+  lcase$=CHAR{ad2%}
+  lcase$=TRIM$(lcase$)
+  '
+  noworkjump:
+  IF ad%>0
+    ~FreeMem(ad%,60)
+  ENDIF
+  IF ad2%>0
+    ~FreeMem(ad2%,60)
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE spaceout(thing$,col%)
+  '
+  ' [Needs the string to format, and the column width it's going to]
+  ' [Returns spc% - the number of spaces required - 0 if field overflow]
+  '
+  IF LEN(thing$)>col%
+    spc%=0
+  ELSE
+    spc%=(col%-LEN(thing$))
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE centre(some$)
+  '
+  ' [takes a string - MUST BE less than 76 chars]
+  ' [returns centred$]
+  '
+  IF LEN(some$)<76
+    centred$=SPACE$(38-(LEN(some$)/2))+some$
+  ELSE
+    centred$=some$
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE chooseproto
+  '
+  protocol%=0
+  @msend(cr$+cr$+ansi$(0)+ansi$(5)+"Choose file transfer protocol:"+cr$)
+  @msend(cr$+"     "+ansi$(2)+"[0]"+ansi$(1)+"  Zmodem (default)")
+  @msend(cr$+"     "+ansi$(2)+"[1]"+ansi$(1)+" SZmodem SUPER Zmodem")
+  @msend(cr$+"     "+ansi$(2)+"[2]"+ansi$(1)+"  Ymodem (batch)")
+  '
+  @msend(cr$+cr$+ansi$(6)+"Enter your choice, return for default: "+ansi$(3))
+  @mget(0,1,0,1)
+  IF car%>0
+    GOTO chooseprotoexit
+  ENDIF
+  '
+  aa%=VAL(in$)
+  '
+  IF aa%=1
+    protocol%=1
+  ELSE IF aa%=2
+    protocol%=2
+  ELSE
+    protocol%=0
+  ENDIF
+  '
+  '
+  chooseprotoexit:
+  '
+RETURN
+'
+'
+PROCEDURE banner
+  '
+  @msend(CHR$(12)+ansi$(0))
+  @msend(ansi$(6)+"  ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»"+cr$)
+  @msend(ansi$(6)+"  º "+ansi$(5)+"  ÜÜÜÜÜÜÜ  "+ansi$(1)+"Ü      "+ansi$(2)+"Ü    Ü  "+ansi$(4)+"ÜÜÜÜÜÜÜ  "+ansi$(7)+"ÜÜÜ     "+ansi$(6)+"ÜÜÜÜÜÜÜ  "+ansi$(3)+"ÜÜÜÜÜÜÜ  "+ansi$(5)+"ÜÜÜÜÜ    "+ansi$(6)+"º "+ansi$(4)+"°°"+cr$)
+  @msend(ansi$(6)+"  º "+ansi$(5)+"  Û     Û  "+ansi$(1)+"Û      "+ansi$(2)+"Û    Û  "+ansi$(4)+"   Û     "+ansi$(7)+"Û  ßÜ   "+ansi$(6)+"Û     Û  "+ansi$(3)+"Û     Û  "+ansi$(5)+"Û    ßÜ  "+ansi$(6)+"º "+ansi$(4)+"°°"+cr$)
+  @msend(ansi$(6)+"  º "+ansi$(5)+"  Û     Û  "+ansi$(1)+"Û      "+ansi$(2)+"Û    Û  "+ansi$(4)+"   Û     "+ansi$(7)+"Û    Û  "+ansi$(6)+"Û     Û  "+ansi$(3)+"Û     Û  "+ansi$(5)+"Û    Üß  "+ansi$(6)+"º "+ansi$(4)+"°°"+cr$)
+  @msend(ansi$(6)+"  º "+ansi$(5)+"  Ûßßßßßß  "+ansi$(1)+"Û      "+ansi$(2)+"Û    Û  "+ansi$(4)+"   Û     "+ansi$(7)+"Û    Û  "+ansi$(6)+"Û     Û  "+ansi$(3)+"Û     Û  "+ansi$(5)+"ÛßßßßÜ   "+ansi$(6)+"º "+ansi$(4)+"°°"+cr$)
+  @msend(ansi$(6)+"  º "+ansi$(5)+"  Û        "+ansi$(1)+"Û      "+ansi$(2)+"Û    Û  "+ansi$(4)+"   Û     "+ansi$(7)+"Û  Üß   "+ansi$(6)+"Û     Û  "+ansi$(3)+"Û     Û  "+ansi$(5)+"Û    ßÜ  "+ansi$(6)+"º "+ansi$(4)+"°°"+cr$)
+  @msend(ansi$(6)+"  º "+ansi$(5)+"  ß        "+ansi$(1)+"ßßßßß  "+ansi$(2)+"ßßßßßß  "+ansi$(4)+"   ß     "+ansi$(7)+"ßßß     "+ansi$(6)+"ßßßßßßß  "+ansi$(3)+"ßßßßßßß  "+ansi$(5)+"ß     ß  "+ansi$(6)+"º "+ansi$(4)+"°°"+cr$)
+  @msend(ansi$(6)+"  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ "+ansi$(4)+"°°"+cr$)
+  @msend(ansi$(4)+"    °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°"+cr$+cr$+cr$)
+  '
+  IF ansi!
+    @msend(esc$+"[0;31m  "+esc$+"[43mÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿"+esc$+"[0m"+cr$)
+    @msend(esc$+"[0;31m  "+esc$+"[43m³  "+esc$+"[35m                The Online Point Pickup Program                      "+esc$+"[31m³"+esc$+"[0m"+cr$)
+    @msend(esc$+"[0;31m  "+esc$+"[43m³  "+esc$+"[34m   Copyright (c) 1992 by Peter Deane - Inquestor BBS, Australia      "+esc$+"[31m³"+esc$+"[0m"+cr$)
+    @msend(esc$+"[0;31m  "+esc$+"[43mÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ"+esc$+"[0m"+cr$)
+  ELSE
+    @msend("  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿"+cr$)
+    @msend("  ³                 The Online Point Pickup Program                       ³"+cr$)
+    @msend("  ³     Copyright (c) 1992 by Peter Deane - Inquestor BBS, Australia      ³"+cr$)
+    @msend("  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ"+cr$)
+  ENDIF
+  @killkeys
+  @press
+  '
+RETURN
+'
+'
+PROCEDURE convfqfa(enterednode$)
+  '
+  convnode$=enterednode$+CHR$(0)
+  convprob!=FALSE
+  addr%=0
+  defaddr%=0
+  '
+  nodelistlib$="traplist.library"+CHR$(0)
+  nodelistbase%=OpenLibrary(V:nodelistlib$,0)
+  '
+  IF nodelistbase%=0
+    convprob!=TRUE
+    @msend(cr$+"ERROR: traplist.library couldn't be opened."+cr$)
+    @msend("Using 0:0/0.0 as node number."+cr$)
+    zone&=0
+    net&=0
+    node&=0
+    point&=0
+  ELSE
+    '
+    addr%=AllocMem(8,65536)
+    defaddr%=AllocMem(8,65536)
+    '
+    DPOKE defaddr%+0,0
+    DPOKE defaddr%+2,0
+    DPOKE defaddr%+4,0
+    DPOKE defaddr%+6,0
+    '
+    ' parse the input into addr% via the library.
+    '
+    nlparseaddr(addr%,V:convnode$,defaddr%)
+    '
+    IF m68%(0)=0
+      zone&=DPEEK(addr%+0)
+      net&=DPEEK(addr%+2)
+      node&=DPEEK(addr%+4)
+      point&=DPEEK(addr%+6)
+    ELSE
+      @msend(cr$+"ERROR: Invalid host node # in config."+cr$)
+      @msend("Using 0:0/0.0 as node number."+cr$+cr$)
+      convprob!=TRUE
+      zone&=0
+      net&=0
+      node&=0
+      point&=0
+    ENDIF
+  ENDIF
+  '
+  IF addr%
+    ~FreeMem(addr%,8)
+  ENDIF
+  '
+  IF defaddr%
+    ~FreeMem(defaddr%,8)
+  ENDIF
+  '
+  IF nodelistbase%
+    ~CloseLibrary(nodelistbase%)
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE nlparseaddr(addr%,str%,default%)
+  m68%(8)=addr%
+  m68%(9)=str%
+  m68%(10)=default%
+  m68%(14)=nodelistbase%
+  RCALL nodelistbase%-156,m68%()
+RETURN
+'
+'
+PROCEDURE find.config
+  '
+  IF EXIST(path$+"PlutDoor.cfg")
+    config$=path$+"PlutDoor.cfg"
+  ELSE
+    config$="XXX"
+  ENDIF
+  '
+  ' Defaults
+  '
+  here$="3:0/0.0"
+  '
+  winw$="640"
+  winh$="200"
+  actwin!=TRUE
+  sysopname$="Sysop"
+  bbsname$="This BBS"
+  lockedmodem!=FALSE
+  logfile$=path$+"PlutDoor.log"
+  maxbaud$="2400"
+  outbound$="MAIL:Outbound/"
+  inbound$="MAIL:Inbound/"
+  textdir$=path$+"Texts/"
+  xferdir$=path$+"Xfers/"
+  userdir$=path$+"Users/"
+  device$="serial.device"
+  unit%=0
+  freqconfig$="Mail:FFRS.cfg"
+  freqhandler$="FFRS %C %i %o %B %n %s"
+  '
+  '
+  IF config$<>"XXX"
+    '
+    OPEN "I",#2,config$,128
+    configerr!=FALSE
+    DO
+      '
+      LINE INPUT #2,xx$
+      '
+      xx$=TRIM$(xx$)
+      xxu$=UPPER$(xx$)
+      '
+      IF xx$="" OR LEFT$(xx$,1)=";"
+        ' Do nothing
+      ELSE IF LEFT$(xxu$,14)="ACTIVATEWINDOW"
+        actwin!=TRUE
+      ELSE IF LEFT$(xxu$,16)="NOACTIVATEWINDOW"
+        actwin!=FALSE
+      ELSE IF LEFT$(xxu$,4)="HERE"
+        xx$=RIGHT$(xx$,LEN(xx$)-4)
+        xx$=TRIM$(xx$)
+        here$=xx$
+      ELSE IF LEFT$(xxu$,6)="SWIDTH"
+        xx$=MID$(xx$,7,4)
+        xx$=TRIM$(xx$)
+        winw$=xx$
+      ELSE IF LEFT$(xxu$,7)="SHEIGHT"
+        xx$=MID$(xx$,8,4)
+        xx$=TRIM$(xx$)
+        winh$=xx$
+      ELSE IF LEFT$(xxu$,5)="SYSOP"
+        xx$=RIGHT$(xx$,LEN(xx$)-5)
+        xx$=TRIM$(xx$)
+        sysopname$=xx$
+      ELSE IF LEFT$(xxu$,7)="BBSNAME"
+        xx$=RIGHT$(xx$,LEN(xx$)-7)
+        xx$=TRIM$(xx$)
+        bbsname$=xx$
+      ELSE IF LEFT$(xxu$,7)="INBOUND"
+        xx$=RIGHT$(xx$,LEN(xx$)-7)
+        xx$=TRIM$(xx$)
+        inbound$=xx$
+        IF RIGHT$(inbound$,1)<>"/" AND RIGHT$(inbound$,1)<>":"
+          inbound$=inbound$+"/"
+        ENDIF
+      ELSE IF LEFT$(xxu$,8)="OUTBOUND"
+        xx$=RIGHT$(xx$,LEN(xx$)-8)
+        xx$=TRIM$(xx$)
+        outbound$=xx$
+        IF RIGHT$(outbound$,1)<>"/" AND RIGHT$(outbound$,1)<>":"
+          outbound$=outbound$+"/"
+        ENDIF
+      ELSE IF LEFT$(xxu$,9)="TEXTFILES"
+        xx$=RIGHT$(xx$,LEN(xx$)-9)
+        xx$=TRIM$(xx$)
+        textdir$=xx$
+        IF RIGHT$(textdir$,1)<>"/" AND RIGHT$(textdir$,1)<>":"
+          textdir$=textdir$+"/"
+        ENDIF
+      ELSE IF LEFT$(xxu$,5)="USERS"
+        xx$=RIGHT$(xx$,LEN(xx$)-5)
+        xx$=TRIM$(xx$)
+        userdir$=xx$
+        IF RIGHT$(userdir$,1)<>"/" AND RIGHT$(userdir$,1)<>":"
+          userdir$=userdir$+"/"
+        ENDIF
+      ELSE IF LEFT$(xxu$,5)="XFERS"
+        xx$=RIGHT$(xx$,LEN(xx$)-5)
+        xx$=TRIM$(xx$)
+        xferdir$=xx$
+        IF RIGHT$(xferdir$,1)<>"/" AND RIGHT$(xferdir$,1)<>":"
+          xferdir$=xferdir$+"/"
+        ENDIF
+      ELSE IF LEFT$(xxu$,6)="DEVICE"
+        xx$=RIGHT$(xx$,LEN(xx$)-6)
+        xx$=TRIM$(xx$)
+        device$=xx$
+      ELSE IF LEFT$(xxu$,4)="UNIT"
+        xx$=RIGHT$(xx$,LEN(xx$)-4)
+        xx$=TRIM$(xx$)
+        unit%=VAL(xx$)
+      ELSE IF LEFT$(xxu$,7)="LOGFILE"
+        xx$=RIGHT$(xx$,LEN(xx$)-7)
+        xx$=TRIM$(xx$)
+        logfile$=xx$
+      ELSE IF LEFT$(xxu$,10)="FREQCONFIG"
+        xx$=RIGHT$(xx$,LEN(xx$)-10)
+        freqconfig$=TRIM$(xx$)
+      ELSE IF LEFT$(xxu$,11)="FREQHANDLER"
+        xx$=RIGHT$(xx$,LEN(xx$)-11)
+        freqhandler$=TRIM$(xx$)
+        '
+        '
+      ENDIF
+      '
+    LOOP UNTIL EOF(#2)
+    CLOSE #2
+    '
+    '
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE find.user
+  '
+  OPEN "I",#2,userdir$+uname$,4096
+  WHILE NOT EOF(#2)
+    LINE INPUT #2,xx$
+    xx$=TRIM$(xx$)
+    '
+    IF xx$="" OR LEFT$(xx$,1)=";"
+      ' Do nothing
+    ELSE IF LEFT$(xx$,4)="AKA0"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(0)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA1"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(1)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA2"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(2)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA3"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(3)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA4"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(4)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA5"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(5)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA6"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(6)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA7"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(7)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA8"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(8)=xx$
+    ELSE IF LEFT$(xx$,4)="AKA9"
+      xx$=RIGHT$(xx$,LEN(xx$)-4)
+      xx$=TRIM$(xx$)
+      aka$(9)=xx$
+    ELSE IF LEFT$(xx$,8)="PASSWORD"
+      xx$=RIGHT$(xx$,LEN(xx$)-8)
+      xx$=TRIM$(xx$)
+      password$=xx$
+      password$=UPPER$(password$)
+    ELSE IF LEFT$(xx$,10)="FREQCONFIG"
+      xx$=RIGHT$(xx$,LEN(xx$)-10)
+      freqconfig$=TRIM$(xx$)
+      '
+    ENDIF
+  WEND
+  CLOSE #2
+  '
+  c%=0
+  WHILE aka$(0)=""
+    INC c%
+    IF aka$(0)=""
+      DELETE aka$(0)
+    ENDIF
+    EXIT IF c%>=9
+  WEND
+  '
+  FOR k%=0 TO 9
+    @convfqfa(aka$(k%))
+    IF (convprob!=TRUE) OR (zone&+net&+node&+point&=0)
+      aka$(k%)=""
+    ELSE
+      aka$(k%)=STR$(zone&)+":"+STR$(net&)+"/"+STR$(node&)+"."+STR$(point&)
+    ENDIF
+    aka%(k%,1)=zone&
+    aka%(k%,2)=net&
+    aka%(k%,3)=node&
+    aka%(k%,4)=point&
+  NEXT k%
+  '
+RETURN
+'
+'
+PROCEDURE embed_convert(xx.arg$)
+  LOCAL c%,out$
+  '
+  c%=0
+  out$=""
+  '
+  DO
+    IF xx.arg$=""
+      embed$=xx.arg$
+    ENDIF
+    EXIT IF xx.arg$=""
+    '
+    INC c%
+    xx$=MID$(xx.arg$,c%,1)
+    '
+    IF xx$<>"%"
+      out$=out$+xx$
+    ELSE
+      INC c%
+      xy$=MID$(xx.arg$,c%,1)
+      '
+      SELECT xy$
+      CASE "%"
+        out$=out$+"%"
+      CASE "Z"
+        out$=out$+STR$(aka%(0,1))
+      CASE "N"
+        out$=out$+STR$(aka%(0,2))
+      CASE "F"
+        out$=out$+STR$(aka%(0,3))
+      CASE "P"
+        out$=out$+STR$(aka%(0,4))
+      CASE "n"
+        out$=out$+aka$(0)
+      CASE "S"
+        out$=out$+UPPER$(uname$)
+      CASE "s"
+        out$=out$+uname$
+      CASE "I"
+        out$=out$+inbound$
+      CASE "O"
+        out$=out$+outbound$
+      CASE "b"
+        out$=out$+baud$
+      CASE "B"
+        out$=out$+realbaud$
+      CASE "l"
+        out$=out$+logfile$
+      CASE "A"
+        xx$=""
+        FOR kkq%=1 TO 10
+          IF aka$(kkq%)<>""
+            xx$=xx$+aka$(kkq%)+" "
+          ENDIF
+        NEXT kkq%
+        out$=out$+TRIM$(xx$)
+      CASE "C"
+        out$=out$+freqconfig$
+      CASE "i"
+        out$=out$+CHR$(34)+"Ram:PlutDoor.REQ"+CHR$(34)
+      CASE "o"
+        out$=out$+CHR$(34)+userdir$+uname$+".RLO"+CHR$(34)
+        '
+      ENDSELECT
+    ENDIF
+    EXIT IF c%>=LEN(xx.arg$)
+  LOOP
+  embed$=out$
+  out$=""
+RETURN

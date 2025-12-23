@@ -1,0 +1,785 @@
+@database 07d3f730-0
+@master Lydia:SRC/PMBS/ProWarnung/ProWarnung.guide
+@$VER: 1.9 (10.6.96)
+@author "Jörg Fenin (JEFF@LEGACY.dame.de)"
+@(c) "1995-1996 Jörg Fenin"
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+
+@node "Main" "ProWarnung - Anleitung"
+@next "Betaversion"
+
+                                @{fg shine}ProWarnung@{fg text}
+
+                     universelles Warn-Tool für Prometheus
+
+                        ProWarnung V1.9 (10-Jun-1996)
+               (C) 1995-1996 Jörg Fenin (JEFF@LEGACY.dame.de)
+
+                                 @{"Freeware" link "Freeware" 0}
+
+                       @{"wichtiger rechtlicher Hinweis" link "Disclaimer" 0}
+
+
+ @{"was macht ProWarnung?" link "Introduction" 0}
+ @{"Systemvoraussetzungen" link "Requirements" 0}
+ @{"Installation" link "Installation" 0}
+ @{"die Ini-Datei" link "Inifile" 0}
+ @{"Bugs / Probleme" link "Bugs" 0}
+ @{"Support" link "Support" 0}
+ @{"Autor" link "Author" 0}
+ @{"Versionsgeschichte" link "History" 0}
+ @{"in Arbeit / Planung" link "ToDo" 0}
+@endnode
+
+@node "Freeware" "Freeware"
+@next "Disclaimer"
+@prev "Freeware"
+@{u}was ist Freeware?@{uu}
+
+Dieses Programm @{i}ist@{ui} Freeware, d.h. es darf frei kopiert und benutzt werden.
+
+Der Verkauf oder das Beilegen zu kommerziellen Produkten / Programmen bedarf
+jedoch der ausdrücklichen, schriftlichen Zustimmung des @{"Autors" link "Author" 0}.
+
+Eine Verbreitung in nicht kommerziellen Mailboxen und Computernetzen ist
+allerdings ausdrücklich erwünscht.
+@endnode
+
+@node "Disclaimer" "Disclaimer"
+@prev "Freeware"
+@{u}Disclaimer@{uu}
+
+Diese Software ist mit grosser Sorgfalt programmiert worden, trotzdem sind
+Fehler nicht auszuschliessen.
+
+Personen, die diese Software einsetzen, handeln auf eigene Gefahr!
+
+Der Autor kann nicht haftbar gemacht werden für irgendwelche Schäden, die
+durch diese Software unmittelbar oder mittelbar verursacht werden.
+@endnode
+
+@node "Introduction" "Was macht ProWarnung?"
+@next "Requirements"
+@prev "Disclaimer"
+@{u}Was macht ProWarnung?@{uu}
+
+@{i}ProWarnung@{ui} ist ein Tools, welches bestimmte Sachverhalte prüft, und aufgrund
+des Ergebnissen ggf. Mails verschickt.
+
+@{i}ProWarnung@{ui} kann dabei mittels Ini-File vielfältig konfiguriert werden!
+
+Zur Zeit sind vier Funktionen realisiert:
+
+@{fg shine} [Neu in V1.9]
+
+* NoTraffic-Warnung (auf Vorschlag von FREDL@FILDER.gun.de)
+
+  listet die Bretter auf, in denen eine frei wählbare Anzahl von Tagen
+  keine neuen Mails mehr erschienen sind, man kann also so "tote"
+  Netze oder unbeliebte Bretter herausfinden@{fg text}
+
+
+* Crunch-Warnung
+
+  ProWarnung liest die Daten sämtlicher User und erzeugt eine Mail an den
+  Sysop, welche User eine bestimmte Anzahl von Tagen nicht angerufen haben.
+
+  Außerdem kann eine (logischerweise geringere) Zeitspanne
+  eingestellt werden, nach deren Ablauf alle User, die bis dahin ins-
+  gesamt nur 1x angerufen haben (die sich also nur eingetragen haben
+  und dann nie wieder angerufen haben), in der Mail erscheinen.
+
+  Dabei werden User, die das Gastflag gesetzt haben (also nicht nur stur
+  der User GAST) in der Mail nicht berücksichtigt!
+
+  Nützlich ist dies, wenn man den Cruncher so eingestellt hat, daß er alle
+  User löscht, die eine bestimmte Anzahl von Tagen nicht angerufen haben,
+  und man vorher wissen möchte, welche User demnächst gelöscht werden.
+
+  Setzt man den Cruncher nicht ein, weil er auch ganz neue User löscht, die
+  sich nicht sauber ausgeloggt haben, so kann man Hand der von @{i}ProWarnung@{ui}
+  erzeugten Mail diese User auch von Hand selber löschen!
+
+  Es können User aus der Liste herausgefiltert werden.
+
+
+* Visitenkarten-Warnung
+
+  prüft, ob die User Visitenkarten eingegeben haben und verschickt ggf.
+  Mails an die User ohne Visitenkarte oder an den Sysop oder beides :-)
+
+  GAST-User werden dabei nicht benachrichtigt!
+
+
+* Hacker-Warnung
+
+  wertet das prometheus:protokolle/hacker.prt aus und schickt
+  eine Mail an die User, die in diesem Protokoll einen Eintrag haben,
+  sprich: bei denen es zu Fehleingaben des Passwortes kam.
+  Der User muß dann selber wissen, ob er selbst zu blöd war, sein
+  Passwort vernüftig einzugeben, oder ob es vielleicht doch jemand
+  anderes gewesen ist, der versucht hat, sich unter seinem Namen
+  einzuloggen
+
+
+@{i}ProWarnung@{ui} erzeugt Mails, die im SortIn-Verzeichnis abgelegt werden,
+anschliessend wird auf Wunsch der Sorter gestartet, so daß die Mails
+systemgerecht verschickt werden (z.B. auch automatisch an den Point des
+Users/Sysops).
+
+Der Sysop kann entscheiden, ob die Mails als PM verschickt werden (default),
+dann entfällt der Dupe-Check in Prometheus (Endung .prv) oder als
+öffentliche Mail (mit Dupe-Check, Endung .brt) (auf Wunsch von SYSOP@DAME)
+@endnode
+
+@node "Requirements" "Systemvoraussetzungen"
+@next "Installation"
+@prev "Introduction"
+@{u}Systemvoraussetzungen@{uu}
+
+@{fg shine}ACHTUNG: Seit V1.9 ist ProWarnung eine MUI-Applikation und benötigt MUI 3.3
+oder höher!!!@{fg text}
+
+ProWarnung ist geschrieben und getestet worden unter den folgenden
+Systemspezifikationen:
+
+  Amiga 4000/030, 25 Mhz, 18 MB RAM (2 MB Chip, 16 MB Fast), 1.7 GB HD
+  Kickstart / Workbench 3.0
+  Prometheus V1.91+
+  @{fg shine}MUI 3.3+@{fg text}
+
+
+Das Programm sollte aber auch auf älteren Amigas laufen.
+
+Das Programm braucht @{u}keine@{uu} rexx....libraries!!!
+
+Da jeweils nur die Daten eines Users und die Usersliste im Speicher gehalten
+werden, besteht kein besonders hoher Anspruch an den freien Speicherplatz.
+
+@{i}ProWarnung@{ui} erwartet, daß Prometheus standardmäßig im @{b}PROMETHEUS:@{ub}-Verzeichnis
+installiert wurde.
+
+Die Userliste muß @{b}PROMETHEUS:Daten/User.dat@{ub} heissen, die User-Daten müssen
+@{b}PROMETHEUS:@{i}Username@{ui}/°dat@{ub} heissen.
+
+Der Sorter muß im Verzeichnis @{b}PROMETHEUS:netz/janus@{ub} liegen, die Mail wird im
+Verzeichnis @{b}PROMETHEUS:netz/SortIn@{ub} abgelegt
+
+Das Hacker-Protokoll muß @{b}PROMETHEUS:Protokolle/Hacker.prt@{ub} heißen.
+@endnode
+
+@node "Installation" "Installation"
+@next "Inifile"
+@prev "Requirements"
+@{u}Installation@{uu}
+
+Das Programm ProWarnung in ein beliebiges Verzeichnis kopieren, vorzugsweise
+nach C:
+
+@{i}ProWarnung@{ui} entweder von Hand starten oder in den Prometheus-Zeitplan
+eintragen.
+
+Folgende Parameter können an ProWarnung übergeben werden:
+ (Default-Werte siehe @{"Ini-Datei" link "Inifile" 0})
+
+
+Schablone:           ProWarnung T=TAGE/N/K,C=CONFIG/K,NOCW=NOCONWIN/S,
+                                TASKPRI/K/N,M=MODUS/K,MUISET/S
+
+besser verständlich: ProWarnung [T[AGE]=n] [C[ONFIG]=dateiname]
+                                [NOCW | NOCONWIN] [TASKPRI=p]
+                                [M[ODUS]=<CRUNCH | VISITENKARTE | HACKER>]
+                                [MUISET]
+
+dabei bedeuten
+
+@{fg shine}  Neu in V1.9
+  MUISET     ruft ProWarnung ohne Aktion auf, so daß das Ausgabe-Fenster
+             gemäß den MUI-Voreinstellungen eingestellt werden kann
+
+             (im laufenden Betrieb von ProWarnung wäre das nicht möglich,
+             weil ProWarnung nicht auf Eingaben vom Ausgabe-Fenster
+             wartet)
+
+             mit einem Klick auf das CloseGadget kann das Fenster
+             geschlossen werden und ProWarnung beendet sich selbst.
+
+             MUISET hat Vorrang vor allen anderen Parametern!
+
+@{fg text}
+  T=TAGE=n   Anzahl Tage, die ein User mindestens nicht angerufen haben
+             muß, damit er in der Liste erscheint
+
+  C=CONFIG=dateiname  Name der ProWarnung-Ini-Datei (enthält Änderungen
+                      der voreingestellten Werte)
+
+  NOCW
+  NOCONWIN   normalerweise öffnet ProWarnung MUI-Ausgabe-Fenster
+             und gibt Meldungen aus, was es gerade macht, mit diesem
+             Parameter kann dies verhindert werden
+
+  TASKPRI=p  Priorität mit der ProWarnung läuft, sollte kleiner als 0
+             sein, damit es den Boxbetrieb nicht behindert, voreingestellt
+             ist ein Wert von -1
+
+  M=MODUS=   CRUNCH - erzeugt eine Mail, welche User eine bestimmte
+                      Anzahl von Tagen nicht angerufen haben
+
+             VISITENKARTE - erzeugt Mail(s), welche User keine Visiten-
+                            karte eingegeben haben
+
+             HACKER - schickt Mails an User, die einen Eintrag in
+                      @{b}Prometheus:protokolle/hacker.prt@{ub} haben
+                      @{"Hinweis" link "Hint1" 0}
+
+             NOTRAFFIC - erzeugt eine Mail, in welchen Brettern seit
+                         einer bestimmten Anzahl von Tagen keine neuen
+                         Mails mehr erschienen sind
+
+
+Beispiel: ProWarnung T=50
+
+          ProWarnung erzeugt eine Mail, in die alle User eingetragen
+          werden, die mindestens 50 Tage nicht angerufen haben,
+          während des Programmlaufes wird das Console-Window geöffnet,
+          das Programm arbeitet mit der Priorität -1
+@endnode
+
+@node "Inifile" "Die Ini-Datei"
+@next "Hint1"
+@prev "Installation"
+@{u}Die Ini-Datei@{uu}
+
+Ab Version 1.0 kann man die in ProWarnung voreingestellten Werte (z.B.
+Absender und Empfänger der Mail) über eine Ini-Datei verändern, so daß man
+z.B. auch ein Brett als Empfänger der Mail angeben kann.
+
+Die Ini-Datei ist eine ASCII-Datei und kann mit jeden Text-Editor leicht
+verändert werden.
+
+ProWarnung sucht, wenn nicht der CONFIG= Parameter angegeben wurde, im
+aktuellen Programmverzeichnis nach der Datei ProWarnung.ini. Wird diese
+nicht gefunden, werden wieder die Default-Werte (s.u.) eingestellt.
+
+@{fg shine}Wichtig!@{fg text}  Kommandozeilen-Parameter überschreiben die Werte in der Ini-
+          Datei, gibt man also z.B. in der Ini-Datei eine Taskpriorität
+          von -1 an und als Kommandozeilen-Paramerter TASKPRI=10,
+          so arbeitet @{i}ProWarnung@{ui} mit einer Taskpriorität von 10
+
+
+Folgende Werte können in die Ini-Datei aufgenommen werden:
+
+@{fg shine} Neu in V1.9
+
+Verbose=                @{b}ja@{ub}/@{b}nein@{ub}
+                        setzt den Brettnamen (Modus NOTRAFFIC) oder
+                        den Usernamen (Modi: CRUNCH, VISITENKARTE)
+                        ins Ausgabe-Fenster, damit man genau sehen kann,
+                        welches Brett / welchen User ProWarnung gerade
+                        verarbeitet
+
+                        default: @{b}nein@{ub}
+
+
+Brettnamen              @{b}links@{ub}/@{b}rechts@{ub}/@{b}zentriert@{ub}  (nur Modus NOTRAFFIC)
+                        da im Modus NOTRAFFIC der ganze Brettname
+                        von Prometheus benutzt wird, kann die Ausgabe
+                        sehr schnell zu breit werden.
+
+                        ProWarnung bietet drei Möglichkeiten, wie
+                        zu lange Brettnamen dargestellt werden sollen.
+                        Zur Verdeutlichung 3 Beispiele:
+
+                        links : A0-AMIGA/A1-DFü/A11-PROMETHEUS...
+                        rechts: ...GA/A1-DFÜ/A11-PROMETHEUS-TOOLS
+                        zentr.: A0-AMIGA/.../A11-PROMETHEUS-TOOLS
+
+                        default: @{b}zentriert@{ub}
+
+
+Fenster=                @{b}ja@{ub}/@{b}nein@{ub} (@{u}ersetzt zukünftig den Parameter NoConWin@{uu})
+
+                        @{b}ja@{ub}:   MUI-Fenster wird für Ausgaben geöffnet
+                        @{b}nein@{ub}: kein Ausgabe-Fenster
+
+                        default: @{b}ja@{ub}
+
+
+NurNetz=                @{b}ja@{ub}/@{b}nein@{ub} (nur Modus NOTRAFFIC)
+
+                        gibt an, ob nur Netzbretter in die Liste mit
+                        aufgenommen werden sollen (@{b}ja@{ub}) oder alle Bretter
+                        der Box (@{b}nein@{ub})
+
+                        default: @{b}ja@{ub} (nur Netzbretter)
+
+                        @{fg text}
+
+
+Modus=                  @{i}Funktion von ProWarnung@{ui}
+                        CRUNCH, VISITENKARTE, HACKER oder @{fg shine}NOTRAFFIC@{fg text}
+
+Tage=                   @{i}Anzahl der Tage@{ui} (nur bei den Modi CRUNCH
+                        und NOTRAFFIC)
+                        ... die ein User nicht angerufen haben muß, damit
+                        er in der Liste erscheint, ...
+
+                        ... bzw. in denen kein
+                        Verkehr (keine neuen Mails) in einem Brett
+                        geschrieben/einsortiert wurden
+
+Tage1=                  Anzahl der Tage, die ein User, der insgesamt nur
+                        1x angerufen hat, nicht angerufen haben muß, damit
+                        er in der Liste erscheint (nur beim Modus CRUNCH)
+
+                        Ist Tage1=0 werden diese User NICHT mit
+                        angezeigt (default)
+
+                        (z.B. Tage=180, Tage1=60: listet alle User auf,
+                        die entweder 180 Tage nicht angerufen haben,
+                        oder 60 Tage nicht angerufen haben, und bis jetzt
+                        NUR 1x ANGERUFEN haben)
+
+Empfänger=              @{i}Empfänger der Mail@{ui}
+
+                        kann ein User oder ein Brett sein
+                        (z.B. Empfänger=SYSOP, Empfänger=/ALLGEMEINES)
+
+Absender=               @{i}Absender der Mail@{ui}
+
+Boxname=                @{i}Boxname des Absenders@{ui}
+
+          Default: Der Netzboxname der eigenen Mailbox, dazu muß(!)
+                   der entsprechende Eintrag in den Prometheus NETZDATEN
+                   vorhanden sein
+
+AntwortAn=              @{i}Username@{ui} des Users der ein Reply auf diese Mail
+                        erhält
+
+StartSorter=            @{i}ja@{ui}/@{i}nein@{ui}
+                        soll der Sorter automatisch nach dem Erzeugen der
+                        Mail gestartet werden
+
+NoConWin                ist diese Option gesetzt, so wird kein
+                        Console-Window während der Arbeit von ProWarnung
+                        geöffnet
+
+
+Taskpri=                @{i}Wert@{ui}
+                        Priorität, mit der ProWarnung arbeiten soll
+
+Wochentage=             Wochentage, an denen die Mail(s) erzeugt werden
+                        (0=Sonntag..6=Samstag)
+
+             Beispiele: Wochentage=*           // alle Wochentage
+                        Wochentage=1,2         // nur Montag, Dienstag
+                        Wochentage=5           // nur Freitag
+
+Monatstage=             Tage im Monat, an denen die Mail(s) erzeugt werden
+
+             Beispiele: Monatstage=*           // alle Tage
+                        Monatstage=1,2,31      // am 1., 2. und 31.
+                        Monatstage=5           // am 5.
+
+Monate=                 Monate, in denen die Mail(s) erzeugt werden
+             Beispiele: Monate=*                   // alle Monate
+                        Monate=1,2,12              // Januar, Februar, Dez.
+                        Monate=5                   // Mai
+
+     Wochentage=1     \
+     Monatstage=1,15   + am 1.1, am 15.1, am 1.6, am 15.6, ABER NUR, wenn
+     Monate=1,6       /  der jeweilige Tag ein Montag ist!!!
+
+FilterUser=             @{i}User, die nicht überprüft werden sollen@{ui}
+                        @{i}FilterUser=@{ui} kann auch mehrfach vorkommen, für
+                        jeden zu filternden User muß eine eigene
+                        @{i}FilterUser=@{ui}-Zeile angelegt werden
+
+                        Beispiel: FilterUser=SYSOP
+
+SysopMail=              @{i}ja/nein@{ui}  (nur beim Modus VISITENKARTE)
+                        soll auch eine Mail an den in @{i}Empfänger@{ui}
+                        angegebenen Empfänger geschickt werden ?
+
+UserMail=               @{i}ja/nein@{ui}  (nur beim MODUS VISITENKARTE)
+                        sollen auch die User, die keine Visitenkarte haben,
+                        eine Mail erhalten ?
+
+Mailfile=               @{i}Dateiname eines ASCII-Textes@{ui}, der im Falle einer
+                        VISITENKARTE-Mail an die User verschickt werden
+                        soll, so kann sich jeder Sysop seine Mail selbst
+                        erstellen (Beispieldatei vkmail.txt liegt bei!!)
+
+
+PM=                     @{b}ja@{ub}/@{b}nein@{ub}
+                        legt fest, ob die von ProWarnung erzeugten
+                        ZConnect-Mails als PMs (ohne Dupe-Check) oder
+                        als öffentliche Mails (mit Dupe-Check) verschickt
+                        werden sollen.
+
+                        Eigentlich muß dieser Parameter nur auf NEIN
+                        eingestellt werden, wenn als Empfänger= (s.u.)
+                        ein Brett angegeben wird.
+                        Geht eine Mail an einen (oder mehrere) User, so
+                        kann der default-Wert PM=ja belassen werden
+
+                        default: ja
+
+
+
+Hier jetzt nochmal die Default-Werte:
+
+  Modus=CRUNCH
+  Tage=180
+  Tage1=0
+  Empfänger=SYSOP
+  Absender=SYSTEM
+  Boxname=                  (hier wird der Netzboxname ermittelt)
+  AntwortAn=SYSOP
+  StartSorter=ja
+  PM=ja
+  Taskpri=-1
+  Wochentage=*
+  Monatstage=*
+  Monate=*
+  SysopMail=ja
+  UserMail=nein
+  Mailfile=prometheus:texte/vkmail.txt
+  Verbose=nein
+  Brettnamen=zentriert
+  Fenster=ja
+
+  die Option @{i}NoConWin@{ui} ist @{u}nicht@{uu} gesetzt, d.h. das
+  Console-Window ist sichtbar
+
+Will man z.B. kein AntwortAn-Empfänger definieren, so läßt man die
+entsprechende Option einfach leer
+
+  AntwortAn=
+
+
+Die Ini-Datei kann mit Zeilen, die mit einem Semikolon beginnen, kommentiert
+werden
+
+;dies ist ein Kommentar
+@endnode
+
+@node "Hint1" "Hinweis zum HACKER-Modus"
+@next "Bugs"
+@prev "Inifile"
+@{u}Hinweis zum HACKER-Modus@{uu}
+
+
+Wird ProWarnung im HACKER-Modus gestartet, so wird in @{i}prometheus:daten@{ui} eine
+Datei namens @{i}hacker.dat@{ui} angelegt.
+
+Hier speichert ProWarnung ab, welche Zeile des @{i}hacker.prt@{ui} zuletzt gelesen
+wurde, damit beim erneuten Aufrufen von ProWarnung im HACKER-Modus, nicht
+wieder von vorne begonnen wird.
+
+Der Sysop braucht also nicht nach jedem Aufruf von ProWarnung im
+HACKER-Modus das @{i}hacker.prt@{ui} löschen.
+@endnode
+
+@node "Bugs" "Bugs / Probleme"
+@next "Support"
+@prev "Hint1"
+@{u}Bugs / Probleme@{uu}
+
+@{b}Bugs:@{ub}
+
+Bugs sind mir keine bekannt.
+
+@{b}Probleme:@{ub}
+
+Die Mail wird über den Sorter einsortiert, bei großen Netzboxen kann es
+daher u.U. sehr lange dauern, bis die Mail an die Reihe kommt.
+
+Die Zeitberechnung startet immer zur aktuellen Programmlaufzeit, d.h.
+startet das Programm um am 27.06.95 12:10h mit einem Parameter TAGE=1, so
+werden alle User ausgegeben, die das letzte Mal vor dem 27.06.95 12:10h
+angerufen haben, nicht etwa das letzte Mal vor dem 27.06.95 00:00h! (Ist
+aber wohl nicht so schlimm, schliesslich geht es ja nur um eine generelle
+Information)
+@endnode
+
+@node "Support" "Support"
+@next "Author"
+@prev "Bugs"
+        ProGuideList und meine anderen Prometheus-Tools können in der
+              __
+             /\ \
+             \ \ \         __     __      __      ___   __  __
+              \ \ \  __  /'__`\ /'_ `\  /'__`\   /'___\/\ \/\ \
+               \ \ \_\ \/\  __//\ \_\ \/\ \_\.\_/\ \__/\ \ \_\ \
+                \ \____/\ \____\ \____ \ \__/.\_\ \____\\/`____ \
+                 \/___/  \/____/\/___/\ \/__/\/_/\/____/ `/___/> \
+                                  /\____/                   /\___/
+              BBS - Hamburg / GER \_/__/V.34+ 2400-33600 bps\/__/
+
+
+                              +49-40-3901997
+
+gesaugt werden.
+
+ Login: GAST (kein Passwort)
+ Brett: /A0-AMIGA/A1-DFUE/A11-JEFFS-PROMETHEUS-TOOLS/A111-BINÄR
+
+================================== ODER IN DER ==========================
+
+                     NOTRE DAME - AMIGA STRONGHOLD
+
+           [das Boxlogo passt hier leider nicht, Sorry Mustafa :-)]
+
+Port #00 - 2800074  ZyXEL EG 19.2     Port #04 -  247816   ACTIVE 28.800
+Port #01 -  247866  ZyXEL EG 19.2     Port #05 -  247815   ACTIVE 28.800
+Port #02 -  247835  ZyXEL EG 19.2     Port #06 -  247812   ACTIVE 28.800
+Port #03 -  247825  ZyXEL EG 19.2     Port #07 -  247811   ACTIVE 28.800
+Port #08 - 28050032   ISDN X.75       Port #09 - 28050033    ISDN X.75
+
+ Login: GAST (kein Passwort)
+ Brett: /<---SUPPORT--->/JEFFS_PROMETHEUS-TOOLS
+
+U.U. gibt es dort neuere Versionen, als die, die in den Netzen herum-
+geistern.
+
+In allen Boxen bin ich für das jeweilige Brett Brettverwalter. Ihr könnt mir
+(JEFF) da auch eine Nachricht schicken.
+
+E-Mails könnt ihr an meine Adressen (siehe @{"Autor" link "Author" 0}) schicken.
+
+
+================================== ODER ÜBER DAS ==========================
+
+                                  PROMETHEUS-NETZ
+
+... gesaugt werden!
+@endnode
+
+@node "Author" "Autor"
+@next "History"
+@prev "Support"
+                                   @{u}Autor@{uu}
+
+        Das Programm wurde in SAS/C 6.56 geschrieben von Jörg Fenin
+
+                         Ich bin erreichbar unter
+
+                            1. SYSOP@LEGACY.dame.de
+                             2. JEFF@LEGACY.dame.de
+                                3. JEFF@dame.de
+                             (4. JEFF@CLI.dame.de)
+
+
+
+Mein Dank geht an
+
+ * AOE (Ex-SYSOP@CONDOR...) für die Vorschläge und das Beta-Testing
+
+ * TMS für die Übersendung der Enforcer-Hits
+
+
+Grüße gehen an
+
+ Esther & Anna & Miriam
+ Petra
+ Claudia
+ Lydia
+ Anja & Mirja
+ Birgit
+ SiliconSurfer
+ Crisi
+ Dave
+@endnode
+
+@node "History" "Versionsgeschichte"
+@next "ToDo"
+@prev "Author"
+@{u}Versionsgeschichte@{uu}
+
+(die neueste Version steht ganz oben!)
+
+V1.9 - 10-Jun-1996
+
+     - @{fg shine}ProWarnung ist jetzt eine MUI-Applikation@{fg text} und arbeitet nur noch
+       unter MUI 3.3+, alle Ausgaben, die früher in das Consolen-Window
+       gingen, gehen jetzt in ein schickes (?) MUI-Fenster
+
+     - neuer Modus: NoTraffic (auf Vorschlag von Fredl@FILDER.gun.de)
+       ProWarnung erstellt eine Liste, in der alle Bretter aufgeführt
+       werden, in denen eine frei wählbare Anzahl von Tagen keine
+       Mails mehr geschrieben / einsortiert wurden. Auf diese Weise
+       lassen sich "tote" Netze oder unbeliebte Bretter einfach
+       herausfinden und löschen
+
+     - neuer Ini-Parameter VERBOSE: zeigt gerade bearbeitetes Brett
+       oder gerade bearbeiteten User an
+
+     - einige neue @{"Ini-Parameter" link "Inifile" 0} im Zusammenhang mit dem neuen Modus
+       NoTraffic
+
+     - Ini-Parameter PUBLICSCREEN entfernt (nicht mehr nötig unter MUI)
+
+     - neuer Aufruf-Parameter MUISET, dient zum Einstellen der
+       Fensterparameter (Größe, Position, Screen) gemäß den MUI-
+       Einstellungen, da ansonsten das Ausgabe-Fenster keine Eingaben
+       annimmt.
+
+     - neuer Ini-Parameter Fenster=ja/nein , löst in Zukunft den
+       Ini-Parameter NoConWin ab
+
+
+V1.8 - 27-May-1996
+
+     - Auf Wunsch von SYSOP@dame.de werden jetzt alle Mails im Modus
+       HACKER in ein einziges File geschrieben, welches dann vom
+       Sorter auseinander sortiert wird
+
+     - wird eine angegebene Ini-Datei nicht gefunden, bricht ProWarnung
+       ab, anstatt dann die Default-Ini-Datei auszuführen
+
+     - Betreff der Mail im Modus HACKER von "Hacker-Warnung [automatic]"
+       in "(automatische) Hacker-Warnung" geändert
+
+
+V1.7 - 07-Mar-1996
+
+     - Aufrufparamter NOCONWIN wurde nicht beachtet :-(
+       (Danke an SYSOP@FODDER für den Hinweis)
+
+     - Einbau eines neuen Parameters (PM=) in die Ini-Datei, mit diesem
+       kann spezifiziert werden, ob die erzeugten Mails als PM (ohne
+       Dupe-Check) oder als öffentliche Mails (mit Dupe-Check)
+       versendet werden (siehe @{"Ini-Datei" link "Inifile" 0})
+       (auf Wunsch von SYSOP@DAME)
+
+
+V1.6 - 29-Feb-1996
+
+     - einige (unkritische) Enforcer-Hits (Lesezugriff auf Adresse 0)
+       entfernt
+
+
+V1.5 - 09-Jan-96
+
+     - Console-Window kann jetzt auf einem beliebigen Public Screen
+       geöffnet werden, default ist PROMETHEUS
+
+     - kleiner Bug bei der Versionsnummer im Modus HACKER behoben
+
+
+V1.4 - 01-Dec-95
+
+     - Passwort=-Parameter wieder ausgebaut, da es im Hacker.prt den
+       entsprechenden Eintrag nicht mehr gibt
+
+     - FilterUser= funktioniert jetzt auch im CRUNCH-Modus
+
+     - Am Ende der Crunchliste werden jetzt folgende Werte angezeigt:
+       User insgesamt, User in der Liste, Anzahl gefilterte User
+       (vorher nur User in der Liste)
+
+
+V1.3 BETA 4 - 27-Sep-95
+
+            - der Sorter wird jetzt mit
+              'run <NIL: >NIL: ...' gestartet, anstatt nur
+              mit 'run ...', Dank an Blizzer für den Tip
+
+
+V1.3 BETA 2 - 22-Sep-95
+
+            - Das Console-Window ist jetzt nach dem Start
+              inaktiv - Dank an Blizzer für den Hinweis
+
+
+V1.2        - 20-Sep-95
+
+            - zusätzlich zum Tage-Parameter im
+              CrunchWarnung-Modus, kann jetzt ein weiterer
+              Parameter (Tage1) angegeben werden.
+              Wird dieser Parameter angegeben, so werden
+              zusätzlich(!) alle User mit aufgeführt, die
+              seit der in Tage1 angegebenen Zeitspanne
+              nicht angerufen haben und insgesamt nur
+              1x überhaupt angerufen haben.
+              Gut, wenn man User, die sich nur eintragen,
+              dann aber nie wieder anrufen vor Ablauf der in
+              Tage= spezifierten Zeitspanne entfernen will
+              (Auf Wunsch von SYSOP@DAME.shnet.org)
+
+
+V1.1 BETA 44 - 14-Sep-95 - neuer Modus: "Hacker"
+                           wertet das File "prometheus:daten/hacker.prt"
+                           aus und verschickt Mails an die User, deren
+                           Passwort unkorrekt eingegeben wurde
+                           -> siehe hacker.ini
+
+V1.1 BETA 32 - 26-Aug-95 - offizieller Einbau des VISITENKARTEN-Modus
+                           (haben User keine Visitenkarte eingegeben, so
+                           erhalten diese User auf Wunsch eine frei
+                           editierbare Mail,
+                           alternativ kann auch nur der Sysop eine Mail
+                           erhalten, welche User keine Visitenkarte
+                           eingegeben haben
+
+                         - Einbau von Monatstage=- und Monate=-Parameter
+                           dadurch kann das Erzeugen der Mails für jeden
+                           Tag des Jahres verhindert oder erlaubt werden
+                           (Visitenkartenwarnungen können so z.B. nur 1x
+                           alle 6 Monate verschickt werden)
+
+@{fg shine}                         - Wochentage=-Parameter hat jetzt ein anderes
+                           Format (!) (vorher: Wochentage=0123456
+                                       jetzt:  Wochentage=0,1,2,3,4,5,6)@{fg text}
+
+
+V1.1 BETA 13 - 20-Aug-95 - Fehler in den Default-Wochentagen behoben
+
+V1.1 BETA 11 - 09-Aug-95 - Einbau des Wochentage=-Parameters
+
+                         - undokumentierter Einbau des VISITENKARTE-Modus
+
+
+V1.0         - 06-Aug-95 - Einbau der Ini-Datei
+                           alle @{i}ProWarnung@{ui}-Werte können jetzt frei
+                           gewählt werden, so daß Mails auch in
+                           Bretter geschickt werden können
+
+                         - durch richtige Konfiguration der Netzdaten
+                           und -parameter, kann jetzt wieder SYSTEM als
+                           Absender gewählt werden
+                           (siehe @{"Netzdaten" link "Netzangaben" 0})
+
+                         - kleine kosmetische Verbesserungen
+
+
+V0.35 BETA 5 - 25-Jul-95 - Beta-Release!
+
+                         - ab der Prometheus-Version 1.15 werden die Mails,
+                           die ProWarnung erzeugt als defekt markiert
+                           und ins netz/defekt-Verzeichnis verschoben,
+                           bis ich weiß warum, habe ich als Absender der
+                           Mail SYSOP eingesetzt. Wenn Sysop auch als
+                           Point existiert (Pointname: Sysop),
+                           funktioniert's wieder
+
+
+V0.33  -       27-Jun-95 - erste veröffentlichte Version
+@endnode
+
+@node "ToDo" "In Arbeit / Planung"
+@prev "History"
+@{u}In Arbeit / Planung@{uu}
+                                                Stand: 27.5.96
+
+* Auswerten der Vertreter vom SYSOP mit automatischer Verschickung an
+  diese(n)
+
+* Protokoll-Auswertung DOS.PRT
+
+* Point-Puffergröße-Auswertung
+
+* ??? lasst Euch was einfallen!!
+@endnode
+

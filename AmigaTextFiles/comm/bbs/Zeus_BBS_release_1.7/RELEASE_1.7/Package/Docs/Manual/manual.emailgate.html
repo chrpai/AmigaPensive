@@ -1,0 +1,150 @@
+<html>
+<head>
+  <title>16 - FidoNet over E-Mail Tunnelling</title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="main.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="manual.multipaths.html"><img src="prev.gif" alt="PREV" border=0></a><a href="manual.phoenix.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+
+<br><i><b>Chapter 16 - FidoNet over E-Mail Tunnelling</b></i>
+<br>or
+<br>             How to `Gate' to FidoNet Nodes via. Internet E-Mail
+<br>             ===================================================
+<br>
+<br><b>What FidoNet over e-mail tunnelling is</b>
+<br>
+<br>&quot;Tunnelling&quot; is a bit of jargon from the science of computer networking. It is the idea of carrying one type of network over another type which is incompatible. In our case, we want to send FidoNet over Internet e-mail. This is being increasingly done elsewhere, where the new Internet address system, IPv6, is being `tunnelled' over older systems which only support the current IPv4 (which is the &quot;192.168.1.34&quot; type of address).
+<br>
+<br>Fidonet via e-mail is an area of Fidonet which is growing daily. While having the disadvantage of being an indirect way of transferring mail, Fidonet via e-mail provides a way to cheaply distribute networks over long distances, such as international links.
+<br>
+<br>Zeus:Bin/EMailGate is a program which allows the sending of normal Fidonet mail (the finished bundles and packets you see in your Outbound directory) over e-mail which, once at the destination, can be decoded back into real Fidonet bundles and packets and imported.
+<br>
+<br>Zeus does not current provide facilities for decoding mail, although this is easily done by running a uudecoder and MIME decoder over a specifically named mailbox, or by using a 3rd party mail packet such as YAM and its import mailbox feature. We will endeavour to expand Zeus BBS's features to include a purpose built decoder soon (one which will allow easy integration with shared mailboxes, if you only have a single e-mail address, for example).
+<br>
+<br>
+<br>
+<br><b>Usage</b>
+<br>
+<br>EMailGate can either place tunnelled mail in the Spool directory (as defined by Zeus's Internet prefs), ready for sending with tools like SMTPpost from the INetUtils package (please see the script provided below) or Zeus's own ZSMTPXfer which is specifically designed for the task, or it can use PutMail by Martin Lanza to directly send mail to your Internet provider's servers without using an intermediate Spool file. PutMail is available on AmiNet.
+<br>
+<br>If the mail is placed in Spool, then it is in a raw e-mail format. This is suitable for sending via any other means, either by importing directly into a package such as YAM or even processed by some ARexx for sending by any method at all. As mentioned, Zeus's own ZSMTPXfer is designed to deal with this.
+<br>
+<br>If you wish to use PutMail, you should have a directory PutMail in AmiTCP: in which PutMail is place (i.e., &quot;AmiTCP:PutMail/PutMail&quot; is the executable). If you use Miami or another TCP/IP stack, you will have to assign AmiTCP: to your Miami directory and place the PutMail directory in there. This is a problem which will be readdressed.
+<br>
+<br>
+<br>
+<br><b>Configuration</b>
+<br>
+<br><u>Edit Zeus:Config/EmailTunnel.cfg</u>
+<br>
+<br>The first line is an identification of the configuration being used, and is ideally used to put a short identifier to highlight that the messages being generated contain UUEncoded Fidonet-type mail. It is irrelevant as far as EMailGate is concerned.
+<br>
+<br>To gate to three nodes, an example config might be:
+<br>
+<br><pre>----------------cut-----------------
+FIDONET
+85:1/467.0   <a href="mailto:someone@address.com">someone@address.com</a>
+85:1/543.0   <a href="mailto:another@hello.com">another@hello.com</a>   UUENCODE
+2:1/344.0    <a href="mailto:another@blah.com">another@blah.com</a>    MIME
+----------------cut-----------------
+</pre><br>
+<br>The format of each line is:
+<br>
+<br><pre>&#060;FTN address&#062; &#060;e-mail address&#062; &#060;encoding method&#062;
+</pre><br>
+<br>(where FTN is Fido-Technology-Network, meaning anything using Fido software)
+<br>
+<br>The encoding method allows you to send mail in either MIME Base64 or UUEncode formats. If you tunnel to a PC system, you might have to experiment to see which method will work, as some PC software used for tunnelling can be quite poor.
+<br>
+<br>The default is UUEncode, and this is what you should use unless you have difficulties with it.
+<br>
+<br>
+<br><u>Load up Prefs/Archivers</u>
+<br>
+<br>Add a new archiver &quot;UUENCODE&quot;
+<br>
+<br>Enter data for your UUEncoder (UUxt is recommended) so that `Compress' uuencodes data, and `Decompress' uudecodes data. Since this is useless to general BBS use, deselect `Show User'.
+<br>
+<br>For example:
+<br>
+<br><pre>   Name:      UUENCODE
+   Compress:  c:uuxt a ~a ~f
+   Extract:   c:uuxt x ~a
+   Show User: NO
+</pre><br>
+<br>Leave the other fields blank.
+<br>
+<br>
+<br>Now add another new archiver, &quot;MIMEENC&quot;
+<br>
+<br>This one will be used for encoding MIME data for EMailGate. There are many of these available on BBS's and AmiNet, I'll show you configurations for Base64Encoder and Base64:
+<br>
+<br><pre>   Name:      MIMEENC
+   Compress:  Base64Encode ~f ~a
+   Extract:   Base64Decode ~a
+   Show User: NO
+</pre><br>
+<br>   or
+<br>
+<br><pre>   Name:      MIMEENC
+   Compress:  Base64 ~f ~a E
+   Extract:   Base64 ~a D
+   Show User: NO
+</pre><br>
+<br>The Base64Encode/Decode pack should come with Zeus in the 3rd Party Utils archive.
+<br>
+<br>Leave the other fields blank.
+<br>
+<br>Run &quot;UpdateConfigs ARC&quot; to update this.
+<br>
+<br>
+<br><u>Using PUTMAIL:</u>
+<br>
+<br>To use PutMail, include the PUTMAIL argument when running the program.
+<br>
+<br>My email address for Fidonet is &quot;<a href="mailto:fido@tkgbbs.freeserve.co.uk">fido@tkgbbs.freeserve.co.uk</a>&quot; and my SMTPHOST (the server to which I send e-mail) is &quot;smtp.freeserve.co.uk&quot; so I would use the following command line.
+<br>
+<br><pre>   Run Zeus:Bin/EMailGate CONFIGFILE Zeus:Config/EmailTunnel.cfg MAILADDRESS <a href="mailto:fido@tkgbbs.freeserve.co.uk">fido@tkgbbs.freeserve.co.uk</a> SMTPHOST smtp.freeserve.co.uk ARCHIVER UUENCODE PUTMAIL COPYOLD
+</pre><br>
+<br>Demon configurations might use (for example):
+<br>
+<br><pre>Run Zeus:Bin/EMailGate CONFIGFILE Zeus:Config/EmailTunnel.cfg MAILADDRESS <a href="mailto:zeusnet@bleach.demon.co.uk">zeusnet@bleach.demon.co.uk</a> SMTPHOST post.demon.co.uk ARCHIVER UUENCODE COPYOLD PUTMAIL
+</pre><br>
+<br>
+<br><u>Using Spool:</u>
+<br>
+<br>To spool mail to your configured Spool directory (often &quot;UUSpool:&quot;), simply leave off the PutMail argument.  You <b>must</b> still include all the details for address and SMTP host however.
+<br>
+<br><pre>Run Zeus:Bin/EMailGate CONFIGFILE Zeus:Config/EmailTunnel.cfg MAILADDRESS <a href="mailto:fido@tkgbbs.freeserve.co.uk">fido@tkgbbs.freeserve.co.uk</a> SMTPHOST smtp.freeserve.co.uk ARCHIVER UUENCODE COPYOLD
+</pre><br>
+<br>This will leave files in Spool which can be sent using SMTPpost (from the INetUtils package on AmiNet) using a script such as:
+<br>
+<br><pre>------------ cut -------------------
+; Send queue mail via SMTP
+
+pcd uuspool:
+List &#062;T:SendMailQueue.temp D.#? lformat &quot;SMTPPost -S %n*Nif not error*N delete %n*N delete X.%e*Nendif*N&quot;
+Execute T:SendMailQueue.temp
+Delete T:SendMailQueue.temp
+pcd
+------------ cut -------------------
+</pre><br>
+<br>Or by running ZSMTPXfer on the directory, or processed however you wish.
+<br>
+<br>
+<br><u>COPYOLD Argument</u>
+<br>
+<br>This argument, on the command line, will copy mail which has been sent into a directory called &quot;Old&quot; in your outbound directory. Should something go wrong and the mail is not delivered, you can resend it manually from here.
+<br>
+<br>However no check is kept on the amount of mail kept in this directory, so it is up to you as SysOp to periodically clean it, perhaps on a Cron job.
+<br>
+<br>
+<br><u>ARCHIVER argument</u>
+<br>
+<br>From Zeus 1.3, the two `archivers' used are named UUEncode and MimeEnc. MimeEnc is fixed, and cannot be changed; if you wish to use a different archiver name for the UUEncode program, it can be specified using this argument.
+<br>
+<br>
+<br></body>
+</html>

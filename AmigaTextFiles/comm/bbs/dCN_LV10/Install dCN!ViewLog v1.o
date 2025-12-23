@@ -1,0 +1,81 @@
+;dCN!ViewLog v1.o Installer Utility
+;(c) 1996 by sCANDiC (dCN-/F·dEZiGN)
+
+;$VER: dCN!ViewLog Install 1.o (04.10.96)
+
+(set @default-dest "FAME:Doors/dCN!ViewLog")
+
+(welcome #welcometext)
+
+(set #turboprozessor (not (patmatch (database "cpu") "68000|68010")))
+
+
+(if (= @language "deutsch")
+  (
+   (set #welcometext	 "Willkommen zum Installationsprogramm für\n\n")
+   (set #welcomedesc     "Mit diesem Programm läßt sich die Installation von dCN!ViewLog sehr einfach durchführen. Alle Dateien werden installiert und evtl. Änderungen an den Systemdateien vorgenommen.")
+   (set #wrongversion    "Leider ist ihr AmigaOS© veraltet!\n\nSie benötigen mindestens AmigaOS 2.04 (v37).")
+   (set #copyinfotext    "Eine komplette Installation des FAME Mailbox System ist notwendig für die Installation dieses Programmes.")
+   (set #nofameinstalled "Sie haben das FAME Mailboy System nicht oder nicht vollständig installiert!\nDie Installation wird abgebrochen.")
+   (set #copyfiles       "Kopiere die benötigten Datenfiles nach FAME:Doors/")
+   (set #fastprocessor   "Kopiere die 68020+ Versionen der Programme.")
+   (set #slowprocessor   "Kopiere die 68000 Versionen der Programme.")
+  )
+
+  (
+   (set #welcometext	 "Welcome to the Installation utilitty for\n\n")
+   (set #welcomedesc     "The installation of this program by using this program is really easy. It will copy all files to the right places an also replaces the needed systemfiles.")
+   (set #wrongversion    "Sorry! Your OS is too old!\n\nYou have to use a minimum of OS2.04 (v36).")
+   (set #copyinfotext    "This tool needs a complete FAME installation!.")
+   (set #nofameinstalled "There is no complete FAME installation!!\nThe installation aborts!.")
+   (set #copyfiles       "Copy needed files to FAME:Doors/")
+   (set #fastprocessor   "About to copy the 68020+ versions of the doors.")
+   (set #slowprocessor   "About to copy the 68000 versions of the doors.")
+  )
+)
+
+
+(message #welcomedesc)
+
+(set #osversion (/ (getversion "exec.library" (resident)) 65536 ))
+(if (< #osversion 36 )
+  (exit #wrongosversion (quiet))
+)
+(complete 0)
+(if (not (exists "FAME:Doors/"))
+
+ (
+  (abort #nofameinstalled)
+ )
+
+)
+(complete 10)
+(makedir "FAME:Doors/dCN!ViewLog" (infos))
+
+   (message #copyfiles)
+
+   (copyfiles (source "FAME/Settings/Doors/bbscmd/2") (dest "FAME:Settings/Doors/bbscmd/"))
+   (copyfiles (source "FAME/Doors/dCN!ViewLog/dCN!ViewLog.guide") (dest "FAME:Doors/dCN!ViewLog/"))
+   (copyfiles (source "FAME/Doors/dCN!ViewLog/dCN!ViewLog.guide.info") (dest "FAME:Doors/dCN!ViewLog/"))
+
+   
+(complete 50)
+
+  (if #turboprozessor
+     (
+     (message #fastprocessor)
+
+     (copyfiles (source "FAME/Doors/dCN!ViewLog/dCN!ViewLog.FIM.020+") (dest "FAME:Doors/dCN!ViewLog/") (newname "dCN!ViewLog.FIM"))
+
+     )
+
+     (
+     (message #slowprocessor)
+
+     (copyfiles (source "FAME/Doors/dCN!ViewLog/dCN!ViewLog.FIM.000") (dest "FAME:Doors/dCN!ViewLog/") (newname "dCN!ViewLog.FIM"))
+
+     )
+  )
+
+(complete 100)
+

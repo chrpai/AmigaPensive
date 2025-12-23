@@ -1,0 +1,75 @@
+/*
+**  $VER: PrintSystemList.clrexx 1.0 (26 Nov 1995)
+**
+**        © 1995 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      PrintSystemList.clrexx
+**
+**  FUNCTION:
+**      Gibt eine Liste der Systeme, die kein Point sind, auf dem Drucker
+**      aus.
+**
+*/
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then do
+        address command 'ASSIGN LIBS: CONNECTLINE:Libs ADD'
+        if ~addlib('connectline:libs/cl_rexx.library',0,-30,0) then exit 10
+        end
+    end
+
+
+anzahl=CLGET_SystemNumberOf()
+
+do x=1 to anzahl
+    system.x=CLGET_SystemName(x)
+    domain.x=CLGET_SystemDomain(system.x)
+    if (left(domain.x,1)~='.')&(domain.x~='') then domain.x='.'domain.x
+    prio.x=CLGET_SystemPriority(system.x)
+    if prio.x<10 then prio.x='0'prio.x
+    route.x=CLGET_SystemRoute(system.x)
+    if route.x='' then route.x='PR/DR'
+    prot.x=CLGET_SystemProtocol(system.x)
+    pain.x=CLGET_SystemPackerIn(system.x)
+    if pain.x='' then pain.x='-'
+    paou.x=CLGET_SystemPackerOut(system.x)
+    if paou.x='' then paou.x='-'
+    pack.x=pain.x'/'paou.x
+    tele.x=word(translate(CLGET_SystemTelephone(system.x),' ','|'),1)
+    end
+
+systembreite=10
+domainbreite=22
+priobreite=4
+routebreite=10
+protbreite=8
+packbreite=8
+telebreite=18
+
+call print(center('Systemname',systembreite)||center('Domain',domainbreite)||center('Pr',priobreite)||center('Routing',routebreite)||center('Protokoll',protbreite)||center('Packer',packbreite)||center('Rufnummer',telebreite)||'0a'x)
+call print(copies('-',systembreite-1) copies('-',domainbreite-1) copies('-',priobreite-1) copies('-',routebreite-1) copies('-',protbreite-1) copies('-',packbreite-1) copies('-',telebreite-1)||'0a'x)
+
+do x=1 to anzahl-1
+    if (CLGET_SystemPointuser(system.x)='')&(tele.x~='') then call print(left(system.x,systembreite)||left(domain.x,domainbreite)||left(prio.x,priobreite-1)' '||left(route.x,routebreite-1)' '||left(prot.x,protbreite)||left(pack.x,packbreite)||left(tele.x,telebreite)||'0a'x)
+    end
+
+call print('0a'x)
+call print('PR/DR = "Palias-/Domainrouting"'||'0a'x)
+
+exit
+
+/* die eigentliche Druckroutine */
+
+print:
+parse arg druckzeile
+if ~show('F','Printer') then do
+    if ~open('Printer','PRT:') then do
+        return 'ERROR'
+        end
+    end
+return writech('Printer',druckzeile)
+
+

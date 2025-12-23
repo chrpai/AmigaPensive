@@ -1,0 +1,352 @@
+; This is the install Script for SMS v2.01
+; Copyright ©.1994 by Yves Rausch
+
+(complete 0)
+
+(set @default-dest "BBS:Extras/")
+
+(set @app-name "SMS v2.01")
+
+(user 2) ; set user expert
+
+(set #ask-SMS-dir
+	(cat
+		"In which disk or drawer should \"TA-SMS v2.0\" "
+		"be created where all files will be copied?"
+	)
+)
+
+(set #ask-SMS-dir-help
+	(cat
+		"Here you specify, where you want to install TA-SMS v2.01 "
+		"and all support files. A drawer \"SMS\" will "
+		"be created, so you select \"BBS:Extras/\" to install SMS "
+		"in a drawer \"BBS:Extras/SMS/\".\n\n"
+	)
+)
+
+(set #ask-Rexx-dir
+	(cat
+		"Here you specify, where your \"TransAmiga Rexx\" directory is."
+	)
+)
+
+(set #ask-Rexx-dir-help
+	(cat
+		"Here you specify, where your \"TransAmiga Rexx\" directory is."
+		"Normally this directory is \"BBS:Rexx/\".\n\n"
+	)
+)
+
+(set #ask-text-dir
+	(cat
+		"Here you specify, where your \"TransAmiga Text\" directory is."
+	)
+)
+
+(set #ask-text-dir-help
+	(cat
+		"Here you specify, where your \"TransAmiga Text\" directory is."
+		"Normally this directory is \"BBS:Text/\".\n\n"
+	)
+)
+
+(set #ask-Config-dir
+	(cat
+		"Here you specify, where your \"TransAmiga Configs\" directory is."
+	)
+)
+
+(set #ask-Config-dir-help
+	(cat
+		"Here you specify, where your \"TransAmiga Configs\" directory is."
+		"Normally this directory is \"BBS:Configs/\".\n\n"
+	)
+)
+
+;=============================================================================
+; Main 'Program'
+
+(set SMS_dest
+		(askdir
+			(prompt #ask-SMS-dir)
+			(help
+				#ask-SMS-dir-help
+				@askdir-help
+			)
+			(default @default-dest)
+		)
+)
+
+(complete 1)
+
+(set SMS_dest_dir (tackon SMS_dest "SMS"))
+
+(makedir SMS_dest_dir)
+
+(set @execute-dir (pathonly @icon)) ; aktueller Pfad 
+
+(set SMS_Rexx_dest
+		(askdir
+			(prompt #ask-Rexx-dir)
+			(help
+				#ask-Rexx-dir-help
+				@askdir-help
+			)
+			(default "BBS:Rexx/")
+		)
+)
+
+(complete 2)
+
+(set SMS_Text_dest
+		(askdir
+			(prompt #ask-Text-dir)
+			(help
+				#ask-Text-dir-help
+				@askdir-help
+			)
+			(default "BBS:Text/")
+		)
+)
+
+(complete 3)
+
+(set SMS_Config_dest
+		(askdir
+			(prompt #ask-Config-dir)
+			(help
+				#ask-Config-dir-help
+				@askdir-help
+			)
+			(default "BBS:Configs/")
+		)
+)
+
+(complete 10)
+
+(copyfiles
+           (prompt "")
+           (help "")
+           (source (tackon @execute-dir "SMS_Flagsmean"))
+           (dest SMS_Text_dest)
+           (files)
+)
+
+(complete 11)
+
+(copyfiles
+           (prompt "")
+           (help "")
+           (source @execute-dir)
+           (dest SMS_Text_dest)
+           (pattern "#?.ansi")
+           (files)
+)
+
+(complete 12)
+
+(copyfiles
+           (prompt "")
+           (help "")
+           (source (tackon @execute-dir "SMS_Config"))
+           (dest SMS_Text_dest)
+           (files)
+)
+
+(complete 13)
+
+(copyfiles
+           (prompt "")
+           (help "")
+           (source (tackon @execute-dir "SMS_menu"))
+           (dest SMS_Text_dest)
+           (files)
+)
+
+(complete 14)
+
+(copyfiles
+           (prompt "")
+           (help "")
+           (source @execute-dir)
+           (dest SMS_Rexx_dest)
+           (pattern "#?.trans")
+           (files)
+); sysop.trans
+
+(complete 20)
+
+(copyfiles
+           (prompt "")
+           (help "")
+           (source @execute-dir)
+           (dest SMS_config_dest)
+           (pattern "#?.cmds")
+           (files)
+); language & cmds
+
+(copyfiles
+           (prompt "")
+           (help "")
+           (source @execute-dir)
+           (dest SMS_config_dest)
+           (pattern "#?.lang")
+           (files)
+); language & cmds
+
+(complete 25)
+
+(copyfiles
+        (prompt "")
+        (source @execute-dir)
+        (dest SMS_dest_dir)
+        (pattern "#?.guide")
+	(infos)
+        (files)
+) ; Guide 
+
+(complete 30)
+
+(copyfiles
+        (prompt "")
+        (source @execute-dir)
+        (dest SMS_dest_dir)
+        (pattern "#?.rexx")
+        (files)
+) ; sms rexx scripts
+
+(complete 35)
+
+; make a configfile
+
+        (message       "The following answers will create a config file "
+                       "named 'SMS_0.cfg'! The '0' is the number of the "
+                       "TransAmiga Line. Copy this file for each line. ")
+
+        (set smspasswd (askstring
+                        (prompt "Enter a password for entering TA-SMS ")
+                        (help "The password is needed to enter the SMS "
+                              "This is an extra security if someone of "
+                              "your users got an privilegded access !! ")
+                        (default "SECURITY")
+                       )
+
+        )
+        (set pathSMS   (askstring
+                        (prompt "        Enter the path to your SMS dir          "
+                                "\nnote: The '/' as last is necessary !")
+                        (help "")
+                        (default (cat SMS_dest_dir "/"))
+                       )
+        )
+        (set newsSMS   (askstring
+                        (prompt "Enter the name for your Newsfile "
+                                "including the path!             "
+                                "(e.g. BBS:Text/News)             ")
+                        (help "")
+                        (default (tackon SMS_text_dest "News"))
+                       )
+
+        )
+        (set maxSMS   (askstring
+                        (prompt "Enter the maximum access a CoSysop "
+                                "can give a user !")
+                        (help "")
+                        (default "100")
+                       )
+
+        )
+        (set editSMS   (askstring
+                        (prompt " Enter the name for your favorite "
+                                "Editor          (e.g. CED -sticky)")
+                        (help "")
+                        (default "ed")
+                       )
+
+        )
+        (set editSMS2  (askstring
+                        (prompt " Enter the name for your online BBS"
+                                "Editor          (e.g. TAed ,TRed)")
+                        (help "")
+                        (default "TAed")
+                       )
+
+        )
+        (set scriptSMS (askstring
+                        (prompt "Enter the script that should be "
+                                "startet, when someone enter the "
+                                "shell (e.g. s:shell-startup)")
+                        (help "")
+                        (default "")
+                       )
+        )
+
+(complete 40)
+
+                (set mainconfig (cat smspasswd "\n" pathSMS "\n" newsSMS
+                                     "\n" maxSMS "\n" editSMS "\n" editSMS2 "\n" scriptSMS "\n") 
+                )
+                (textfile
+                        (prompt "Generating master configuration file...\n\n Configuration: \n\n " mainconfig)
+                        (help "The data you have entered is used to "
+                              "generate the main configuration file.")
+                        (dest (tackon SMS_config_dest "SMS_0.cfg"))
+                        (append mainconfig)
+                        (confirm)
+                ) ; master configuration file is written
+
+
+
+(complete 50)
+
+(textfile
+        (prompt "Now there is time to add the following line to your main.rx config file\n"
+                "\n* ********************** *** ******** ***********"
+                "\n# SysOp Menu             255 -------- Sysop.trans\n\n"
+                "Should the installer add this line to your main.rx file ?")
+        (help "")
+        (dest (tackon SMS_Config_dest "main.rx"))
+        (include (tackon SMS_Config_dest "main.rx"))
+        (append "# SysOp Menu             255 -------- Sysop.trans\n")
+        (confirm)
+) ; add the config line
+
+(complete 60)
+
+;coming... for further versions...
+
+(complete 100)
+
+(message "NOTE: You have to edit the .cmds files in " SMS_config_dest " and copy this file for each line.\n"
+         "\n\n As next you have to start 'CreateUserlist.rexx' to create the first 'Userlist.SMS' file which will be needed by SMS !")
+
+(exit "Now you are on your own. If you have problems or find an error "
+      "in this script contact:\n\nYves Rausch\nRuedesheimer Str. 92\nD-55545 "
+      "Bad Kreuznach\nGermany\n\ne-mail: epic@mil.ka.sub.org")
+
+(trap 1
+        (message "I hope it was not too complicate for you! If you "
+               "have any questions or problems contact a TransAmiga "
+               "Support BBS. If you have problems with the script or "
+               "find bugs in it contact:\n\nYves Rausch\nRuedesheimer Str."
+               "92\nD-55545 Bad Kreuznach\nGermany\n\ne-mail: "
+               "epic@mil.ka.sub.org")
+)
+
+(trap 2
+        (abort "I ran out of memory. Close some windows or quit "
+               "some programs")
+)
+
+(trap 3
+        (abort "Error in Scriptfile!")
+)
+
+(trap 4
+        (abort "DOS error!!!")
+)
+
+(trap 5
+        (abort "Bad parameter data.")
+)

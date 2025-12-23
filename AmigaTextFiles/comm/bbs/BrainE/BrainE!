@@ -1,0 +1,550 @@
+/*************************************************************************/
+/*             BrainE! v1.0 for Excelsior! BBS  by Morpheus              */
+/*************************************************************************/
+path='Doors:BrainE!/'
+/*************************************************************************/
+options results
+temp=right(path,1)
+if temp~='/'&temp~=':' then path=path||'/'
+bbsidentify term
+maxlines=word(result,2)
+if maxlines<30 then setlength 30
+bbsidentify SYSOP
+sysop=result
+tr=transmit
+sn=sendstring
+gc=getchar
+cp5=copies(' ',5)
+cp12=copies(' ',12)
+cp15=copies(' ',15)
+cp25=copies(' ',25)
+level=1
+x_tot=4
+y_tot=3
+totaal=12
+call read_hiscore(1)
+call show_header
+choice=0
+do while choice~=4
+call show_main
+call check_carrier
+gc
+choice=result
+sn choice
+select
+when choice=0 then call new_game
+when choice=1 then call show_instr
+when choice=2 then;do
+call show_hiscore
+sn cp25||'Press \c2<\c3Enter\c2> \c3to continue! '
+call check_carrier
+gc
+end
+when choice=3 then call change_level
+otherwise nop
+end
+end
+call quit_game
+exit
+new_game:
+do while invoer~='M'
+invoer='R'
+cont=1
+call clr(9)
+sn '[13;1H'||cp15||'   \c3Please wait... Setting up a new game: \c7'
+call gen_veld
+sn '\c2Done!\w1'
+do while cont=1
+if invoer='R' then;do
+call show_veld
+do i=1 for totaal
+input.i=0
+end
+move=0
+time('R')
+end
+call check_carrier
+gc
+invoer=result
+if invoer='1B'x then;do
+checkio
+if result='TRUE' then;do
+gc;gc
+invoer=result
+if invoer='A' then invoer='8'
+if invoer='B' then invoer='2'
+if invoer='C' then invoer='6'
+if invoer='D' then invoer='4'
+end
+else invoer='M'
+end
+else if invoer='D'x|invoer='5'|invoer=' ' then invoer='0'
+else invoer=upper(invoer)
+select
+when invoer='C' then;do
+call change_level
+cont=0
+end
+when invoer='N' then cont=0
+when invoer='Q' then call quit_game
+when invoer='M' then cont=0
+when invoer='0' then;do
+if input.nr=0 then;do
+move=move+1
+input.nr=1
+sn apos(y+1,x+1)||col(input.nr)
+if nr>x_tot then;do
+temp=nr-x_tot
+if input.temp>0 then;do
+input.temp=1+(input.temp//4)
+sn apos(y-3,x+1)||col(input.temp)
+end
+end
+if nr<=(totaal-x_tot) then;do
+temp=nr+x_tot
+if input.temp>0 then;do
+input.temp=1+(input.temp//4)
+sn apos(y+5,x+1)||col(input.temp)
+end
+end
+if (nr//x_tot)~=1 then;do
+temp=nr-1
+if input.temp>0 then;do
+input.temp=1+(input.temp//4)
+sn apos(y+1,x-3)||col(input.temp)
+end
+end
+if (nr//x_tot)~=0 then;do
+temp=nr+1
+if input.temp>0 then;do
+input.temp=1+(input.temp//4)
+sn apos(y+1,x+5)||col(input.temp)
+end
+end
+end
+end
+when invoer='8' then;do
+if y>11 then;do
+sn cursor(y,x,7)
+y=y-4
+sn cursor(y,x,3)
+nr=nr-x_tot
+end
+end
+when invoer='2' then;do
+if y<(11+(y_tot-1)*4) then;do
+sn cursor(y,x,7)
+y=y+4
+sn cursor(y,x,3)
+nr=nr+x_tot
+end
+end
+when invoer='4' then;do
+if x>45 then;do
+sn cursor(y,x,7)
+x=x-4
+sn cursor(y,x,3)
+nr=nr-1
+end
+end
+when invoer='6' then;do
+if x<(45+(x_tot-1)*4) then;do
+sn cursor(y,x,7)
+x=x+4
+sn cursor(y,x,3)
+nr=nr+1
+end
+end
+otherwise nop
+end
+sn apos(8,49)
+if move=totaal then;do
+sn cursor(y,x,7)||'\w1'
+i=1
+correct=1
+do while i<=totaal
+if input.i~=veld.i then correct=0
+i=i+1
+end
+if correct=1 then;do
+score=time('E')
+score=delstr(score,length(score)-2,3)
+if score<10 then score=10
+if score>999 then score=999
+cont=0
+if length(score)=2 then string1=' º        \c7in '||score||' seconds!        \c3º '
+else string1=' º       \c7in '||score||' seconds!!       \c3º '
+if score<score.10 then string2=' º  \c7You have a top ten score!!  \c3º '
+else string2=' º     \c7Sorry, no highscore!     \c3º '
+tr apos(14,22)||copies(' ',34)
+tr apos(15,22)||' \c3ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ» '
+tr apos(16,22)||' º                              º '
+tr apos(17,22)||' º       \c7YES! You did it!       \c3º '
+tr apos(18,22)||' º                              º '
+tr apos(19,22)||' º  \c7You have solved the puzzle  \c3º '
+tr apos(20,22)||' º                              º '
+tr apos(21,22)||string1
+tr apos(22,22)||' º                              º '
+tr apos(23,22)||string2
+tr apos(24,22)||' º                              º '
+tr apos(25,22)||' ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ '
+tr apos(26,22)||copies(' ',34)
+call clr(27)
+sn '\n1'||cp25||'Press \c2<\c3Enter\c2> \c3to continue! '
+if score<score.10 then;do
+call write_hiscore
+call check_carrier
+gc
+new_hiscore=1
+call show_hiscore
+new_hiscore=0
+sn cp25||'Press \c2<\c3Enter\c2> \c3to continue! '
+end
+end
+else;do
+tr apos(14,21)||copies(' ',37)
+tr apos(15,21)||' \c3ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ» '
+tr apos(16,21)||' º                                 º '
+tr apos(17,21)||' º    \c7Sorry, you did NOT solve     \c3º '
+tr apos(18,21)||' º                                 º '
+tr apos(19,21)||' º           \c7the puzzle!!          \c3º '
+tr apos(20,21)||' º                                 º '
+tr apos(21,21)||' º  \c7Press \c3<\c7R\c3> \c7to retry this game,  \c3º '
+tr apos(22,21)||' º                                 º '
+tr apos(23,21)||' º   \c7or \c3<\c7N\c3> \c7to start a new game.   \c3º '
+tr apos(24,21)||' º                                 º '
+tr apos(25,21)||' ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ '
+tr apos(26,21)||copies(' ',37)
+sn apos(8,49)
+end
+call check_carrier
+gc
+temp=upper(result)
+select
+when temp='Q' then call quit_game
+when temp='M' then;do
+invoer='M'
+cont=0
+end
+when temp='R'&cont=1 then invoer='R'
+when temp='C' then;do
+call change_level
+cont=0
+end
+otherwise cont=0
+end
+end
+end
+end
+invoer=0
+return
+read_hiscore:
+if ~open('HiScore',path||'BrainE!_'||arg(1)||'.data','R') then;do
+if ~open('HiScore',path||'BrainE!_'||arg(1)||'.data','W') then;do
+call clr(1)
+tr '\c7Error: Could not create new highscore file for level '||arg(1)||'!'
+tr '       Please notify the sysop.\w5'
+call quit_game
+end
+do i=1 for 10
+alias.i=sysop
+writeln('HiScore',alias.i)
+score.i=989+i
+writeln('HiScore',score.i)
+end
+close('HiScore')
+end
+else;do
+do i=1 for 10
+alias.i=readln('HiScore')
+score.i=readln('HiScore')
+end
+close('HiScore')
+end
+return
+write_hiscore:
+i=1
+do while i<=10
+if score<score.i then;do
+j=10
+do while j>i
+k=j-1
+score.j=score.k
+alias.j=alias.k
+j=j-1
+end
+score.i=score
+getuser 1
+alias.i=result
+player=i
+i=10
+end
+i=i+1
+end
+if ~open('HiScore',path||'BrainE!_'||level||'.data','W') then;do
+call clr(1)
+tr '\c7Error: Could not write to highscore file of level '||level||'!'
+tr '       Please notify the sysop.\w5'
+call quit_game
+end
+do i=1 for 10
+writeln('HiScore',alias.i)
+writeln('HiScore',score.i)
+end
+close('HiScore')
+return
+show_veld:
+call clr(9)
+y=11
+x=45
+nr=1
+select
+when level=1 then;do
+tr '[10;1H'||cp15||' \c2ÉÍÍÍËÍÍÍËÍÍÍËÍÍÍ»          \c4ÉÍÍÍËÍÍÍËÍÍÍËÍÍÍ»'
+tr cp15||' \c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º          \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp15||' \c2º\c7³'||col(veld.1)||'³\c2º\c7³'||col(veld.2)||'³\c2º\c7³'||col(veld.3)||'³\c2º\c7³'||col(veld.4)||'³\c2º          \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp15||' \c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º          \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp15||' \c2ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹          \c4ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹'
+tr cp15||' \c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º          \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp15||' \c2º\c7³'||col(veld.5)||'³\c2º\c7³'||col(veld.6)||'³\c2º\c7³'||col(veld.7)||'³\c2º\c7³'||col(veld.8)||'³\c2º          \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp15||' \c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º          \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp15||' \c2ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹          \c4ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹'
+tr cp15||' \c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º          \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp15||' \c2º\c7³'||col(veld.9)||'³\c2º\c7³'||col(veld.10)||'³\c2º\c7³'||col(veld.11)||'³\c2º\c7³'||col(veld.12)||'³\c2º          \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp15||' \c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º          \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp15||' \c2ÈÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍ¼          \c4ÈÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍ¼'
+end
+when level=2 then;do
+tr '[10;1H'||cp12||'\c2ÉÍÍÍËÍÍÍËÍÍÍËÍÍÍËÍÍÍ»          \c4ÉÍÍÍËÍÍÍËÍÍÍËÍÍÍËÍÍÍ»'
+tr cp12||'\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º          \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp12||'\c2º\c7³'||col(veld.1)||'³\c2º\c7³'||col(veld.2)||'³\c2º\c7³'||col(veld.3)||'³\c2º\c7³'||col(veld.4)||'³\c2º\c7³'||col(veld.5)||'³\c2º          \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp12||'\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º          \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp12||'\c2ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹          \c4ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹'
+tr cp12||'\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º          \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp12||'\c2º\c7³'||col(veld.6)||'³\c2º\c7³'||col(veld.7)||'³\c2º\c7³'||col(veld.8)||'³\c2º\c7³'||col(veld.9)||'³\c2º\c7³'||col(veld.10)||'³\c2º          \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp12||'\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º          \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp12||'\c2ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹          \c4ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹'
+tr cp12||'\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º          \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp12||'\c2º\c7³'||col(veld.11)||'³\c2º\c7³'||col(veld.12)||'³\c2º\c7³'||col(veld.13)||'³\c2º\c7³'||col(veld.14)||'³\c2º\c7³'||col(veld.15)||'³\c2º          \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp12||'\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º          \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp12||'\c2ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹          \c4ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹'
+tr cp12||'\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º          \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp12||'\c2º\c7³'||col(veld.16)||'³\c2º\c7³'||col(veld.17)||'³\c2º\c7³'||col(veld.18)||'³\c2º\c7³'||col(veld.19)||'³\c2º\c7³'||col(veld.20)||'³\c2º          \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp12||'\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º          \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp12||'\c2ÈÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍ¼          \c4ÈÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍ¼'
+end
+when level=3 then;do
+tr '[10;1H'||cp5||'\c2ÉÍÍÍËÍÍÍËÍÍÍËÍÍÍËÍÍÍËÍÍÍËÍÍÍ»         \c4ÉÍÍÍËÍÍÍËÍÍÍËÍÍÍËÍÍÍËÍÍÍËÍÍÍ»'
+tr cp5||'\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º         \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp5||'\c2º\c7³'||col(veld.1)||'³\c2º\c7³'||col(veld.2)||'³\c2º\c7³'||col(veld.3)||'³\c2º\c7³'||col(veld.4)||'³\c2º\c7³'||col(veld.5)||'³\c2º\c7³'||col(veld.6)||'³\c2º\c7³'||col(veld.7)||'³\c2º         \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp5||'\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º         \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp5||'\c2ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹         \c4ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹'
+tr cp5||'\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º         \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp5||'\c2º\c7³'||col(veld.8)||'³\c2º\c7³'||col(veld.9)||'³\c2º\c7³'||col(veld.10)||'³\c2º\c7³'||col(veld.11)||'³\c2º\c7³'||col(veld.12)||'³\c2º\c7³'||col(veld.13)||'³\c2º\c7³'||col(veld.14)||'³\c2º         \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp5||'\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º         \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp5||'\c2ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹         \c4ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹'
+tr cp5||'\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º         \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp5||'\c2º\c7³'||col(veld.15)||'³\c2º\c7³'||col(veld.16)||'³\c2º\c7³'||col(veld.17)||'³\c2º\c7³'||col(veld.18)||'³\c2º\c7³'||col(veld.19)||'³\c2º\c7³'||col(veld.20)||'³\c2º\c7³'||col(veld.21)||'³\c2º         \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp5||'\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º         \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp5||'\c2ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹         \c4ÌÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍÎÍÍÍ¹'
+tr cp5||'\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º\c7ÚÄ¿\c2º         \c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º\c7ÚÄ¿\c4º'
+tr cp5||'\c2º\c7³'||col(veld.22)||'³\c2º\c7³'||col(veld.23)||'³\c2º\c7³'||col(veld.24)||'³\c2º\c7³'||col(veld.25)||'³\c2º\c7³'||col(veld.26)||'³\c2º\c7³'||col(veld.27)||'³\c2º\c7³'||col(veld.28)||'³\c2º         \c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º\c7³ ³\c4º'
+tr cp5||'\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º\c7ÀÄÙ\c2º         \c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º\c7ÀÄÙ\c4º'
+tr cp5||'\c2ÈÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍ¼         \c4ÈÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍÊÍÍÍ¼'
+end
+end
+tr '\n1        \c3R\c2=\c3Retry    N\c2=\c3New    C\c2=\c3Change Level    M\c2=\c3Main Menu    Q\c2=\c3Quit'
+sn '\n1          Use Cursorkeys To Move Cursor   Press \c2<\c3Enter\c2> \c3To Select'
+sn cursor(y,x,3)||apos(8,49)
+return
+col:
+select
+when arg(1)=1 then temp=1
+when arg(1)=2 then temp=3
+when arg(1)=3 then temp=5
+when arg(1)=4 then temp=6
+otherwise temp=7
+end
+return '\c'||temp||arg(1)||'\c7'
+show_instr:
+call clr(9)
+tr '\c3\n2   BrainE! is based on the Logo-clone Brain (written by Andre Wichmann).\n1'
+tr '   The purpose of the game is  to reproduce a randomly  generated pattern'
+tr '   by selecting the right squares in the right order.  When you select an'
+tr '   empty square all non-empty neighbours will be incremented by one.  The'
+tr '   numbers in the squares range from one to four.  When a square with the'
+tr '   number  four  is  incremented  it will become a square with the number'
+tr '   one.\n1'
+tr '   Take a look at the following example which shows what happens when you'
+tr '   select the square  B2  :\n2'
+sn cp25||'Press \c2<\c3Enter\c2> \c3to continue! '
+call check_carrier
+gc
+call clr(9)
+tr '\n2\c7                       A B C D                   A B C D'
+tr '                      \c4ÚÄÂÄÂÄÂÄ¿                 ÚÄÂÄÂÄÂÄ¿'
+tr '                    \c71 \c4³\c11\c4³\c53\c4³\c11\c4³ ³               \c71 \c4³\c11\c4³\c64\c4³\c11\c4³ ³'
+tr '                      \c4ÃÄÅÄÅÄÅÄ´     \c3 B2         \c4ÃÄÅÄÅÄÅÄ´'
+tr '                    \c72 \c4³\c32\c4³ ³\c64\c4³\c11\c4³     \c7ÍÍÍÍ>     2 \c4³\c53\c4³\c11\c4³\c11\c4³\c11\c4³'
+tr '                      \c4ÃÄÅÄÅÄÅÄ´                 ÃÄÅÄÅÄÅÄ´'
+tr '                    \c73 \c4³\c32\c4³ ³\c11\c4³ ³               \c73 \c4³\c32\c4³ ³\c11\c4³ ³'
+tr '                      \c4ÀÄÁÄÁÄÁÄÙ                 ÀÄÁÄÁÄÁÄÙ\n1'
+tr '\c3   As you can  see only  three of its four direct neighbours  change when'
+tr '   you  select   B2 .   The squares that are diagonally next to  B2  (A1,'
+tr '   C1, A3, C3) are not considered as neighbours of  B2  and are therefore'
+tr '   not  incremented.   The  neighbour   B3  is empty so that square isn t'
+tr '   incremented either!\n2'
+sn cp25||'Press \c2<\c3Enter\c2> \c3to continue! '
+call check_carrier
+gc
+call clr(9)
+tr '\n2   When you have correctly reproduced the randomly generated pattern, the'
+tr '   time needed  to solve  the puzzle will  be showed.  Your  name will be'
+tr '   added to the highscore-list when you have a top ten score!\n1'
+tr '   The game is  actually quite simple. Just play a few games and you will'
+tr '   see this for yourself.\n1'
+tr '   You  can  select  three  different  levels  of  difficulty.   The only'
+tr '   difference  between  these three levels is the size of the grid.  Each'
+tr '   level has its own highscore-list.\n1'
+tr '                               Enjoy the game!\n2'
+sn cp25||'Press \c2<\c3Enter\c2> \c3to continue! '
+call check_carrier
+gc
+return
+show_hiscore:
+call clr(9)
+tr '\n1'||cp15||'\c3    \z2ÖÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ·\z0'
+tr cp15||'    \z2º \z0                                  \z2 º\z0'
+tr cp15||'    \z2º \z0        H I G H S C O R E S       \z2 º\z0'
+tr cp15||'    \z2º \z0                                  \z2 º\z0'
+tr cp15||'    \z2º \z0            L E V E L  '||level||'          \z2 º\z0'
+tr cp15||'    \z2º \z0                                  \z2 º\z0'
+tr cp15||'    \z2ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶\z0'
+tr cp15||'    \z2º \z0                                  \z2 º\z0'
+do i=1 for 10
+if new_hiscore=1&i=player then kleur='\c7'
+else kleur='\c3'
+tr cp15||'    \z2º \z0'||kleur||right(i,3)||'. '||left(alias.i,25,'.')||right(score.i,3)||' \z2\c3 º\z0'
+end
+tr cp15||'    \z2º \z0                                  \z2 º\z0'
+tr cp15||'    \z2ÓÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ½\z0\n1'
+return
+show_main:
+call clr(9)
+tr '[10;1H'||cp25||'\c2ÖÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ·'
+tr cp25||'º    M A I N   M E N U    º'
+tr cp25||'ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶'
+tr cp25||'º 0. \c3Start Game \c2(level '||level||') \c2º'
+tr cp25||'º 1. \c3Show Instructions    \c2º'
+tr cp25||'º 2. \c3Show Highscores      \c2º'
+tr cp25||'º 3. \c3Change Level         \c2º'
+tr cp25||'º 4. \c3Quit Game            \c2º'
+tr cp25||'ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶'
+tr cp25||'º     Make a choice:      º'
+tr cp25||'ÓÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ½\c3'
+sn '[19;47H'
+return
+show_header:
+tr '\f1\@6'
+tr cp15||'\c3ÛÛÛÛÛÛ\c7¿ \c3ÛÛÛÛÛÛ\c7¿  \c3ÛÛÛÛÛ\c7¿ \c3ÛÛ\c7¿\c3ÛÛÛ\c7¿ \c3ÛÛ\c7¿\c3ÛÛÛÛÛÛÛ\c7¿\c3ÛÛ\c7¿'
+tr cp15||'\c3\z2²²\c7\z0ÚÄÄ\c3\z2²²\c7\z0¿\c3\z2²²\c7\z0ÚÄÄ\c3\z2²²\c7\z0¿\c3\z2²²\c7\z0ÚÄÄ\c3\z2²²\c7\z0¿\c3\z2²²\c7\z0³\c3\z2²²²²\c7\z0¿\c3\z2²²\c7\z0³\c3\z2²²\c7\z0ÚÄÄÄÄÙ\c3\z2²²\c7\z0³'
+tr cp15||'\c3\z2±±±±±±\c7\z0ÚÙ\c3\z2±±±±±±\c7\z0ÚÙ\c3\z2±±±±±±±\c7\z0³\c3\z2±±\c7\z0³\c3\z2±±\c7\z0Ú\c3\z2±±±±\c7\z0³\c3\z2±±±±±\c7\z0¿  \c3\z2±±\c7\z0³'
+tr cp15||'\c3\z2°°\c7\z0ÚÄÄ\c3\z2°°\c7\z0¿\c3\z2°°\c7\z0Ú\c3\z2°°\c7\z0ÚÙ \c3\z2°°\c7\z0ÚÄÄ\c3\z2°°\c7\z0³\c3\z2°°\c7\z0³\c3\z2°°\c7\z0³À\c3\z2°°°\c7\z0³\c3\z2°°\c7\z0ÚÄÄÙ  ÀÄÙ'
+tr cp15||'\z2      \z0ÚÙ\z2  \z0³À\z2  \z0¿ \z2  \z0³  \z2  \z0³\z2  \z0³\z2  \z0³ À\z2  \z0³\z2       \z0¿\z2  \z0¿'
+tr cp15||'ÀÄÄÄÄÄÙ ÀÄÙ ÀÄÙ ÀÄÙ  ÀÄÙÀÄÙÀÄÙ  ÀÄÙÀÄÄÄÄÄÄÙÀÄÙ'
+tr cp5||cp25||'\c3v1.0  by Morpheus'
+return
+change_level:
+call clr(9)
+tr '[10;1H'||cp25||'  \c2ÖÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ·'
+tr cp25||'  º    Change Level    º'
+tr cp25||'  ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶'
+tr cp25||'  º 1. \c3Level 1 (4 x 3) \c2º'
+tr cp25||'  º 2. \c3Level 2 (5 x 4) \c2º'
+tr cp25||'  º 3. \c3Level 3 (7 x 4) \c2º'
+tr cp25||'  ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶'
+tr cp25||'  º  Make a choice:    º'
+tr cp25||'  ÓÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ½\c3'
+sn '[17;46H'
+call check_carrier
+gc
+temp=result
+sn temp
+select
+when temp=1 then;do
+level=1
+x_tot=4
+y_tot=3
+totaal=12
+end
+when temp=2 then;do
+level=2
+x_tot=5
+y_tot=4
+totaal=20
+end
+when temp=3 then;do
+level=3
+x_tot=7
+y_tot=4
+totaal=28
+end
+otherwise nop
+end
+call read_hiscore(level)
+return
+gen_veld:
+do i=1 for totaal
+veld.i=0
+end
+i=1
+do while i<=totaal
+nr=1+rnd(totaal)
+if veld.nr=0 then;do
+j=i//4
+select
+when j=0 then sn '|\<1'
+when j=1 then sn '/\<1'
+when j=2 then sn '-\<1'
+when j=3 then sn '\\\<1'
+end
+veld.nr=1
+i=i+1
+if nr>x_tot then;do
+temp=nr-x_tot
+if veld.temp>0 then veld.temp=1+(veld.temp//4)
+end
+if nr<=(totaal-x_tot) then;do
+temp=nr+x_tot
+if veld.temp>0 then veld.temp=1+(veld.temp//4)
+end
+if (nr//x_tot)~=1 then;do
+temp=nr-1
+if veld.temp>0 then veld.temp=1+(veld.temp//4)
+end
+if (nr//x_tot)~=0 then;do
+temp=nr+1
+if veld.temp>0 then veld.temp=1+(veld.temp//4)
+end
+end
+end
+return
+rnd:
+return (random(1,100,time(s))+random(1,100,time(s))+random(1,100,time(s)))//arg(1)
+check_carrier:
+getcarrier
+if result='FALSE' then exit
+return
+quit_game:
+bbsidentify name
+bbsname=result
+sn '\f1\n3\c2'center('Returning to '||bbsname||'...',78)||'\n1\w1\q1'
+setlength maxlines
+exit
+clr:
+sn '['arg(1)'H[J'
+return
+apos:
+return '['arg(1)';'arg(2)'H'
+cursor:
+return '['arg(1)';'arg(2)'H\c'arg(3)'ÚÄ¿\!1\<3³\>1³\!1\<3ÀÄÙ'

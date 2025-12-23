@@ -1,0 +1,252 @@
+IF FRE(0)<25000 THEN CLEAR,100000&
+ON ERROR GOTO Errors
+RANDOMIZE TIMER
+OPTION BASE 1
+DIM wh$(1),pl$(1000,2),pl(1000,3), obj$(3000)
+
+REM  pl$(x,1)=name     pl$(x,2)=key
+REM  pl(x,1)=columns   pl(x,2)=rows   pl(x,3)=level
+
+Title:
+  CLS
+  LOCATE 5,1 
+  PRINT TAB(29);"OUTER LIMITS:  THE GAME"
+  PRINT 
+  PRINT TAB(32);"Setup Program V1.2"
+  PRINT TAB(40);"by"
+  PRINT TAB(34);"Mark D. Turner"
+  LOCATE 15,27:PRINT "Press <ENTER> to continue";
+  INPUT ch$
+
+TheMenu:
+  CLS
+  LOCATE 5,29:PRINT "OUTER LIMITS:  THE GAME"
+  LOCATE 7,30:PRINT "<S>etup game"
+  LOCATE 8,30:PRINT "<D>istribute objects"
+  LOCATE 9,30:PRINT "<Q>uit"
+  LOCATE 11,30:INPUT "Your choice: ";ch$
+  ch$=UCASE$(ch$)
+  IF ch$<>"D" AND ch$<>"S" AND ch$<>"Q" THEN TheMenu
+  IF ch$="D" THEN GOSUB Distribute
+  IF ch$="S" THEN GOSUB SetUp
+  IF ch$="Q" THEN PRINT:PRINT:PRINT "Type SYSTEM to return to the CLI":PRINT:END
+  GOTO TheMenu
+
+Distribute:
+level=1
+plct=1:mainct=1:totalrooms=0
+pl$(1,1)="Main":pl$(1,2)="":pl(1,3)=1
+place$=pl$(mainct,1)
+
+Main:
+  ' first load all areas into arrays
+  PRINT:PRINT "LOADING:"
+  WHILE mainct<=plct
+    place$=pl$(mainct,1)
+    GOSUB LoadArea
+    pl(mainct,1)=col:pl(mainct,2)=row
+    totalrooms=totalrooms+(row*col)
+    GOSUB LookUp
+    mainct=mainct+1
+  WEND
+  mainct=mainct-1
+  plct=plct-1
+  PRINT:PRINT "Total Rooms: ";totalrooms  
+  GOSUB LoadObjects
+  PRINT "Total Objects: ";objct
+  PRINT:PRINT "DISTRIBUTING OBJECTS:"
+  GOSUB DistObjects
+  PRINT:PRINT "KEYS:"
+  GOSUB DistKeys  
+  GOSUB BigPrizes
+RETURN
+
+LookUp:
+  level=pl(mainct,3)+1
+  FOR ct=1 TO col
+    FOR ct2=1 TO row
+      dir$=wh$(ct,ct2,2)
+      bslsh=INSTR(dir$,"\")
+      IF bslsh=0 THEN LookUp2
+      bslsh2=INSTR((bslsh +1),dir$,"\")
+      bslsh3=INSTR((bslsh2+1),dir$,"\")
+      bslsh4=INSTR((bslsh3+1),dir$,"\")
+      temp$=MID$(dir$,(bslsh3+1),(bslsh4-bslsh3-1))
+      IF temp$="" THEN LookUp2
+      GOSUB CheckIt
+      IF gotit$="NO" THEN
+        plct=plct+1
+        pl$(plct,1)=temp$
+        pl$(plct,2)=MID$(dir$,(bslsh2+1),(bslsh3-bslsh2-1))
+        pl(plct,3)=level
+      END IF
+LookUp2:
+    NEXT ct2
+  NEXT ct
+RETURN
+
+CheckIt:
+  FOR chk=1 TO plct
+    IF UCASE$(temp$)=UCASE$(pl$(chk,1)) THEN gotit$="YES":RETURN ELSE gotit$="NO"
+  NEXT chk
+RETURN
+
+LoadObjects:
+  OPEN "I", #1, "Objects"
+  objct=0
+  WHILE EOF(1)<>-1
+    objct=objct+1
+    INPUT #1, obj$(objct)
+  WEND
+  CLOSE #1
+RETURN
+  
+DistObjects:
+  givenout=0
+  FOR ct=1 TO mainct
+    PRINT "Putting objects in: ";pl$(ct,1)
+    rooms=pl(ct,1)*pl(ct,2)
+    areaobj=objct*rooms/totalrooms
+    flnm$=pl$(ct,1)+".Obj"
+    OPEN "O", #1, flnm$
+    FOR ct2=1 TO areaobj
+      which=INT(RND*objct)
+      IF which<1 THEN which=1
+      IF which>objct THEN which=objct
+      WHILE obj$(which)=""
+        IF which<1 THEN which=1
+        IF which>objct THEN which=objct
+        IF obj$(which)="" THEN which=which+1
+        IF obj$(which)="" AND which=objct THEN which=1
+      WEND    
+      x=CINT(RND*pl(ct,1))
+      y=CINT(RND*pl(ct,2))
+      IF x<1 THEN x=1
+      IF x>pl(ct,1) THEN x=pl(ct,1)
+      IF y<1 THEN y=1
+      IF y>pl(ct,2) THEN y=pl(ct,2)
+      temp$=STR$(x)+","+STR$(y)+"\"+obj$(which)
+      PRINT #1, temp$
+      obj$(which)=""
+      givenout=givenout+1
+      IF givenout=objct THEN CLOSE #1:RETURN
+    NEXT ct2    
+    CLOSE #1
+  NEXT ct    
+RETURN
+
+DistKeys:
+  FOR ct=1 TO mainct
+    IF pl$(ct,2)<>"" THEN GOSUB PutKey
+  NEXT ct
+RETURN
+
+PutKey:
+  temp=CINT(RND*mainct)
+  IF temp<1 THEN temp=1
+  IF temp>mainct THEN temp=mainct
+  IF pl(temp,3) > pl(ct,3) THEN PutKey
+  IF pl(temp,3) = pl(ct,3) AND pl$(temp,2) <> "" THEN PutKey
+  x=CINT(RND*pl(temp,1))
+  y=CINT(RND*pl(temp,2))
+  IF x<1 THEN x=1
+  IF x>pl(temp,1) THEN x=pl(temp,1)
+  IF y<1 THEN y=1
+  IF y>pl(temp,2) THEN y=pl(temp,2)  
+  flnm$=pl$(temp,1)+".Obj"
+  OPEN "A",#1,flnm$
+  temp$=STR$(x)+","+STR$(y)+"\"+pl$(ct,2)+"\0"
+  PRINT #1, temp$
+  CLOSE #1
+  PRINT pl$(ct,2);TAB(30);pl$(temp,1)
+RETURN
+
+BigPrizes:
+  PRINT 
+  PRINT "DISTRIBUTING BIG PRIZES:"
+  flnm$="Big-Prizes"
+  OPEN "i",#1,flnm$
+  FOR ct=1 TO mainct
+    IF pl$(ct,2)<>"" THEN
+      LINE INPUT #1,temp$
+      x=CINT(RND*pl(ct,1))
+      y=CINT(RND*pl(ct,2))
+      IF x<1 THEN x=1
+      IF x>pl(ct,1) THEN x=pl(ct,1)
+      IF y<1 THEN y=1
+      IF y>pl(ct,2) THEN y=pl(ct,2)  
+      flnm$=pl$(ct,1)+".Obj"
+      OPEN "A",#2,flnm$
+      PRINT #2,x;",";y;"\";temp$
+      pos1=INSTR(temp$,"\")
+      PRINT LEFT$(temp$,pos1-1);": ";pl$(ct,1);", ";x;", ";y
+      CLOSE #2
+    END IF
+  NEXT ct
+  CLOSE #1
+RETURN  
+
+LoadArea:
+  flnm$=place$+".Dat"
+  OPEN "I",#1,flnm$
+  LINE INPUT #1, areaname$
+  INPUT #1, col
+  INPUT #1, row
+  PRINT areaname$;":";TAB(40);"Width=";col;TAB(60);"   Height=";row
+  ERASE wh$
+  DIM wh$(col,row,2)
+  FOR ct1=1 TO col
+    FOR ct2=1 TO row
+      FOR ct3=1 TO 2
+LoadArea2:
+        LINE INPUT #1, temp$:'  room name, exits
+        IF LEFT$(temp$,1)<>"\" THEN wh$(ct1,ct2,ct3)=temp$ ELSE LoadArea2
+      NEXT ct3
+    NEXT ct2
+  NEXT ct1
+  CLOSE #1
+RETURN
+
+SetUp:
+  flnm$="Game.Stuff"
+100 OPEN "I",#1,flnm$
+  INPUT #1,startdate$
+  INPUT #1,enddate$
+  INPUT #1,movesperday
+  CLOSE #1
+199 'return to here if no file
+SetUp2:
+  PRINT 
+  PRINT "Old Start date   : ";startdate$
+  PRINT "Old End date     : ";enddate$
+  PRINT "Old Moves per day:";movesperday
+  PRINT 
+  INPUT "Start date   : ";startdate2$
+  IF LEN(startdate2$)<>10 THEN PRINT "MM-DD-YYYY":GOTO SetUp2
+  month=VAL(LEFT$(startdate2$,2))
+  day=VAL(MID$(startdate2$,4,2))
+  year=VAL(RIGHT$(startdate2$,4))
+  IF month>12 OR month<1 THEN PRINT "Quit pulling my leg!":GOTO SetUp2
+  IF day>31 OR day<1 THEN PRINT "No way!":GOTO SetUp2
+  IF year<1000 OR year>3000 THEN PRINT "Don't play with my mind!":GOTO SetUp2
+  INPUT "End date     : ";enddate2$
+  IF LEN(enddate2$)<>10 THEN PRINT "MM-DD-YYYY":GOTO SetUp2
+  emonth=VAL(LEFT$(enddate2$,2))
+  eday=VAL(MID$(enddate2$,4,2))
+  eyear=VAL(RIGHT$(enddate2$,4))
+  IF emonth>12 OR emonth<1 THEN SetUp2
+  IF eday>31 OR eday<1 THEN SetUp2
+  IF eyear<1990 OR eyear>2100 THEN PRINT "Don't play with my mind!":GOTO SetUp2
+  INPUT "Moves per day: ";movesperday2
+  OPEN "o",#1,flnm$
+  PRINT #1,startdate2$
+  PRINT #1,enddate2$
+  PRINT #1,movesperday2
+  CLOSE #1
+RETURN
+
+Errors:
+  IF ERL=100 AND ERR=53 THEN RESUME 199
+  PRINT "Error";ERR;"on line";ERL
+  STOP
+  

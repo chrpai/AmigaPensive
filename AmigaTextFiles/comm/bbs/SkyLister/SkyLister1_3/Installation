@@ -1,0 +1,85 @@
+;SkyLister 1.3
+;Copyright © 10/1996 Matthias Kaulartz
+;Installationsscript für Commodore Installer
+
+(set @default-dest "Prometheus:SkyTools")
+(transcript "Installation von SkyLister V1.3")
+
+(set sourc "install/")
+(set desti (tackon @default-dest "SkyLister"))
+(set destkonf (tackon desti "BeispielKonfig"))
+
+(message
+  "\n\n\n\nWillkommen bei der SkyLister V1.3 Installation.\n\n"
+  "Die Installation wird automatisch ausgeführt.\n"
+)
+
+(working)
+
+(if (= (exists @default-dest) 0 (makedir @default-dest (infos) )))
+(if (= (exists (tackon @default-dest "SkyLister")) 0 (makedir (tackon @default-dest "SkyLister") (infos) )))
+
+(complete 20)
+
+(copyfiles
+  (prompt "Kopiere Files...\nDer Pfadname muß beibehalten werden!")
+  (choices "SkyLister" "SkyListerHTML" "SkyLister.guide" "NetzAntrag.txt")
+  (source sourc)
+  (dest desti)
+  (help @copyfiles-help)
+  (infos)
+  (confirm)
+)
+
+(complete 40)
+
+(copyfiles
+  (prompt "Kopiere Files...\nDer Pfadname kann geändert werden (z.B. SYS:Prefs)")
+  (choices "SkyLister-Prefs")
+  (source sourc)
+  (dest desti)
+  (help @copyfiles-help)
+  (infos)
+  (confirm)
+)
+
+(complete 50)
+
+(if
+  (askbool
+    (prompt "\n\n\nEs werden nun Beispielskonfigurationen in ein seperates Verzeichnis kopiert. Ihre bisherigen Einstellungen bleiben erhalten.")
+    (choices "Ja" "Nein")
+    (default 1)
+    (help "Sie sollten die Beispiel-Dateien installieren, um ihre Funktionen nachvollziehen zu können.")
+  )
+  (
+    (if (= (exists destkonf) 0 (makedir destkonf)))
+    (copyfiles
+      (prompt "Kopiere Files...")
+      (pattern "#?")
+      (source (tackon sourc "BeispielKonfig"))
+      (dest destkonf)
+      (help @copyfiles-help)
+    )
+  )
+)
+
+(complete 80)
+
+(makeassign "SkyTools" "Prometheus:SkyTools")
+
+(startup "SkyTools"
+  (prompt "\n\n\n\nDas SkyTools-Assign wird nun Ihrer User-Startup zugefügt.\n\n")
+  (help @startup-help)
+  (command "Assign SkyTools: \"" @default-dest "\"\n")
+)
+
+(complete 100)
+
+(message
+  "\n\n\nZur weiteren Installation und Konfiguration von SkyLister schauen Sie bitte in die Anleitung."
+)
+
+(Message
+  "\n\n\nFür alle SkyTools existiert ein eigenes Support-Netz, das SkyNetz, in dem Sie Informationen, Hilfestellung, Diskussionen und natürlich die neusten Versionen der Programme erhalten."
+)

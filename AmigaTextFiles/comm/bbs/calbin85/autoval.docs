@@ -1,0 +1,577 @@
+ ************************************************************************
+*                                                                        *
+*  AUTO Validation CallBack Door - for StarNet Bulletin Board Software   *
+*                                                                        *
+ ************************************************************************
+*                                                                        *
+*  Requires Bill Bowling's StarDoor.library v1.969 or higher (included)  *
+*                                                                        *
+ ************************************************************************
+*                                                                        *
+* written by Al Saveriano - Fido 1:2606/205 Alche-miga BBS 201-398-6360  *
+*                                                                        *
+* based on the original code by Bill Bowling  - MEBBS Software           *
+*                                                                        *
+ ************************************************************************
+
+ VERSION: 1.85    EuroAussieAmerican AutoValidator     March 7, 1993
+
+ - 1 - WHAT THIS DOOR IS ALL AOUT
+
+    If you have never used a CallBack feature on a bulletin board system
+    you probably don't know what this thing is designed to do.
+    Basically, it check to see if a new user is actually located at the
+    phone number he says he is. If he is, you, the Sysop, have a definitive
+    method to trace a user back to a real location. As we all know, 
+    verification of a user is a difficult and time consuming operation.
+    Once the system verifies the new users phone number, it upgrades his
+    system acccess to that of a 'regular' user. The level of upgrade is
+    set by you. It also allows you to see if a user is attempting to open
+    up a multiple account on your system.
+    This, essentially, is the basic function of a CallBack door or utility.
+    IMPORTANT: Please note - if setting this door up for standard N.American
+    phone formats, it will NOT call long distance outside of the xxx-xxx-xxxx
+    telephone format. Therefore, it can not be used to validate European
+    callers when it is set up for N.American dialing. (This may come later
+    in its developement).
+    
+ - 2 - SETUP
+
+    This CallBack door has been designed to be configurably and to allow
+    you the ability to customize its appearance and operation.
+    Please follow all steps carefully. 
+    
+           :NOTE: Just a reminder...this door is for StarNet only.
+                  It will NOT run under any versions of Paragon.
+                  Also, I've tested this under the Amiga 2.04
+                  1.3 OS. It has run successfully under both systems. 
+
+    1) Make sure you have DOORS: assigned to where ever you have you
+       doors directory. (I have mine in StarNet:doors)
+    2) Create a directory in your assigned DOORS: directory
+       called, AutoValidate
+    3) Copy the following files into this newly created directory:
+           
+             a) AutoVal
+             b) AutoValidate.cfg
+             c) BadNumbers.txt
+             d) BadNumberUse.txt
+             e) BadNumberWarning.txt
+             f) CallBackMsg.HangUp
+           * g) CallBackMsg.StayOn
+             h) Continue
+             i) Duplicate
+             j) DupNums.txt
+             k) LocalAreaCode.txt
+           * l) LocalExc.txt
+             m) Manual
+             n) MessageBody
+             o) MessageBodyNoAttach
+             p) NoLDCall.txt
+             q) Notice
+             r) Notify
+             s) Start
+             t) Warning
+             u) AutoVal.docs
+             v) PhonesConv
+             w) SingleNameNotify.txt
+             x) SingleNameWarn.txt
+             y) Time.dat <----NEW as of v1.80
+
+    Copy the following file into your LIBS: directory:
+
+             z) StarDoor.library
+
+    * These files are NOT used if you are setting this door up to run
+      outside of North America.
+ 
+    All these files are included in the archive and you may use them as is.
+    They are also ALL just ascii files (execpt AutoVal and StarDoor.library)
+    and can be edited as you see fit.
+
+  ***********************************************************************
+  *                                                                     *
+  *   ATTENTION!!   ATTENTION!!  ATTENTION!!  ATTENTION!! ATTENTION!!   *
+  *                                                                     *
+  ***********************************************************************
+  AS YOU SET UP AND CREATE AND EDIT THE NEEDED FILES MAKE SURE THAT YOU
+
+                      -->     D O   N O T      <--
+
+  PUT ANY BLANK LINES AT THE END OF ANY OF THE FOLLOWING FILES:
+
+                       BadNumbers.txt
+                       LocalAreaCode.txt
+                       LocalExc.txt
+                       Time.dat
+                       
+
+    IN OTHER WORDS, JUST USE YOUR EDITOR TO CREATE THESE FILES, HIT RETURN
+    AFTER THE LAST TYPED LINE AND SAVE THE FILE. NO BLANKS LINES ARE TO BE
+    AT THE END OF THESE FILES OR THE CALLBACK SYSTEM WILL FAIL!!
+              
+
+    I'll explain what each file does later on in this document.
+    Once you have this new directory setup and the files copied into place,
+    just modify the menu that this door will appear on or your doors.dat
+    file if you intend to go that route. See the Paragon/StarNet documemtation
+    manual if you need general help setting up doors.
+    The main door executable file is, AutoVal.
+    No special stack requirement is needed but I'd recommend at least 10,000.
+
+ - 3 - WHAT THIS BABY CAN DO
+
+    Ok...you're all setup. This is what CallBack can do:
+
+      a) A user with an areacode different then (or the same as) 
+          yours calls in:
+          This door will either call him back or tell him that
+          you are not taking LD calls, record his phone number
+          and leave you a message reminding you that this user
+          needs to be manually verified. If it is set to call
+          him back, it will allow him to upgrade access but will
+          then terminate the call. 
+
+    + b) A user with the same areacode as you but with a phone
+          exchange that is not a local call for you, calls in:
+          This door will either call him back or tell him that
+          you are not taking LD calls, record his phone number
+          and leave you a message reminding you that this user
+          needs to be manually verified. If it is set to call
+          him back, it will allow him to upgrade access but will
+          then terminate the call.
+
+    + c) A user with the same areacode as you and with an exchange
+          that is a local call to you, calls in:
+          This door will call him back, upgrade his access and allow
+          him to stay online for the rest of his time, since this is
+          a local (free) call for you. 
+
+    + Applicable only when door is set up for North American format.
+
+    Besides the return/no-return phone call options noted above, there
+    are several message notifications (for Sysop and user) and
+    configuration formats available. The next section will deal with
+    the configuration file.
+
+ - 4 - The AutoValidate.cfg File
+
+    The AutoValidate.cfg file presently consists of thirteen (13) line
+    options. Below is an example of the file I have set up.
+    NOTE: Nothing but numbers must be put on the first five lines!
+
+          AutoValidate.cfg file example: ATTENTION!! This has been
+                                         changed since version 1.71
+          0
+          1
+          1
+          4
+          35
+          files.txt
+          ram:
+          0
+          0
+          0
+          Al_Saveriano
+          0
+          0
+          ; 1 = yes/on 0 = no/off : applies to lines 1,2,8,9,10,12 & 13
+          ; line 1:  Check to see if it is a weekend and,if so,bypass time.dat
+          ; line 2:  File attached/not attached to message for user
+          ; line 3:  Message base number of private Email base
+          ; line 4:  Level to upgrade user
+          ; line 5:  Minutes added to user
+          ; line 6:  Name of file you intend to attach to the users welcome
+          ;          message. Put a name here regardless of whether you use
+          ;          or don't use this feature.
+          ; line 7:  Directory name where general AutoVal log will appear
+          ; line 8:  Set for EuroAussie with a 1 or set for N.America with a 0.
+          ; line 9:  0 = if line 10 is 1 or if you don't know what this is for! :)
+          ;          1 = dial 1-AC-Exc when local AC & LD exchange exist
+          ; line 10: 0 = normal LD/Local call format. 1 = dial 1-EXC when local AC & LD exc
+          ; line 11: The name of the person you want all AutoVal messages to come from.
+          ; line 12: Single named users allowed. 0=no don't allow them ; 1=yes allow them
+          ; line 13: BlanketLocal local phone exchange
+
+    Let's go through each line:
+    Line 1: Check to see if it is a weekend (e.g. Saturday or Sunday).
+            If it is, and this flag is set to 1,door will bypass the Time.Dat
+            file and call LD users at any hour on Saturday and Sunday. If
+            this flag is set to zero, the door will use the Time.Dat file
+            to determine if it should call a user back. This applies to
+            Saturdays and Sundays only! Monday thru Friday, this door will
+            always follow the Time.Dat file instructions regardless of how
+            this flag is set.
+            Long distance is defined as an area code that is different
+            from yours or an area code the same as yours BUT with an exchange
+            that is NOT local to you.
+    Line 2: Gives you the option of attaching a file to the welcome
+            message the new users receives after a successful callback.
+            More info on this later. Again, a 1 is YES and a zero is NO.
+            REMEMBER: The actual file MUST be in your private Email
+            message base number as noted in line 3.
+    Line 3: Put the Message Base number that corresponds to your private
+            Email message base. Mine is messsage base number one, so I
+            put a 1. If yours is different, put the correct number here.
+    Line 4: Put the level you wish to have your user raised to, once he/she
+            successfully uses the CallBack door. Any value from 1 to 31 will
+            work. Be careful if you put a 31 here, because you will be
+            giving him full Sysop power.
+    Line 5: Amount of time you wish to add to the user once his access
+            level is increased. He will get his regular access time for
+            his new level once the system is indexed. (e.g. re-boot, date
+            change, etc.).
+    Line 6: The name of the file that will be attached to the users Welcome
+            message after he successfully uses the CallBack door. Put a name
+            here whether you use this feature or not. REMEMBER: The actual
+            file MUST be in your private Email message base number as noted
+            in line 3.
+    Line 7: This the directory name where the general AutoVal log will
+            appear. It must either end with a colon :  or end with a
+            trailing slash /
+            Examples>   ram:  BBS:   dh0:bbs/  starnet:  starnet:logs/
+    Line 8: Placing a zero here will set the door up to run ONLY using the
+            North American xxx-xxx-xxxx phone format. Placing a 1 here sets
+            the door up for EuroAussie phone formats only.
+    Line 9: Place a ZERO here if line 10 is going to have a ONE or if you are
+            totally confused about this setting! :)
+            Place a ONE here if you want the door to dial the 1-AC-Exc-Num
+            format when the incoming call has the same Area Code as you
+            but a long distance exchange. (e.g. Washington state).
+    Line 10: Place a ZERO here if you want the door to dial the Exc-Num format
+             when the incoming call has the same Areacode as you and a long
+             distance exchange (e.g. New Jersey). Otherwise, place a ONE here
+             if you want to the door to dial the 1-Exc-Num format when the
+             incoming call has the same Areacode as you and a long distance
+             exchange (e.g. Delaware).
+    Line 11: Put the name of the person you want the AutoVal messages to
+             originate from. In most cases the name that goes here will
+             be the name of the Sysop, but the choice is yours. NOTE however,
+             that if the name has a space in it, you MUST put an underscore
+             where the space would have gone. (Example: Al Saveriano must be
+             listed as Al_Saveriano).
+    Line 12: Put a one here and all users will have to have 2 names seperated
+             by a space. (e.g. Al Saveriano is ok .. but CrackerMan isn't).
+             Put a zero here and any name format will be acceptable.
+    Line 13: I believe I added this for systems whos exchanges are ALWAYS
+             considered local, as long as the incoming caller has the same
+             area code as the bbs. So, it dials out as exc-number, and
+             never checks the LocalExc.txt file. This avoids the need to
+             enter a lot of local exchanges into this file. A 1 turns it on
+             and a 0 turns it off.
+             HOWEVER!!!! You must STILL must have a file called LocalExc.txt
+             in the directory even if it only has one bogus number in it!!
+             Note...who ever asked me to add this feature, will you please
+             give me a call and refresh my memory about it! - thanks).
+   
+
+    NOTE!! - Line 9 and line 10 can never BOTH have a ONE at the same time!
+
+ - 5 - The Time.dat File
+
+    The time.dat file is VERY important and must be set up correctly or you
+    will have this door calling long distance numbers when you don't want
+    it to.
+    This file is just a plain vanilla ASCII text file that contains 24 lines
+    of information. Each line must either contain the word YES or NO. Nothing,
+    repeat, NOTHING, else is allowed to be entered on each line. Just a YES or
+    a NO. 
+    Here is an example Time.dat file:
+
+YES
+YES
+YES
+YES
+YES
+YES
+YES
+NO
+NO
+NO
+NO
+NO
+NO
+NO
+NO
+YES
+YES
+YES
+NO
+NO
+NO
+NO
+YES
+YES
+
+There it is: nothing to it really. Ok..what does it mean? The first line is
+the starting time and it represents 1am to 2am. The second line represents
+2am to 3am. The third line, 3am to 4am. And so on and so on, etc.
+If, for example, you have the word NO on the fifth line, this would mean that
+the door will NOT call out to long distance users from 5am to 6am.
+If you had the word YES on the sixteenth line, that would mean that you
+DO want the door to call back long distance users from 4pm to 5pm.
+If you didn't want the door to call back any long distance callers at all,
+you would just put the word NO on all 24 lines. If you wanted the door to 
+always call back long distance callers, at all times, you'd just put the
+word YES on all 24 lines. REMEMBER!! The FIRST line represents 1am to 2am.
+
+
+ - 6 - FEATURES
+
+    From the Sysop's side:
+
+          a) If CallBack is successful the users name and data phone
+             number is logged into the Numbers.txt file.
+
+          b) If CallBack is successful a message addressed to the Sysop
+             is left noting the name of the user who has used the door.
+
+          c) If a long distance caller attempts to use the door and the
+             system is NOT setup for LD CallBack, the callers name and phone
+             number is logged into the Numbers.txt file with an added
+             notation that this user requires manual validation. The Sysop
+             is also left a message stating that this has occured.
+
+          d) If, upon CallBack, a user is unable to correctly enter his
+             password, his access is denied and a message is left to the
+             Sysop stating that the user was unable to correctly re-enter
+             his password. His phonenumber is NOT logged into the Numbers.txt
+             file.
+
+          e) If a user enters a phone number that already exists in the
+             Numbers.txt file, he is told that his number is a duplicate,
+             he is dumped back to the BBS and a message is left to the
+             Sysop noting the users name and the fact that he has attempted
+             to enter a duplicate number. His name and the phone number
+             he tried to enter is logged into the DupNums.txt file for your
+             inspection.
+         
+          f) A file called BadNumbers.txt, created by you, contains any
+             complete phone number (e.g. areacode-exchange-number) or any
+             partial phone number (e.g. areacode-exchange) that you wish
+             it to contain. This is a very powerful feature since it will
+             stop childish users who like to enter phone numbers like 911
+             or one of those $10-a-minute 900 numbers. See included
+             examples for ideas.
+
+          g) If a user attempts to enter a number that is contained in
+             your BadNumbers.txt file, he is told that the number he
+             has entered is deemed 'bad', and a message addressed to the
+             Sysop is left showing the name of the user who made the
+             bogus number entry.
+ 
+          h) Most of the info noted above will be summarized in a log that
+             is created by the door. This log, called, AutoValGeneral.LOG,
+             will appear in whatever directory you have choosen as defined
+             by line 7 of the .cfg file.
+
+          i) If you have NoSingleNamedUsers turned on and a guy tries to
+             use a name like Mike or CrackerHead, he will be denied access
+             to AutoValidation and you will be left a private message denoting
+             this situation.
+
+    From the users side:
+      
+          a) If the CallBack is successful, his access is raised.
+
+          b) He receives a welcome message which may contain an attached file.
+             I attach my FILES.TXT file to this welcome message so that the
+             new user has a complete summary of all the files available on
+             my system.
+             The Sysop can attach any file he sees fit. He may also turn
+             this file-attach feature off and just leave the message.
+
+          c) See Sysop items above for things that occur if the user
+             'screws' up. :)
+             
+ - 7 -  WHAT ALL THE FILES ARE FOR
+
+    The following is a listing of the files and their function:
+
+  a) AutoVal              - The actual executable door program
+  b) AutoValidate.cfg     - The .cfg file as defined earlier
+  c) BadNumbers.txt       - Place you list of numbers you don't want callled
+  d) BadNumberUse.txt     - Message Sysop receives if user tries a bad number
+  e) BadNumberWarning.txt - Notice user gets for trying a 'bad' number
+  f) CallBackMsg.HangUp   - User message after a successful LD CallBack
++ g) CallBackMsg.StayOn   - User message after a successful local CallBack
+  h) Continue             - User instruction message after entering number
+  i) Duplicate            - Message Sysop receives if user enters duplicate #
+  j) DupNums.txt          - Log of user names/numbers of duplicate # attempts
+  k) LocalAreaCode.txt    - Contains YOUR area code and any other local ACs
++ l) LocalExc.txt         - Listing of ALL local phone exchanges in your area.
+  m) Manual               - Message Sysop receives noting a manual validation
+  n) MessageBody          - Welcome message for user when fileattach is set
+  o) MessageBodyNoAttach  - Welcome message for user when fileattach isn't set
+  p) NoLDCall.txt         - User notice when he's LD and system not set for LD
+  q) Notice               - Message Sysop gets if user can't re-enter password
+  r) Notify               - Message Sysop receives upon successful Callback
+* s) Numbers.txt          - Log of names/numbers of successful CallBack users
+  t) Start                - Opening user instructions for use of CallBack
+  u) Warning              - User notice when he attempts to enter duplicate #
+  v) AutoVal.docs         - This documentation file
+* w) PhonesConv           - Generates a complete Numbers.txt file
+  x) SingleNameNotify.txt - Message Sysops gets if single named users calls
+  y) SingleUserWarn.txt   - User notice when he uses a single name/handle
+  z) Time.dat             - Yes/No time dat file for CallLongDistance or Don't
+  z1) StarDoor.library    - Bill Bowling's library needed to tie-in StarNet
+
+
+ + Not used when set up in EuroAussie format.
+ * TO USE PhonesConv: Simple type this from the CLI -
+
+        PhonesConv > doors:autovalidate/Numbers.txt
+
+    This will automatically generate the Numbers.txt file so that you don't
+    have to do this by hand. You will most likely have to edit this newly
+    created file so that all the phones numbers are in the xxx-xxx-xxxx
+    format, but it ought to save you a good deal of time.
+    Periodically, you should re-run this utility so that the phone numbers
+    of old users who you have deleted from your system will also be deleted
+    from the Numbers.txt file. Always remember to check that the final
+    file format of the phone numbers is xxx-xxx-xxxx
+    NOTE: If using this door for EuroAussie formats, you should be certain
+          that the final phone format has NO hypens (-) in the number.
+
+ - 8 - COMMENTS/SUGGESTIONS/HINTS/GUIDELINES/IMPORTANT STUFF
+
+(The following applies to doors configured for N.American phone formats)
+
+    You don't have to concern yourself with the way the user types in
+    his phone number. No matter what he types it will be re-formatted
+    in the xxx-xxx-xxxx format. So, if he types (201) 3986360, it will
+    be echoed back as 201-398-6360. If he types, 20-1-39863-60, it will
+    still come back as: 201-398-6360
+
+    To get the numbers to put in the LocalExc.txt file, look in your
+    local telephone book (usually somewhere near the front) to get a
+    listing of all local phone exchanges (the exchange are the 3 numbers
+    that sit between your area code and the rest of the phone number.)
+    The format is xxx-xxx (e.g. 201-398). Entering this info will NOT be
+    required if you have the BlanketLocal switch set in the .cfg file.
+    IMPORTANT!!!!! You must still have a file named LocalExc.txt in the
+    directory even if it only contains one bogus number.
+
+    The BadNumbers.txt file is real handy. The format of the numbers you
+    place here is VERY important.
+    If you place an entire phone number, it must be in this format:
+
+                      305-745-2389
+
+
+    If you place a partial number, it must be in this format:
+
+                      900-
+                       or
+                      203-777-
+
+    You MUST include the trailing dash!
+    No other possibilities are acceptable. However, these formats should
+    cover every contingency. Lets explore that concept a little.
+    Say you wish to stop users from entering numbers like 0, or 411.
+    Well, since the door will accept ONLY a minimum of 7 digits (3 digit
+    exchange + 4 digit number body = 7 digits), numbers such as 0 or 411
+    are deemed unacceptable and the user is instructed to try to enter
+    his number again. If he tried to beat the system by putting
+    in a number like this: 023-453-6745, the door will warn him that he can
+    not start his phone number with a zero or a one and then will recycle
+    back to the beginning. If he tries a number like this: 911-534-7612, as
+    long as you have 911- in your BadNumbers.txt file, he will told he has
+    attempted to enter a bad number, etc. 
+    If there is a particular exchange you don't want called, the use of the
+    format: areacode-exchange- will handle this situation fine.
+    As example, if you don't want any phone number in the 201-976 exchange
+    called, simply put 201-976- in the BadNumbers.txt file. Don't forget to
+    include the trailing dash!
+    
+    Basically, the system has the choice of calling or not calling long
+    distance phone numbers as defined earlier. If you set it to call a
+    long distance number it NEVER stays online after it has raised the users
+    access level. This means that you are never subjected to any longer
+    connect time then the time-out setting you have set in StarNet. With
+    most Sysops, this is 4 or 5 minutes. The average connect time for a
+    'normal' long distance callback is 2 minutes. At an average of 14 cents
+    a minute, your LD callbacks should not run you more than 30 cents a call.
+
+    Local callbacks (meaning: your area code with a local phone exchange)
+    always stay online after raising access since the call is free anyway.
+    If this troubles you for some reason (I don't see why it would) you can
+    set .cfg item number five to a setting of zero and the user will then
+    only have the time remaining from the new-user level you have set in
+    StarNet's config file.
+ 
+    IMPORTANT: This door does NOT check the phone numbers already in the
+    StarNet user.dat file. It works exclusively out of the Numbers.txt
+    file. You should use the included PhoneConv file to generate the
+    Numbers.txt file. See the description of PhoneConv utility given earlier
+    in this documentation file. (I've been asked WHY I just couldn't use
+    the user.dat file info directly. The reason is that I needed to have
+    all the phone numbers in some form of standard format so that I could
+    do comparison work. Since StarNet allows users to enter their phone
+    numbers in any format (e.g. 2013986360 or (201) 398-6360 etc.), I was
+    forced to extract the phone numbers myself and reformat them into a
+    single style.). You should periodically re-run PhoneConv since deleting
+    accounts does NOT delete the phone numbers in the Numbers.txt file.
+
+(The following applies when door is configured for EuroAussie phone formats)
+
+    The BadNumbers.txt file is real handy. The format of the numbers you
+    place here is VERY important.
+    If you place an entire phone number, it must be in this format:
+
+                     03057452389
+                        or
+                     123456789
+
+    If you place a partial number, it must be in this format:
+
+                     0
+                     012
+                     0123
+                     01234
+                     01234567
+                    
+    The actual numbers can be ANYTHING but the point is that the door will
+    only check either the first digit, or the first, second and third digit,
+    or the 1st,2ed,3ed and 4th digit, or the 1st,2ed,3ed,4th and 5th digit or
+    the 1st,2ed,3ed,4th,5th,6th,7th and 8th digit.
+    Sooooo...if you didn't want the phone number starting with 076 to be 
+    called, just put in 076 on one of the lines in this file.
+    If you didn't want numbers starting with 03245, just type 03245 into
+    this file.                      
+    
+ - 9 - KNOWN PROBLEMS/BUGS
+
+    My success rate with incoming callers at 2400 baud or higher is well
+    over 98%. However, due to problems assosciated with StarNet itself,
+    1200 baud callers have a failure rate of over 80%. This means that,
+    on average, 8 out of 10 callers who use 1200 baud will get a failure
+    when they try this door. I don't have enough information about 300
+    baud callers to give you any statistics. (Besides, I doubt that you
+    have any volume coming in at 300 baud anymore these days.).
+    Therefore, if you get messages from AutoVal like: "User could not
+    re-enter his password upon callback", etc., check your StarNet.log
+    and see if he was trying the CallBack door at 1200 baud. If so, you
+    may just have to validate his accont manually. Hopeful this problem
+    will disappear with the release of the newly coded Bowling MEBBSNet.                  
+    
+ - 10 - COMMENTS
+
+    I've been getting pretty good reviews from the Sysops who are using
+    this door. I've attempted to incorporate as many of the suggestions
+    that I have received as possible. Keep 'em coming and please forward
+    any bugs you feel you have uncovered with as much information as possible.
+
+ - 11 - THANKS
+
+    Thanks to Bill Bowling for his fantastic StarDoor.library.
+
+ - 12 - FINAL WORD
+
+    This door is FreeWare. Enjoy it. 
+    If you are using my ShareWare door - ExtractIt, I ask that you support
+    it and my efforts. Thanks.
+
+    Enjoy the Amiga, StarNet and your hobby!
+
+ - al saveriano -

@@ -1,0 +1,1 @@
+/*This file is a part of ZoolDIZ package*/;ADDKEYS 'N';exit

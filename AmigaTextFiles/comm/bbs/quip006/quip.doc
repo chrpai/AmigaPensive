@@ -1,0 +1,408 @@
+
+TITLE
+
+     Quip
+
+VERSION
+
+     0.06a
+
+AUTHOR
+
+     Joseph Edwards Van Riper III (Trey) / Cheese Olfactory Workshop
+
+DESCRIPTION
+
+     Quip somewhat mimics the purpose of the unix 'fortune' generator,
+     except it is designed with much more flexibility in mind.  It is an
+     especially useful utility with Citadel BBS, although any BBS program
+     or simple startup-sequence-ish files could benefit from it.  For
+     those who are not familiar with 'fortune', Quip generates text from a
+     datafile of texts.  Unlike 'fortune', however, Quip chooses which bit
+     of text to print sequentially, rather than randomly.
+     
+SPECIAL REQUIREMENTS
+
+     None
+
+PRICE
+
+     None
+
+DISTRIBUTABILITY
+
+     Quip 0.06a is Freeware.  Feel free to send it to anyone on Planet
+     Earth, but please don't make money off it.
+
+VOCABULARY
+
+     'quip' = a bit of text.. perhaps humorous.. that this program will
+              extract from a datafile.
+     
+     'Quip' = The name of this program.
+     
+     'datafile' = a file holding a number of different bits of text that
+                  Quip is supposed to find.
+     
+     'search table' = a file that holds the relative file positions of all
+                      the various quips in a datafile.  It is used to
+                      speed up the search for a particular quip.
+     
+     'static quip' = a quip that remains constant regardless of what
+                     datafile a programmer specifies.  Has to be
+                     hard-coded into the program.
+
+     'hash table' = a mistaken term referring to 'search table'.  You may
+                    see this term in Quip's -h option.  It is a mistake. 
+                    A true hash table works differently than the search
+                    table works.
+
+INSTRUCTIONS
+
+     Quip generates a piece of text (within 64k) extracted from a
+     datafile.  For the Amiga version of Quip, the default filename of the
+     datafile that Quip will extract its text from is "s:quip.dat".
+     
+     Quip may only be invoked from the CLI.
+     
+     When you call Quip, you may specify which datafile you want to grab a
+     quip from by naming the file (and path) immediately after calling
+     Quip.  eg. "Quip mydatafile.dat"
+     
+     There are a number of switches and options you may specify by using a
+     hyphen ("-") and the option name.
+     
+     A detailed description of each hyphen-option follows:
+     
+*         -f <filename> <filename1>
+          
+          This switch tells Quip to generate 60 files for each filename
+          specified.  Quip will grab a quip from the datafile specified,
+          delete filename.0, write the quip into filename.0, and do the
+          whole thing again for filename.1, incrementing the count until
+          it gets to filename.59.  Then, it'll do the same thing again for
+          filename1.
+          
+          This optin is useful for Citadel BBS sysops who want to create
+          several LONOTICE and BANNER files without having to type them
+          all out by hand.
+          
+*         -h
+          
+          This switch tells Quip to print a short help file that might
+          jog your memory as to how Quip is supposed to work.
+          
+*         -p <filename>
+          
+          This tells Quip that you want to preface the text in filename to
+          the quip Quip generates.  This switch works with -f.
+          
+*         -s <filename>
+          
+          This tells Quip that you want to append (suffix) the text in
+          filename to the quip Quip generates.  Again, it works with -f.
+          
+*         -t
+          
+          Quip searches for quips in its datafiles in one of two ways:
+          
+          1> Quip will count '@' characters in the datafile until it finds
+             the next quip.
+             
+          2> Quip will find the location of the next quip through a search
+             table.
+          
+          This option tells Quip to create that table for the datafile
+          specified.  The table will have the name of the datafile, with a
+          '.tab' extention.
+          
+*         -o
+          
+          This option tells Quip to display a quip to stdio.  If you use
+          the -f or -t option, Quip will not send a single quip to stdio.  
+          Using this option will make Quip write a separate quip to stdio 
+          after it finishes creating all the other quips.
+          
+*         -# <number>
+          
+          This option tells Quip to change which quip to grab.  For
+          example, if number is '9', Quip will grab quip #9 from the
+          datafile next time it grabs a quip.  This option will not
+          automatically generate a quip (unless -o is used).
+          
+     So, if you wanted to generate a new search table for Barf.dat, read the
+     10th quip from that file, and put the output in zulu.funburger, you
+     would type:
+
+quip >zulu.funburger barf.dat -to# 10
+  
+     or
+
+quip >zulu.funburger barf.dat -t -o -# 10
+
+     Or, perhaps you want to generate 60 quips for banner.?? taken from
+     s:quip.dat, and you want use 'presuf' as your prefix AND suffix file:
+
+quip -f banner -ps presuf
+
+     Or, maybe you just want to generate new search tables for all your
+     datafiles:
+
+quip killbush.dat smilenow.dat eatquiche.dat ifeelhappy.dat -t
+
+     Then again, maybe you just want to see a quip from "s:quip.dat":
+     
+quip
+
+     If you want to create your own datafile, you may use whatever your
+     favorite text editor of the day happens to be.  I would recommend you
+     make your quips readable to whomever might read it (in other words,
+     use either ASCII or ANSI, but avoid, say, Prowrite formatted text). 
+     Each quip in the datafile should be preceded by a '@' character.  The
+     first 12 bytes of the file you create will be overwritten by Quip, so
+     it'll know which quip to pick up next.  Here's what a datafile might
+     look like:
+
+2           padpadpadpadpadpad
+[miscellaneous brew ha ha of unimportance hidden here]
+@This is the first quip.
+@This is the next quip.
+@This quip is just as unenlightening.
+@This is the last quip.
+<EOF>
+
+      NOTE: you don't have to type '<EOF>', Quip will figure that out for
+      itself <grin>.  The number '2' at the beginning of the file refers
+      to which quip it'll grab next (in this case, "This is the next
+      quip." would be what Quip would grab).  You can change this in the
+      text editor, or you can have Quip do it with the -# option.
+      
+MISC. NOTES
+
+*    Quip will write some information into the first 12 bytes of your
+     datafile.  This information lets Quip know which quip it's supposed
+     to grab next.  So, if you create a new datafile for Quip to use, make
+     sure you take into account these first 12 or 13 bytes: pad some empty
+     space.  BTW: you can change which quip Quip will grab by modifying
+     this value (which is kept in ASCII notation, not binary).
+     
+*    If you add new quips to a datafile, and you want have been using a
+     search table, Quip will not use the new quips until you create a new
+     search table with the -t command.  A pain, but it's really the only
+     way I could think of to handle it.
+
+*    There is a "static quip" built into Quip.  I got silly with a friend
+     of mine.  I should probably get rid of it sometime.  Waste of code.
+     
+*    Quip was built using Lattice C++.  My error messages may seem a
+     little weird, but (at least to me), they are quite descriptive.  Some
+     of them may seem abusive.  Don't worry about it.. it's all part of
+     the 'user abusive' concept of programming.. a retaliation of 'user
+     friendly' junk.  It doesn't really reflect how this program feels
+     about you.  It's just my peculiar idea of humour.  If you get any of
+     the REALLY far-out messages, you'd best see if you can get that
+     information to me, with an explaination of how you managed to do it.
+
+*    Quip datafiles may be as large as you like... Quip reads portions of
+     the file into a buffer.  The largest quip you may have is 64k.. but
+     you may have ANYTHING in that block (ANSI animations, binary stuff,
+     etc).  The only character sacred to Quip is '@', which helps Quip
+     tell where one quip ends and another begins.  All quips should begin
+     with a '@' character.
+
+*    When Quip gets to the last quip, it will wrap back to the first quip.
+
+*    You may embedd secret stuff between the end of the first 12 bytes
+     (where Quip puts its quip number), and the very first quip (which is
+     preceded by a '@').  However, read further as to what I may be doing
+     within that space...
+
+*    Quip currently has no way to randomly select a quip.
+
+*    Quip can handle LOTS of quips.  The number of quips you can have in a
+     datafile is too large to worry about (although, for the programmers
+     out there, it's the maximum LONG value.. hence the 12 characters at
+     the beginning of the file).
+     
+*    Quip 0.06a is not to be confused with any Quip program greater than
+     1.0.  This Quip will NEVER have a version number greater than or
+     equal to 1.0, since another author with a totally unrelated program
+     has written a QWK packet reader under this name.  I started writing
+     my program a long time ago, and 'Quip' seemed to be the perfect name
+     for it, so I just couldn't change it (especially since there are a
+     few people in obscure places who have already started using this
+     program... continuity being what it is...).
+
+*    If you're a Citadel sysop, there is a program I've written that might
+     be of interest to you.  "QuipMove" will take a room's archived text
+     file and turn it into a Quip datafile (optionally writing the author's
+     name into the quip, as well as various other nifties).  Which
+     means...  users can create new quips for your BBS by simply entering
+     a message into your BBS!  You could even automatically have those
+     messages appended to your favorite datafile!  Even networked messages
+     can be placed in datafiles, so potentially, a user could put his
+     choice quip in a networked room and have it appear on SEVERAL BBSes
+     through the world!
+
+BUGS
+
+     The filename that Quip creates for the search table may look stupid
+     if you choose to have a datafile that doesn't have a three-character
+     extention (eg. 'brewdata.qp' would have a search table filename of
+     'brewdata.qp.tab').  It's more of an annoyance than anything else..
+     functionally, Quip still performs well, even under this weird
+     filename.
+
+THINGS TO DO
+
+     I have some MAJOR plans for my final version (0.07... the James Bond
+     version).  I only hope I live long enough to get them all done
+     <grin>.
+
+*    Fix the search-table filename bug (easy fix.. just haven't gotten
+     around to it).
+
+*    A configuration file might be nice.  My idea is to create what will
+     essentially be a Quip programming language, which will let you use
+     one command to accomplish tons of functions, reading a simple ASCII
+     script.  The datafile may be embedded within a quip datafile, or kept
+     in its own file.
+
+*    Randomized quips.  Actually... many different kinds of randomized
+     quips.  I want to randomize them according to datafile, sets of
+     datafiles, or both.  That is, you may make Quip randomly choose a
+     quip from a series of datafiles, or you may have it choose a quip
+     randomly from within a particular datafile, or both.
+
+*    Serialized quip datafiles.  I want Quip to be able to select a quip
+     from a series of datafiles, sequentially.  I think I'll have it
+     handle this in two ways: run through an entire datafile first, THEN
+     move to the next datafile, or move sequentially through datafiles
+     each time it wants to grab a quip (grabbing that quip either
+     randomly, or sequentially, from the datafile).  Should be tricky...
+ 
+*    Today-like feature.  This will make Quip a combination 'fortune' and
+     'today' program.  I'm going to have to do TONS of work to decide
+     precisely how I want this feature to work.. but basically, it should
+     work fairly closely to how other programs of this genre work now..
+     except I want to insure one can have an entry for, say, the 2nd
+     Thursday of a month or whatever.
+
+*    Better error codes.  Quip's current error codes, while comprehensive
+     to me, may be a little arcane for the average user.
+     
+*    Automatic refreshment of search tables for datafiles that have been 
+     modified.  This should be a nasty job.  Not sure how I'm going to
+     do this... but I've had an annoying time when I've modified my
+     datafiles, only to find my search tables all screwed up.
+
+*    Wildcard support.
+
+*    Currently, when someone adds new quips to a datafile, and wants to
+     get the search table file updated, Quip has to redo the entire table,
+     starting from the first quip and proceeding to the last.  I want to
+     speed up the process by letting you specify which quip to start
+     re-creating the search table from, or defaulting on the last known
+     quip.  I had originally meant to do this, but was impatient to get
+     the executable out, since so many improvements had been made over my
+     earlier versions of Quip (which are virtually non-existent now).
+     
+*    Optional Intuitionalization of some of it (add Workbench code, let it 
+     open a window and send output there, etc).
+     
+*    I probably have several other options that I have forgotten for now
+     that I intend to put in.
+
+MYTHOLOGY
+
+     The Cheese Olfactory Workshop (COW) is a non-profit disorganization
+     using slave programmers to write cheap programs for an unsuspecting
+     public.  To date, it's most successful program (Quip) is used by a
+     small number of Citadel sysops on Amiga and MS-DOS systems, mostly in
+     Minneapolis.
+     
+     Early in COW's existence, a minor slave rebellion caused COW to
+     tighten its security (and lead to some major losses, as several of
+     our slave programmers were lost in the process of detering further
+     uprisings).  Later, COW had another problem when another slave
+     managed to slip a bug into the Quip code, and caused a
+     spatial-temporal vortex that sucked the hapless programmer and
+     several of his cohorts into a hideous void (to the average user,
+     however, it appeared that prefix and suffix filenames had to be less
+     than four characters long).
+     
+     Currently, however, we've been having some strong problems with
+     getting our programmers to write the kind of code we're looking for. 
+     They seem to insist on writing slow, nasty routines that are not
+     efficient, and generally impossible to maintain.  We've had to flog a
+     few of them in order to get complete re-writes of the code, and we've
+     had tremendous trouble trying to get some of the code ported to
+     MS-DOS machines.
+     
+     However, we anticipate a major change in our situation, when a new
+     slave-trader manages to come into the North Carolina area with better
+     programmers, and a nicer compilor.  We anticipate these changes in a
+     few years.. so until then, we're stuck with what we have.  Our
+     gravest apologies for any problems with the code.
+     
+     COW would like to thank Kevin Thomas for help with the static quip,
+     and several suggestions for improvement to the Quip code.  We'd also
+     like to thank the good sysops of Minneapolis for trying Quip, and
+     incorporating it into their BBS.  We hope they and their users will
+     have endless hours of fun with our program.  We'd also like to thank
+     Gay Crumley, who helped tremendously with our communications.  Long
+     Distance just isn't the same without you, Gay.
+
+WHY WRITE THIS PROGRAM
+
+     I wrote this program because I wasn't happy with any of the current
+     incarnations of this genre for the Amiga.  I wanted something that
+     would use stdio, and had the kind of flexibility and speed that Quip
+     offers.
+     
+     I continued working on this project, however, because I wanted to
+     hone my programming skills a little more, and I figured that nobody
+     else would waste so much time on such a frivolous project <grin>.  I
+     think I can honestly say, if I manage to finish this project soon,
+     it'll be the most advanced program of its genre ever written.  No
+     other program that I'm aware of will have had this kind of time spent
+     for so minor a purpose.
+     
+ABOUT THE AUTHOR
+
+     Frivolous junk, but in case you were curious...
+     
+     My real name is Joseph Edwards Van Riper III... although my parents
+     tended to call me 'Trey.'  None of which really matters, since I tend
+     to use the handle 'Machine'.
+     
+     I'm a music student at the University of North Carolina, Asheville,
+     working towards a BA in Music (with an emphasis on composition). 
+     However, I've been programming various computers off and on since I
+     was very young.  It was a real trick getting the computers to turn
+     themselves back on, but I was up to the challange.
+     
+     I was in the Army for five years and a month, two of which I spent in
+     Japan as a bandsman, one of which I spent working as a journalist. 
+     One of the other years I spent in some form of training or another,
+     and the other year I spend as a bandsman in Fort Stewart, GA.  Not
+     exactly my favorite chunk of earth... I assure you.
+     
+     I really started this programming project because I was unhappy with
+     any of the 'fortune'like programs I saw available, and figured I
+     could do a better job.  I also wanted to become familiar with C++,
+     and figured nothing was better than simply LEAPING into the language.
+     I hadn't even really studied C for much time before going into C++,
+     so Quip has really been a pioneering effort for myself.  Overall, I
+     think I've done a fairly decent job for a music student <grin>.
+     
+     At least until roughly 1995, anyone who would like correspondance
+     with me can mail me at 'jvanriper@uncavx.unca.edu'.  Hopefully, I'll
+     have finished Quip 0.07 by then, and I'll be working on any one of a
+     number of other projects that I have in mind.
+
+GRATUITOUS LABEL
+
+     The above label refers to nothing of any import whatsoever, and was
+     included as a sort of cannon-fodder.  Kindly ignore it, and feel free
+     to delete it if you like.

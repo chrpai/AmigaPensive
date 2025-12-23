@@ -1,0 +1,494 @@
+;
+; SYSTEM-X MOVEFILES 1.04 By Zed/DC
+;
+
+	;incdir "include:"		; <-- use this for ASM-One
+	include "exec/exec_lib.i"
+	include "exec/ports.i"
+	include "exec/memory.i"
+	include "libraries/dos_lib.i"
+	include "dos/dos.i"
+
+	STRUCTURE	variables,0
+	STRUCT		Node,LN_SIZE
+	APTR		ReplyPort
+	UWORD		Length
+	STRUCT		Str,200
+	LONG		Data
+	LONG		Command		; XIMMessage ends here
+	STRUCT		filename,34
+	STRUCT		filepath,54
+	STRUCT		destconfpath,56
+	STRUCT		destconfnumstr,10
+	STRUCT		inputlistname,72
+	LONG		readhandle
+	LONG		writehandle
+	APTR		filebuf
+	LONG		filebufsize
+	APTR		DosBase
+	APTR		UtilBase
+	LABEL		bufsize
+
+ExecBase	EQU	$4
+_LVOStrnicmp	EQU	-168
+
+	SECTION ximdoor,code
+
+	clr.b	-1(a0,d0.L)		; add null to arg
+	move.l	a0,d0			; arg string is the node number
+	lea	portmask(PC),a0
+	bsr	sprintf
+
+	lea	dosname(PC),a1
+	moveq	#0,d0			; version 0
+	jsr	_LVOOpenLibrary(A6)
+	movea.l	d0,a3			; store dosbase in a3 (tempo)
+
+	move.l	#bufsize,d0
+	move.l	#MEMF_CLEAR!MEMF_PUBLIC,d1
+	jsr	_LVOAllocMem(a6)
+	movea.l	d0,a5
+
+	move.l	a3,DosBase(a5)
+
+	lea	buffer(PC),a1
+	jsr	_LVOFindPort(A6)
+	tst.l	d0
+	beq	error
+	movea.l	d0,a4			; store *Port in a4
+
+	jsr	_LVOCreateMsgPort(A6)
+	move.l	d0,ReplyPort(a5)	; create reply port
+
+	move	#bufsize,Length(a5)
+	move.l	#1,Command(a5)		; 1 = Startup
+	bsr	putmsg
+	clr.b	Str(a5)			; erase string
+
+	lea	fileprompt(PC),a1
+	moveq	#32,d1
+	bsr	getinput
+
+	lea	singlecr(PC),a1
+	bsr	print
+
+	tst.b	Str(a5)
+	beq	exitdoor		; hit return? exit
+
+	lea	Str(a5),a1
+	lea	filename(a5),a0
+	bsr	strcpy			; store filename in correct field
+
+	bsr	movefile
+
+exitdoor
+	move.l	#2,Command(a5)		; 2 = Shutdown
+	bsr	putmsg
+
+	move.l	ReplyPort(a5),a0
+	jsr	_LVODeleteMsgPort(A6)	; kill reply port
+
+	bsr	exit
+	moveq	#0,d0
+	rts
+
+; ==== MAIN MOVEFILE CODE ====
+
+movefile
+	sub.l	d4,d4			; dir number
+
+	move.l	#127,Command(a5)	; 127 = CONFLOCATION
+	bsr	putmsg
+
+	lea	utilname(PC),a1		; open utility library
+	moveq	#0,d0			; version 0
+	jsr	_LVOOpenLibrary(A6)
+	move.l	d0,UtilBase(a5)
+	tst.l	d0
+	bne	movloop
+	rts
+
+movloop
+	addq	#1,d4
+	lea	Str(a5),a0
+	move.l	a0,d0			; conf path
+	move.l	d4,d1			; dir number
+	lea	dirmask(PC),a0
+	bsr	sprintf
+
+	lea	buffer(PC),a1
+	lea	inputlistname(a5),a0
+	bsr	strcpy
+
+	lea	inputlistname(a5),a0
+	move.l	a0,d1
+	move.l	#MODE_OLDFILE,d2
+	move.l	DosBase(a5),a6
+	jsr	_LVOOpen(a6)		; open the list
+	tst.l	d0
+	beq	endmove
+	move.l	d0,readhandle(a5)
+
+	move.l	readhandle(a5),d1
+	moveq	#0,d2
+	move.l	#OFFSET_END,d3
+	jsr	_LVOSeek(a6)
+	move.l	readhandle(a5),d1
+	moveq	#0,d2
+	move.l	#OFFSET_BEGINNING,d3
+	jsr	_LVOSeek(a6)
+	addq.l	#2,d0			; filesize + 2
+	move.l	d0,filebufsize(a5)	; find filesize
+
+	move.l	#MEMF_PUBLIC!MEMF_CLEAR,d1
+	movea.l	(ExecBase).W,a6
+	jsr	_LVOAllocMem(a6)
+	tst.l	d0
+	move.l	DosBase(a5),a6
+	beq	closefile		; out of memory?
+	move.l	d0,filebuf(a5)
+	move.l	d0,d5			; d5 = filebuf
+
+	move.l	readhandle(a5),d1
+	move.l	d0,d2
+	move.l	filebufsize(a5),d3
+	jsr	_LVORead(a6)
+
+searchloop
+	movea.l	d5,a0
+	bsr	spacelen		; count filename length
+	movea.l	d5,a0			; search buffer
+	lea	filename(a5),a1		; filename
+	movea.l	UtilBase(a5),a6
+	jsr	_LVOStrnicmp(a6)
+	tst.l	d0
+	beq	showfile
+	move.l	DosBase(a5),a6
+
+findcr
+	addq.l	#1,d5
+	movea.l	d5,a0
+	cmp.b	#10,(a0)		; check for CR
+	bne	findcr
+
+foundcr
+	addq.l	#1,d5
+	movea.l	d5,a0
+	cmp.b	#' ',(a0)		; check for SPACE
+	beq	findcr
+	tst.l	(a0)
+	bne	searchloop
+	bra	freemem
+
+showfile
+	move.l	#255,d4
+	movea.l	d5,a0
+	movea.l	d5,a1
+showloop
+	cmp.b	#10,(a0)+
+	bne	showloop
+
+	subq.l	#1,a0
+	move.b	(a0),d7
+	clr.b	(a0)
+
+	movem.l	a0-a2,-(sp)
+	movea.l	(ExecBase).W,a6
+	bsr	print
+	move.l	DosBase(a5),a6
+	movem.l	(sp)+,a0-a2
+
+	move.b	d7,(a0)
+
+	movem.l	a0-a2,-(sp)
+	lea	singlecr(PC),a1
+	movea.l	(ExecBase).W,a6
+	bsr	print
+	move.l	DosBase(a5),a6
+	movem.l	(sp)+,a0-a2
+
+	addq.l	#1,a0
+	movea.l	a0,a1
+
+	cmp.b	#' ',(a0)
+	bne	aftershow
+
+	tst.l	(a0)
+	beq	aftershow
+
+	bra	showloop
+
+aftershow
+	movea.l	a0,a3			; last char in desc
+
+	movea.l	(ExecBase).W,a6
+	lea	destconf(PC),a1
+	moveq	#9,d1
+	bsr	getinput		; get dest conf number
+	lea	Str(a5),a1
+	lea	destconfnumstr(a5),a0
+	bsr	strcpy
+	move.l	#147,Command(a5)	; BB_PCONFLOCAL = 147
+	bsr	putmsg
+	tst.b	Str(a5)
+	beq	freemem
+	lea	Str(a5),a1
+	lea	destconfpath(a5),a0
+	bsr	strcpy
+
+	lea	destarea(PC),a1
+	moveq	#10,d1
+	bsr	getinput		; get dest filearea
+	lea	singlecr(PC),a1
+	bsr	print
+	tst.b	Str(a5)
+	beq	freemem
+	lea	Str(a5),a0
+	bsr	atol			; convert string to number
+
+	move.l	d0,d1			; dir number
+	move.l	d0,d7			; dir number to d7 for future use
+	lea	destconfpath(a5),a0
+	move.l	a0,d0			; conf path
+	lea	dirmask(PC),a0
+	bsr	sprintf
+	move.l	DosBase(a5),a6
+
+	lea	buffer(PC),a0		; destination filelist
+	move.l	a0,d1
+	move.l	#MODE_READWRITE,d2
+	jsr	_LVOOpen(a6)
+	tst.l	d0
+	beq	freemem
+	move.l	d0,writehandle(a5)
+
+	move.l	d0,d1
+	moveq	#0,d2
+	move.l	#OFFSET_END,d3
+	jsr	_LVOSeek(a6)
+
+	move.l	writehandle(a5),d1
+	move.l	d5,d2			; buf
+	move.l	a3,a0
+	sub.l	d5,a0
+	move.l	a0,d3
+	jsr	_LVOWrite(a6)
+
+	move.l	writehandle(a5),d1
+	jsr	_LVOClose(a6)
+
+	; remove from original list	-------
+
+	move.l	readhandle(a5),d1
+	jsr	_LVOClose(a6)
+
+	lea	inputlistname(a5),a0
+	move.l	a0,d1
+	move.l	#MODE_NEWFILE,d2
+	jsr	_LVOOpen(a6)
+	move.l	d0,readhandle(a5)
+	tst.l	d0
+	beq	freemem
+
+	move.l	d0,d1			; d5 = first char, a3 = last char
+	move.l	filebuf(a5),d2
+	move.l	d5,d3
+	sub.l	filebuf(a5),d3
+	tst.l	d3
+	beq	isfirst			; removing first file in list
+	jsr	_LVOWrite(a6)
+
+isfirst
+	move.l	a3,d2
+	move.l	filebuf(a5),d3
+	add.l	filebufsize(a5),d3
+	sub.l	d2,d3
+	subq.l	#2,d3
+	tst.l	d3
+	beq	islast			; removing last file in list
+	move.l	readhandle(a5),d1
+	jsr	_LVOWrite(a6)
+
+islast
+	move.l	readhandle(a5),d1
+	jsr	_LVOClose(a6)
+	clr.l	readhandle(a5)
+
+	;				-------
+
+	move.l	(ExecBase).W,a6
+	lea	filename(a5),a1
+	lea	Str(a5),a0
+	bsr	strcpy
+	move.l	#1511,Command(a5)	; SX_FINDFILE
+	bsr	putmsg
+	tst.b	Str(a5)
+	beq	freemem			; file not found?
+	lea	Str(a5),a1
+	lea	filepath(a5),a0
+	bsr	strcpy
+
+	lea	destconfnumstr(a5),a1
+	lea	Str(a5),a0
+	bsr	strcpy			; conf number to Msg -> String
+	move.l	d7,Data(a5)		; file area to Msg -> Data
+	move.l	#1510,Command(a5)	; SX_GETPATH (destination path)
+	bsr	putmsg
+
+	lea	filepath(a5),a0
+	move.l	a0,d0
+	lea	filename(a5),a0
+	move.l	a0,d1
+	lea	Str(a5),a0		; new filepath
+	move.l	a0,d2
+	lea	movemask(PC),a0
+	bsr	sprintf			; build the move string
+
+	lea	buffer(PC),a1
+	bsr	print
+	lea	doublecr(PC),a1
+	bsr	print
+
+	lea	buffer(PC),a0
+	move.l	a0,d1
+	moveq	#0,d2
+	moveq	#0,d3
+	move.l	DosBase(a5),a6
+	jsr	_LVOExecute(a6)		; move the file to it's new
+					; home on the harddisk.
+
+freemem
+	movea.l	filebuf(a5),a1
+	move.l	filebufsize(a5),d0
+	movea.l	(ExecBase).W,a6
+	jsr	_LVOFreeMem(a6)
+	move.l	DosBase(a5),a6
+
+closefile
+	move.l	readhandle(a5),d1
+	tst.l	d1
+	beq	endmove
+	jsr	_LVOClose(a6)
+	cmp.l	#255,d4
+	bne	movloop
+
+endmove
+	movea.l	(ExecBase).W,a6
+	movea.l	UtilBase(a5),a1
+	jsr	_LVOCloseLibrary(A6)
+	rts
+
+; ==== END OF MAIN MOVEFILE CODE ====
+
+getinput
+	lea	Str(a5),a0
+	bsr	strcpy
+	move.l	#5,Command(a5)
+	move.l	d1,Data(a5)
+	bsr	putmsg
+	rts
+
+print
+	move.l	#1500,Command(a5)	;	1500 = print string
+	move.l	a1,Data(a5)
+
+putmsg
+	move.l	a4,a0
+	move.l	a5,a1
+	jsr	_LVOPutMsg(A6)
+
+	move.l	ReplyPort(a5),a0
+	jsr	_LVOWaitPort(A6)
+
+	move.l	ReplyPort(a5),a0
+	jsr	_LVOGetMsg(A6)
+	rts
+
+error
+	move.l	DosBase(a5),a6
+	lea	errormsg(PC),a1
+	move.l	a1,d1
+	jsr	_LVOPutStr(A6)
+	movea.l	(ExecBase).W,a6
+
+exit
+	move.l	DosBase(a5),a1
+	jsr	_LVOCloseLibrary(A6)
+
+	movea.l	a5,a1
+	move.l	#bufsize,d0
+	jsr	_LVOFreeMem(a6)
+	rts
+
+sprintf
+	movem.l	D0-D3/A0-A3,-(SP)
+	move.l	SP,A1
+	lea	PutChar(PC),A2
+	lea	buffer(PC),A3
+	movea.l	(ExecBase).W,A6
+	jsr	_LVORawDoFmt(A6)
+	movem.l	(SP)+,D0-D3/A0-A3
+	rts
+
+PutChar
+	move.b	d0,(a3)+
+	rts
+
+;strlen
+;	MOVEA.L	A0,A1
+;slloop
+;	tst.b	(A1)+
+;	bne.s	slloop
+;	SUBQ.L	#1,A1
+;	SUBA.L	A0,A1
+;	move.l	a1,d0
+;	rts
+
+spacelen
+	movea.l	a0,a1
+sploop
+	cmp.b	#' ',(a1)+		; counts char's before the space
+	bne.s	sploop
+	subq.l	#1,a1
+	suba.l	a0,a1
+	move.l	a1,d0
+	rts
+
+strcpy
+	move.b	(a1)+,(a0)+		; copy a1 to a0
+	bne.s	strcpy
+	rts
+
+atol	moveq	#0,d0			; convert ascii to decimal
+	moveq	#0,d1
+nextn	move.b	(a0)+,d1
+	tst.b	d1
+	beq	finn
+	cmp.b	#"0",d1
+	bmi	nextn
+	cmp.b	#"9",d1
+	bhi	nextn
+	sub.b	#"0",d1
+	move.l	d0,d2
+	asl.l	#3,d0
+	add.l	d2,d0
+	add.l	d2,d0
+	add.l	d1,d0
+	bra	nextn
+finn	rts
+
+
+buffer:		dc.b	0,"FLID","$VER: System-X_MoveFiles 1.04 (06-Aug-97)",0
+dosname:	dc.b	"dos.library",0
+utilname:	dc.b	"utility.library",0
+portmask:	dc.b	"AEDoorPort%s",0
+errormsg:	dc.b	"This must be run from System-X BBS.",10,0
+dirmask:	dc.b	"%sDir%ld",0
+movemask:	dc.b	"Move %s%s %s",0
+fileprompt:	dc.b	27,"[0;36m",13,10,13,10,"Enter filename to move: ",27,"[0m",0
+destconf:	dc.b	13,10,27,"[0;36mDestination Conference (CR = Cancel): ",27,"[0m",0
+destarea:	dc.b	13,10,27,"[0;36mDestination File Area  (CR = Cancel): ",27,"[0m",0
+singlecr:	dc.b	13,10,0
+doublecr:	dc.b	13,10,13,10,0
+		even
+		end

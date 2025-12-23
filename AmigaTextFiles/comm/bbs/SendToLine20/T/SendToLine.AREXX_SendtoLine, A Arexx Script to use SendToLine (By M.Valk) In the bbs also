@@ -1,0 +1,85 @@
+/***************************************************/
+/* $VER: sendtoline.rexx  (25 May 1994)            */
+/* $Filename: sendtoline.rexx $                    */
+/* $Version: 1.00 $                                */
+/* $Date: 25 May 1994 $                            */
+/* $Creation: 25 May 1994 $                        */
+/***************************************************/
+
+SIGNAL ON ERROR
+SIGNAL ON SYNTAX
+SIGNAL ON FAILURE
+
+Options results
+
+parse arg LineNumber
+
+DoorName = "SendToLine"
+                                                          
+if( ~show( 'l', "mebbsarexx.library" ) )then do           
+   if( ~addlib( "mebbsarexx.library", 0, -30, 0 ) )then do
+      say "Could not open library"                        
+      exit 10                                             
+   end                                                    
+end
+
+SET="OK"
+
+call Message DoorName,LineNumber,"",1
+call Message DoorName,LineNumber,"",1
+call Message DoorName,LineNumber,"Welcome to Send To LineNumber v1.0 Created by Mikael Johansson M6005",1
+call Message DoorName,LineNumber,"",1
+call Message DoorName,LineNumber,"Thankx goes to Marco Valk for his CLI version of this prg",1
+call Message DoorName,LineNumber,"",1
+call GetVar DoorName,LineNumber,1
+user=result
+call Message DoorName,LineNumber,"",1
+call Message DoorName,LineNumber,"Hello "||user||"",1
+call Message DoorName,LineNumber,"",1
+call Prompt DoorName,LineNumber,"Wich Line do you wanna send to ? (0-1/Q) ",2
+an=result
+ans=compress(an)
+if ans="0" then call LI
+if ans="1" then call LI
+if ans="Q" then call END_IT
+if ans="" then call END_IT
+
+
+END_IT:
+call exit DoorName,LineNumber
+exit 0
+
+LI:
+call Message DoorName,LineNumber,"",1
+if ans="0" then do
+	call Message DoorName,LineNumber,"Local LineNumber",1
+	end
+if ans="1" then do
+	call Message DoorName,LineNumber,"LineNumber 1",1
+	end
+call Message DoorName,LineNumber,"",1
+call Prompt DoorName,LineNumber,"Enter the message (max 40 chars) ",41
+me=result
+mes=user" says: "me
+string = 'c:run >NIL: MebbsNet:c/sendtoLine '||ans||' "'||mes||'" CLS'
+say string
+ADDRESS COMMAND string
+call Message DoorName,LineNumber,"",1
+call message DoorName,LineNumber,"Message was sent to Line "||ans||" ",1
+call Message DoorName,LineNumber,"",1
+CALL END_IT
+
+/* Error Handling */
+
+FAILURE:
+SYNTAX:
+ERROR:
+call open(er,"t:error",'W')                  
+call writeln(er,"line break : "sigl)         
+call writeln(er,"Code       : "errortext(rc))
+call close(er)
+if SET="OK" then do
+	call exit DoorName,LineNumber
+	end
+exit 10
+exit

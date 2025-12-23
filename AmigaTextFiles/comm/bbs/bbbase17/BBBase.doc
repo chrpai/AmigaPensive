@@ -1,0 +1,1363 @@
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++                                                                      +
++            BBBase - Bulletin Board Database for Metro BBS            +
++                                                                      +
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+                         (c) 1991-4 Peter Deane
+
+                             Inquestor BBS
+
+                        Version 1.6 - 04-Apr-92
+
+                        Version 1.7 - 28-Nov-94
+
+                            GFA BASIC V3.51E
+
+                    Unregistered Evaluation Version
+
+
+------------------------------------------------------------------------
+
+
+[These docs have been revised SLIGHTLY for the 1994 OzMetro release.
+BTW, there is NO search feature even in the registered version yet, and
+until I get a few shareware donations for doors, there's not going to
+be!]
+
+
+Section 0 - Introduction
+
+        0.0     Overview
+        0.1     Changes
+        0.2     Description
+        0.3     StandAlone Operation
+        0.4     Copyright
+        0.5     Disclaimer
+        0.6     Registration
+        0.7     Contact
+
+Section 1 - Setup
+
+        1.0     Copy Command in C
+        1.1     Config File
+        1.2     Files created
+        1.3     Error Checking
+        1.4     Metro Installation Example
+        1.5     TransAmiga (Arexx) Installation Example
+        1.5.1     S:Metro.config
+        1.5.2     Directory Setup
+        1.5.3     Ram:UserData
+        1.5.4     BBBase.trans
+
+
+Section 2 - Operation
+
+        2.0     General
+        2.1     [A]dd an Entry
+        2.2     [E]dit an Entry
+        2.3     [M]essage to Sysop
+
+Section 3 - Sysop Maintenance
+
+        3.1     Check User Messages
+        3.2     Files List
+        3.3     View a File
+        3.4     Backup a File
+        3.5     Delete a File
+        3.6     Rename a File
+        3.7     Text Editor
+        3.8     Erase Database Entry
+        3.9     Kill Entire Database
+
+Section 4 - Miscellaneous
+
+        4.0     Quitting from the Door
+        4.9     Well, That's It
+
+
+
+------------------------------------------------------------------------
+
+                        Section 0 - Introduction
+
+------------------------------------------------------------------------
+
+
+0.0 Overview:
+~~~~~~~~~~~~~
+
+I must thank Ben Margolin for the inspiration for this door.  His
+'Masterfile BBS List' has been used for some time now on my system,
+although I was never real happy how an Australian telephone number could
+not be entered into it.
+
+Besides, I'm losing faith in AC-BASIC doors, if my system is ever going
+to crash these days, then 9 times out of 10, it's an AC- door.  In fact
+my AmyInfo is the worst culprit (it allows the users to get down too low
+among the OS).  The way AC handles its memory leaves a bit to be
+desired, because for starters, if an AC (or even Hi-Soft) door is quit,
+the custom colour palette is stripped from the front-most screen at the
+time.  Happens with every Hi-Soft and AC door.  They strip palettes from
+programs as diverse as Cygnus Ed, ProWrite and Quarterback.  (Not to
+mention Metro - but it usually closes its screen down when a door is
+running, so it's safe!)
+
+But what I really was trying to do with this door was experiment.  I
+haven't actually written a door for a month or so now, I've been
+concentrating on Metro itself, but I got sick of the old serial
+routines, and decided to re-write them for speed, and ease of use.  I
+also wanted to take a better look at the Metro editor.  So here we have
+it.  A new door that uses my new serial routines, and a re-vamped
+version of the old editor.  AND guess what?  They work!
+
+They are also a lot easier to use.  Instead of going:
+
+o$="Text to print"
+mod.out%=1
+in%=1
+il%=25
+GOSUB 1
+
+I can simply go:
+
+msend("Text to Print")
+mget(1,25,0,1)
+
+You'll notice a lot of other experimental features in this door.  I'll
+explain later....
+
+[This is the last door I wrote before Plutonic, incidentally, you can
+see the evolution from the power of the doors.  This one's got HEAPS!]
+
+------------------------------------------------------------------------
+
+
+0.1 Changes:
+~~~~~~~~~~~~
+
+Version 1.7 (28-Nov-94)
+
+Changed to not use Metro.config, but Metro.cfg instead, or none at all
+if not available.  Changed a few dates, and the node numbers and phone
+numbers for Inquestor in the Help and other displays.  Didn't write the
+search routine, will do if encouraged by a few $$$ from people who want
+this sort of support (hint, hint).
+
+This door will run off TransAmiga, incidentally, see the section below
+for how to do it - pretty easy, really!
+
+
+Version 1.6 (04-Apr-92)
+
+A few cosmetic changes. A general version registered to 'ALL', without
+the restrictions on the database size, but no search facility yet.
+
+Mainly released in this form to be run as a TransAmiga door. Users of
+Skyline and any other BBS that uses Arexx can easily use this method to
+run Metro Doors. More will be coming, this is probably the best example
+to release, as it's not Metro-specific.
+
+The code for this door is becoming a dim memory now :-) I daren't modify
+it too much because it was working pretty bloody well, if I remember
+rightly!
+
+
+Version 1.5 (28-Nov-91)
+
+The modem is opened in shared access mode. I must thank Percy and Alex
+for writing the shared modem routines, something I omitted to do with
+the InqMail distribution. Sorry guys, I just had no idea where the code
+came from...
+
+(Semi-) swatted a bug. In version 1.2 if you deleted an entry from the
+database it would work fine. However if you then tried to delete a
+second entry without quitting back to the main menu and returning to the
+sysop maint section, it would crash (it thought there was one more entry
+in the database than you actually had).
+
+Now it will quit you back from the sysop maintenance menu after each
+database deletion. I know it's not perfect, but the main reason for this
+update was the shared modem access, and I don't have enough time to
+spend on this for the time being. It was pretty quick to fix this
+problem up by adopting this method.
+
+There are a few calls to purge the serial port now, when menus are being
+printed. This saves the menu repeating a few times if the users grow
+impatient and hit keys before the door is ready.
+
+My new standard door screen, borderless main window and status window
+are in place.  This is nice and clean and gives you quite a few lines of
+display, even on an NTSC system.
+
+You can now run the door in what's referred to as iconised mode.
+Pressing F3 while the door is waiting for input will stop local screen
+output, and pressing F3 again turns it back on.
+
+The Search database option is NOT written, even in the registered
+version. Sorry - again time is killing me on this score. It will come
+out later - probably January 1992 or so, I imagine. (Oh well.....)
+
+
+
+------------------------------------------------------------------------
+
+
+0.2 Description:
+~~~~~~~~~~~~~~~~
+
+BBBase is an online database program for storing details of BBS systems.
+It has full ANSI graphics, is VERY easy to setup, and has the most
+powerful sysop maintenance section of any Metro Door in existence.
+
+All the sysop functions are available from remote and include the
+ability to edit, rename, backup, delete, copy and list the files inside
+the door's directory.  It also allows the sysop to edit any part of the
+database, or delete entries from it.
+
+User messages to the sysop are supported, as well as the ability to
+delegate maintenance authority to users of a certain security through a
+config file, if so desired.
+
+The database is reasonably extensive and includes fields for:
+
+BBS Name
+Sysop
+Phone number (including area code)
+BBS Software in use
+Baud Rates supported
+Number of lines
+Original poster of the entry
+Date the record was last modified
+A comment line - which may contain anything
+
+Also, a textfile with detailed information about the BBS is supported.
+If the poster of the entry sees fit, he/she may include a free-form text
+of up to 250 lines about the BBS.
+
+The door contains online help about each command.  Listing of the
+database can be done in two forms:  a verbose listing with one screen
+per BBS, or a terse form summary with one line per BBS.
+
+Safe error-checking routines are in place, and the carrier-drop function
+is going to be the fastest of any Metro door, simply because we check
+the carrier on both modem receives AND sends.  This is faster than Metro
+itself, in fact, as Metro only checks while the system is waiting for
+input, not sending it out.
+
+The door weighs in at well over 3,000 lines of code, indicative of just
+how much there actually is in it.
+
+Extended textfile commands are in place when the BBS is outputting text.
+A user can press the spacebar or 'S' to abort, Ctrl-S to pause and any
+other key to restart.  This applies to every text output including the
+Sysop Maintenance section, so don't forget about it, eh?
+
+Oh, and for local logins on an NTSC system, you get 22 lines displayed
+on the screen.  Set your page pausing length to 21 lines - it will
+default to 23 otherwise.
+
+
+------------------------------------------------------------------------
+
+
+0.3 StandAlone Operation:
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Version 1.7 WILL run in standalone mode even without a Metro.cfg.
+Simply CD into the door's directory and run the door.exe file - easy!
+Without an s:Metro.cfg file, an NTSC screen will be used.
+
+If you're running standalone and want a PAL screen, make a file called
+s:Metro.cfg and include in it these four lines:
+
+BBSName Anything you like
+SysopName Anything you like
+WindowWidth 640
+WindowHeight 256
+
+(you don't really have to have BBSName and SysopName, but if you're
+making up this file anyway, why not?)
+
+NB: OzMetro sysops will already have one of these files!!!
+
+
+------------------------------------------------------------------------
+
+
+0.4 Copyright:
+~~~~~~~~~~~~~~
+
+I hold all the copyrights to BBBase.  You may not modify, or attempt to
+disassemble the program.  If you are given a copy of the source code, it
+is strictly for your own personal use.  You may NOT distribute modified
+copies of the program.
+
+[Source code is included in the archive.  So do everything EXCEPT
+distribute it in changed form.  If you make any changes, they're for
+YOUR use, and I'd like to hear about them so I can make the changes and
+include them in the official release].
+
+No other person than the author is authorised to accept any registration
+fee as may be requested. No other person than the author is authorised
+to distribute registered versions of the program.
+
+The evaluation version of the program is completely freely
+distributable, provided this documentation is included with the
+executable.  It would also be greatly appreciated if the file
+'Inquestor.txt' is left with the archive, and placed in the door
+directory when used on other BBSs.
+
+
+------------------------------------------------------------------------
+
+
+0.5 Disclaimer:
+~~~~~~~~~~~~~~~
+
+While all care and attention has been paid to the writing of BBBase, and
+it has been tested on my BBS before release to ensure bug-free
+operation, no liability can ever be assumed by the author for any
+damages (direct or consequential) that may occur from the program's use
+or mis-use.
+
+The author's liability shall in all cases be limited to the net amount
+paid for the software, and claims for amounts in excess of this will be
+refused.
+
+
+------------------------------------------------------------------------
+
+
+0.6 Registration:
+~~~~~~~~~~~~~~~~~
+
+To register this door, send me a few $$ - whatever you think is
+reasonable.  I need the encouragement, okay?
+
+
+------------------------------------------------------------------------
+
+0.7 Contact:
+~~~~~~~~~~~~
+
+You can contact me at:
+
+Peter Deane
+PO Box 228
+Swansea NSW 2281
+Australia
+
+Inquestor BBS Phone number is (049) 721647 or 011-61-49-721647 from the
+USA.  all speeds to 19200, 24hrs (CrashMailable).
+
+Fido Mail is available at 3:622/401, and I'm in AmigaNet, 41:200/401.
+
+
+------------------------------------------------------------------------
+
+                           Section 1 - Setup
+
+------------------------------------------------------------------------
+
+
+1.0 Copy Command in C:
+~~~~~~~~~~~~~~~~~~~~~~
+
+BBBase needs only 1 extra file to run.  And that is, a copy of the DOS
+'Copy' command in the c:  directory.  I think most of you will have this
+file in the correct place already.  The COPY command is only used with
+the Sysop Function 'Backup A File' so even without it you'll still be
+able to use 95% of the features of the door.  Problem is, I think Metro
+itself uses it, as well as a few of my other doors, too...
+
+
+------------------------------------------------------------------------
+
+
+1.1 Config File:
+~~~~~~~~~~~~~~~~
+
+BBBase has a small three-line config file called 'BBBase.cfg'.  It is
+completely optional, and if a config file cannot be found, or is not
+valid, then it will simply revert to the internal defaults.
+
+A config file may look like this:
+
+7
+27
+128
+
+
+Not very impressive, eh?  Here's what the three numbers mean:
+
+
+Line 1 is the level of sysop access for this door.  If you wish to
+delegate authority for managing the database, this is the minimum level
+required to access the sysop functions.  Beware!  The sysop functions
+are VERY POWERFUL, so ensure your users of this level can be trusted not
+to go deleting files left right and centre!  Without the config, this
+value will default to level 8 (not level 9 as you may expect).  So if
+you only want level 9 users to have access to the door, you MUST make up
+a config.
+
+(You could even set it to greater than 9 if you wanted, meaning NOBODY
+AT ALL could get to the sysop functions - maybe you'd have a reason for
+this, but I can't think of one - yes I can:  your sysop password has
+been compromised and you don't want remote callers to access the door in
+case they get nasty and delete all the data files in the door
+directory).
+
+Line 2 is the lowest ASCII value able to be entered into the door's
+editor.  It defaults to 27.  If you don't want users to be able to enter
+ANSI in the messages and texts, set it to 28.  You must ensure this
+value is AT MOST 32, otherwise certain characters will not be able to be
+entered into the editor!!  It also must be at least 20, to lock out some
+of the more exotic control characters.  If the loascii value is not in
+the range 20-32 inclusive, the door will use the internal defaults for
+ALL config values.
+
+The last line is the highest ASCII character you can enter into the
+editor.  It defaults to 255.  However you can lock out high ASCII chars
+by setting it to a lower value.  The MINIMUM value allowable is 123.  If
+you set a value below 123, your config will be ignored and the door will
+revert to the internal defaults.  The maximum is somewhere around
+2,100,000,000, but that's irrelevant.  A user cannot send an ASCII code
+greater than 255 at you through a modem!
+
+After the third line, I recommend you press your return key about 4 or 5
+times, to ensure the End Of File bogey of GFA BASIC is well and truly
+averted.
+
+The config is really only there because I don't like hard-coding stuff
+into programs, preferring to let the user make the decision.  However,
+from what I see, users don't like making config files.  So for this
+door, if the config confuses you, forget all about it.  Just make sure
+that there is no 'BBBase.cfg' in the door directory, and it will use the
+defaults.
+
+
+------------------------------------------------------------------------
+
+
+1.2 Files created:
+~~~~~~~~~~~~~~~~~~
+
+In the door directory, a number of files will be created by the door:
+
+BBBase.dat            The database itself.
+SysopMessages         Messages to the sysop from users.
+BBSName.txt           A textfile with up to 250 lines of info about
+                      a BBS listed in the database.
+
+For this reason, do not keep a file in the door directory with these
+names, as the door will overwrite them.  Also any file with the
+extension #?.txt has a very small chance of being overwritten.  So don't
+keep any '.txt' files in here, either!
+
+
+------------------------------------------------------------------------
+
+
+1.3 Error Checking:
+~~~~~~~~~~~~~~~~~~~
+
+This door has error-checking, and should anything at all go wrong, it
+will simply quit back to the BBS.  Even if it gets an End-Of-File!  Use
+it with confidence!!
+
+If an error exception is trapped, the door will write out to a file
+called 'error.log' in the door directory, briefly listing the time and
+date of the error, who was online at the time, and a brief description
+of the actual error that occured.
+
+The only errors I've gotten from this door have been from the Sysop
+Maintenance section whilst (a) trying to delete a directory, not a file,
+and (b) renaming a file to a name across to another device (EG from DH0:
+to DF1:  - AmigaDOS doesn't allow this!).  Besides, I was actually
+trying to CAUSE errors when I got them!
+
+However, I wrote the program, so I am probably going to be treating it
+more kindly than you.  So if you should ever notice an 'error.log'
+created in the door's directory, please have a look at it, and if you
+like, ask me about it.  Please try to ask the online user a brief
+run-down of what happened, though.  If you can't reproduce bugs, you
+can't fix them.
+
+Some errors will immediately be apparent - such as "File Not Found" or
+"End Of File", indicating your setup needs inspection.  In the case of
+an End Of File, it would be a good idea to get Percy's FileRead or my
+Muddles program out and check all the textfiles in the directory.
+
+Really, this program is very robust, and I doubt you'll ever get an
+error.  Famous last words, these ones.
+
+------------------------------------------------------------------------
+
+
+1.4 Metro Installation Example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Find yourself a vacant door number to use in a DOORFILESx directory.
+Let's assume you are going to set this up the same way I have it:  Door
+number 210 in Doorfiles1/.
+
+Make a directory called 'DOOR210' in Doorfiles1/, and for now, just copy
+all the files from the archive into this directory.  The only file you
+actually need is the executable itself!  I strongly request you leave
+the file Inquestor.txt in that directory too.  Don't delete any of the
+files yet, we'll do that later FROM THE DOOR ITSELF, so you can see how
+it does things.
+
+Please now rename the file 'BBBASE' to the standard OzMetro doorname,
+'Door.exe'!  [Actually I'll call the BBBASE file Door.exe in the arc]
+
+Then, go and add a menu entry to your BBSFILES/MenuCmds_xx file.  My
+entry looks like this:
+
+COMMAND         1       210      O       <O>ther BBS Database
+
+The first line is the security, second is the command number, third is
+the menu keypress (Yep, I'm running out of keypresses - B was already
+taken) and the fourth is the text the BBS refers to the door as, and
+must be a maximum of 34 characters.
+
+What I generally do with a new door is initially set the security up to
+9, so I can play around with it myself and get it running.  But I don't
+think you'll have much trouble with this door.  It is recommended you do
+at least try a new door out before letting it loose on external callers,
+however, unless you want the system crashing.
+
+BBBase needs only 1 extra file to run.  And that is, a copy of the DOS
+'Copy' command in the c:  directory.  I think most of you will have this
+file in the correct place already.  The COPY command is only used with
+the Sysop Function 'Backup A File' so even without it you'll still be
+able to use 95% of the features of the door.  Problem is, I think Metro
+itself uses it, as well as a few of my other doors, too...
+
+
+------------------------------------------------------------------------
+
+
+1.5 TransAmiga (Arexx) Installation Example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+I think I provide a little too much info here, but it's useful for
+reference, I suppose. The last sub-section is where it's all heading,
+not forgetting the first...
+
+Remember to pay special attention to the section on BBBase.cfg in these
+docs. BBBase has a configurable security level, but it will default to
+level 8 normally. (Metro levels are 1-9). You therefore need to ENSURE
+that the config file is working, because the sysop maintenance section
+of this door is pretty powerful. It can wipe out its own database! It
+can even delete itself. [However you can avert this by renaming the
+program like a Metro door, eg Door21].
+
+Incidentally, the door is hard-wired for serial.device, unit 0. It will
+therefor ONLY work on a single line system. Multiline just hasn't had a
+thought. It would be advisable NOT to run this on multiple lines. Only
+run it on the line that uses the standard 'serial.device'.
+
+One small word when setting up: if you have all setup and running, and
+the door starts, and you see a small flash on the workbench screen.
+Instantly, nothing happens, and you are back at the Externals menu!
+
+Reason: the door is being run in remote mode. Change the value of
+typeofcall to 0 to let the door know it doesn't have to check for
+carrier loss... Remember to change it back to 1 for normal BBS use.
+
+You could setup a SYSOP BBBase program using a hacked copy of
+BBBase.trans for your own personal use. This would use different config
+files, etc, etc.
+
+
+
+        1.5.1 S:Metro.cfg
+        ~~~~~~~~~~~~~~~~~
+
+[Deleted - this file is not required now - see under "Standalone
+Operation" for more info on the s:Metro.cfg file]
+
+
+        1.5.2 Directory Setup
+        ~~~~~~~~~~~~~~~~~~~~~
+
+Setup a door directory somewhere where you keep doors. (Hey, there are
+so many ways of doing this. I like the paragon DOORS: assignment, but if
+you have another system, it's unimportant).
+
+In the directory, keep the door executable, and allow room for some
+created files. I always generally keep each door's docs in their
+directory, too (& source for ones I have written).
+
+Let's call the directory DOORS:BBBase
+
+In it, we have a copy of BBBase.exe
+
+Note what you specify as the directory, you will need to specify it
+shortly in the Arexx macro that actually runs the door.
+
+All up the directory setup looks like
+
+
+Doors: --+
+         |
+         +- BBBase/ --+
+                      | 
+                      +- BBBase.exe
+                      |
+                      +- BBBase.dat
+                      |
+                      +- BBBase.cfg
+                      |
+                      +- BBBase.doc
+                      |
+                      +- SysopMessages
+                      |
+                      +- Inquestor.txt
+                      |
+                      +- etc. etc,
+                      |
+                      +--- Other/
+
+(What's above 'DOORS:' is up to you, of course)
+
+
+
+        1.5.3 Ram:UserData
+        ~~~~~~~~~~~~~~~~~~
+
+[The notes on this file are pretty extensive, and you can skip this
+section if you want. Come back to it later for reference].
+
+Userdata is MOST important.  All doors will NOT run without it except
+for the few I wrote that will run stand-alone.  But these aren't much
+good because they will not be using the modem and have hard-coded
+usernames and remaining times!  This file is generated by either the
+doorhandler or the Metro exe before any door is run.  Then the modem is
+closed and the door itself is simply 'RUN' from the program.  The door
+will look for the details from 'RAM:userdata' very early on to see who's
+on and what sort of other things it will need to know.
+
+Such a file looks like:
+
+239                        ;Remaining time in minutes         
+PETER DEANE                ;User's name
+1                          ;User number
+9                          ;Security of caller (1-9)
+2400                       ;Baud rate
+0                          ;Local (=0) or remote (=1)
+BBS:DOORFILES1/DOOR10/     ;The pathname for the door to use
+
+
+The only one that's not self-explanatory there is the last entry:  the
+path name.  Metro doors are in directories called DOORFILESx/DOORy.  We
+rename the actual door exe, so that if, for instance the dhandler
+receives command number 201, it will run BBS:DOORFILES1/DOOR201/DOOR.exe
+The door executable MUST be 'DOOR.exe'.  However if running on another
+system there's no need to obey this rule, and you can 'RUN WHATEVER'
+when you actually call the door with whatever type of script you are
+using (Arrexx or DOS).
+
+The pathname MUST end with the trailing slash, and in practise, you'll
+find it much more convenient to have an individual directory for every
+door.  This way, each door's files will not get jumbled up with other
+doors' files.  I'd hate to see the confusion in a few Paragon sysops'
+DOORS:  directories!  If you like, you can execute a CD to the door's
+directory and leave this line completely blank if you like, and things
+should work, however it wouldn't be too difficult to add it in to the
+'ram:userdata' file.
+
+The door itself will add the path in front of every file it attempts to
+access.  This is probably best explained by some BASIC code.  Firstly
+the path is read in and stored in a variable which I always call path$.
+
+So if the door needs to access a file, it will call it thus:
+
+OPEN "I",#2,path$+"FRED.dat",1024
+
+If you have CD'd to the directory firstly, then if path$ is a null
+string the door will still find all its files fine. However, it's
+adviseable to put in the value just in case you cannot guarantee the
+'CD' command will remain valid.
+
+You'll need to somehow figure out ways of obtaining the figures from
+your BBS, or alternatively, make up a dummy file with guesses at the
+values.  You will mainly be looking at finding values for the baud rate
+(MUST be correct otherwise the door will open the modem at the wrong
+speed), the username and the time remaining.  NB: If using a locked baud
+rate, you should use THAT locked baud rate to run the door.  This makes
+running Metro doors on other systems SO MUCH MORE easy!!!
+
+Metro securities have a single digit value from 1-9 (0 is NOT valid).
+Be careful if giving a user level 8 or level 9, as this will sometimes
+cause the door to give the user special sysop-only functions.  (In
+BBBase for instance this includes the power to delete every file in the
+door's directory)!
+
+Also it's crucial that the local/remote value is correct.  If in doubt
+set it to '1'.  You will (in this case) not be able to login locally and
+use the door (it would kick you off very early on because there would be
+no carrier from the modem - although you COULD set carrier detect to OFF
+(AT&C0) to avert this.  This is not very desirable for the BBS,
+however).  If you set the value to '0' the door will not send stuff to
+or receive stuff from the modem, meaning remote callers would think the
+system had crashed.  (The door would idle-time them out in 5 minutes in
+this case, but they'd have dropped carrier before then).
+
+If really desparate, try something like this as the userdata file:
+
+20
+A USER
+10
+5
+19200
+1
+DOOR:DIRECTORY/
+
+Keep that file handy, and just 'COPY' it to 'RAM:userdata' before
+running the door. That file would give everyone 20 minutes in the door,
+with a fixed username, level 5 and only would only work on a locked baud
+rate of 19200.
+
+However, if you have ways of getting the values from your BBS, then slot
+them into the file!
+
+
+
+        1.5.4 BBBase.trans
+        ~~~~~~~~~~~~~~~~~~
+
+On startup, TransAmiga needs to write out the ram:Userdata file that
+Metro doors need.  This is pretty easy to arrange by doing something
+like this:
+
+Here is an Arexx Macro, 'BBBase.trans'. It lives in the BBS:Rexx
+directory:
+
+
+--- cut ---
+
+/* How to run BBBase v1.6 off Transamiga V1.1           */
+
+/* By the way, I can't program in Arexx for nuts        */
+/* I've only been doing this for three days so far...   */
+/* If you can clean this up, FEEL FREE to redistribute! */
+
+/* Naturally, for anything...   */
+
+options results
+
+/* Remaining time               */
+
+systeminfo m ; timeleft=result
+
+/* User's name                  */
+
+userinfo a   ; username=result
+
+/* Set dummy user number.  */
+
+usernumber=20
+
+/* Security level                               */
+/*                                              */
+/* (Metro securities range from 1-9, BTW)       */
+/*                                              */
+/* Since BBBase has a configurable sysop level  */
+/* You can use TransAmiga's level here! Make    */
+/* sure you edit BBBase.cfg to reflect this!!   */
+
+userinfo o   ; level=result
+
+/* the Baud rate is easy                */
+
+systeminfo r ; baudrate=result
+
+/* If you are using a locked baud rate, use that INSTEAD eg: */
+
+baudrate=19200
+
+/* Local or remote. Use '0' for LOCAL logins ONLY!  */
+/* Always be safe and turn the modem on with '1'    */
+/* (Setup another Arexx entry with this set to 0 if */
+/*  you like for local logins. Leave the security   */
+/*  high for this in your extra.rx file, however!)  */
+
+typeofcall=1
+
+/* Let's create the file: */
+
+open('temp','ram:userdata','W')
+writeln('temp',timeleft)
+writeln('temp',username)
+writeln('temp',usernumber)
+writeln('temp',level)
+writeln('temp',baudrate)
+writeln('temp',typeofcall)
+
+/* Pathname to the door's directory.                */
+
+/* This one, I think is best left up to YOU!        */
+/* NB: You must add the trailing slash!!!!!!!       */
+
+writeln('temp',"Doors:BBBase/")
+
+close('temp')
+
+/* Well, that all done (won't take long!), we can simply */
+/* run the door!                                         */
+
+address command 'Doors:BBBase/BBBase.exe'
+
+exit 0
+
+--- cut ---
+
+
+Also, you need to add two lines to your Extra.rx file (or wherever you
+are adding it), one for local login versions, and the normal one.  But I
+think if you've made it this far, you're on your own!
+
+
+------------------------------------------------------------------------
+
+                         Section 2 - Operation
+
+------------------------------------------------------------------------
+
+
+2.0 General
+~~~~~~~~~~~
+
+You are now ready to run BBBase.  Login to Metro locally and call up the
+door.  BBBase opens an 8-colour Medium-Res screen (the same size you
+specify in s:Metro.config - PAL if need be).  The colour dark blue has
+been modified to be a little brighter than the ANSI standards for ease
+of use on local logins, but apart from that, it's straight ANSI all the
+way.
+
+Here's where we see the first of the new experiments.  If the call is a
+local login, the screen will be brought to the front and the window made
+active.  If, however, the caller is remote, then the screen will be
+pushed to the back, and the window will NOT be active.  This idea is
+straight from Craig Jackson's P2M.  If a remote caller is online and
+using the door, you will need to click in the window before you can
+enter any keystrokes into it.
+
+The advantage of this is if you are working on your system, you will not
+have to struggle to move the window out of the way, and click back in
+the application you are using at the time.  Will have to modify my other
+doors to do this one day...  [No soon as I do that I get requests from
+sysops NOT to do it, but leave the screen at the front!!  An ENV:
+variable for this behaviour is the ONLY way to go from what I can see,
+or maybe a line in s:Metro.cfg]
+
+The first screen that comes up is the welcome screen and if the call is
+a local login you will see a summary of your config file.  (Remote
+callers are spared this).  Answer Yes or No to the ANSI question, and
+you'll be deposited at the main menu.
+
+During all this the door will have checked to see if a data file exists,
+and if none does exist, it will create one for you, with my BBS listed
+as record #1.  I should warn you that I am always reserving Record #1
+for Inquestor, and if you edit it or delete it from the listing, I will
+re-write the details for record #1 back over the top of what is there.
+
+So please don't change the details for record #1, unless you want to see
+what you put in place of it over-written!  (You can at least let me have
+SOME publicity).
+
+Probably the first thing you should do is select the online help option
+and read how to work the door.  I won't repeat the help in these docs,
+as it's much nicer reading it in colour.  After having done that you
+will probably want to have a look at the format of the [V]erbose and
+[T]erse listings.
+
+
+------------------------------------------------------------------------
+
+
+2.1 [A]dd an Entry
+~~~~~~~~~~~~~~~~~~
+
+Then you may like to try adding your own BBS to the records.  Select
+[A]dd an Entry and then enter the details.
+
+I do perform a few checks on the details you enter.  They are:
+
+BBS Name:
+
+The letters 'BBS' are stripped from the input.  (99% of BBSs are called
+'Something' BBS - why bother to store it?)
+
+The remaining string must then be greater than 4 characters long.  The
+first and last character are stripped, and a search through the database
+is made to ensure that this BBS is not already in the records.  Try
+typing 'Inquestor' in and see what happens.  The first letter of the BBS
+name will also be converted to uppercase, in case the user forgets to
+press shift when entering the name - makes it look better!
+
+Sysop Name:
+
+Must be at least 4 characters long.  The first character is converted to
+uppercase as well.
+
+Area Code:
+
+I'm not sure what this is referred to in USA, but it's the long-distance
+code you dial before the actual phone number.  It must be all numeric,
+and either 2 or 3 figures long.  (Yes, in Australia, a lot of area codes
+are only 2 figures long.  And virtually all of them begin with '0' as
+well.  Ben's door was rejecting area codes with a leading '0' and
+insisted on 3 characters for this field).
+
+Phone Number:
+
+All numeric again, and 5, 6, or 7 figures in length.  (Yep, we do have 5
+digit phone numbers over here.  Most are 6, and in only in the large
+cities do we ever have 7 digits).
+
+[Oh hell!  8 digit phone numbers are coming...  The field size is only
+7 bytes, too - drat!  Will have to modify this later when more 8 digit
+numbers become available in Australia, and write a program to convert
+your old database over to the new field size.  Mind you, I think I'll
+make this field TEN characters long when I do this!]
+
+Software:
+
+No checking at all is done on this, as it's not really a crucial field,
+and the user entering the data may not even know what software is in
+use.
+
+Baud Rates:
+
+This one is easy.  I simply present a list of Baud rates and the user
+indicates whether or not the BBS supports that speed.  The baud rates I
+cover are 300, 1200/75 (V.23 that is - forget this one as it's not used
+in the USA to any great extent, but certainly is over here and in
+Europe), 1200, 2400, and Higher.  (Rather than going into the details of
+high speed modems it's simply 'Higher'!)
+
+Number of lines:
+
+A value between 1 and 99.  You can't run a BBS on zero lines, and I only
+have 2 characters for this field.  Besides, I don't know of any systems
+with more than 99 lines.  (Only integers are used by this program, but a
+part-time system would probably justify a 0.5 line entry, eh?)
+
+1-Line Comment:
+
+At least 8 characters.  This could include the hours of operation, files
+supported, details of the high speed modem, or anything else you can
+think of.  You have up to 76 characters.
+
+
+Of course the rudimentary checking is not going to prevent bogus entries
+in the database, but you, and anyone else with the level set in the
+config can edit or delete the entries at a later stage.
+
+I imagine the registered version will eventually get an optional
+textfile of words to exclude from these fields.  Such as obscenities,
+undesirable systems, and anything you like, basically.  I'll just see
+how my users go over the next few weeks, and most likely add this
+feature shortly. [I doubt it actually....]
+
+
+After all the details are entered the user is asked whether he'd like to
+supply a detailed description of the BBS he just entered.  If so, then
+Percy's Line editor is called allowing the entry of up to 250 lines of
+text.  I have re-written Percy's Line Editor to be a heap faster than it
+used to be (not that it was bad before), and this is one of the places
+it can be called.
+
+A visiting sysop could actually ASCII send a prepared file to this
+editor if he desired, provided there were no blank lines in the ASCII
+file he's sending.  It would provide a quick way of adding a few
+screenfuls about the system.
+
+Naturally the detailed description is optional, but if one exists, it
+can be accessed from the Verbose Display.
+
+All detailed description files are stored in your directory with the
+filename extension '.txt'.  Be aware that if a user enters a BBS name
+that makes it through the duplicate entry check, he might decide to
+enter a long description for it.  As a consequence of this, a text will
+be created called BBSNAME.txt, and would overwrite any existing
+BBSNAME.txt in the door directory.  Not very likely, but just be aware
+that if you are keeping files in this directory, there's one chance in a
+million that a file with a filename extension '.txt' might get
+overwritten at some stage.  So if you want to guarantee a file's
+existence, rename Fred.txt to Fred.doc or something along these lines.
+Better still, keep it in another directory!
+
+Also, you are able to provide a long text describing each BBS by simply
+placing a file called BBSNAME.txt in the door directory.  If you wanted
+to you could capture some BBS info from another system (maybe membership
+details and so on), edit the file and rename it.  Check to ensure the
+filename is the same as that appearing in your Database.
+
+For instance if you called Blue Field BBS and captured some info, you
+could make up a textfile called 'Blue Field.txt' and place it in the
+door directory.  Then, if 'Blue Field' has an entry in your database,
+users could access the detailed info file from the [V]erbose display.
+
+If you've gotten the filenames to match, you'll notice an extra option
+appear in the Verbose listing:  [N]ext [P]rev [J]ump [D]etails [Q]uit.
+If a long description is not available, [D]etails will not appear in
+this options line.
+
+Textfiles added in this manner can be of any length at all, providing
+the EndOfFile marker is in the correct place.  (Read:  you have edited
+the text, put the cursor at the bottom, whacked Return a couple of times
+and resaved it).  If you are going to edit the textfles with the
+internal BBBase editor, they must be less than 250 lines, however.
+
+
+------------------------------------------------------------------------
+
+
+2.2 [E]dit an Entry
+~~~~~~~~~~~~~~~~~~~
+
+Once an entry has been entered then a limited number of people can
+actually change it in the database.  They are:
+
+The original poster of the entry.  You.  Anyone else with sysop access
+to this door.  The person listed as 'Sysop' for that BBS entry provided
+the username on your BBS matches that in the database.  For instance if
+Craig Jackson had been entered into the Database as a Sysop and he was
+calling Percy's BBS, then he would NOT be able to edit his database
+entry because his username on Percy's Board is 'WOLF'.  However, I would
+be able to edit my entry for Inquestor on virtually anyone's board as I
+always use my real name when calling other systems.
+
+If the sysop of a BBS ever does edit an entry, then the name of the
+person who entered the entry is changed to the sysop's name.
+
+For instance, say Joe Blow enters 'The Outer Limits' into the database
+on my system, and gives 'Mark Turner' as the sysop name.  If Mark Turner
+was to call, and edit the entry, then Joe Blow's name in the
+poster-of-entry field will be overwritten with Mark Turner's name, and
+Joe Blow would then NOT be able to edit that entry again later.  (Unless
+he had high enough access, I suppose) (I always count on a BBS Sysop
+knowing more about his system than a user!)
+
+When being edited, the date is also updated so that users will know how
+current the information is.
+
+About the only other thing that's not apparent is that after an entry
+has been edited, the door also will ask you whether you wish to edit (if
+it exists) or add a long description for that BBS.  So if you should
+notice your BBS listed on someone else's system, you may like to not
+actually change the records in the database, but ASCII-send a doc file
+you have advertising your BBS.  You can do this by selecting [E]dit an
+Entry first.
+
+If a user selects to edit an entry but is not acceptable to this door as
+being able to edit the entry, he is asked whether he would like to enter
+a message for the sysop.  If he so chooses, then his message, along with
+ALL THE BBS DETAILS as they appear in the database are added to the
+SysopMessages file.  This saves him having to repeat the info, and
+allows you to see exactly what he's complaining about.
+
+
+------------------------------------------------------------------------
+
+
+2.3 [M]essage to Sysop
+~~~~~~~~~~~~~~~~~~~~~~
+
+This is yet another way a user can leave you a message.  To access the
+mail you must use the Sysop Maintenance section of the door.  The
+messages will be all appended to one long textfile, so there is no way
+of you actually replying from within the door.  It just provides you
+with an easy way of seeing which records in the database you may need to
+attend to.
+
+
+------------------------------------------------------------------------
+
+                     Section 3 - Sysop Maintenance:
+
+------------------------------------------------------------------------
+
+3.0 General
+~~~~~~~~~~~
+
+Firstly, don't forget that a very important part of the maintenance is
+through the [E]dit an Entry command on the main menu.  As sysop you can
+edit any of the entries using this function.
+
+In addition, this door is endowed with the most powerful sysop
+maintenance section found on any Metro door.  It basically allows you
+DOS access to all the files WITHIN THE DOOR DIRECTORY ITSELF.  Note that
+you also only need specify the filename.  The door will automatically
+prepend the pathname in front of it for you.
+
+I was planning on adding a few rudimentary commands to allow you to
+rename a BBS description, or edit them and so on, but I decided it would
+probably be best to provide a more general sort of maintenance allowing
+you to use your own discretion.
+
+Any of these functions work from remote just as well as at the local
+console.
+
+Be warned that giving you all this power is also a two-edged sword.  You
+could really do some damage if this power is not handled carefully.
+
+Anyway, I suggest you now use some of these functions.  ZZZInquestor.pad
+in the archive is a good file to practice with.  Back it up, rename it,
+delete it, edit it, etc.  Just have a play around to see exactly what
+this door can do.  You may like to leave yourself a message from the
+Main Menu so you can read it from Maintenance, as well.
+
+
+------------------------------------------------------------------------
+
+
+3.1 Check User Messages
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Any user messages to you are simply displayed as a single big textfile
+(which is what it is!).  After you read them you can select to delete
+the file.
+
+
+------------------------------------------------------------------------
+
+
+3.2 Files List
+~~~~~~~~~~~~~~
+
+Lists all files in the door's directory and looks something like:
+
+
+ BBBase.doc                       30561 02:11:04 09/09/1991
+ Registration                      6213 01:59:55 09/09/1991
+ Inquestor.txt                     1719 05:46:43 09/08/1991
+ door10                           80536 05:19:05 09/08/1991
+ bbbase.dat                        3186 05:51:44 09/08/1991
+ ZZZInquestor.pad                   461 05:26:04 09/08/1991
+ BBBase.cfg.example                  13 02:06:00 09/09/1991
+ SysopMessages                      335 18:40:00 09/08/1991
+
+
+The figures on the right are the filesizes and time and date of the
+creation of the file.  Basically, it's just like calling up a list of
+the directory from the CLI.
+
+(These filesizes will not be right for the distribution archive - they
+are for my versions as they stand now, so don't assume your version has
+a virus or anything, as they will not match!)
+
+
+------------------------------------------------------------------------
+
+
+3.3 View a File
+~~~~~~~~~~~~~~~
+
+Sends any textfile to your screen.  Please do not use on binary files
+because even the error checking won't handle a binary file being read
+into the displayer, the program just locked up on me when I tried to
+read the executable of the door itself, and with the GFA source all the
+text output from the program went weird.  The database itself printed up
+okay, but I got an EndOfFile error at the end.  Just steer clear of
+binary files and you'll be right.
+
+Actually, the exe and the database (BBBase.dat) are probably going to be
+the only binary files in this directory, unless you've left the program
+ARCHIVE in here.
+
+One very important text to view here is the file 'error.log'.  If one
+exists, it means the door has crashed on you (or a user) for some
+reason.  I wonder why?
+
+
+------------------------------------------------------------------------
+
+
+3.4 Backup a File
+~~~~~~~~~~~~~~~~~
+
+Will copy any file in the directory to 'filename.bak'.  Simply used in
+case you wish to get another copy of something, or maybe for backing up
+a copy of the database itself as it stands.  Maybe you'd like to backup
+the database itself before erasing entries from it, to be on the safe
+side.
+
+You can also use this in conjunction with the Rename command to actually
+create a new file.  Maybe two BBSs are so similar, the same text
+description can be used for both.  To do this, simply backup
+'BBSName1.txt' and you'll get 'BBSName1.txt.bak'.  Then Rename
+'BBSName1.txt.bak' to 'BBSName2.txt' and there you go.
+
+Also, since the text editor can only be called to edit an existing file,
+if you want to create a new one, just backup a short file in the
+directory, and edit the backup copy deleting its contents early on in
+the editing session.  You can later rename it to whatever you wanted to
+create in the first place.
+
+This function will not work if you do not have a copy of the DOS command
+'COPY' in your c:  directory.
+
+------------------------------------------------------------------------
+
+
+3.5 Delete a File
+~~~~~~~~~~~~~~~~~
+
+This simply deletes any file at all except - to protect you from
+deleting the door itself - you cannot delete a filename with the string
+'DOOR' as the first four characters.  It will ask for confirmation
+before performing the delete.  If the delete protection bit is set for
+that file, this will cause an error and the door will quit on you.
+
+
+------------------------------------------------------------------------
+
+
+3.6 Rename a File
+~~~~~~~~~~~~~~~~~
+
+Again, to prevent the door itself from being deleted you cannot rename a
+file with the first four characters 'DOOR'.  If the destination filename
+already exists, the rename will not proceed.  (It will in this case
+remind you that you should possibly delete the destination filename
+firstly).
+
+Again, you can only work inside the door directory, and cannot rename a
+file to a filename outside of this directory.  This is in place for the
+evaluation version of the door only.  If you register the program, I
+will include a standalone door allowing all these functions (and more)
+to be used on any file available to the system.
+
+
+------------------------------------------------------------------------
+
+
+3.7 Text Editor
+~~~~~~~~~~~~~~~
+
+Calls Percy's line editor up on an existing file.  Note NOT to edit
+binary files, it wouldn't go down very well at all.
+
+If the file is longer than 250 lines long, only the first 250 lines will
+be read into the editor.  You then have a choice.  You can abort the
+Editor, and the file will be untouched, or you could simply work on the
+first 250 lines of the text, and re-save, losing everything in the
+original past line number 250.
+
+To be really on the safe side, maybe you should Backup the file first
+before calling the editor on it.  That way all will not be lost, and you
+can rename it back quite safely later on.
+
+
+------------------------------------------------------------------------
+
+
+3.8 Erase Database Entry
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+This will remove 1 entry from the database listing.  Originally this was
+the only sysop function I was planning to add, because there's no other
+way of maintaining the binary database file.
+
+Use this feature if the BBS has closed down, or you don't like the sysop
+of it, or its name is 'Fuck You BBS' or the like!
+
+Note that you CANNOT delete Inquestor BBS from the listing.  (You can,
+but then the next time the door runs, it will re-write Inquestor's
+details into the first record slot, completely erasing what was there
+before).
+
+If you use this feature the door will quit you back to the main door
+menu after each deletion.  This was a nasty hack to avoid a small bug.
+Come back to sysop maintenance later on, all is normal!
+
+------------------------------------------------------------------------
+
+
+3.9 Kill Entire Database
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is a pretty drastic step to take, but the choice is there.  Maybe
+if you want a fresh start to things, or have moved from the West Coast
+to the East Coast and all the entries are for long-distance boards?
+
+It doesn't actually delete the 'BBBase.dat' file, it simply renames it
+to 'BBBase.killed', but in essence it will stop the door recognising the
+database on the next invocation causing it to create a new one.  You will
+have to manually delete 'BBBase.killed' from the CLI or this door or any
+of a number of ways later on if you want to be completely rid of it.
+
+Also, because the database has disappeared, this feature will also quit
+you straight out of the door after invoking it!
+
+
+
+------------------------------------------------------------------------
+
+                       Section 4 - Miscellaneous
+
+------------------------------------------------------------------------
+
+
+4.0 Quitting from the Door:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are five ways you can quit the door:
+
+One is to press 'Q' from the Main Menu.
+
+The second would be to kill the entire database from Sysop Maintenance.
+
+The third is to cause some sort of fatal error, such as a DOS error from
+the maintenance section.
+
+The fourth way is to press both mouse buttons at the same time while the
+door is waiting for user input.  This will work even if the Door's
+window is not active or even being displayed, so be careful.  If this
+does happen, however, an alert will be displayed asking you to confirm
+whether you really want to quit.
+
+There is now a FIFTH way of quitting the door, and that is to press F1
+while the door is waiting for input.  This works in a similar way to the
+above method, however the user will see the exit text, whereas with a
+dual mouse-button quit, it ends immediately.
+
+A remote user ALWAYS has the option of 'quitting' the door in three more
+ways:
+
+First way is to run out of online time
+
+Second way is to idle out at a prompt (set for 10 mins for level 9 -
+sysop - and 5 mins for everyon else).
+
+Third way is a quick way - drop carrier.
+
+------------------------------------------------------------------------
+
+
+4.9 Well, That's It:
+~~~~~~~~~~~~~~~~~~~~
+
+I think that just about covers it all.  Any more knowledge about the
+door can be obtained by actually using it.  It's probably the easiest
+Metro Door to setup (only the exe itself is needed).  It's also my most
+technically advanced door to date with regard to programming and using
+the features of GFA-BASIC more efficiently.  I'll be using a lot of the
+ideas developed for this one in future doors and revisions.
+
+[Too right!]
+
+
+------------------------------------------------------------------------
+
+

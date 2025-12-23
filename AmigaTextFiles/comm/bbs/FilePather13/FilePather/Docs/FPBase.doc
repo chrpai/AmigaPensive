@@ -1,0 +1,251 @@
+ ----------------------------------------------------------------------------
+
+                              FPBase 1.0
+
+                                  by
+
+                             Johan Torin
+
+              Approved and endorsed by Users Standards Group
+
+ ----------------------------------------------------------------------------
+ 
+    The programs and files in this distribution are freely distributable, as
+ long as the archive remains intact, but are also Copyright © Johan Torin.
+ They may be freely distributed as long as no more than a nominal fee is
+ charged to cover time and copying costs. None of the files can be included
+ with commercial distributions without written permission from the author.
+
+    This product is provided as is without warranties of any kind: the
+ author of this program cannot be held liable for any defects in the
+ executable nor in the documentation or in any other files contained in
+ this package. Any damage directly or indirectly caused by the use/misuse
+ of FPBase is the sole responsibility of the user her/him self.
+
+ However, if  you  use  this  program  you  MUST send a message to me! Either
+ through email, or by  ordinary  snail mail.  This is in your own interest if
+ you want continued development of this project.
+
+ Features
+ --------
+ · Creates and maintains a database of all different names found in the
+    savelists, and their frequency.
+ · Creates toplists over the most found names.
+ · Runs in the background or as an 'one-run' job.
+ · Uses little memory; both when running and especially in waitmode.
+ · Pure! That is; it can be made resident!
+ · 100% assembler.
+ · Enforcer & Mungwall proof.
+ · Requires 2.04 to run (V37).
+
+ I have tried to make the utility suit both the normal user/bbs and
+ the 'elite' trader/board.
+
+
+ What it does
+ ------------
+
+ As said before, FPBase will create and update a database over all
+ different names found. It will append each new line to '<reclist>.rec',
+ and keep a record about the line found frequency in '<reclist>.cnt'.
+ If a name is recognized, FPBase will update the database, IF the
+ new lines date is newer than the database. Incase of an older line,
+ FPBase will just update the count value. Note that all name checking
+ is case-sensitive! That means that 'Arnold' and 'ArNolD' will create
+ two different entries. So beware of the spelling when changing the
+ settings for FilePather.
+
+
+ Installation
+ ------------
+
+ The provided installation script uses Commodores Installer utility, which
+ you can find in most modern commercial packages and several PD programs.
+ The reason why I didn't included Installer is the filesize, over 100Kb.
+ Ask your sysop for it.
+
+ The installation script is shared with FilePather, and will install and
+ setup FPBase for you. It will ask some questions which be stored as
+ environment variables in ENV:.
+
+
+ Template
+ --------
+
+ Usage: FPBase RecList <reclist> [SaveList <list>] [Quit]
+ [TaskPri <taskpri>] [Top <n>] [TopList <toplist>] [SkipFirst]
+
+
+ Keywords can be typed in with any case mixture and can be entered in
+ any order. Strings may be enclosed with double quotes (") OR single
+ quotes ('), but it is only neccesary when the string contains spaces.
+ Keywords enclosed with [] are optional.
+
+ Explanation of keywords:
+ RecList <reclist>		Specifies the name of the files there
+				the database will be stored. '.rec' and
+				'.cnt' (record & count) will be appended
+				on the, if so needed truncated, filename.
+				Note that it is possible to specify the
+				reclist filename in the 'RecList'
+				environment variable.
+
+ [Savelist <savelist>]		Normally, FPBase will be called by
+				FilePather, which will pass the filename
+				to process. However, if you specify the
+				savelist directly, FPBase will process
+				it and quit directly after finishing.
+				This keyword makes it possible for the
+				normal user to do all processing from
+				the startup. Not recommended for a BBS,
+				since the savelist might grow very large!
+				
+ [Quit]				FPBase will try to find an allready
+				running copy of FPBase, and tell it
+				to quit. Note that since all messages
+				are queued it may take a while for it
+				to respond.
+
+ [TaskPri <taskpri>]		This keyword sets the taskpriority for
+				FPBase. Normally you shouldn't use
+				values higher than 10 or lower than 10.
+				It might be a good idea to check the
+				priority of other tasks running at the
+				same time as FPBase. If FilePather
+				runs on a lower priority, it will be
+				suppressed from running! So FPBase
+				should run a few steps lower than
+				important tasks, but higher than tasks
+				which either runs forever, as a picture
+				render, or non-important tasks as a
+				screenblanker.
+
+ [Top <n>]			Specifies how many entries the toplist
+				should have.
+
+ [TopList <toplist>]		The filename of the toplist data files.
+				'.tre' and '.tcn' will be appended on the,
+				if needed truncated, filename
+
+ [SkipFirst]			Since FilePather writes the local FilePather
+				line to the savelist as well as to the file
+				under processing, your own system will show
+				up as the first and most frequent entry.
+				Although this is a desired feature due to
+				the possiblity of statistics, you might want
+				to suppress yourself from the toplist by
+				specifying this keyword.
+
+ [VarDir <dir>]			If specified, FPBase will load its
+				environment variable(s) from this directory,
+				thus make it possible to store them on disk
+				instead of your precious memory. Note that
+				the path MUST end with either ':' or '/'.
+
+
+ Entering no arguments will show the template, IF no environment variables
+ are set, otherwise FPBase may go into waitmode. Therefore: use 'FPBase ?'
+ to inquire the template.
+
+
+ Environment variables
+ ---------------------
+
+ FPBase checks only two environment variables, Reclist and FP_PrefsDir.
+ RecList gives the same information as the keyword RecList does. Ie,
+ the file there the database is stored.
+ 
+ FP_PrefsDir must reside directly in ENVARC:/ENV:, as it holds the path
+ to the directory where the other variable is loaded from. Thus it's
+ possible to store the env. variables on another device than the ram disk.
+ This variable is shared with FilePather. If the variable isn't found,
+ FPBase will default to 'ENV:FilePather/'.
+
+
+ Example command lines
+ ---------------------
+
+ For a normal system. Should be placed in the User-startup:
+ FPBase RECLIST S:Reccy
+
+ Run FPBase only once:
+ FPBase RECLIST S:Reccy SaveList S:FP_TempFile
+
+ Use the environment variable to specify the reclist, and do a toplist:
+ FPBase Top 10 TopList T:Toppy SKIPFIRST
+
+ Append 'Run >NIL: <NIL: ' to the beginning of all commandlines to detach
+ from the process.
+
+
+ Making it resident
+ ------------------
+ Well, for you out there with no idea how to make a command resident I will
+ show you how:
+
+ Resident C:FPBase PURE
+
+ (Put it in your User-Startup or likewise)
+ PURE incase the P bit isn't set in the protection mask. FPBase will
+ now run much faster since it doesn't have to reload from disk each time.
+ However, if you allready runs FPBase as a background process, it will
+ not have to reload. Anyway you will not lose any significant amount of
+ memory doing so, and if you are planning on sending commands to FPBase,
+ it is recommended that you make FPBase resident.
+
+
+ Automatic rebooting
+ -------------------
+
+ If you run an unattended system (BBS), and you want to reset the
+ computer every day, it could be hard to know if FPBase is working
+ or not. Although FPBase allready has a bit of security built in
+ (save saves), it's possible that the files in the database will crash
+ on a reset. To prevent this, use this method: run FPBase as normal
+ from a scriptfile in your startup.
+
+ 8<--------------------------------------------------------------------------
+ ;Example scriptfile for FPBase
+ 
+ C:FPBase RECLIST S:FP_Database
+ C:Wait 3			;Optional! Makes sure the drives stops.
+ C:Reset
+ 8<--------------------------------------------------------------------------
+
+ When the time is right for a reset, you suspend your nodes and execute
+ 'FPBase Quit' to reset. Since FPBase doesn't detaches from the CLI,
+ will not the scriptfile continue before FPBase exits.
+
+ Fileformat
+ ----------
+ The fileformat for the database is the simpliest format possible.
+ Each line in the Rec file has a longword value in the corresponding Cnt
+ file. Ie, if the Rec file consists of 5 lines, the Cnt file is 5*4 bytes
+ big. Each longword simply tells how many times the line have been found,
+ with one exception. All values over $80000000 is reserved for future use,
+ and should be skipped. Currently only the value -1 ($ffffffff), is used.
+ It's means that this entry is obsolete and should be ignored. The database
+ is cleaned from such entries every now and then, so obsolete entries can
+ be found in the files.
+
+ Currently FPBase has a built in linelength limitation of 1000 bytes.
+ This may change in coming versions.
+
+ History
+ -------
+
+ 1.0 - April 8 1995
+   First release. Many betatests and changes.
+
+ Bugs
+ ----
+ · None known :)
+
+ To do
+ -----
+ · Ability to delete entries in the database by date or name.
+ · Lots of configs switches! Maybe a prefseditor?
+ · Even more safety when handling files.
+ · Sanity check on database files when initializing.
+ · Smarter and faster database handler! Currently it's pretty slow.
+

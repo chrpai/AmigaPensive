@@ -1,0 +1,195 @@
+@database "UUBoing"
+
+Copyright (c) 1993-94 Bob Maple
+All Rights Reserved
+
+AmigaGuide is a registered trademark of Commodore Amiga, Commodore
+Business Machines, Inc.
+
+
+@master "UUBoing"
+
+
+@Node Main "UUBoing Manual"
+
+ $VER: UUBoing 1.12 (29-Jan-94) - CNet Amiga 3.0 UUCP Mail Bouncer
+ © 1993-94 Bob Maple - bmaple@burner.com
+
+
+ Update Notes
+
+        @{" Read Me First!     v1.12 " Link "README"    }
+        @{" Version History          " Link "History"   }
+
+ Table of Contents
+
+        @{" Software License         " Link "License"   }
+
+	@{" What exactly is UUBoing? " Link "WhatIs?"   }
+	@{" Running UUBoing          " Link "InstallUU" }
+
+ Click on one of the above buttons.  If you are just using UUBoing for
+ the first time, start with the Software License and work your way down
+ in sequential order for proper installation.
+
+@EndNode
+
+
+@Node README "Current Version Notes"
+
+ v1.12 -- Jan 29
+ 
+     o A few more cosmetic changes.. nothing big.
+     
+     o Now understands both "From:" address configurations.. UUBoing
+       didn't know how to deal with "Real Name <netname@address>"
+       previously.
+       
+     o UUBoing can now bounce several thousand messages per mailfile instead
+       of the previous 20.  One side-effect is that UUBoing should be a
+       little faster at bouncing large mailfiles.
+     
+@EndNode
+
+
+@Node History "Past Version Notes"
+
+ v1.11 -- Jan 25
+ 
+     o Reduced stack usage by about 500 bytes, bringing total stack usage
+       down to less than 2k bytes.
+       
+     o UUBoing could only re-mail 10 messages in from a single mail file.
+       That number is now doubled to 20.
+       
+     o Cleaned up/streamlined the console output a little bit.
+
+
+ v1.10 -- Jan 23 
+ 
+     o Fixed a rather large bug -- the DELETE keyword sometimes wouldn't
+       work!  Should now.
+
+     o The keyword SITE is now required, followed immedaitely by your site's
+       name.  See @{" Running UUBoing " Link "InstallUU" } for examples.
+       
+     o New keyword LINES lets you specify the maximum number of lines of the
+       original message, INCLUDING HEADERS, UUBoing should return to the
+       sender.  Again, see @{" Running UUBoing " Link "InstallUU" }.
+
+
+ v1.00 -- Jan 23
+ 
+       Original release
+
+@EndNode
+
+
+@Node License "Software License Agreement"
+
+ This program is provided as-is, with no warranty either expressed or
+ implied.
+ 
+ By using this software, you submit to any consequences due to the use
+ or misuse of the program.  The author will not be held responsible for
+ any damage caused by the use of this program.
+
+@EndNode
+
+
+@Node WhatIs? "What is UUBoing?"
+
+ The current major release of C-Net Amiga, v3.0, has an exciting addition;
+ the internal support for UUCP!
+ 
+ This brings on other problems.  Since users may or may not have free run
+ on the network from your system, it's possible that they could get deleted
+ or decide to change their netname.  If someone on the net should happen to
+ send mail to a non-existant user at your machine, the files just lay around
+ in UUMail:.
+ 
+ UUBoing solves this by 'bouncing' messages that arrived for users it does
+ not know.  It remails the original sender letting him/her know that the
+ person they mailed couldn't be found, and sends you (postmaster) a message
+ letting you know it bounced a message.
+ 
+ UUBoing works by scanning the C-Net 'bbs.ukeys' file, which contains a
+ list of all the users on your board, their real name, and their UUCP name.
+ UUBoing collects files in UUMail: and attemps to match them to users on
+ your system via their UUCP name, and if it can't, bounces the message.
+
+ Simple as that.
+ 
+@EndNode
+
+
+@Node InstallUU "Using UUBoing"
+
+ Using UUBoing is simple.  It is run as a DOS executable, and should be
+ used AFTER any other mail processing that needs to happen (IE mailing
+ list processors, etc.)  Since UUBoing matches UUMail: files to users on
+ your board, it's possible that a valid mailfile arriving at your system
+ might not belong to a user on CNet; special mailboxes you might have
+ others mailing for instance.  (Future versions of UUBoing will allow you
+ to configure a 'filter' or 'no-boing' list so you can tell UUBoing which
+ mailfiles should be left alone completely.)
+ 
+ Run UUBoing from a shell -- it is a DOS executable, NOT a CNet C program. 
+ UUBoing has the following command line template:
+ 
+   UUBoing <SITE your.site> [DELETE] [LINES <number>]
+   
+ Commands in <> are required, ones in [] are not.  For instance, UUBoing
+ REQUIRES the SITE keyword, followed by your site name, where as the LINES
+ keyword is optional, BUT if you supply it, the number of lines is required
+ immediately following.  Keyword explanations:
+ 
+ SITE          Your sitename (REQUIRED)
+ DELETE        Delete bounced mail after returning it to the sender;
+               Otherwise it STAYS in UUMail: and will be bounced AGAIN
+               next time.  Recommended you ALWAYS supply this keyword.
+ LINES         How many lines of the original message should UUBoing
+               return, including headers?
+
+ Some examples:
+ 
+   1> UUBoing SITE burner.com DELETE
+   1> UUBoing SITE foo.machine DELETE LINES 15
+   1> UUBoing DELETE
+   
+ Example 1 runs UUBoing (our site "burner.com"), and deletes any mail it
+ bounces afterwards.
+ 
+ Example 2 runs UUBoing (our site "foo.machine", deletes any mail it
+ bounces afterwards, and will ONLY return a maximum of 15 lines of the
+ original message.
+ 
+ Example 3 is INVALID, because no SITE was ever specified!
+
+ When UUBoing bounces a message, it returns the following message to who it
+ originaly came in for.
+ 
+ The message is current un-configurable:
+
+ 
+  ## Returned message from postmaster@<your.site>
+  
+     Reason for return    : User <whomever> is not a user at this site.
+     Possible explanations: The user could have been deleted off the BBS or
+                            has changed his net-name.
+                            
+     If you need help contacting a user at this particular site, please send
+     mail to 'postmaster@<your.site>'.
+     
+  ## UN-SENT Message Follows ##
+  
+
+ The original message they sent is returned, or as many lines of the message
+ will be returned if the LINES keyword was used (in which case UUBoing says
+ "## Portion of UN-SENT message.."
+
+ In addition, a piece of mail is sent to 'postmaster' at YOUR site (which is
+ presumably aliased to YOU, the sysop, in UULIB:Aliases) letting you know
+ that it returned a piece of mail, and who it returned it to.
+
+@EndNode

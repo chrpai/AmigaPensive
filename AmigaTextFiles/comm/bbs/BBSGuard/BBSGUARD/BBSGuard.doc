@@ -1,0 +1,283 @@
+This program is NOT public domain. This program is copyright.
+You may distribute the program freely so long as there is no
+charges for the program. Anything above the cost of the media
+which it is copied onto or the normal user fee of a bulletin
+board system is not allowed. This documentation must accompany
+the executable program. No commercial use of this program is
+allowed without prior written agreement from the author (me).
+(You can supply it with your BBS software. Just don't use it
+as a selling point and make sure this file is included with
+the program.)
+                                     October 1992 © Darrell Grainger
+
+
+BBSGuard v2.03 © Oct 1992 - Darrell Grainger
+-------------------------------------------
+
+This program was originally written in SAS/C but as a way of learning
+68000 assembler, I have re-written the program in assembler.
+
+Usage: BBSGuard [-b##][-c##][-d##][-g][-l][-n][-r##][-s##][-t##][-v]
+
+Note: -  don't put a space between the option and any numbers.
+         for example: '-b10' is correct. '-b 10' is wrong.
+      -  make sure there is a space between the options. for
+         example: 'BBSGuard -b10-l' is wrong. 'BBSGuard -b10 -l'
+         is correct.
+
+Default: BBSGuard -b10 -c30 -d0 -r5 -s10800 -t10
+
+--------------------------------------------------------------------
+
+If you like and use this program and would like to receive future
+updates, please send a donation to:
+
+                  D.A.Grainger
+                  48 Wheeler Ave.
+                  Toronto, ON
+                  M4L 3V2
+                  Canada
+
+A donation of $5 cheque or money order would be appropriate.
+
+Suggestions for the program can also be sent to the same address or
+log onto Chaotic Knights BBS at (416) 272-1860.
+
+--------------------------------------------------------------------
+
+Option   What it does
+------   ------------
+
+-b       When the phone rings I keep a count of the number of rings.
+         If I just kept track of the rings it would add up the rings
+         of the first caller, and the second, and third, etc. until
+         the count reached the maximum and rebooted the computer. So
+         I had to have some way of knowing when the first caller
+         stopped then I could reset the ring count. The time between
+         rings when someone is calling is usually five seconds. This
+         may vary from area to area. If the time is greater than five
+         seconds, we know that the first person quit ringing
+         (hopefully because the BBS answered the phone). If the time
+         is greater than ten seconds then we can be positive that the
+         caller has stopped ringing the phone. The default for -b is
+         ten. If you find the time between when a ring stops and the
+         next one starts, in your area, is greater then ten (or close
+         to it) then you might want to increase the -b option.
+         Default: -b10
+
+-c       When the phone rings too many times or a carrier is present
+         too long then I assume the BBS has crashed and attempt to
+         reboot the computer. Before I actually reboot I will flash
+         all screens on and off. The -c option indicates how long,
+         in seconds, that I will flash the screen before rebooting.
+         Default: -c30
+
+-d       You may want to run BBSGuard right away (if you are using
+         the -v, -g and -n options you might want to run BBSGuard at
+         the start of your s:Startup-Sequence). If the BBS takes a
+         while to get ready and answer the phone you DON'T want
+         BBSGuard monitoring the phone for unanswered rings. This
+         option will delay BBSGuard, in seconds, from checking the
+         ringing or carrier. Default: -d0
+         
+-g       If an Guru Meditation occurs the computer usually sits at
+         the flashing Alert message. Using the -g option will stop
+         the Alert from coming up. Instead the computer will go to
+         the warning stage. This is when the screen flashes. At this
+         time, you have -c seconds to abort the reboot. If you press
+         the left mouse button the system will suspend the task. If
+         you do nothing the computer will reboot. Note: I disable
+         all Alerts so any program that uses Alert instead of
+         Requesters will cause the system to reboot. Alerts are only
+         supposed to be used if the system is really messed up or
+         low on memory. Programmers that use Alerts as Requesters
+         are lazy.
+
+-l       Since you don't see BBSGuard after it is written you might
+         want to know when the phone is ringing (and that BBSGuard
+         is counting it). The -l option will cause BBSGuard to flash
+         the LED as the phone rings.
+
+-n       If a requester comes up the system might sit at a stand
+         still. If you want to automatically CANCEL all requesters
+         then set the -n option. If a System Requester comes up this
+         will choose CANCEL and it will try to go for the Guru
+         Meditation so the -g option is recommended when you use the
+         -n option.
+
+-r       The option which sets the number of rings that will reboot
+         the computer. There is a warning of -c seconds before the
+         reboot. A setting of -r0 will disable check for ringing.
+         Default: -r5
+
+-s       The option which sets the number of seconds of carrier
+         detect. If the carrier lasts WAY too long then it could be
+         possible that the modem crashed or that someone got stuck
+         in a 'door' of the BBS. Remember to set this higher then
+         the maximum user time. If your CoSysop has unlimited time
+         then you might want to disable this with a setting of -s0.
+         Default: -s10800 (3 hours)
+
+-t       This sets the time a requesters will remain up before the
+         -n option automatically cancels the requester. This gives
+         you a chance to choose something other then cancel in case
+         you are there and don't want it to cancel.
+
+-v       If this option is set then BBSGuard will check all mounted
+         volumes. If any are validating then BBSGuard will pause
+         until the volume has finished validating. If you want to
+         abort this part then hold the left mouse button down.
+
+Notes: - You can quit BBSGuard by running it a second time. The
+         screen will flash once when BBSGuard quits. Be sure the
+         screen flashes. If the phone is ringing BBSGuard might
+         not quit just keep trying.
+         
+       - If the maximum carrier detect time or the maximum number of
+         rings is reached BBSGuard will go into the warning phase.
+         If -c is set to zero then the computer will reboot
+         immediately otherwise all screens will flash as the timer
+         counts down.
+         
+       - the A1000 does not have the RI pin connected. On the A1000
+         this status bit is for the printer SELect only. On the A500
+         A2000/A3000 the status bit is used by printer SELect and
+         modem Ring Indicator. Adding the circuitry to connect the
+         serial port RI pin to the CIA so we can read RI status is
+         fairly simply. Write me if you want the instructions to
+         make your A1000 work like the A2000 serial port.
+         
+       - the RI line of the serial port is connected to the SEL line
+         of the parallel port. Selecting and deselecting the printer
+         will seem like the phone is ringing to this program.
+
+       - If you are using ParNet then the handshaking of ParNet uses
+         the SEL line. This means that BBSGuard will see a change in
+         the RI line and think the phone is ringing. As it checks to
+         see if the phone is actually ringing it will eatup CPU time
+         and slow everything down. For this reason, if you are using
+         ParNet and BBSGuard you should use the -r0 option and not
+         bother checking for ringing.
+
+---------------------------------------------------------------------
+HISTORY
+
+A friend needed a program what would monitor the carrier detect
+line. If there was a carrier detect this program would then monitor
+the line and time how long the carrier was detected for. By default
+the program would reboot the computer after 11600 seconds (3 hours).
+
+ version 2.03 improvements
+ -------------------------
+ - fixed a bug with AmigaDOS 1.3 and the -n option.
+ 
+ version 2.02 improvements
+ -------------------------
+ - The -t option was added so you have a chance to choose something
+   other than CANCEL when a requester comes up.
+
+ version 2.01 improvements
+ -------------------------
+ - The -n option now works with AmigaDOS 2.0. I was originally
+   programming in AmigaDOS 1.3 and failed to implement 2.0 cancel
+   requesters.
+ 
+ - There is no longer a window that opens on the Workbench. To see
+   if the phone is ringing I have added the -l option.
+ 
+ - I use the Wait() functions and an interrupt handler to make the
+   program go to sleep until something happens, i.e. ring, carrier
+   detect, guru, etc.
+
+ - The -v option is new to version 2.01.
+ 
+ - The program opens no window. Takes less memory and can be quit
+   from remote.
+ 
+ - No need for -a, -p, or -t options. No long have a window to
+   activate (-a). Have improved the timing routines is no longer
+   need -p. Have learned how to make the program go into 'Waiting'
+   so delays between carrier checks are not necessary.
+
+ version 1.25 improvements
+ -------------------------
+ - If a system Requester occurs the system will sometimes not reboot
+   on the failure to answer (ring detect). The -n option will
+   disable all of the requesters so even the System Requester will
+   CANCEL (this causes a Guru Meditation so the -g option is
+   recommended with this).
+
+ version 1.24 improvements
+ -------------------------
+ - added routines to disable Guru Meditations. If a Guru Meditation
+   occurs and the -g option was enabled, the system will
+   automatically reboot rather then sit at the flashing red Guru
+   Meditation.
+
+ version 1.23 improvements
+ -------------------------
+ - added a self reboot feature. The program will no longer generates
+   a requester that causes "Reboot1.1" to reboot the computer. This
+   makes BBSGuard standalone.
+
+ - added the -C option so you can have an abort before the thing
+   reboots. When the program is about to reboot the title to the
+   window will change to the "Double click here to abort". -C will
+   determine how long you have to abort the reboot. Default is 30
+   seconds. During the abort/reboot period all screens will flash
+   until you abort or the computer reboots. Pressing the left mouse
+   button from ANYWHERE will abort the reboot. During ring detect
+   the abort simply sets the ring count back to zero. During the
+   carrier detect the abort resets the counter of carrier detect
+   seconds back to -S## seconds left.
+
+ version 1.22 improvements
+ -------------------------
+ - made the check for time between rings programmable. If the delay
+   between rings is too long we should assume this is a new caller
+   and reset the count of how many rings. Default = 10 seconds. If
+   the time from start of last ring to start of next ring is greater
+   then 10 seconds the ring count will reset. This is the -B option.
+
+ version 1.21 improvements
+ -------------------------
+ - found there was a timing problem during the ring detect on some
+   phone lines so I made the delay time between ring checks
+   programmable. This is option P. Default = 75 (75/50 = 1.5
+   seconds). This default is new and should work on all phone lines.
+   Some phone lines will allow you to increase the delay. Try setting
+   the delay to 100, run the program, make the phone ring and see if
+   it misses any of the rings.
+ - While I was at it I made the delay between checking for carrier
+   programmable as well. The bigger this number the less slow down
+   for the user online BUT the long the delay should you wish to
+   quit the program.
+
+ version 1.2 improvements
+ ------------------------
+ - added a delay option so they program can be made to wait for the
+   BBS to power up and initialize.
+ - added the -r0 option so the program can disable ring detect. No
+   use in wasting CPU time checking for a ring that will not be
+   there.
+ - reset the ring counter if there is a 10 second pause between
+   rings. I found that the phone rings every 7 to 8 seconds so if
+   there is a ten second pause it must be a new caller. This means
+   that ONE caller must let the phone ring -R times (default = 5).
+   Don't set that too high or this option is pointless.
+
+ version 1.1 improvements
+ ------------------------
+ - optimized code to waste less time when checking for a ring.
+   Program now goes to sleep for 2 seconds every loop of the ring
+   detect routine. A ringing phone lasts for just over 2 seconds. If
+   the delay is longer then 2 seconds there is a good chance the
+   program will miss some rings. With a 2 second delay I have only
+   noted it missing the first ring and then only when the first ring
+   is a partial ring (less then 2 seconds).
+
+ version 1.01 improvements
+ -------------------------
+ - added a check for the phone ringing and the BBS not answering. If
+   the phone rings unanswered for too long then obviously the BBS
+   has crashed.

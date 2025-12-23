@@ -1,0 +1,106 @@
+/**************************************************************************/
+/*                          Tagger V1.3 for E!                            */
+/*                                  by                                    */
+/*                              Greg Fitch                                */
+/*                                  of                                    */
+/*                              XyonicS BBS                               */
+/*                            +61-7-3808-4806                             */
+/*                             1200-28800bps                              */
+/**************************************************************************/
+/*                  SysOp defineable variables here                       */
+/**************************************************************************/
+path="Doors:Tagger.data/"        /* Edit this to reflect the correct path */
+totaltags=220                    /* total number of tags in tagfile.      */
+bbstag="** XyonicS TAG **"       /* Displays this on the line before tag  */
+/**************************************************************************/
+/* WARNING: */
+/* DON'T CHANGE ANYTHING UFTER HERE UNLESS YOU KNOW WHAT YOU ARE DOING*/
+
+Options results ; signal on SYNTAX ; signal on ERROR ; signal on IOERR
+tr=transmit ; se=sendstring ; getuser 23 ; port=result
+
+GETWHAT port
+buggy=result
+If buggy ~= "Sending Mail" then CALL TEST
+else CALL STARTING
+
+TEST:
+If buggy ~= "Posting Message" then CALL MORETEST 
+else CALL STARTING
+
+MORETEST:
+If buggy ~= "Reading e-mail" then CALL LASTTEST 
+else CALL STARTING
+
+LASTTEST:
+If buggy ~= "Responding" then CALL DONE 
+else CALL STARTING
+
+STARTING:
+queryy "\n2\c2 Do you want add a tagline to this message?\c3 (Y/n) "
+  Choice = upper(result)
+  If Choice = YES then CALL ANT
+  If Choice = NO then CALL DONE
+
+ANT:
+  line=vrnd(1,totaltags,time('S'))
+  call open(tagfile,path||"tagfile","R")
+  do x=1 to line ; tag=readln(tagfile) ; end x
+  tr '\f1'
+  tr '\c5------------------------------------------------------------------------------\c7'
+  tr '\n1'tag
+  tr '\n1\c5------------------------------------------------------------------------------'
+  call close(tagfile)
+  queryy "\n2\c2 Do you want to use this tagline?\c3 (Y/n) "
+  Choice = upper(result)
+  If Choice = NO then CALL ANT
+  If Choice = YES then CALL DITO
+    end
+   end
+  end
+ end
+end
+
+
+DITO:
+  ADDLINE ''
+  ADDLINE ''
+  ADDLINE bbstag' '
+  ADDLINE tag''
+tr '\n1\c7                               -= Done! =-\c3'
+
+DONE:
+
+exit
+
+VRnd:
+   procedure      /*  Very Random v1.1  [c] 1990 Shane D. Killian  */
+   arg lo,hi      /*    Feel free to use this as long as these     */
+   n1 = time('E') /* comments remain intact.  Works like random(). */
+   n2 = time('S')
+   parse var n1 n11 '.' n12
+   n1 = n11 || n12
+   if lo > hi then do
+      x = lo
+      lo = hi
+      hi = x
+   end
+   if hi ~= lo then do
+      d = hi - lo + 1
+      x = length(d)
+      n1 = right(n1,x)
+      n2 = right(n2,x)
+      p = d
+      if p > 999 then p = 999
+      r = n1 + n2 + random(0,p,time('S'))
+      r = r // d + lo
+   end
+   else r = hi
+return r
+
+SYNTAX: ; ERROR: ; IOERR:
+    tr '\c1___________________________________________________________________'
+    tr '\n1\c7'rc' ('errortext(rc)') in line 'sigl'.'
+    tr 'Please notify the SysOp!'
+    tr '\c1___________________________________________________________________\n1'
+  bufferflush

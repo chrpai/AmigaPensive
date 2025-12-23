@@ -1,0 +1,181 @@
+/************************************************************************/
+/*                Craps - External Wild-Bank Gambling Game              */
+/*                           by: Party Master                           */
+/*                                                                      */
+/* This is an example of an external gambling game that you can use     */
+/* with Wild-Bank versions 1.2 and higher. Just place this file in your */
+/* Wild-Bank Games directory  ('Doors:WildBankGames' is the default).   */
+/* Everthing else will be taken care of automatically by Wild-Bank.     */
+/* For more information on how to make your own external gambling       */
+/* games, please refer to the WildBank docs.                            */
+/*                                                                      */
+/* You are free to edit this file however you want.                     */
+/*                                                                      */
+/************************************************************************/
+
+options results
+
+signal on error                                 /* You should put this  */
+signal on syntax                                /* error detection in   */
+signal on ioerr                                 /* all of your external */
+signal on halt                                  /* gambling games.      */
+
+                                                /* If you need to know  */
+                                                /* how much time the    */
+                                                /* user bet, then put   */
+bet=getclip('bet')                              /* this line in your    */
+                                                /* game and the         */
+                                                /* variable 'bet' will  */
+                                                /* be the user's bet.   */
+
+sendstring "\n1\C3Read the docs \C2(\C7y\C2/\C7N\C2)\C3?\Q1 "
+getchar
+if upper(result)='Y' then transmit "\n2\C4After you place your bet, you roll the dice.\n2If it lands on 7 or 11, it's a natural and you win.\n2If it lands on 2, 3 or 12 it's craps and you lose.\n2If it lands on 4, 5, 6, 8, 9, or 10 you get a point - you don't win or lose. When you get a point, you must continue rolling until you get the point again (you win) or get 7 first (you lose).\n2\C2Hit RETURN:\g1\Q1"
+
+dice.1="+-------+\n1|       |\n1|   *   |\n1|       |\n1+-------+"
+dice.2="+-------+\n1| *     |\n1|       |\n1|     * |\n1+-------+"
+dice.3="+-------+\n1| *     |\n1|   *   |\n1|     * |\n1+-------+"
+dice.4="+-------+\n1| *   * |\n1|       |\n1| *   * |\n1+-------+"
+dice.5="+-------+\n1| *   * |\n1|   *   |\n1| *   * |\n1+-------+"
+dice.6="+-------+\n1| *   * |\n1| *   * |\n1| *   * |\n1+-------+"
+
+sendstring "\F1"
+do x = 1 to 20
+ sendstring "\F0"
+ dice1=left(RANDU(time('s'))*6+1,1)
+ dice2=left(RANDU(time('s'))*6+1,1)
+ dice=dice1+dice2
+ transmit dice.dice1"\n1"dice.dice2
+ sendstring "\C2Rolling the dice.\Q1"
+end
+if dice=7 | dice=11 then do
+ sendstring "\C7\n2A natural! \Q1"
+
+                                                /* Always set this      */
+                                                /* variable to either   */
+ winlose = 'winner'                             /* 'winner' or 'loser'  */
+                                                /* before exiting your  */
+                                                /* gambling game.       */
+
+                                                /* You must set this    */
+                                                /* clipboard file       */
+                                                /* before you exit your */
+ call setclip('gameresult',winlose)             /* your gambling game.  */
+                                                /* It must contain      */
+                                                /* 'winner' or 'loser'  */
+                                                /* or 'error'.          */
+
+                                                /* Exit your gambling   */
+ exit                                           /* game after you set   */
+                                                /* the clipboard file.  */
+
+end
+if dice=2 | dice=3 | dice=12 then do
+ sendstring "\C7\n2Craps! \Q1"
+
+                                                /* Always set this      */
+                                                /* variable to either   */
+ winlose = 'loser'                              /* 'winner' or 'loser'  */
+                                                /* before exiting your  */
+                                                /* gambling game.       */
+
+                                                /* You must set this    */
+                                                /* clipboard file       */
+                                                /* before you exit your */
+ call setclip('gameresult',winlose)             /* your gambling game.  */
+                                                /* It must contain      */
+                                                /* 'winner' or 'loser'  */
+                                                /* or 'error'.          */
+
+                                                /* Exit your gambling   */
+ exit                                           /* game after you set   */
+                                                /* the clipboard file.  */
+end
+transmit "\C7\<9\<9\<9You got a point (\C4"dice"\C7). Now deciding the point.\^1\Q1"
+point=dice
+do a=1
+ sendstring "\F0"
+ dice1=left(RANDU(time('s'))*6+1,1)
+ dice2=left(RANDU(time('s'))*6+1,1)
+ dice=dice1+dice2
+ if dice = point then do
+  dice1=left(RANDU(time('s'))*6+1,1)
+  dice2=left(RANDU(time('s'))*6+1,1)
+  dice=dice1+dice2
+  if dice = point then do
+   winlose = 'winner'
+   leave a
+  end
+ end
+ if dice = 7 then do
+  winlose = 'loser'
+  leave a
+ end
+ transmit dice.dice1"\n1"dice.dice2
+end
+transmit dice.dice1"\n1"dice.dice2
+
+                                                /* You must set this    */
+                                                /* clipboard file       */
+                                                /* before you exit your */
+call setclip('gameresult',winlose)              /* your gambling game.  */
+                                                /* It must contain      */
+                                                /* 'winner' or 'loser'  */
+                                                /* or 'error'.          */
+
+                                                /* Exit your gambling   */
+exit                                            /* game after you set   */
+                                                /* the clipboard file.  */
+
+/************************************************************************/
+/* You should use the following error procedures in your gambling games */
+/* to let Wild-Bank know that an error has occured, so it will exit     */
+/* cleanly. Just change the name "Craps" to whatever the name of your   */
+/* game is.                                                             */
+/************************************************************************/
+
+HALT:                                           /* HALT                 */
+transmit '\n1AREXX HALT issued.'
+transmit 'Craps aborted...\n1'
+
+                                                /* The clipboard file   */
+call setclip('gameresult','error')              /* is set to 'error'    */
+                                                /* when an error occurs */
+
+exit
+
+IOERR:                                          /* I/O ERROR            */
+transmit 'An I/O Error has occured.'
+transmit 'Line:' SIGL
+logentry 'IO Error occured in Craps'
+logentry 'Line:' SIGL
+
+                                                /* The clipboard file   */
+call setclip('gameresult','error')              /* is set to 'error'    */
+                                                /* when an error occurs */
+
+exit
+
+ERROR:                                          /* ERROR                */
+transmit 'An Error has occured.'
+transmit 'Line:' SIGL '  Severity:' RC
+logentry 'Error occured in Craps' 
+logentry 'Line:' SIGL '  Severity:' RC
+
+                                                /* The clipboard file   */
+call setclip('gameresult','error')              /* is set to 'error'    */
+                                                /* when an error occurs */
+
+exit
+
+SYNTAX:                                         /* SYNTAX ERROR         */
+transmit 'A Syntax Error has occured.'
+transmit 'Line:' SIGL '   Severity:' RC
+logentry 'Syntax Error occured in Craps'
+logentry 'Line:' SIGL '  Error Code:' RC
+
+                                                /* The clipboard file   */
+call setclip('gameresult','error')              /* is set to 'error'    */
+                                                /* when an error occurs */
+
+exit

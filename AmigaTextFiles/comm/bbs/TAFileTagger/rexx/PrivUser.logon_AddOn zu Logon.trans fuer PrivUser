@@ -1,0 +1,52 @@
+/* Logon.trans */
+/* Beispielscript fuer Private-FileAreas, es muss in File.cfg keine
+   seperate Area eingetragen werden !!!
+*/
+
+options results
+
+if SHOW('Libraries','rexxsupport.library')~=1 then
+  if ADDLIB("rexxsupport.library",0,-30,0)~=1 then
+  do
+    Print
+    Print 'ERROR: rexxsupport.library is not available...'
+    Print 'Please Inform Sysop.'
+    Sysoplog 'Logon.trans failed: Requires rexxsupport.library.'
+    exit 20
+  end
+if ~show('l', "rexxarplib.library") then do
+/*check = addlib('rexxmathlib.library',0,-30,0)*/
+check = addlib('rexxarplib.library',0,-30,0)
+end
+
+userinfo 'a'   ; name=result
+name=compress(name)
+systeminfo '8' ; line = result
+
+userinfo 'o'   ; access = result
+
+IF access>0 then do
+  call PrivArea
+end
+
+exit
+
+PrivArea:
+options failat 200
+if access>=50 then do
+        address command "assign remove PrivDir:"
+        dir='"PrivFiles:'name'"'
+        if exists("privfiles:"name) then DO
+          print "Checke Deine private Filearea nach Dateien!"
+          end
+        else do
+          address command "makedir "dir
+          print "Es gibt seit neuestem eine private Filearea fuer Dich !"
+          print "Dort kannst Du Dateien fuer andere Usern uploaden und"
+          print "mit Transmit zuschicken."
+        end
+        address command 'bbs:bin/TAUpdateFL DIR "PRIVFiles:'||name||'"'
+        address command 'assign PrivDir: 'dir
+        end
+RETURN
+

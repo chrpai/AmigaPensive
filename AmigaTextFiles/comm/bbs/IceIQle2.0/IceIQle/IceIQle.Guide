@@ -1,0 +1,1041 @@
+@database IceIQle.guide
+
+@node Main "Contents of IceIQle.Guide"
+                                IceIQle
+                                -------
+
+                 Integrated Communications Environment
+            Initial Quoter & Lexicographical Editorializer
+                   (Slightly contrived, but I like it)
+
+                              Version 2.0
+                    © Kevin Huculak,  April 29, 1994.
+
+               Internet: Kevin_Huculak@amuc.mtroyal.ab.ca
+
+                This program is freely distributable
+
+                           @{" What is it? " link Doc.What_is_it}
+                           @{" Requirements " link Doc.Requirements}
+                           @{" Installation " link Doc.Installation}
+                           @{" ToolTypes " link Doc.ToolTypes}
+
+              @{" Phrase File Counting and Index Generation " link Doc.CountingIndex}
+              @{" Auto Detection of out of date Index Files " link Doc.OutOfDateIndex}
+              @{" How IceIQle's Quoting Works " link Doc.QuotingDescription}
+              @{" Warranty " link Doc.Warranty}
+
+              @{" History " link Doc.History}
+              @{" Suggestions " link Doc.Suggestions}
+
+@endnode
+
+@node CustomControls.RandomSequential "IceIQle, CustomControls: RandomSequential"
+SEQUENTIAL AND RANDOM PHRASE SELECTION (%R & %S controls)
+---------------------------------------------------------
+
+    For the %R and %S controls, the OPTIONAL '@' character can be any
+    character you choose and is used to delimit phrases in the text file.
+    This is to allow the possibility of multiple line phrases. The
+    extracted text will start with the character after the '@' character
+    in your text file, and end at the next '@' character. The delimiter
+    characters must appear in the first column of each line they occur
+    in to be recognized. This allows use of the character in your text.
+    If you don't specify any delimiter, (eg. %R"FileName"), then the file
+    is assumed to contain single line phrases.
+    It is perfectly legitimate to include any % codes within your text
+    files. This includes %R, %S, %V, %I and %C, but recursion is limited
+    to 10 levels to prevent an endless loop, if for example, you try to
+    include the same file repeatedly.
+
+    To use %R or %S, the first line of your phrase files MUST contain
+    the total number of phrases in the file, and the second line MUST
+    contain the current phrase number to be used for the next sequential
+    inclusion. The first number is read by IceIQle and is used for
+    determining the highest random phrase to select from. The second
+    number is read and incremented by one each time the %S control is
+    used. When the next phrase number exceeds the maximum phrase number,
+    it is set back to 000001. Both numbers must exist in the file,
+    regardless of whether or not you use both %R and %S.
+
+      NOTE: IT IS ASSUMED THAT THE SECOND NUMBER (Next Phrase #)
+            CONSISTS OF 6 DIGITS. THEREFORE, IF YOU WANT TO START
+            THE SEQUENCE AT THE FIRST PHRASE, USE 000001 AS THE NUMBER.
+            If you use fewer digits, IceIQle will overwrite 4 or 5
+            characters of your first phrase the first time %S is used.
+
+            ALSO, IT IS ASSUMED that both numbers start in the first
+            column of the Line.
+
+    Using an @{" index file " link Doc.CountingIndex} associated with phrase files will significantly
+    speed up inclusion of phrases. If an index exists, it will
+    automatically be used. If the date stamp of the index is older than
+    that of the phrase file, a requester allowing regeneration of the
+    index will be presented.
+
+         EXAMPLE 2)
+
+         If you have a collection of one line headers defined in a file
+         called "Headers", and you want them used sequentially,
+         you could simply use:
+
+                 HEADER=%S"Headers"
+
+         See the @{" TAGLINE " link ToolTypes.TagLine} tooltype for a more complex example.
+
+@endnode
+
+@node CustomControls.SigDependant "IceIQle, CustomControls: SigDependant"
+VARIABLE SIG DEPENDENT STRINGS (The %V"FileName" control) [IceBBS Only]
+---------------------------------------------------------
+
+    The text file indicated by the FileName contains pairs of SIG names
+    and strings. The strings can contain constant text as well as any
+    valid control codes including %R, %S, %V, %I, and %C. One space must
+    seperate the SIG name from the text string. The special name
+    'DefaultSig' indicates the text to generate for any SIG not included
+    in the file. If you don't include a DefaultSig line, nothing will be
+    outputted if the SIG isn't found elsewhere in the file. From EMail,
+    the DefaultSig string will always be used.
+
+        EXAMPLE 3)
+
+         With a TAGLINE tooltype of TAGLINE=%I"Signature"%V"SigTags"
+         and the file "SigTags" containing:
+
+                  134_TREK [134_TREK Moderator]%n...%R@"PlainTrekTags"
+                  TREK %n...%R@"PersonalTrekTags""PlainTrekTags"
+                  DefaultSig %n%R"GeneralTags"
+                  uu_amiga_games
+                  Members %n%S"AMUCTags"
+
+         You will get the appropriate tag outputted, depending on the
+         SIG IceOLR is currently in. In this example, the SIG
+         uu_amiga_games will not have any output. The TREK sig uses 2
+         possible tagfiles. "PersonalTrekTags" will always be used when
+         Author: information is available, otherwise "PlainTrekTags" will
+         be used.
+
+@endnode
+
+@node Doc.CountingIndex "IceIQle, Doc: CountingIndex"
+AUTOMATIC PHRASE-FILE COUNTING and INDEX GENERATION
+---------------------------------------------------
+
+   Use this for quickly updating the number of headers or tags you have
+   in any phrase files you're using. You can count manually if you prefer,
+   but if your file is large this is easier. Before using this for the first
+   time, make sure the first line of the phrase file to be updated has at
+   least 6 characters of number digits or spaces...anything that can be
+   overwritten to hold the updated value.
+
+FROM WORKBENCH:
+
+      Extend-Select¹ all the phrase files to be updated. While continuing
+      to hold down the shift key, double click the IceIQle icon.
+      Alternatively, you could set the default tool of your phrase file
+      to IceIQle, then just double click the phrase file.
+
+         ¹  Extend-Select means to FIRST click the first icon of all
+            selections, THEN press and hold shift, then click on all the
+            remaining files to be selected.
+
+|>    Count/Update Requester:
+
+      For each file selected you will be given the opportunity to
+      specify a delimiter character (defaults to '@'), and whether or
+      not to create an index file associated with the phrase file for
+      quicker extraction. If you choose to create an index, its name
+      will be the same as the phrasefile with a suffix of ".index".
+      It will only be generated if there are more than 100 phrases
+      because otherwise the overhead involved in opening and scanning
+      the index counteracts any speed gain. If there IS an existing
+      index file and you DON'T select "Create Index", the out of date
+      index will be deleted. This is because when including random or
+      sequential phrases, the index file is looked for and is used
+      automatically if it exists.
+      Then, simply select 'Count & Update' to count and write the correct
+      total to the first line, or else press 'Cancel' to abort the
+      operation.
+
+      There is a method of avoiding the need to answer the requester
+      every time. On the first line of your phrase file, leave a few
+      spaces after the count number, then insert the text delimiter=@
+      (or whatever your delimiter is). delimiter=n indicates no
+      delimiter (single line phrases or tags). With this information
+      in the phrase file, you won't be prompted at all when counting.
+      The file is just updated and an index file WILL be generated.
+
+FROM CLI:
+
+      Only one file at a time can be updated. Just type:
+
+            iceiqle -c[i] [@] filename
+
+      The spaces are required. The [] characters are not typed, but
+      indicate optional text. The optional @ is the phrase delimiter.
+      If omitted, the phrase file is assumed to contain single line
+      phrases, and the number of lines is simply counted. The 'i'
+      parameter indicates an index file with suffix ".index" should
+      be generated for faster phrase extraction. It will only be
+      generated if there are more than 100 phrases because otherwise the
+      overhead involved in opening and scanning the index counteracts any
+      speed gain. If there IS an existing index file and you DON'T
+      specify the 'i' parameter, the out of date index will be deleted.
+      This is because when including random or sequential phrases, the
+      index file is looked for and is used automatically if it exists.
+
+@endnode
+
+@node Doc.History "IceIQle, Doc: History"
+HISTORY
+-------
+
+   v2.0  -  Made the initialed quoting mechanism work with the AmiQWK
+            Off-Line message reader.
+            Just make sure you set the Quote Prefix to empty and have
+            the 'Header info in replies' checkbox checked in the
+            Config/Replies Requester. Also, to use IceIQle's wordwrapping,
+            set AmiQWK's Wrap/Trunc gadget to Wrap, and set the value to 99.
+            This way, IceIQle's wordwrapping feature will work properly.
+
+   v1.85 -  Made the Count/Index requester open on the currently active
+            screen if it's public, otherwise WorkBench.
+
+   v1.84 -  Corrected problem with %R or %S duplicating part of the
+            last line of a phrase on occasion.
+
+         -  Made the Count/Index requester always open on either OLR's or
+            TERM's screen if that screen is the currently active one,
+            otherwise on the WorkBench screen.
+            Also, the requester now properly handles variable font heights
+            in the title bar, as might happen when using the FONT=
+            tooltype of OLR, or changing the default system font.
+
+   v1.83 -  Made all FileInfoBlocks Word aligned. (was causing bizarre
+            problems)
+
+   v1.82 -  Uses the Topaz font everywhere in the Counting/Index
+            generation requester so it's always readable.
+
+   v1.81 -  Creates an empty message file if the requested file to tag
+            or quote doesn't exist. For example, when posting in AmiQWK.
+
+   v1.8  -  Compares the date stamps of tag or header files with their
+            indexes when used and prompts you to regenerate the index on
+            the fly whenever it is out of date. The tag/header file is
+            also recounted and updated, so as long as you're using an
+            index you don't really have to worry about maintaining the
+            correct count after editing tagfiles...it will be done for
+            you the next time that particular tag file is invoked.
+
+         -  Included AmigaGuide format documentation.
+
+         -  Fixed bug with %R selecting the very first line (count line)
+            with single line phrase files (no delimiters) when used in
+            conjunction with index files.
+
+   v1.7  -  Added a SIG dependent control mechanism to allow different
+            definitions of headers, taglines, and signatures depending
+            on what SIG you are currently reading. See the %V control.
+
+         -  Allowed 2 possible files to include with any %R, %S, %I,
+            %C or %V control. The second file will be used if there is
+            no Author: information available to IceIQle. This allows you
+            to split tagfiles into 2 files: those that have embedded
+            author information and those that don't. This way, usage of
+            tags with embedded author information can be avoided when
+            POSTING new messages.
+
+   v1.62 -  Fixed Mungwall Hits.
+
+   v1.61 -  Added a QUOTING=OFF tooltype to disable the quoting mechanism
+            entirely. This allows use of IceIQle strictly as a tagline
+            generator with any message reader that calls an external editor.
+
+   v1.6  -  Added phrase-file indexing to make tag line inclusion
+            significantly faster when using large tag files. Usage is
+            described in the 'Automatic Phrase File Counting' section.
+
+   v1.51 -  Fixed occasional undesired invocation of word-wrap when the
+            WORDWRAP tooltype WASN'T present - due to uninitialized variable.
+
+         -  Uses " > " as the quote string when replying to messages
+            with the author field missing, as sometimes occurs on UseNet.
+
+   v1.5  -  Uses less stack space so it won't overflow when using nested
+            phrase files.
+
+         -  Made TAGMAIL work when posting new EMail.
+
+         -  Made the OMIT tooltype case insensitive.
+
+         -  Maintains paragraph indent level while word-wrapping, so that if
+            each line of the original paragraph is indented by, say, ten
+            spaces, it will all remain indented by ten spaces even after
+            being word-wrapped.
+
+            Also now removes leading spaces from words at the beginning of a
+            word wrapped line that could appear from the previous line if
+            it had multiple spaces separating words or sentences.
+
+            Also, detecting end of paragraph while word-wrapping should work
+            99.999% of the time now because of the following addition:
+               If the line following the currently wrapped line has an
+               indent level greater than the wrapped line, this signifies
+               the current line should be an end of paragraph.
+            You still need the WRAPMARGIN value to handle paragraphs that
+            aren't indented and aren't separated by at least 2 carriage
+            returns (extremely rare).
+
+   v1.41 -  Corrected misquoting of lines that begin with non-alphabetic
+            characters followed immediately by '>'. For example, lines
+            that start with:  1>    or  :>
+
+   v1.4  -  Added horizontal tabbing for headers, phrase files, etc.
+            with the %T control.
+
+         -  Allowed optional omission of processing by IceIQle of certain
+            types of files sent by IceTERM. For example, when creating the
+            long description of uploaded files, having headers and taglines
+            isn't really appropriate. See the OMIT tooltype.
+
+         -  Added word wrap for quoted text with the WORDWRAP tooltype.
+
+         -  Added EMail specific taglines using the TAGMAIL tooltype.
+
+         -  Added automatic phrase file counting from WorkBench or CLI.
+            (Not trying to out-do you Ken! Just thought it should be here.)
+
+            Note: Handling of delimiters in phrase files has been changed
+                  slightly. They MUST appear in the first column of any
+                  line they're used in. This is to allow the possibility
+                  of using the delimiter character in the actual text of
+                  your tagfiles...I have discovered some with '@' in them.
+                  So, if for some strange reason your delimiters weren't in
+                  the first column, you'll have to change them.
+
+   v1.3  -  Changed name to IceIQle. You should change any references
+            to IQ to IceIQle instead (tooltypes most importantly).
+
+         -  Added bragline with version number.
+
+         -  Allowed use of %R and %S controls in any signature, header or
+            tagline file. This gives the ability to include files from
+            within files from within files....Recursion is limited to
+            10 levels deep to prevent an endless loop.
+
+   v1.21 -  REALLY fixed bug with Random Phrase selection never using
+            the last phrase and including a blank phrase instead of the
+            first one.
+
+   v1.2a -  ATTEMPTED to fix bug with Random Phrase selection never using
+            the last phrase and including a blank phrase instead of the
+            first one.
+
+   v1.2  -  Random and sequential header, tagline and signature
+            inclusion from text files.
+            See the HEADER and TAGLINE tooltypes for a description.
+
+   v1.1  -  Added customizable header strings with embedded author
+            name, address name, subject, date, etc.
+
+         -  Made the EDITOR= tooltype in IceIQle unnecessary by allowing
+            EDITOR=  tooltypes in IceOLR and IceTERM of the form:
+
+               EDITOR=IceIQle Editor EditorArgs
+
+            If only Editor=IceIQle is specified in IceOLR or IceTERM, then
+            an EDITOR= tooltype in IceIQle is looked for.
+
+         -  Removed any blank lines that are created when posting new
+            messages. This includes the spaces and newline characters
+            OLR and TERM generate, as well as any generated by the
+            APPENDLINES option.
+
+   v1.0  -  Initial Release
+
+@endnode
+
+@node Doc.Installation "IceIQle, Doc: Installation"
+INSTALLATION
+------------
+
+   · Copy IceIQle (and its icon) to anywhere you want.
+
+     @{" To use with IceOLR " link Installation.OLR}  (Taglines/Headers/Initialed Quoting)
+     @{" To use with IceTERM " link Installation.TERM} (For EMail and OnLine SIG replies)
+     @{" To use with AmiQWK " link Installation.AmiQWK}  (Taglines/Headers/Initialed Quoting)
+     @{" To use with any other message reader " link Installation.Other} for tagline/signature inclusion
+
+@endnode
+
+@node Doc.OutOfDateIndex "IceIQle, Doc: OutOfDateIndex"
+Detection of out of date Index Files
+------------------------------------
+
+After editing a phrase file, an already existing index file will
+now be out of date. If you don't either delete the index or manually
+regenerate it, the next time that particular phrase file is used you
+will be presented with the Phrase file @{" Count/Update " link Doc.CountingIndex 21} requester which
+will allow you to regenerate the index. This works by comparing the
+date stamp of the phrase file with that of the index. If the index
+is older, it is considered out of date.
+
+When using the %S control with an index file, everytime %S is used, it
+must update the next sequential value to use by writing into the phrase
+file. This changes the date stamp to the current time which would make
+a valid index "out of date". To get around this problem, the date stamp
+of the index is also set to the current date immediately after %S is used.
+
+@endnode
+
+@node Doc.QuotingDescription "IceIQle, Doc: QuotingDescription"
+HOW IceIQle's QUOTING WORKS
+---------------------------
+
+   ·  Initials are formed by examining the 'Author:' and 'Address:' lines.
+   ·  If there is no 'Author:' line, a 'From:' line is searched for to
+      handle EMail messages. (It would appear Feedback should be covered
+      by this approach, however the 'From:' line is not actually included
+      in the temp file used for feedback posts/replies, so that is why
+      quoting doesn't and can't work in Feedback).
+   ·  Any line within the first EXCLUDENUM lines starting with any of
+      the strings contained in the EXCLUDEINFO tooltype will be deleted.
+   ·  The appropriate HEADER string will be outputted, if one is defined.
+   ·  Any existing signature of the form KH> will not get re-indented
+      with another set of initials like SV> KH> but will remain as just
+      KH>
+   ·  Any line determined to have no previous quoting information will
+      be quoted using the 'Author' initial.
+   ·  Any line that has just one '>' character without any words to its
+      left will be considered a previous quote and the 'Address' initial
+      will be used to quote.
+   ·  Any line that has 2 '>' characters without any words to the left
+      will be considered to have been quoted twice already and it is
+      therefore impossible to deduce the original author. It will be
+      left unchanged.
+   ·  Lines like:
+      > run >nil:
+      that have two or more '>' chars will be examined for any 'words' to
+      the left of any '>'s. Anything to the right of the left most word
+      is then ignored.
+      So the example above will be properly quoted with the 'Address'
+      initial being used.
+   ·  A line that has been quoted several times normally, but with an
+      initialed quote inside like:
+      > > KH>
+      will get fixed to just
+       KH>
+   ·  If you have a TAGLINE string defined, it is outputted.
+   ·  If the CLEANUP tooltype is set to TRUE, some empty lines that
+      have been quoted will get converted back to empty lines to improve
+      readability and separate different authors.
+   ·  Your editor is called, and if it detaches from the CLI, IceIQle
+      immediately exits, otherwise IceIQle waits until the editor is
+      closed, then exits.
+
+@endnode
+
+@node Doc.Requirements "IceIQle, Doc: Requirements"
+REQUIREMENTS
+------------
+
+   Works for all KickStart versions. The only exception to this is when
+   using Phrase File counting and index generation from WorkBench. This
+   requires KickStart V37+ (ie. WorkBench 2.0+).
+
+@endnode
+
+@node Doc.Suggestions "IceIQle, Doc: Suggestions"
+SUGGESTIONS
+-----------
+
+   If you have any ideas for improvement or bug reports, leave me
+   EMail or post a SIGS message on AMUC Express.
+
+                              Kevin_Huculak@amuc.mtroyal.ab.ca
+
+@endnode
+
+@node Doc.ToolTypes "IceIQle, Doc: ToolTypes"
+ICON TOOLTYPES     (Alphabetized)
+--------------
+
+When setting up for the first time, the important ToolTypes to set up
+are EDITOR, PHRASEDIR, HEADER, and TAGLINE for generating proper
+output.
+
+Any item that is only applicable when used in conjunction with the
+IceBBS communications software is indicated with [IceBBS Only],
+similarly for AmiQWK.
+
+   @{" APPENDLINES " link ToolTypes.AppendLines}    (Integer)
+   @{" CLEANUP " link ToolTypes.CleanUp}        (BOOLEAN)    [IceBBS and AmiQWK Only]
+   @{" EDITOR " link ToolTypes.Editor}         (String)
+   @{" EXCLUDEINFO " link ToolTypes.ExcludeInfo}    (Multiple string)
+   @{" EXCLUDENUM " link ToolTypes.ExcludeNum}     (Integer  -  Default: 8)
+   @{" HEADER " link ToolTypes.Header}         (String)    [IceBBS and AmiQWK only]
+   @{" HEADER2 " link ToolTypes.Header2}        (String)    [IceBBS and AmiQWK Only]
+   @{" HEADERMAIL " link ToolTypes.HeaderMail}     (String)    [IceBBS Only]
+   @{" OMIT " link ToolTypes.Omit}           (Multiple String)
+   @{" PHRASEDIR " link ToolTypes.PhraseDir}      (String)
+   @{" QUOTING " link ToolTypes.Quoting}        (Switch  -  Default: ON)
+   @{" TAGLINE " link ToolTypes.TagLine}        (String)
+   @{" TAGMAIL " link ToolTypes.TagMail}        (String)    [IceBBS Only]
+   @{" WORDWRAP " link ToolTypes.WordWrap}       (Integer  -  default: 0 / OFF)    [IceBBS/AmiQWK]
+   @{" WRAPMARGIN " link ToolTypes.WordWrap}     (Integer  -  default: 15)         [IceBBS/AmiQWK]
+
+@endnode
+
+@node Doc.Warranty "IceIQle, Doc: Warranty"
+Warranty
+********
+
+No warranty
+===========
+
+THERE IS NO WARRANTY FOR THE PROGRAMS, TO
+THE EXTENT PERMITTED BY APPLICABLE LAW.
+EXCEPT WHEN OTHERWISE STATED IN WRITING THE
+COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+PROVIDE THE PROGRAMS "AS IS" WITHOUT
+WARRANTY OF ANY KIND, EITHER EXPRESSED OR
+IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE. THE
+ENTIRE RISK AS TO THE QUALITY AND
+PERFORMANCE OF THE PROGRAMS IS WITH YOU.
+SHOULD THE PROGRAMS PROVE DEFECTIVE, YOU
+ASSUME THE COST OF ALL NECESSARY SERVICING,
+REPAIR OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE
+LAW OR AGREED TO IN WRITING WILL ANY
+COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO
+MAY REDISTRIBUTE THE PROGRAMS AS PERMITTED
+ABOVE, BE LIABLE TO YOU FOR DAMAGES,
+INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL
+OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
+USE OR INABILITY TO USE THE PROGRAMS
+(INCLUDING BUT NOT LIMITED TO LOSS OF DATA
+OR DATA BEING RENDERED INACCURATE OR LOSSES
+SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE PROGRAM TO OPERATE WITH ANY
+OTHER PROGRAMS), EVEN IF SUCH HOLDER OR
+OTHER PARTY HAS BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+
+Disclaimer
+==========
+
+   No warranty, either express or implied, is made with respect to the
+fitness or merchantability of IceIQle.
+
+   Kevin Huculak (referred to as The Author), reserves the right to
+not develop any future versions of IceIQle.
+
+   The Author will try to make a good faith attempt at correcting any
+problems if any are discovered, but is in no way required, nor bound to
+correct them.
+
+   The Author neither assumes or accepts any responsibility for the use
+or misuse of these programs. The Author also will not be held liable
+for damages or any compensation due to loss of profit or any other
+damages arising out of the use, or inability to use these programs.
+
+   The Author will not be liable for any damage arising from the
+failure of these programs to perform as described, or any destruction
+of other programs or data residing on a system attempting to run the
+programs. While the Author knows of no damaging errors, the user of
+these programs uses it at his or her own risk.
+
+@endnode
+
+@node Doc.What_is_it "IceIQle, Doc: What is it"
+WHAT IS IT?
+----------
+
+   IceIQle can generate completely customizable taglines and signatures
+   with any Off-Line based message reader that uses an external text editor,
+   AND in conjunction with the IceTERM BBS software, Copyright 1993 Stephen
+   Vermeulen, or AmiQWK, also provides header strings and initialed
+   quoting with paragraph wordwrap. Initialed quoting is of the form:
+
+    KH> Original Message
+
+   It also works with IceTERM when quoting EMail and SIGS messages On-Line.
+
+   The customized header strings, tag lines and signatures can be read
+   randomly or sequentially from a text file of your favorites.
+
+
+
+@endnode
+
+@node Embed.CustomControls "IceIQle, Embed: CustomControls"
+Custom String Embedding Controls
+--------------------------------
+
+      %n               -  Newline character
+      %%               -  ONE Percent character
+                          Using this is only necessary if you intend
+                          to use a character combination that ends
+                          up including a valid control code. A '%'
+                          character followed by an undefined letter
+                          (eg. ...90% of the...) is left unchanged.
+      %T##             -  Horizontal Tab. ## can be 1 or 2 digits of
+                          the column to tab to. 1 is left edge (not 0).
+                          Useful for including constant text that needs
+                          to be aligned properly to the right of
+                          something variable, like a name for example.
+                          If the 'cursor' is already to the right of
+                          the requested position, nothing occurs.
+      %C"FileName(s)"  -  Constant (Signature) file.
+                          The entire text file is included.
+                          Control codes in the file are NOT interpreted.
+      %I"FileName(s)"  -  Interpreted Constant (Signature) file.
+                          The entire text file is included.
+                          Control codes in the file ARE interpreted.
+      %R@"FileName(s)" -  @{" Randomly select one phrase " link CustomControls.RandomSequential} from text file.
+      %S@"FileName(s)" -  @{" Sequentially select one phrase " link CustomControls.RandomSequential} from text file.
+      %V"FileName(s)"  -  @{" Variable SIG dependent strings. " link CustomControls.SigDependant}  [IceBBS Only]
+
+    You can either specify the full path with any "FileName" argument,
+    or just the filename if you use the @{" PHRASEDIR " link ToolTypes.PhraseDir} tooltype. The double
+    quote marks around the FileName are required. You can actually
+    specify up to two filenames, each file requiring the double quotes
+    around them (and NO SPACE between the quotes of the two files). If
+    only one file is specified, it will always be used. If a second file
+    is specified it will be used in the case where there is no Author:
+    information available to IceIQle. This is primarily intended to allow
+    taglines with and without embedded author names, without having posts
+    (that have no author information) leaving a blank where the name is
+    intended to go. The tagfile called with the second filename should
+    have no embedded author type of tags. Example 3 in the
+    @{" Variable SIG dependent strings " link CustomControls.SigDependant} section has an example of this.
+
+@endnode
+
+@node Embed.DateNameControls "IceIQle, Embed: DateNameControls"
+Name/Date String Embedding controls    [IceBBS and AmiQWK Only]
+-----------------------------------
+
+                     %a       -  Author's Full Name
+                                 (Or the From: person in EMail)
+                     %F or %1 -  First Name of Author
+                     %L       -  Last Name of Author
+                     %r       -  Addressee's Full Name
+                     %2       -  First Name of Addressee
+                     %3       -  Last Name of Addressee
+                     %s       -  Subject
+                     %w       -  Weekday     (Mon, Tue...)
+                     %m       -  Month       (Jan, Feb...)
+                     %d       -  Day         (1, 2...)
+                     %t       -  Time        (hh:mm:ss)
+                     %f       -  Full Year   (eg. 1994)
+                     %y       -  2 Digit Yr. (eg. 94)
+
+      All this information is simply extracted from the proper line in
+      the header of the original message. The user Creation Dates are
+      used rather than the BBS dates for SIGS messages. The Date: line
+      is used in EMail. Upper and Lower case % codes are obviously
+      different.
+
+@endnode
+
+@node Installation.AmiQWK "IceIQle, Installation: AmiQWK"
+AmiQWK Installation
+-------------------
+
+     · Change the Editor setup configuration of AmiQWK to
+        call IceIQle, but leave the editor name in as well.
+
+             With AmiQWK II v2.2, set the editor configuration to:
+
+                   IceIQle Editor
+
+        Specify the full path to IceIQle, or make sure it's on the
+        search path.
+
+      ·  Make sure you set the Quote Prefix to empty in the Config/Replies
+         requester of AmiQWK.
+
+      ·  Make sure you have the 'Header info in replies' checkbox
+         checked in Config/Replies. This is necessary for IceIQle
+         to extract the name/date/subject information. If you don't
+         like this header in your replies, you can use the
+         @{" EXCLUDEINFO " link ToolTypes.ExcludeInfo} tooltype to remove it from the final reply.
+
+      ·  Also, to use IceIQle's wordwrapping, set AmiQWK's Wrap/Trunc
+         gadget to Wrap, and set the value to 99. This way, IceIQle's
+         wordwrapping feature will work properly.
+
+      ·  Then setup the @{" HEADER " link ToolTypes.Header} and @{" TAGLINE " link ToolTypes.TagLine} tooltypes as described in
+         the TOOLTYPES section of this document.
+
+@endnode
+
+@node Installation.OLR "IceIQle, Installation: OLR"
+IceOLR Installation
+
+      · Insert the path and filename of IceIQle in IceOLR's EDITOR= tooltype
+        just before the editor name like:
+
+            EDITOR=IceTERM:IceIQle TextEditor EditorArgs
+
+        (The full path to IceIQle need not be specified if IceIQle is on the
+         search path)
+        The 'EditorArgs' part is any option you want to send to your
+        TextEditor, for example forcing it to appear on a public screen.
+
+      · Make sure there is NO quote string used in IceOLR. Either make
+        sure the (Quote/Header/Both/None) gadget is snapshotted into
+        either the 'Header' or 'None' state (ie. NSQUOTE=0 or 2), or
+        delete the string entirely for the '>' gadget.
+
+        IceIQle WON'T work properly if you have a quote string defined.
+
+      · If you intend to use IceIQle's customizable header strings, you
+        should make sure the gadget described above is in the 'None' state,
+        (NSQUOTE=0), then setup a valid HEADER tooltype in IceIQle
+        (described later).
+
+@endnode
+
+@node Installation.Other "IceIQle, Installation: Other"
+Generic Message Reader Installation
+
+      · Change the Editor setup configuration of your message reader to
+        call IceIQle, but leave the editor name in as well.
+        For example, with
+
+             Spot1.2d,  set the editor configuration to:
+                   IceIQle Editor %s
+
+        Specify the full path to IceIQle, or make sure it's on the
+        search path.
+        Any other message reader that calls an external text editor
+        should work similarly.
+
+      · Create a QUOTING=OFF tooltype in IceIQle's icon.
+
+      · Then setup the @{" TAGLINE " link ToolTypes.TagLine} tooltype as described in the TOOLTYPES
+        section of this document.
+
+@endnode
+
+@node Installation.TERM "IceIQle, Installation: TERM"
+IceTerm Installation
+
+      · Do the same steps as for using with IceOLR, only with IceTERM's
+        icon.
+
+@endnode
+
+@node ToolTypes.AppendLines "IceIQle, ToolTypes: AppendLines"
+   APPENDLINES    (Integer)
+      Number of newline characters to append to the original
+      message. A value > 0 allows quick cursor down (or page down) to
+      get to the end of the message without having to move to the end
+      of the last line and press return. These lines won't be appended
+      for new posts. If you're using the @{" TAGLINE " link ToolTypes.TagLine} tooltype you don't
+      really need any APPENDLINES because you can do the formatting
+      with the TAGLINE= tooltype.
+
+@endnode
+
+@node ToolTypes.CleanUp "IceIQle, ToolTypes: CleanUp"
+   CLEANUP        (BOOLEAN)    [IceBBS and AmiQWK Only]
+      If set to TRUE, some blank lines that got initial quoted are
+      converted back to an empty line. This makes changes in authors
+      easier to identify, and is easier to read. Set this to FALSE and
+      you'll probably hate it and discover why I added it (but made
+      it an option for the purists).
+
+@endnode
+
+@node ToolTypes.Editor "IceIQle, ToolTypes: Editor"
+   EDITOR         (String)
+      [Optional - You can more easily include this information in
+                  the IceOLR and IceTERM icons - See @{" INSTALLATION " link Doc.Installation}]
+      Filename (and path) of text editor you use for editing messages.
+      This tooltype will only be used if no editor is given in OLR or TERM.
+
+@endnode
+
+@node ToolTypes.ExcludeInfo "IceIQle, ToolTypes: ExcludeInfo"
+   EXCLUDEINFO    (Multiple string)
+      List of strings separated by '|' characters.
+      Any line STARTING with one of these strings will be deleted
+      before the editor is called. This is primarily intended to
+      conveniently remove the info lines such as Author, Creation
+      Date, etc. Only the first @{" EXCLUDENUM " link ToolTypes.ExcludeNum} number of lines will be
+      examined (to avoid the slim possibility of accidently deleting
+      a line in the message which might start with 'Author:' or
+      similar). The icon is initialized with the value of
+
+         EXCLUDEINFO=Author:|Creation Date:|Address:|Subject:|Old Subject:
+
+      You could add any of the additional items that show up when you
+      have the net button activated, or From:|Date: for eliminating the
+      info in EMailed messages. No spaces can occur between the strings
+      you want excluded and the '|' characters.
+
+      To remove the header from an AmiQWK reply, use:
+
+         EXCLUDEINFO=From:|  To:|Subj:|===========
+                           ^^
+                     (2 Spaces above required)
+
+@endnode
+
+@node ToolTypes.ExcludeNum "IceIQle, ToolTypes: ExcludeNum"
+   EXCLUDENUM     (Integer  -  Default: 8)
+      Number of lines to examine for possible exclusion based on the
+      @{" EXCLUDEINFO " link ToolTypes.ExcludeInfo} tooltype.
+
+@endnode
+
+@node ToolTypes.Header "IceIQle, ToolTypes: Header"
+   HEADER         (String)    [IceBBS and AmiQWK Only]
+      Used to define a header string with embedded author, date,
+      subject, etc. Special characters preceded by the '%' character
+      indicate the appropriate item. There are @{" Name/Date controls " link Embed.DateNameControls} as
+      well as @{" Custom controls " link Embed.CustomControls}.
+
+      When defining the HEADER string, you can mix your own text
+      with the control codes.
+
+          EXAMPLE 1)
+
+            HEADER=On %w %y-%m-%d %a and %r were discussing:%n  "%s"
+
+            would result in something like:
+
+            On Tue 94-Feb-1 Bryan Ewert and Ken Pierce were discussing:
+              "Am I seeing Double, Triple or more?"
+
+      See the @{" TAGLINE " link ToolTypes.TagLine} tooltype, which works identically to HEADER, for
+      a more complex example.
+@endnode
+
+@node ToolTypes.Header2 "IceIQle, ToolTypes: Header2"
+   HEADER2        (String)    [IceBBS and AmiQWK Only]
+      Works identically to @{" HEADER " link ToolTypes.Header} but is used when there is no 'Address'
+      person OR when the 'Address' field is 'All'.
+      This is to give a little more flexibility in defining quote strings
+      without having replies to an initial post sound awkward. If using
+      a text file (with %S or %R), it would of course make sense to use
+      a different file here than for the HEADER= tooltype.
+      If HEADER2 isn't specified, @{" HEADER " link ToolTypes.Header} will be used.
+
+@endnode
+
+@node ToolTypes.HeaderMail "IceIQle, ToolTypes: HeaderMail"
+   HEADERMAIL     (String)    [IceBBS Only]
+      Works identically to @{" HEADER " link ToolTypes.Header} but is used only for EMail messages...
+      perhaps to give that more personal touch? Or maybe a more nasty
+      edge?
+      If HEADERMAIL is not specified, @{" HEADER2 " link ToolTypes.Header2} will be used for EMail.
+
+@endnode
+
+@node ToolTypes.Omit "IceIQle, ToolTypes: Omit"
+   OMIT           (Multiple String)
+     List of strings separated by '|' characters.
+     Any file sent to IceIQle whose name STARTS with one of these strings
+     will not be processed at all by IceIQle, but rather is passed on
+     unchanged to your editor. The most useful filename to OMIT is
+     'tempfiledesc' which is the temp file used when entering the long
+     description of an uploaded file. The possible IceBBS filenames are:
+
+             tempnewfile    ->  Feedback Posts.
+             tempfile       ->  Feedback Replies.
+             tempfiledesc   ->  Long description of uploaded file.
+             tempmailfile   ->  EMail Posts.
+             tempEMailReply ->  EMail Replies.
+             tempimailfile  ->  Internet mail.
+             newpost        ->  IceOLR posts or replies.
+                                (Random or maybe encoded date/time numbers
+                                 are used for On-Line SIG replies/posts)
+
+@endnode
+
+@node ToolTypes.PhraseDir "IceIQle, ToolTypes: PhraseDir"
+   PHRASEDIR      (String)
+      The directory where you have your phrase text files situated. Used
+      for header, tagline and signature files, specifically the %C, %I, %R,
+      %S and %V controls. This directory is used only if you don't specify
+      the full path in the FileName of these controls.
+
+@endnode
+
+@node ToolTypes.Quoting "IceIQle, ToolTypes: Quoting"
+   QUOTING        (Switch  -  Default: ON)
+      Enables or Disables the initialed quoting mechanism. Set to OFF
+      to completely disable quoting.
+
+@endnode
+
+@node ToolTypes.TagLine "IceIQle, ToolTypes: TagLine"
+   TAGLINE        (String)
+      Works identically to @{" HEADER " link ToolTypes.Header} with any @{" Name/Date controls " link Embed.DateNameControls} and
+      @{" Custom controls " link Embed.CustomControls} but is included at the end of the message.
+      For example, assuming the file "JRsSignature" contains simply,
+      "Jeff Rose 8^)", and the start of phrases in the text file
+      "JRsTags" are identified with the '@' character:
+
+            TAGLINE=%nTTYL %F,%n%n%C"JRsSignature"%n%n...%R@"JRsTags"
+
+      would result in something like:
+
+            TTYL Kevin,
+
+            Jeff Rose 8^)
+
+            ... I am Homer of Borg.  Prepare to be assim...Mmmm, donuts.
+
+      The 'Homer of Borg' tagline would be extracted randomly since the
+      %R control was used.
+      In this case, it would be easier to simply include the "Jeff Rose 8^)"
+      part directly in the TAGLINE= tooltype, however for illustration
+      purposes this gives you the idea. More complex signatures would be
+      easier to edit in a text file. Also, WorkBench limits you to 128
+      characters in tooltype strings.
+
+@endnode
+
+@node ToolTypes.TagMail "IceIQle, ToolTypes: TagMail"
+   TAGMAIL        (String)    [IceBBS Only]
+      Works identically to @{" TAGLINE " link ToolTypes.TagLine} but is used for local EMail messages
+      only. If TAGMAIL is not specified, TAGLINE will be used for EMail.
+
+@endnode
+
+@node ToolTypes.WordWrap "IceIQle, ToolTypes: WordWrap"
+   WORDWRAP       (Integer  -  default: 0 / OFF)    [IceBBS/AmiQWK]
+   WRAPMARGIN     (Integer  -  default: 15)
+      These two items control handling of automatic word-wrap when quoting
+      unquoted text only. Anything already quoted is left alone. Works great
+      for replying to people who compose messages with Picasso boards! 
+      If WORDWRAP is set to zero, or the tooltype isn't present, this
+      feature is disabled. Setting WORDWRAP to any other value indicates at
+      what column a word is considered to be too far to the right after
+      being quoted with initials, and will be moved down to the next line
+      when quoted. Paragraphs are NOT hopelessly fragmented by the process,
+      but rather are shuffled appropriately to maintain readability. If the
+      entire original paragraph was indented by a constant value, it will
+      remain that way even after being word-wrapped.
+
+      WORDWRAP must be a minimum of 60. If it isn't, 60 will be used.
+      A value of 78 insures words are always visible when using IceOLR or
+      your editor to read a quoted message, assuming a standard 640 pixel
+      wide screen with an 8 point wide font.
+
+      Since every message already has carriage returns at the end of every
+      line, doing word wrap is a little tricky because it can be difficult
+      to identify end of paragraphs where you don't want the next line to
+      be merged at the end of a paragraph. This is what the WRAPMARGIN
+      value is for. Any message line that has the carriage return at a
+      column LESS than WORDWRAP - WRAPMARGIN will be considered to be an
+      end of paragraph. This means that its carriage return will be left
+      in tact at the position that it's in. It is possible for a paragraph
+      to end beyond this region, in which case, if both of the following
+      conditions AREN'T true, the next paragraph could get joined with the
+      current paragraph.
+
+         A) There are 2 CR's separating paragraphs.
+         B) The first line of the next paragraph is indented further
+            than the current line.
+
+      Any paragraphs separated by either A) or B) will ALWAYS be handled
+      correctly, regardless of the WRAPMARGIN setting.
+      Also, any line which does not end up getting split up in the word
+      wrap process, will have its carriage return left in tact.
+      A value of 15 gives good end of paragraph recognition. WRAPMARGIN
+      defaults to 15 if not specified in a tooltype. Too small a number
+      will cause too many misidentifications of end of paragraph.
+      Too high, and paragraphs which are obviously ended, will not be
+      considered so.
+
+      The only other possible problem with using wordwrap is when replying
+      to a message that has aligned numbers or something past the WORDWRAP
+      column. They will of course get pushed down to the next line.
+
+@endnode
+
+@node Index "Index of IceIQle.Guide"
+                          INDEX of IceIQle.Guide
+
+   @{" AmiQWK - Installation " link Installation.AmiQWK}
+   @{" AppendLines - ToolTypes " link ToolTypes.AppendLines}
+   @{" CleanUp - ToolTypes " link ToolTypes.CleanUp}
+   @{" CountingIndex - Doc " link Doc.CountingIndex}
+   ·CustomControls
+      -  @{" RandomSequential " link CustomControls.RandomSequential}
+      -  @{" SigDependant " link CustomControls.SigDependant}
+   @{" CustomControls - Embed " link Embed.CustomControls}
+   @{" DateNameControls - Embed " link Embed.DateNameControls}
+   ·Doc
+      -  @{" CountingIndex " link Doc.CountingIndex}
+      -  @{" History " link Doc.History}
+      -  @{" Installation " link Doc.Installation}
+      -  @{" OutOfDateIndex " link Doc.OutOfDateIndex}
+      -  @{" QuotingDescription " link Doc.QuotingDescription}
+      -  @{" Requirements " link Doc.Requirements}
+      -  @{" Suggestions " link Doc.Suggestions}
+      -  @{" ToolTypes " link Doc.ToolTypes}
+      -  @{" Warranty " link Doc.Warranty}
+      -  @{" What is it " link Doc.What_is_it}
+   @{" Editor - ToolTypes " link ToolTypes.Editor}
+   ·Embed
+      -  @{" CustomControls " link Embed.CustomControls}
+      -  @{" DateNameControls " link Embed.DateNameControls}
+   @{" ExcludeInfo - ToolTypes " link ToolTypes.ExcludeInfo}
+   @{" ExcludeNum - ToolTypes " link ToolTypes.ExcludeNum}
+   @{" Header - ToolTypes " link ToolTypes.Header}
+   @{" Header2 - ToolTypes " link ToolTypes.Header2}
+   @{" HeaderMail - ToolTypes " link ToolTypes.HeaderMail}
+   @{" History - Doc " link Doc.History}
+   ·Installation
+      -  @{" AmiQWK " link Installation.AmiQWK}
+      -  @{" OLR " link Installation.OLR}
+      -  @{" Other " link Installation.Other}
+      -  @{" TERM " link Installation.TERM}
+   @{" Installation - Doc " link Doc.Installation}
+   @{" OLR - Installation " link Installation.OLR}
+   @{" Omit - ToolTypes " link ToolTypes.Omit}
+   @{" Other - Installation " link Installation.Other}
+   @{" OutOfDateIndex - Doc " link Doc.OutOfDateIndex}
+   @{" PhraseDir - ToolTypes " link ToolTypes.PhraseDir}
+   @{" Quoting - ToolTypes " link ToolTypes.Quoting}
+   @{" QuotingDescription - Doc " link Doc.QuotingDescription}
+   @{" RandomSequential - CustomControls " link CustomControls.RandomSequential}
+   @{" Requirements - Doc " link Doc.Requirements}
+   @{" SigDependant - CustomControls " link CustomControls.SigDependant}
+   @{" Suggestions - Doc " link Doc.Suggestions}
+   @{" TERM - Installation " link Installation.TERM}
+   @{" TagLine - ToolTypes " link ToolTypes.TagLine}
+   @{" TagMail - ToolTypes " link ToolTypes.TagMail}
+   ·ToolTypes
+      -  @{" AppendLines " link ToolTypes.AppendLines}
+      -  @{" CleanUp " link ToolTypes.CleanUp}
+      -  @{" Editor " link ToolTypes.Editor}
+      -  @{" ExcludeInfo " link ToolTypes.ExcludeInfo}
+      -  @{" ExcludeNum " link ToolTypes.ExcludeNum}
+      -  @{" Header " link ToolTypes.Header}
+      -  @{" Header2 " link ToolTypes.Header2}
+      -  @{" HeaderMail " link ToolTypes.HeaderMail}
+      -  @{" Omit " link ToolTypes.Omit}
+      -  @{" PhraseDir " link ToolTypes.PhraseDir}
+      -  @{" Quoting " link ToolTypes.Quoting}
+      -  @{" TagLine " link ToolTypes.TagLine}
+      -  @{" TagMail " link ToolTypes.TagMail}
+      -  @{" WordWrap " link ToolTypes.WordWrap}
+   @{" ToolTypes - Doc " link Doc.ToolTypes}
+   @{" Warranty - Doc " link Doc.Warranty}
+   @{" What is it - Doc " link Doc.What_is_it}
+   @{" WordWrap - ToolTypes " link ToolTypes.WordWrap}
+
+@endnode

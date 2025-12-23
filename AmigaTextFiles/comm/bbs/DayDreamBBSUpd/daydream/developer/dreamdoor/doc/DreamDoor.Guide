@@ -1,0 +1,1129 @@
+@Database "DreamDoor AmigaGuide documentation"
+@Width 80
+@TAB 3
+
+@REMARK Created with AuToGuide ©1995 Rune Espeseth
+@Node Main "Table Of Contents"
+
+                          @{B} TABLE OF CONTENTS! @{UB}
+
+        @{" InitDoor         " link Aguide0}             @{" CloseDoor        " link Aguide1}
+        @{" SendString       " link Aguide2}             @{" Prompt           " link Aguide3}
+        @{" InquirePointers  " link Aguide4}             @{" DisplayFile      " link Aguide5}
+        @{" Yes/No           " link Aguide6}             @{" ScanUserbase     " link Aguide7}
+        @{" UpdateStructures " link Aguide8}             @{" XprSend          " link Aguide9}
+        @{" XprReceive       " link Aguide10}             @{" GetLrp           " link Aguide11}
+        @{" SetLrp           " link Aguide12}             @{" GetKey           " link Aguide13}
+        @{" ScanFileDirs     " link Aguide14}             @{" FlagFile         " link Aguide15}
+        @{" Disconnect       " link Aguide16}             @{" DDCommand        " link Aguide17}
+        @{" ResetIdle        " link Aguide18}             @{" Relogin          " link Aguide19}
+        @{" JoinConference   " link Aguide20}             @{" ChangeMsgBase    " link Aguide21}
+        @{" IntCommand       " link Aguide22}             @{" CheckKey         " link Aguide23}
+        @{" LineEditor       " link Aguide24}             @{" FifoExecute      " link Aguide25}
+        @{" WriteLog         " link Aguide26}             @{" CleanTemp        " link Aguide27}
+        @{" FetchKey         " link Aguide28}             @{" ChangeActivity   " link Aguide29}
+        @{" GetConf          " link Aguide30}             @{" GetBase          " link Aguide31}
+        @{" IsAway           " link Aguide32}             @{" SendMessage      " link Aguide33}
+        @{" SendMsgToAll     " link Aguide34}             @{" SetSerial        " link Aguide35}
+        @{" ChatMode         " link Aguide36}             @{" Pause            " link Aguide37}
+        @{" ReCountFiles     " link Aguide38}             @{" SetRemainingTime " link Aguide39}
+        @{" HideCursor       " link Aguide40}             @{" ShowCursor       " link Aguide41}
+        @{" GetDDString      " link Aguide42}             @{" UpdateUserRec    " link Aguide43}
+        @{" SetAccPreset     " link Aguide44}             @{" SearchUser       " link Aguide45}
+@ENDNODE
+@NODE Aguide0 "DreamDoor.library/InitDoor"
+
+   NAME
+        InitDoor - Initialize door
+
+   SYNOPSIS
+        dif = InitDoor(node)
+         D0             A0
+
+        struct DIFace *InitDoor(char *)
+
+   FUNCTION
+        Allocates all required structures, ports and messages. You should
+        call this at the beginning of door.
+
+   EXAMPLE
+        InitDoor(argv[1]);
+
+   INPUTS
+        node - The ASCII (!!) value of the node number.
+
+   RESULT
+        dif - Ptr to an initialized DIFace structure or NULL if
+              DayDream's doorport isn't open.
+
+   SEE ALSO
+        CloseDoor
+@ENDNODE
+@NODE Aguide1 "DreamDoor.library/CloseDoor"
+
+   NAME
+        CloseDoor - Shutdown door and delete messages, ports and DIFace.
+
+   SYNOPSIS
+        CloseDoor(dif)
+                  D0
+
+        void CloseDoor(struct DIFace *);
+
+   FUNCTION
+        You *MUST* call this function to close door. This deletes all
+        structures created by InitDoor() and tells DayDream that door
+        has finished it's job.
+
+   NOTE
+        This call will close the doorport, so you won't be able to send
+        cmd's to DayDream anymore, but the door can still do other tasks.
+        So it is NOT necessary to quit right after doing a CloseDoor()
+        call!
+
+        !!IMPORTANT!!
+        It is *NOT* possible to re-initialise door by calling InitDoor()
+        after doing CloseDoor(). This is because DayDream closes the
+        doorport immedietly during the CloseDoor() call.
+ 
+   EXAMPLE
+        CloseDoor(dif);
+
+   INPUTS
+        dif - A pointer to the DIFace structure returned by InitDoor()
+
+   SEE ALSO
+        InitDoor
+@ENDNODE
+@NODE Aguide2 "DreamDoor.library/SendString"
+
+   NAME
+        SendString - Type String
+
+   SYNOPSIS
+        SendString(dif, string)
+                   D0   A0
+
+        void SendString(struct DIFace *, char *);
+
+   FUNCTION
+        Prints specified string of characters to remote user's display,
+        local screen or both. Possible ANSI codes will be automatically
+        stripped, if user has chosen an ASCII display mode. When in need
+        of changing line, string only needs to contain a linefeed, carriage
+        return (ASCII 13) will be inserted automatically.
+
+   EXAMPLE
+        SendString(dif,"Hello World!");
+
+   INPUTS
+        dif - A pointer to the DIFace structure returned by InitDoor()
+        string - A pointer to the null-terminated string containing text
+                 to print.
+@ENDNODE
+@NODE Aguide3 "DreamDoor.library/Prompt"
+
+   NAME
+        Prompt - Prompt for user input
+
+   SYNOPSIS
+        success = Prompt(dif, buffer, length, flags, default)
+        D0               D0   A0      D1      D2     A1
+
+        int Prompt(struct DIFace *, char *, ULONG, ULONG, char *)
+
+   FUNCTION
+        Prompts user to enter a string. Length will  be restricted as
+        requested by the door. Full support for ANSI cursor sequences
+        is given, so that user can easily move through the string and
+        modify as required.
+
+   EXAMPLE 
+        stat = Prompt(dif,GSTR,13,DPF_FILENAME,"Marsu jee!");
+
+   INPUTS
+        dif - A pointer to the DIFace structure returned by InitDoor()
+        buffer - Pointer to the buffer, where the final string will be
+                 inserted. 
+        length - Maximum length
+        flags - DPF_HIDDEN = Hidden mode, print *'s instead of real chars.
+                DPF_NOCRLF = Don't print CR+LF after receiving result code.
+                DPF_FILENAME = Don't allow any chars illegal in filenames.
+        default - Default string or NULL
+
+   RESULT
+        success - 0L if carrier lost, 1L if successfull.
+@ENDNODE
+@NODE Aguide4 "DreamDoor.library/InquirePointers"
+
+   NAME
+        InquirePointers - Inquire Structure Pointers
+
+   SYNOPSIS
+        InquirePointers(dif, pointers)
+        D0              D0   A0
+
+        void InquirePointers(struct DIFace *, struct DDPointers *)
+
+   FUNCTION
+        This command will return with pointers to several significant
+        system structures, such as user structure etc.
+        Be careful when editing stuff in those pointers, because DayDream
+        uses same memoryblocks! You can also find out with this function 
+        if DayDream is in local mode.
+
+   EXAMPLE
+        InquirePointers(d,pointermem);
+
+   NOTE 
+        _NEVER_ use these pointers after DayDream has closed it's Doorport!
+
+   INPUTS
+        dif - A Pointer to DIFace returned by InitDoor()
+        pointers - A pointer to allocated memoryblock where the pointers
+                   are placed.
+@ENDNODE
+@NODE Aguide5 "DreamDoor.library/DisplayFile"
+
+   NAME
+        DisplayFile - Display ANSI of ASCII-file
+
+   SYNOPSIS
+        DisplayFile(dif, filename, flags)
+                    D0   A0        D1
+
+        void DisplayFile(struct DIFace *, char *, ULONG)
+
+   FUNCTION
+        This command outputs an ASCII or ANSI file into remote terminal,
+        local screen or both.
+
+   EXAMPLE
+        DisplayFile(d,"s:user-startup",DDF_SHOWERROR);
+
+   INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        filename - A pointer to the filename to show.
+        flags - DDF_ADDEXTENSION = automatically add .GFX/.TXT.
+                DDF_SHOWERROR = In case file couldn't be found, show a
+                                visible error message instead of quiting
+                                quietly.
+                DDF_STRIPKLUDGES = Strip fidonet kludges
+                DDF_CHECKCONF = Check if file exists in conference.
+                DDF_CHECKACS = Check if there's file for the current
+                               access level
+                DDF_STRIPCTRL = Strip controlchars (Eg. Viewfile doors
+                                etc should have this on, if sysop doesn't
+                                want his HD formatted).
+@ENDNODE
+@NODE Aguide6 "DreamDoor.library/YesNo"
+
+    NAME
+        YesNo - Prompt user for simple yes or no
+
+    SYNOPSIS
+        result = YesNo(dif,default)
+        D0             d0  d1
+
+        int YesNo(struct DIFace *, ULONG);
+
+    FUNCTION
+        This function asks user to answer a simple yes or no question.
+        Door program must type the question by itself, since  all this
+        function outputs is an ASCII string "Yes" or "No" based on the
+        user's answer.
+
+    EXAMPLE
+        poro = YesNo(d,DYESNO_NO);
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        default - Default answer. 1 = Yes, 0 = No.
+
+    RESULT
+        result - 0 = No, 1 = Yes, -1 = Carrier lost.
+@ENDNODE
+@NODE Aguide7 "DreamDoor.library/ScanUserbase"
+
+    NAME
+        ScanUserbase - Scan Userbase for Scecified User Account
+
+    SYNOPSIS
+        offset = ScanUserbase(dif, name)
+        D0                    D0   A0
+
+        LONG ScanUserbase(struct DIFace *, char *);
+
+    FUNCTION
+        This function scans user database (UserBase.DAT) in order to find
+        the specified account. Match can be made in real name or handle.
+        Operation is fully non-case-sensitive.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        name - A Pointer to the Handle or Name to user to be scanned.
+
+    RESULT
+        offset - An offset to the matching account. -1 if account not
+                 found.
+@ENDNODE
+@NODE Aguide8 "DreamDoor.library/UpdateStructures"
+
+    NAME
+        UpdateStructures - Update DayDream Data Structures
+
+    SYNOPSIS
+        UpdateStructures(dif)
+                         D0
+
+        void UpdateStructures(struct *DIFace);
+
+    FUNCTION
+        This function must be called after any DayDream structure has
+        been modified. Please remember to observe extreme cautiousness,
+        since careless modifications will lead to a system crash.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide9 "DreamDoor.library/XprSend"
+
+    NAME
+        XprSend - Send file(s) w/ Xpr-Protocol.
+
+    SYNOPSIS
+        XprSend(dif, files, default path)
+                D0   A0     A1
+
+        void XprSend(struct *DIFace, char *, char *);
+
+    FUNCTION
+        This function allows door to send file(s) to user using currently
+        selected XPR-Protocol. 
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        files - Pointer to a data block, consisting of NULL-terminated to
+                be transferred. End of the block will be signaled with a $FF
+                (Byte). 
+        default path - Pointer to a valid AmigaDOS pathname. Files with no
+                       path spec will be looked for in this directory.
+@ENDNODE
+@NODE Aguide10 "DreamDoor.library/XprReceive"
+
+    NAME
+        XprReceive - Receive file(s) w/ Xpr-Protocol
+
+    SYNOPSIS
+        XprReceive(dif, path)
+                   D0   A0
+
+        void XprReceive(struct *DIFace, char *);
+
+    FUNCTION
+        This function allows door to receive files from user using currently
+        selected XPR-Protocol.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        path - path to receive files.
+@ENDNODE
+@NODE Aguide11 "DreamDoor.library/GetLrp"
+
+    NAME
+        GetLrp - Gets last read pointer from specified message base.
+
+    SYNOPSIS
+        result = GetLrp(dif, conf, base)
+        D0              D0   D1    D2
+
+        ULONG *GetLrp(struct *DIFace, ULONG, ULONG);
+
+    FUNCTION
+        Gets last read pointer of current user from specified message base.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        conf - Conference number
+        base - Message base number
+        
+    RESULT
+        result - Last read pointer is returned.
+@ENDNODE
+@NODE Aguide12 "DreamDoor.library/SetLrp"
+
+    NAME
+        SetLrp - Sets last read pointer
+
+    SYNOPSIS
+        SetLrp(dif, conf, base, lrp)
+               D0   D1    D2    D3
+
+        void SetLrp(struct *DIFace, ULONG, ULONG, ULONG);
+
+    FUNCTION
+        Gets last read pointer of current user to specified message base.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        conf - Conference number
+        base - Message base number
+        lrp - New Last read pointer
+@ENDNODE
+@NODE Aguide13 "DreamDoor.library/GetKey"
+
+    NAME
+        GetKey - Gets a character from local console or remote terminal
+
+    SYNOPSIS
+        result = GetKey(dif, flags)
+        D0              D0   D1
+        
+        ULONG *GetKey(struct *DIFace, ULONG);
+
+    FUNCTION
+        This function simply waits for a single keypress from either the
+        local console or remote terminal. After receiving a character,
+        this function will immediately return with no further activity.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        flags - currently understands these flags:
+                HOTKEY_SHOWCHAR - Show pressed character
+                HOTKEY_ADDLF    - Insert CRLF after received character
+                HOTKEY_CURSOR   - Check for cursor keys (250=up etc) 
+                HOTKEY_DETECT   - Detect origin.
+    RESULT
+        result - NULL if carrier lost or received character.
+                 If HOTKEY_DETECT was enabled, source of the character
+                 is stored in the upper word. (0=Serial, 1=Console)
+
+    SEE ALSO
+        FetchKey()
+@ENDNODE
+@NODE Aguide14 "DreamDoor.library/ScanFileDirs"
+
+    NAME
+        ScanFileDirs - Vittu tän kans palaa taulu!
+
+    SYNOPSIS
+        result = ScanFileDirs(dif, conf, pattern, hook, userdata)
+        D0                    D0   D1    A0       A1    A2
+
+        ULONG *ScanFileDirs(struct *DIFace, ULONG, char *, APTR, ULONG);
+
+    FUNCTION
+        This function will scan all the file directories in the specified
+        conference and see if any of the files matches with given string;
+        wildcards allowed, of course. When a match is found, this routine
+        will call a hook routine with path, name and size of the file 
+        as it's parameters allowing it to process the file in any wanted
+        way. After the hook has returned, scanning will or will not be
+        continued depending on whether the search string contained any
+        wildcards (if it didn't, no more than one match is possible).
+        If hook is null, internal fileflagging hook of DayDream will be
+        used.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        conf - Conference number
+        pattern - Pointer to the search string, wildcards allowed.
+        hook - Pointer to the hook routine to call:
+
+               Hook(Path, Filename, Size, UserData);
+                    A0    A1        D0    D1
+
+               >WARNING< HOOK ROUTINE MAY ABSOLUTELY NOT
+               MODIFY ANY SYSTEM   REGISTERS  UNLESS THE
+               ORIGINAL VALUES ARE RETURNED BEFORE EXIT!
+
+               If this is NULL, use File tagging-routines of DayDream.
+        userdata - User data variable - will be given to Hook() routine 
+                   as provided here. This will just pass through DD and
+                   doesn't have any effect on DD's operation. With this
+                   field you can easily pass some data to your hook.
+
+    NOTE
+        You may not call functions using DIF when in hook.
+        
+    RESULT
+        result - 0 - Operation successful
+                 1 - Not enough memory (only 2048 bytes needed)
+                 2 - Specified conference not found
+                 3 - Specified conference doesn't have any file directories
+@ENDNODE
+@NODE Aguide15 "DreamDoor.library/FlagFile"
+
+    NAME
+        FlagFile - Add file to the download request
+
+    SYNOPSIS
+        result = FlagFile(dif, path, file, flags, size)
+        D0                D0   A0    A1    D1     D2
+
+        ULONG = FlagFile(struct *DIFace, char *, char *, ULONG, ULONG);
+
+    FUNCTION
+        This function will add a file to the download request. Current dload
+        request will be checked first to avoid possible duplicate entries.
+        If no duplicate entry or other errors occurred, file will be added
+        to the filechain.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        path - Pointer to the path where the file to be added can be
+               found. PATH MUST END WITH A SLASH ('/') OR COLON (':')!
+        file - pointer to the actual filename
+        flags - FLAGFILE_FREE if file is a free download
+        size - Size of the file.
+
+    RESULT
+        result - 0 - Operation successful
+                 1 - Duplicate entry found
+                 2 - File ratio problems
+                 3 - Byte ratio problems
+                 4 - Not enough memory
+@ENDNODE
+@NODE Aguide16 "DreamDoor.library/Disconnect"
+
+    NAME
+        Disconnect - Kick some ass
+
+    SYNOPSIS
+        Disconnect(dif)
+                   D0
+
+        void Disconnect(struct *DIFace);
+
+    FUNCTION
+        This function will disconnect user from BBS.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide17 "DreamDoor.library/DDCommand"
+
+    NAME
+        DDCommand - Run DayDream Command
+
+    SYNOPSIS
+        DDCommand(dif, command)
+                  D0   A0
+
+        void DDCommand(struct *DIFace, char *);
+
+    FUNCTION
+        Allows use of DayDream's commands (also external ones)
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        command - Command to be executed.
+@ENDNODE
+@NODE Aguide18 "DreamDoor.library/ResetIdle"
+
+    NAME
+        ResetIdle - Resets idle counter
+
+    SYNOPSIS
+        ResetIdle(dif)
+                  D0
+
+        void ResetIdle(struct DIFace *);
+        
+    FUNCTION
+        This function will reset the idle-counter. Useful for doors
+        having own serial/console routines, before and after archiving
+        something etc. Note that hotkey, prompt etc. routines reset
+        the idle counter automatically.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide19 "DreamDoor.library/Relogin"
+
+    NAME
+        Relogin - VITTU SE ON JUST NIINKU SE ON! HAHA!
+
+    SYNOPSIS
+        Relogin(dif)
+                D0
+
+        void Relogin(struct DIFace *);
+
+    FUNCTION
+        Same as CloseDoor(), except this will relogin user to the
+        system.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide20 "DreamDoor.library/JoinConference"
+
+    NAME
+        JoinConference - Joins specified Conference
+
+    SYNOPSIS
+        JoinConference(dif, conf, flags)
+                        D0    D1    D2
+
+        void JoinConference(struct DIFace *, ULONG, ULONG);
+
+    FUNCTION
+        Joins specified conference.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        conf - number of conference to join
+        flags - JOINCONFF_ASKNEW - Ask new conference if requested conference
+                                   doesn't exist
+                JOINCONFF_QUICK - Do not load any conference specific data
+                                  etc. If you use this, you must join back
+                                  to the original conference before quitting
+                                  door.
+                JOINCONFF_SKIPTXT - Skip JoinConference.TXT|GFX 
+@ENDNODE
+@NODE Aguide21 "DreamDoor.library/ChangeMsgBase"
+
+    NAME
+        ChangeMsgBase - Change current message base
+
+    SYNOPSIS
+        ChangeMsgBase(dif, base, flags)
+                      D0    D1    D2
+
+        void ChangeMsgBase(struct DIFace *, ULONG, ULONG);
+
+    FUNCTION
+        This function changes the current msg base.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        base - number of base to enter
+        flags - CBMF_SHOWMENU - Show menu if base = 0
+                CBMF_NOSTATUS - Do not display msgbase status
+@ENDNODE
+@NODE Aguide22 "DreamDoor.library/IntCommand"
+
+    NAME
+        IntCommand - Run internal DayDream Command
+
+    SYNOPSIS
+        DDCommand(dif, command)
+                  D0   A0
+
+        void DDCommand(struct *DIFace, char *);
+
+    FUNCTION
+        Allows use of DayDream's commands (only internals)
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        command - Command to be executed.
+@ENDNODE
+@NODE Aguide23 "DreamDoor.library/CheckKey"
+
+    NAME
+        CheckKey - Gets a character from local console or remote terminal
+
+    SYNOPSIS
+        result = CheckKey(dif)
+        D0                 D0 
+        
+        ULONG *CheckKey(struct *DIFace);
+
+    FUNCTION
+        Checks if there's character in receive buffer and if so, returns
+        it.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+
+    RESULT
+        result - NULL if nothing or received character
+@ENDNODE
+@NODE Aguide24 "DreamDoor.library/LineEditor"
+
+    NAME
+        LineEditor - Edit file using DD's built-in line editor.
+
+    SYNOPSIS
+        LineEditor(dif, file)
+                   D0    A0
+        
+        void LineEditor(struct *DIFace, char *);
+
+    FUNCTION
+        Edit and create text file using DD's built-in line editor.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        file - Pointer to the filename to edit
+@ENDNODE
+@NODE Aguide25 "DreamDoor.library/FifoExecute"
+
+    NAME
+        FifoExecute - Execute program and route output to user
+
+    SYNOPSIS
+        FifoExecute(dif, command)
+                    D0    A0
+        
+        void FifoExecute(struct *DIFace, char *);
+
+    FUNCTION
+        Execute dos-command and route output to the user.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        command - Pointer to the dos-command to execute. Following
+                  controlcodes are available:
+
+              %N = Node, %H = Handle, %R = Real name, %S = Screen length
+@ENDNODE
+@NODE Aguide26 "DreamDoor.library/WriteLog"
+
+    NAME
+        WriteLog - Write string to the logfile.
+
+    SYNOPSIS
+        WriteLog(dif, string)
+                  D0    A0
+        
+        void WriteLog(struct *DIFace, char *);
+
+    FUNCTION
+        Write string to the logfile.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        string - String to write. Following control codes are available:
+
+              %A = ARQ Report
+              %B = Baudrate
+              %D = Date
+              %H = Handle
+              %L = Location
+              %N = Node
+              %O = Organization
+              %S = Security
+              %T = Time
+              %U = Real name
+@ENDNODE
+@NODE Aguide27 "DreamDoor.library/CleanTemp"
+
+    NAME
+        CleanTemp - Clean up temporary directory
+
+    SYNOPSIS
+        CleanTemp(dif)
+                  D0
+        
+        void CleanTemp(struct *DIFace);
+
+    FUNCTION
+        Clean up temporary directory.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide28 "DreamDoor.library/FetchKey"
+
+    NAME
+        FetchKey - Gets a char or timeout
+
+    SYNOPSIS
+        result = FetchKey(dif, flags, timeout)
+        D0                 D0   D1    D2
+        
+        ULONG *GetKey(struct *DIFace, ULONG, ULONG);
+
+    FUNCTION
+        This function simply waits for a single keypress from either the
+        local console or remote terminal or a timeout. After receiving a
+        character or timeout, this function will immediately return with
+        no further activity.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        flags - currently understands these flags:
+                HOTKEY_SHOWCHAR - Show pressed character
+                HOTKEY_ADDLF    - Insert CRLF after received character
+                HOTKEY_CURSOR   - Check for cursor keys (250=up etc) 
+                HOTKEY_DETECT   - Detect origin.
+        timeout - timeout in secs
+    RESULT
+        result - NULL if carrier lost or received character or -1 if
+                 timeout occured.
+
+                 If HOTKEY_DETECT was enabled, source of the character
+                 is stored in the upper word. (0=Serial, 1=Console)
+
+    SEE ALSO
+        GetKey()
+@ENDNODE
+@NODE Aguide29 "DreamDoor.library/ChangeActivity"
+
+    NAME
+        ChangeActivity
+
+    SYNOPSIS
+        ChangeActivity(dif, string)
+                       D0    A0
+        
+        void WriteLog(struct *DIFace, char *);
+
+    FUNCTION
+        Change activity in server and WHO-command.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        string - pointer to new activity
+@ENDNODE
+@NODE Aguide30 "DreamDoor.library/GetConf"
+
+    NAME
+        GetConf - Get pointer to specified conference
+
+    SYNOPSIS
+        confaddr= GetConf(confdat, conf)
+                           A0      D0
+        
+        struct DayDream_Conference *GetConf(struct *DayDream_Conference, ULONG);
+
+    FUNCTION
+        Return pointer to requested conference.
+
+    INPUTS
+        confdat - Pointer to conferences dat
+        conf - Number of requested conference
+
+    OUTPUTS
+        confaddr - Pointer to requested conference or NULL
+@ENDNODE
+@NODE Aguide31 "DreamDoor.library/GetBase"
+
+    NAME
+        GetBase - Get pointer to specified message base
+
+    SYNOPSIS
+        baseaddr= GetConf(confdat, conf, base)
+                            A0      D0    D1
+        
+        struct DayDream_MsgBase *GetConf(struct *DayDream_Conference, ULONG, ULONG);
+
+    FUNCTION
+        Return pointer to requested message base.
+
+    INPUTS
+        confdat - Pointer to conferences dat
+        conf - Number of requested conference
+        base - Number of requested message base
+
+    OUTPUTS
+        baseaddr - Pointer to requested messagebase or NULL
+@ENDNODE
+@NODE Aguide32 "DreamDoor.library/IsAway"
+
+    NAME
+        IsAway - Check SysOp availability
+
+    SYNOPSIS
+        result = IsAway(dif)
+        D0               D0
+        
+        APTR *IsAway(struct *DIFace);
+
+    FUNCTION
+        Just check is SysOp available for chat.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+
+    RESULT
+        result - NULL if SysOp is available, 1 if SysOp is permanently away,
+                 otherwise pointer to the reason why SysOp is away.
+@ENDNODE
+@NODE Aguide33 "DreamDoor.library/SendMessage"
+
+    NAME
+        SendMessage - Send "OLM" to node
+
+    SYNOPSIS
+        result = SendMessage(dif, node, message)
+        D0                   D0   D1     A0
+        
+        ULONG *SendMessage(struct *DIFace, ULONG, APTR);
+
+    FUNCTION
+        Send "OLM" to node. User will see the menu when he/she comes to
+        the main menu.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        node - target node
+        message - pointer to message string (Max 300!!)
+
+    RESULT
+        result - NULL if SysOp if success,
+                1 = Can't send to own node
+                2 = Unknown node
+                3 = No user on that node
+                4 = User is refusing messages
+                5 = Message too long
+@ENDNODE
+@NODE Aguide34 "DreamDoor.library/SendMsgToAll"
+
+    NAME
+        SendMsgToAll - Send "OLM" to all nodes
+
+    SYNOPSIS
+        result = SendMsgToAll(dif, message)
+        D0                    D0   A0
+        
+        ULONG *SendMsgToAll(struct *DIFace, APTR);
+
+    FUNCTION
+        Send "OLM" to all nodes. User will see the menu when he/she
+        comes to the main menu.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        message - pointer to message string (Max 300!!)
+@ENDNODE
+@NODE Aguide35 "DreamDoor.library/SetSerial"
+
+    NAME
+        SetSerial - Disable/Enable Serial output
+
+    SYNOPSIS
+        SetSerial(dif, state)
+                   D0   D1
+        
+        void SetSerial(struct *DIFace, ULONG);
+
+    FUNCTION
+        Set serial state to ON/OFF. Note: If you turn serial off,
+        you should turn it on before exiting door.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        state - new state of serial. 0 = Disable, 1 = Enable
+@ENDNODE
+@NODE Aguide36 "DreamDoor.library/ChatMode"
+
+    NAME
+        ChatMode - Enter Chat mode. 
+
+    SYNOPSIS
+        ChatMode(dif)
+                 D0 
+        
+        void ChatMode(struct *DIFace);
+
+    FUNCTION
+        Enter chat mode. (Line/split/ask)
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide37 "DreamDoor.library/Pause"
+
+    NAME
+        Pause - Type pause string and wait for any key.
+
+    SYNOPSIS
+        Pause(dif)
+              D0 
+        
+        void Pause(struct *DIFace);
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide38 "DreamDoor.library/ReCountFiles"
+
+    NAME
+        ReCountFiles - Re-count tagged files
+
+    SYNOPSIS
+        ReCountFiles(dif)
+                     D0 
+        
+        void ReCountFiles(struct *DIFace);
+
+    FUNCTION
+        Re-counts tagged files. This is necessary if door has altered list
+        of tagged files in any way.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide39 "DreamDoor.library/SetRemainingTime"
+
+    NAME
+        SetRemainingTime - Set remaining time
+
+    SYNOPSIS
+        SetRemainingTime(dif, newtime)
+                         D0    D1
+        
+        void SetRemainingTime(struct *DIFace, LONG);
+
+    FUNCTION
+        Set amount of minutes user has time left.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        newtime - number of minutes
+@ENDNODE
+@NODE Aguide40 "DreamDoor.library/HideCursor"
+
+    NAME
+        HideCursor - Hide output cursor.
+
+    SYNOPSIS
+        HideCursor(dif)
+                    D0
+        
+        void HideCursor(struct *DIFace);
+
+    FUNCTION
+        Try to hide the cursor. Cursor will only be hidden if user
+        has selected 'Speed up output' in the user switches.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide41 "DreamDoor.library/ShowCursor"
+
+    NAME
+        ShowCursor - Show output cursor.
+
+    SYNOPSIS
+        ShowCursor(dif)
+                    D0
+        
+        void ShowCursor(struct *DIFace);
+
+    FUNCTION
+        Try to show the cursor.
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+@ENDNODE
+@NODE Aguide42 "DreamDoor.library/GetDDString"
+
+    NAME
+        GetDDString - Get ptr to internal string.
+
+    SYNOPSIS
+        result = GetDDString(dif, stringnum)
+         D0                  d0     d1
+        
+        APTR GetDDString(struct *DIFace, ULONG);
+
+    FUNCTION
+        Get a pointer to one of the strings defined in Strings.XXX
+
+    INPUTS
+        dif - A Pointer to the DIFace returned by InitDoor()
+        stringnum - The number of the string you want to access.
+
+@ENDNODE
+@NODE Aguide43 "DreamDoor.library/UpdateUserRec"
+DreamDoor.library/UpdateUserRec
+
+    NAME
+        UpdateUserRec - Update (current) users data to disk.
+
+    SYNOPSIS
+	result = UpdateUserRec( dif,	user )
+	D0			D0	D1
+        
+	ULONG UpdateUserRec(struct *DIFace, struct *user);
+
+    FUNCTION
+        Updates a users data to disk in a safe way.
+
+    INPUTS
+        dif  - A Pointer to the DIFace returned by InitDoor()
+	user - A pointer to a user struct or 0 for online user.
+
+    RESULT
+	result - Returns a ptr to the user struct if successful,
+		 or 0 for an error.
+		 If 0 was specified as user arg, 0 will always
+		 be returned.
+
+    NOTES
+	It is not currently possible to update the user struct of a
+	user that is currently online on another node. This will
+	however be supported in the future.
+
+@ENDNODE
+@NODE Aguide44 "DreamDoor.library/SetAccPreset"
+DreamDoor.library/SetAccPreset
+
+	NAME
+		SetAccPreset - Set a users access according to a preset.
+
+    SYNOPSIS
+	result = SetAccPreset( dif,	presetid, user )
+	D0			D0	D1	  D2
+
+	ULONG SetAccPreset(struct *DIFace, ULONG presetid, struct *user);
+
+    FUNCTION
+        Sets a users access preset according to predefined defaults.
+
+    INPUTS
+        dif      - A Pointer to the DIFace returned by InitDoor()
+	presetid - A valid preset ID (according to the BBS config)
+	user     - A pointer to a user struct.
+
+    RESULT
+	result	 - Returns 0 for success or anything other for an error.
+
+    NOTES
+	You have to update the user struct yourself using the
+        UpdateUserRec() function.
+
+@ENDNODE
+@NODE Aguide45 "DreamDoor.library/SearchUser"
+dreamdoor.library/SearchUser
+
+    NAME
+	SearchUser - Search for a specific user by name/handle or userid.
+
+    SYNOPSIS
+        result = SearchUser(dif, slot, pat, index, user, flags)
+        D0                  d0   d1    d2   d3     d4    d5
+
+	ULONG SearchUser(struct DIFace *, ULONG, char *, ULONG, struct DayDream_User *);
+
+    FUNCTION
+        Searches for a user by name, handle or userid. A index-slotnumber may
+        be specified to for example continue a search.
+
+    INPUTS
+       dif      - A Pointer to the DIFace returned by InitDoor()
+       slot     - Slotnumber to search for. Set to -1 if you are searching
+                  for a user by name / handle.
+       pat      - Name / Handle pattern to search for. Standard AmigaDOS pattern.
+                  Should be set to 0 for slot search.
+       index    - Set this to continue a namesearch. automaticly ignored in
+                  slot search mode.
+       user     - A pointer to a user struct. This structure is filled with the
+                  found users userstruct (If found ofcourse).
+
+       flags    - SUF_ONLYHANDLES if to search only for handles.
+                  SUF_ONLYREALNAMES to search only for realnames.
+		  Both theese are naturally only appliable in namesearch mode.
+
+    RESULT
+        result - Returns 0 for success or anything else for an error.
+
+    NOTES
+        Uses an I/O buffer that makes this routine very fast.
+
+@ENDNODE

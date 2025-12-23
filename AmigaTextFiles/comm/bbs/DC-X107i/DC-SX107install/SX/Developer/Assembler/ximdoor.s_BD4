@@ -1,0 +1,154 @@
+;
+; SYSTEM-X Door (XIM) Written By Zed/DC
+;
+; Don't tell me this source looks really bad! This is the first program
+; I've written in ASM, so it's ok for that eh? :)
+;
+; Note: this example uses door command 1500, which is for System-X
+;       only. It will not work on AmiExpress.
+
+	;incdir "include:"		; <-- use this for ASM-One
+	include "exec/exec_lib.i"
+	include "exec/ports.i"
+	include "libraries/dos_lib.i"
+
+	STRUCTURE	XIMMsg,0
+	STRUCT		Node,LN_SIZE
+	APTR		ReplyPort
+	UWORD		Length
+	STRUCT		Str,200
+	LONG		Data
+	LONG		Command
+	LABEL		bufsize
+
+
+ExecBase	EQU	$4
+
+	SECTION ximdoor,code
+
+	clr.b	-1(a0,d0.L)		; add null to arg
+	move.l	a0,d0			; arg string is the node number
+	lea	portmask(PC),a0
+	bsr	sprintf
+
+	lea	dosname(PC),a1
+	moveq	#0,d0			; version 0
+	jsr	_LVOOpenLibrary(A6)
+	movea.l	d0,a5			; store dosbase in a5
+
+	lea	buffer(PC),a1
+	jsr	_LVOFindPort(A6)
+	tst.l	d0
+	beq	error
+	movea.l	d0,a4			; store *Port in a4
+
+	sub	#bufsize,sp		; grab stack memory
+	lea	(sp),a3			; our memory ptr to a3
+
+	jsr	_LVOCreateMsgPort(A6)
+	move.l	d0,ReplyPort(A3)	; create reply port
+
+	move	#bufsize,Length(A3)
+	move.l	#1,Command(A3)		; 1 = Startup
+	bsr	putmsg
+	clr.b	Str(A3)			; erase string
+
+; ---------------------------------------------------------------
+; ==================== MAIN DOOR CODE HERE ======================
+; ---------------------------------------------------------------
+
+	lea	welcome(PC),a1
+	bsr	print			; print the string welcome
+
+	lea	prompt(PC),a1
+	moveq	#30,d1
+	bsr	getinput		; get input, max 30 chars
+
+	lea	youenter(PC),a1
+	bsr	print			; print the string youenter
+
+	lea	Str(A3),a1	; what the user typed is in Str + A3
+	bsr	print			; print what they typed
+
+	lea	doublecr(PC),a1
+	bsr	print			; print a couple CR's
+
+; -------------------------------------------------------------
+; ===================== END OF MAIN CODE ======================
+; -------------------------------------------------------------
+
+	move.l	#2,Command(A3)		; 2 = Shutdown
+	bsr	putmsg
+
+	move.l	ReplyPort(A3),a0
+	jsr	_LVODeleteMsgPort(A6)	; kill reply port
+
+	add	#bufsize,sp		; return memory to stack
+	bsr	exit
+	rts
+
+getinput
+	lea	Str(A3),a0
+	bsr	strcpy
+	move.l	#5,Command(A3)
+	move.l	d1,Data(A3)
+	bsr	putmsg
+	rts
+
+print
+	move.l	#1500,Command(A3)	;	1500 = print string
+	move.l	a1,Data(A3)
+
+putmsg
+	move.l	a4,a0
+	move.l	a3,a1
+	jsr	_LVOPutMsg(A6)
+
+	move.l	ReplyPort(A3),a0
+	jsr	_LVOWaitPort(A6)
+
+	move.l	ReplyPort(A3),a0
+	jsr	_LVOGetMsg(A6)
+	rts
+
+error
+	move.l	a5,a6
+	lea	errormsg(PC),a1
+	move.l	a1,d1
+	jsr	_LVOPutStr(A6)
+	movea.l	(ExecBase).W,a6
+
+exit
+	move.l	a5,a1
+	jsr	_LVOCloseLibrary(A6)
+	rts
+
+sprintf
+	movem.l	D0-D3/A0-A3,-(SP)
+	move.l	SP,A1
+	lea	PutChar(PC),A2
+	lea	buffer(PC),A3
+	movea.l	(ExecBase).W,A6
+	jsr	_LVORawDoFmt(A6)
+	movem.l	(SP)+,D0-D3/A0-A3
+	rts
+
+PutChar
+	move.b	d0,(a3)+
+	rts
+
+strcpy
+	move.b	(A1)+,(A0)+		; copy a1 to a0 (string copy)
+	bne.s	strcpy
+	rts
+
+buffer:		dc.b	"$VER: XIMDoor 1.0",0
+dosname:	dc.b	"dos.library",0
+errormsg:	dc.b	"This must be run from System-X BBS!",10,0
+portmask:	dc.b	"AEDoorPort%s",0
+welcome:	dc.b	13,10,"This is a lame door!!",13,10,0
+prompt:		dc.b	13,10,"Enter some text: ",0
+youenter:	dc.b	13,10,"You entered: ",0
+doublecr:	dc.b	13,10,13,10,0
+		even			; or "align" in some assemblers
+		end

@@ -1,0 +1,220 @@
+/*                 The Purity Test!  Version 2.2                      */
+/* Re-done,  re-vamped and improved and all sorts of other things...  */
+/*  By Brad Majors of the Time Warp BBS! (404) 325-8476 (300-14.4)    */
+/*    Thanks go out to King Arthur of Camelot BBS for the help!       */
+/*             Home of The Rocky Horror Picture Show!                 */
+/*     A2000/5megsRAM/50MegHD/14MHZ/Cnet 2+ === Sci-Fi/Sex/Fun!       */
+
+Options Results
+BufferFlush
+
+BBSname = 'The Time Warp BBS'
+Sysopname = 'Brad Majors'
+FilePath = "Pfiles:Fantasy"         
+Pragma('directory', FilePath)       /* Set current dir to FilePath */
+Zfile = "SysText:PurityScore"       /* Finished results */
+
+/* Program variable initialization */
+GetUser 1           /*Get users handle to put in text file*/
+Name = Result
+Zname = Space(Name,0)    /*The users name without spaces*/
+Start = 1
+StartCheck = 0
+Score = 0
+Num = 0
+Tr = Transmit
+SS = SendString
+BF = BufferFlush
+SD = ShutDown
+
+PuritySave = "Pfiles:Fantasy/Users/"zname    /* Unfinished results */
+
+/* MAIN PROGRAM */
+
+ Call Continue
+ Call Intro
+ Call Test
+ Call Score
+ Call Bye
+ Call Quit
+ BF
+ SD
+ Exit
+ 
+Continue:
+ If Exists(PuritySave) then Do
+  Tr "\f1\n2\c2It seems that you only completed part of the test."
+  Tr "\c3Do you want to continue where you left off?"
+  Query "\n1\c3[\c5Y\c1/\c2N\c3]\q1 "
+  Ans = UPPER(result)
+  Call CP
+  If Ans = "Y" then Cont = 1 
+ End
+Return
+
+Intro:
+  If Cont = 1 then Return
+  Tr "\f1\w1\*0"FilePath"/Instructions\"
+  SS "\n1\c7Press any key to begin the test...\q1\g1"
+  Call CP
+  Tr ""
+Return
+
+Test:
+ If Cont = 1 then Do
+  Call Open(SaveIt, PuritySave, 'R')
+  Start = ReadLn(SaveIt)
+  StartCheck = Start
+  Score = ReadLn(SaveIt)
+  Call Close(SaveIt)
+ End
+If Exists(PurityTest) then Do
+ Open(Question,PurityTest,'R')
+  If Cont = 1 then Do
+   Tr "\n1\c2You last stopped at question #\c7"Start
+   Tr "\c2Counting: Please Hold\n2\c1"
+    Do Loop = 1 to Start
+     ReadLn(Question)
+     SS "\^1\c1\h3"Right(Loop,3," ")"\n1"
+     End
+  Start = Start +1
+  End
+ Do Count = Start to 500
+ Tr "\f1\c3\n1"Count".  \c2Have you ever...\n1\c7"
+ Line = ReadLn(Question)
+ Tr Line
+ SS " \n1\c3[\c5Y\c1/\c2n\c1/\c7q\c3]\q1 "
+ Call GetIt
+ If Stop = 1 then Break
+ Savecount = Count
+ SaveScore = Score
+End
+  Close(Question)
+End
+Else Do
+ Tr "\C2Questions file was not found...\q1"
+ Tr "\C2Notify "Sysopame"!\q1"
+ Call Quit
+End
+Return
+
+Score:
+ Count = Count - 1
+ If Count < 2 then Return
+ Score = Score/Count*100
+ Score = Trunc(Score,1)
+ Tr "\f1\c3"
+ Tr "                                        \q1"
+ Tr " You answered "count" questions out of 500    "
+ Tr "                                        \q1"
+ Tr "        \c6Your Score:  "Score"% pure.          "
+ Tr "                                        \q1\n1"
+ SS "\c7Press any key to end the test...\q1\g1"
+ Call CP
+ Tr "\n1"
+Return
+
+Bye:
+ If Count < 500 then Do
+  If Count = 0 then Break
+  If Count = StartCheck then Break
+  Tr "\n1Do you want to save your place here so you can continue later?"
+  Query "\n1[Y/n]:"
+  Ans = Upper(Result)
+  Call CP
+   If Ans > "N" then Call LessThan
+   If Ans < "N" then Call LessThan
+  End
+LogEntry '\c5' Score '% Pure! ('count'/500)\q1'
+ If Count > 250 then Do
+  Call WriteScore
+  End
+ If Count = 500 then Do
+  Tr "\f1\*0pfiles:fantasy/end\"
+  Tr "\$0Delete "PuritySave
+  End
+ Tr "\n3\c4Returning to "BBSName"...\q1"
+Return
+
+WriteScore:
+If Exists(Zfile) then Do 
+ Call Open(ReadIt,Zfile,'R')
+ Ztitle=ReadLn(ReadIt)
+  Do Until EOF(ReadIt)
+   Num = Num + 1
+   Z.Num = ReadLn(ReadIt)
+   End
+ Call Close(ReadIt)
+ Total = Num - 1 
+ Last = Total
+ XX = Left(Name,13)
+ YY = Right(Count,3)
+ Score = Trunc(Score,1)
+ Final = XX YY"/500  "Score"% pure!"
+ Final = Left(Final,38," ")
+ If Length(Z.Last) < 50 then Do
+  ZFinal = Left(Z.Last,41," ")Final
+  Final = Zfinal
+  Total = Total - 1
+  End
+ Call Open(WriteIt, Zfile,'W')
+ Call WriteLn(WriteIt, Ztitle)
+   Do Loop = 1 to Total
+   Call WriteLn(WriteIt, Z.Loop)
+   End
+  Call WriteLn(WriteIt,Final)
+  Call Close(WriteIt)
+End
+Return
+
+GetIt:
+ GetChar
+  Ans = Upper(Result)
+   If Ans = "#" then Call Drop
+   If Ans = "+" then Call Drop
+   If GetCarrier = "FALSE" then Call Drop
+   Getuser 7
+   If Result = 0 then Call Drop
+   If Ans = "Q" then Do
+    Stop = 1
+    Return
+    End
+   If Ans = "N" then Do
+    Score = Score + 1
+    Return
+    End
+   If Ans = "Y" then Return
+   Call GetIt
+Return
+
+CP:
+ If Left(Ans,3) = "###" then Do
+  Call LessThan
+  BF
+  SD
+  Exit
+ End
+Return
+
+Drop:
+ Do
+  LogEntry Name "dropped carrier in the Purity Test"
+  Call LessThan
+  Call Quit
+  BF
+  SD
+  Exit
+ End
+
+LessThan:
+  If Count = StartCheck then Break
+  Call Open(File,PuritySave,'W')
+  Call WriteLn(File,SaveCount)
+  Call WriteLn(File,SaveScore)
+  Call Close(File)
+Return
+
+Quit:
+ BF
+ Shutdown
+ Exit

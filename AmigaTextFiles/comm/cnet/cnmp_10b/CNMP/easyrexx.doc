@@ -1,0 +1,202 @@
+TABLE OF CONTENTS
+
+easyrexx.library/AllocARexxContextA()
+easyrexx.library/FreeARexxContext()
+easyrexx.library/GetARexxMsg()
+easyrexx.library/ReplyARexxMsgA()
+easyrexx.library/SendArexxCommandA()
+
+EasyRexx.library/AllocARexxContextA      EasyRexx.library/AllocARexxContextA
+
+  NAME
+    AllocARexxContextA  -- allocate a EasyRexx context structure.
+    AllocARexxContext   -- varargs stub for AllocARexxContextA.
+
+  SYNOPSIS
+    requester = AllocARexxContext(tagList);
+
+    APTR AllocARexxContextA(struct TagItem *);
+
+    context = AllocARexxContext(tag1, ...);
+
+    ARexxContext *AllocARexxContext(Tag, ...);
+
+  FUNCTION
+    Allocates a EasyRexx context data structure.
+
+  INPUTS
+    taglist - pointer to an optional  tag  list  specifying how to initialize
+              the data structure returned by this function.
+
+  TAGS
+    Defined tags for AllocARexxContext:
+
+    ER_Portname     - (UBYTE *) Name of the  public  AREXX  port that will be
+                      created.  If a port already  exists with that name, the
+                      name  will   be   extended   with   a   serial  number;
+                      MYAPP_AREXX,  MYAPP_AREXX.1,  MYAPP_AREXX.2  etc.   The
+                      name should always be  given  in uppercase!  The string
+                      is  duplicated  so  it  is  safe  to  free  the  string
+                      afterwards.  Defaults to EASYREXX.
+    ER_Port         - (struct MsgPort  *)  Pointer  to  an  already  existing
+                      public named port.  A new port will not be created, but
+                      all messages will be received at this specific port.
+    ER_CommandTable - (struct ARexxContext *) NULL  terminated table of AREXX
+                      commands which your application  supports.  Defaults to
+                      NULL.
+
+  RESULT
+    context - an initialized context data structure, or NULL on failure.
+
+  WARNING
+    Most data in the context are READ-ONLY and should only be set using tags!
+    Note also that if you use  the  tags  ER_Portname and ER_Port in the same
+    taglist, easyrexx.library will use last one in the list.
+
+  SEE ALSO
+    FreeARexxContext()
+
+EasyRexx.library/FreeARexxContext          EasyRexx.library/FreeARexxContext
+
+  NAME
+    FreeARexxContext -- frees resources allocated by AllocARexxContext.
+
+  SYNOPSIS
+    FreeARexxContext(context);
+
+    void FreeARexxContext(struct ARexxContext *);
+
+  FUNCTION
+    FreeARexxContext()   frees   any    system    resources    allocated   by
+    AllocARexxContext(). Once a context has been  freed,  it can no longer be
+    used with other calls to GetARexxMsg().
+
+  INPUTS
+    context - requester obtained from AllocARexxContext(),  or  NULL in which
+              case this function does nothing.
+
+  SEE ALSO
+    AllocARexxContext()
+
+EasyRexx.library/GetARexxMsg                   EasyRexx.library/GetARexxMsg
+
+  NAME
+    GetARexxMsg() -- get an AREXX Message, with EasyRexx processing.
+
+    result = GetARexxMsg(context);
+
+    BYTE GetARexxMsg(struct ARexxContext *);
+
+  DESCRIPTION
+    This function gets an AREXX message  from  the  defined AREXX port of the
+    application.  If a port was  created (ER_Portname) by AllocARexxContext()
+    this port will  have  all  its  messages  replied  with  a RC_FATAL error
+    message and then remove the port.   If  no  port was created (ER_Port) no
+    messages will be cleared and this function will not remove the port.
+
+  INPUTS
+    context - pointer to an ARexxContext allocated by AllocARexxContext().
+
+  RESULT
+    result  - TRUE if a message was received  properly or FALSE when failure.
+              If the command received  is  not  recognized by the application
+              and hence not in the  commandTable,  the application will never
+              be notified.
+
+  NOTE
+    You must reply to  the  message  after  you  are  done  with it using the
+    ReplyARexxMsgA function.
+
+  SEE ALSO
+    ReplyARexxMsgA()
+
+EasyRexx.library/ReplyARexxMsgA              EasyRexx.library/ReplyARexxMsgA
+
+  NAME
+    ReplyARexxMsgA  -- reply an AREXX message
+    ReplyARexxMsg   -- vararg for ReplyARexxMsgA
+
+    ReplyARexxMsgA(context, tagList);
+
+    void ReplyARexxMsgA(struct ARexxContext *, struct TagItem *);
+
+    ReplyARexxMsg(context, tag1, ...);
+
+    void ReplyARexxMsg(struct ARexxContext *, Tag, ...);
+
+  DESCRIPTION
+    This function replies to a message received by a call to GetARexxMsg.
+
+  INPUTS
+    context - pointer to a context allocated by AllocARexxContext.
+    taglist - pointer to an optional tag list  specifying how to reply to the
+              AREXX message.
+
+  TAGS
+    Defined tags for ReplyARexxMsg:
+
+    ER_ReturnCode   - (LONG) The code which the  AREXX command should return.
+                      Use RC_WARN to give  warnings,  RC_ERROR to indicate an
+                      error or RC_FATAL to  indicate  that  a fatal error has
+                      occurred.  The value will be  stored in the RC variable
+                      in the AREXX-script.  When  present, ER_Result2 will be
+                      cleared to NULL.  Defaults to RC_OK.
+
+    ER_Result1      - (LONG) Alias for ER_ReturnCode.
+
+    ER_Result2      - (LONG) Secondary return code.   Pointer to an argstring
+                      created by CreateArgstring().
+
+    ER_ResultString - (UBYTE *) Secondary return code.  Will only be returned
+                      if,  and  only  if,  the  RXFB_RESULT  bit  is  set  in
+                      rm_Action (maintained by  the  system and automatically
+                      set when the script  contains  'OPTIONS RESULT').  When
+                      present, ER_Result1  will  be  set  to  RC_OK.   If the
+                      library somehow could not  return  the string, RC_ERROR
+                      will be returned instead.
+
+    ER_ResultLong   - (LONG) Secondary return code.  Same as ER_ResultString,
+                      but takes (and returns) LONG instead.
+
+  WARNING
+    All tags returning  data  are  mutual  exclusive.   You  cannot  return a
+    returncode, string or number  simultaneously!   May lead to memory-losses
+    and unknown effects if tried.
+
+  SEE ALSO
+    GetARexxMsg()
+
+EasyRexx.library/SendARexxCommandA       EasyRexx.library/SendARexxCommandA
+
+  NAME
+    SendARexxCommandA -- send an AREXX command
+    SendARexxCommand  -- varargs stub for SendARexxCommandA().
+
+  SYNOPSIS
+    result = SendARexxCommandA(command, tagList);
+
+    LONG SendARexxCommandA(UBYTE *, struct TagItem *);
+
+    result = SendARexxCommand(command, tag1, ...);
+
+    LONG SendARexxCommand(UBYTE *, Tag, ...);
+
+  FUNCTION
+    Sends an AREXX command to an AREXX port.
+
+  INPUTS
+    command - pointer to NULL terminated  string  that  will  be  sent to the
+              AREXX port.
+    taglist - pointer to an optional tag  list  which  may be used to control
+              features of the function.
+
+  TAGS
+    Tags defined for this function:
+
+    ER_Portname - pointer to a NULL terminated  string  which states the name
+                  of the port  the  command  will  be  sent  to.  Defaults to
+                  "AREXX".
+
+   RESULT
+    result -  What the AREXX  command  returned  or  RC_FATAL  if the command
+              could not be sent.

@@ -1,0 +1,10 @@
+B;C:boxstatus;taste
+A;C:auslastung;taste
+O;C:protokoll;taste
+U;C:status;taste
+T;C:teilnehmer;taste
+G;C:gruppen;taste
+E;C:netz;taste
+H;M:menu0
+!;C:logoff
+-;M:menu0

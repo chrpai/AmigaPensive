@@ -1,0 +1,350 @@
+/* $VER: Make_BrowseList.baud 8.0 (28.8.94)
+Copyright © 1994 Richard Lee Stockton
+Places archived, user defined, browselist in user's email
+the actual archiving is done by ArcBrowse.rexx or ArcAlpha.rexx
+copyright 1991-94 Richard Lee Stockton - FREELY DISTRIBUTABLE -
+*/
+
+MAX_LIBS_FULL=99  /* limit full description libraries to be archived */
+
+SIGNAL ON ERROR
+SIGNAL ON SYNTAX
+SIGNAL ON FAILURE
+SIGNAL ON BREAK_C
+SIGNAL ON BREAK_E
+
+CR='0D'x
+def='[0m'
+pen3='[33m'
+
+name=''
+ARG name colorflag totfiles .
+IF name='' THEN EXIT 1
+IF ADDRESS()~='BAUD' THEN CR=''
+IF colorflag~=1 THEN
+  DO
+    def=''
+    pen3=''
+  END
+IF GETCLIP('BBS_BROWSE')~='' THEN
+  DO
+    SAY CR
+    SAY 'Sorry, the archiver is already in use.  Please try again later.'CR
+    EXIT 3
+  END
+CALL SETCLIP('BBS_BROWSE',name)
+
+figarg='s:CONFIG.BBS'
+IF ~EXISTS(figarg) THEN figarg='BBS:BBS_TEXT/CONFIG.BBS'
+x=OPEN(f,figarg,'R')
+IF x=0 THEN
+  DO
+    SAY 's:CONFIG.BBS and BBS:BBS/CONFIG.BBS are both missing!'
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 20
+  END
+
+lynes.=''
+DO i=1 TO 8
+  lynes.i=READLN(f)
+END
+CALL CLOSE(f)
+
+compos=POS('/*',lynes.1)
+IF compos>0 THEN lynes.1=LEFT(lynes.1,compos-1)
+bbsname = STRIP(lynes.1)
+
+sysop   = WORD(lynes.2,1)
+
+bbspath = WORD(lynes.6,1)
+IF ~EXISTS(bbspath) THEN
+  DO
+    SAY bbspath 'does not exist!'
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 21
+  END
+testchar=RIGHT(bbspath,1)
+IF testchar~='/' & testchar~=':' THEN bbspath=bbspath'/'
+
+libpath = WORD(lynes.8,1)
+IF ~EXISTS(libpath) THEN
+  DO
+    SAY 'The library path, 'libpath', does not exist!'
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 22
+  END
+testchar=RIGHT(libpath,1)
+IF testchar~='/' & testchar~=':' THEN libpath=libpath'/'
+
+IF ~EXISTS(bbspath'Users/'name) THEN
+  DO
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 4
+  END
+pflag=0
+line0=0
+line1=0
+x=OPEN(f,bbspath'Lists/Files','R')
+IF x~=0 THEN
+  DO
+    DO i=1
+      line=READLN(f)
+      line=WORD(line,1)
+      IF line=100 THEN line0=1
+      IF line=101 THEN line1=1
+      IF WORD(line,1)>101 THEN LEAVE i
+    END
+    CALL CLOSE(f)
+    IF line1 THEN
+      DO
+        SAY CR
+        SAY 'NOTE!  There is a full, complete, up-to-the-minute ALPHABETICAL filelist'CR
+        SAY 'available without using this background function. For more info, [B]rowse'CR
+        SAY 'file number 101 ("B 101"), or just "Download 101". This list is all files'CR
+        SAY 'in the public libraries (excluding the online CD''s), sorted'CR
+        SAY 'alphabetically and displayed as one line per file.'CR
+        SAY CR
+        SAY 'If this file will suffice, PLEASE don''t occupy the BBS''s time by starting'CR
+        SAY 'another background archiving process.   Thank you.'CR
+        pflag=1
+      END
+    IF line0 THEN
+      DO
+        SAY CR
+        SAY 'NOTE!  There is a full, complete, up-to-the-minute alphabetical filelist,'CR
+        SAY 'SORTED BY LIBRARY, available without using this background function. For'CR
+        SAY 'more info, [B]rowse file number 100 ("B 100"), or just "Download 100".'CR
+        SAY 'This list contains all files in the public libraries (excluding the online'CR
+        SAY 'CD''s), displayed as one line per file, and SORTED BY LIBRARY.'CR
+        SAY CR
+        SAY 'If this file will suffice, PLEASE don''t occupy the BBS''s time by starting'CR
+        SAY 'another background archiving process.   Thank you.'CR
+        pflag=1
+      END
+  END
+IF pflag THEN
+  DO
+    SAY CR
+    OPTIONS PROMPT 'Continue? (Ny) > '
+    PULL temp
+    IF LEFT(temp,1)~='Y' THEN
+      DO
+        CALL SETCLIP('BBS_BROWSE')
+        EXIT 8
+      END
+  END
+SAY CR
+SAY 'This background routine will archive selected lists of single-line or'CR
+SAY 'full file descriptions from the'pen3 bbsname def'file libraries.'CR
+SAY 'The archive will then be saved in email for you.'CR
+SAY CR
+SAY 'Once you have made your choice of libraries, you will be returned'CR
+SAY 'to the main menu(s), and the rest of the process will keep running in'CR
+SAY 'the background (ain''t Amiga multi-tasking great?). If the archive'CR
+SAY 'is complete before you logout this session, you will be notified online.'CR
+
+SAY CR
+OPTIONS PROMPT 'Continue? (Ny) > '
+PULL temp
+IF LEFT(temp,1)~='Y' THEN
+  DO
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 8
+  END
+
+/* get level, lastbrowse, & excludes from userfile */
+SAY CR
+x=OPEN(f,bbspath'Users/'name,'R')
+IF x=0 THEN EXIT 24
+user.=''
+colorflag=1
+DO i=1 TO 16 WHILE ~EOF(f)
+  line=READLN(f)
+  IF i=8 THEN
+    IF FIND(line,'COLOR')=0 THEN colorflag=0
+END
+lastbrowse=STRIP(WORD(line,1))
+DO i=17 TO 19 WHILE ~EOF(f)
+  line=READLN(f)
+END
+level=READLN(f)
+excludes=READLN(f)
+CALL CLOSE(f)
+
+x=OPEN(f,bbspath'Numbers/LastFile','R')
+IF x=0 THEN
+  DO
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 25
+  END
+lastfile=STRIP(READLN(f))
+CALL CLOSE(f)
+
+IF lastbrowse<lastfile THEN
+  DO
+    OPTIONS PROMPT 'Archive only NEW file descriptions? (nY) '
+    PULL temp
+    IF LEFT(UPPER(temp),1)='N' THEN lastbrowse=0
+  END
+ELSE lastbrowse=0
+
+SAY CR
+OPTIONS PROMPT 'Single line ['pen3'A'def']lphabetical list or ['pen3'F'def']ull File descriptions? (fA) '
+PULL singleflag 
+IF singleflag~='F' THEN singleflag='A'
+SAY CR
+OPTIONS PROMPT 'Sort by ['pen3'L'def']ibrary or ['pen3'A'def']ll files together? (lA) '
+PULL libflag 
+IF libflag~='L' THEN libflag='A'
+SAY CR
+OPTIONS PROMPT 'Sort by ['pen3'D'def']ate or ['pen3'A'def']lphabetically? (dA) '
+PULL alphaflag 
+IF alphaflag~='D' THEN alphaflag='A'
+
+SAY CR
+SAY 'Hang on while I gather the library list...'CR
+x=OPEN(f,bbspath'Lists/Libraries','R')
+IF x=0 THEN
+  DO
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 26
+  END
+dirs.=''
+DO i=1
+  line=READLN(f)
+  IF EOF(f) | line='END' THEN LEAVE i
+  num=WORD(line,1)
+  IF DATATYPE(num,'N') THEN
+    DO
+      num=num%1
+      IF num>0 & num<100 THEN dirs.num=WORD(line,2)
+    END
+END
+CALL CLOSE(f)
+    
+liblist=''
+numlist=''
+all_libs=''
+SAY CR
+IF totfiles>500 & singleflag='F' & lastbrowse=0 & MAX_LIBS_FULL=99 THEN
+  DO          /* average file desc.= 400 bytes */
+    PARSE VERSION . . cpu .
+    cpu=RIGHT(cpu,2)/10
+    IF cpu<1 THEN cpu=1
+    temp=(totfiles+.5)%(7*cpu)
+    temp=pen3||temp%60 'hours' temp//60 def'minutes,'
+    SAY pen3||CENTER('*** WARNING! ***',75)||def||CR
+    SAY 'Archiving' totfiles '['pen3'F'def']ull descriptions may take' temp 'and make'CR
+    SAY 'a textfile'pen3 comma(totfiles*400) def'bytes in size. Are you SURE that''s what you want?'CR
+  END
+IF MAX_LIBS_FULL=99 | singleflag='A' | lastbrowse>0 THEN
+  DO
+    OPTIONS PROMPT 'Archive file descriptions from ALL available libraries? (Ny) '
+    PULL all_libs
+    SAY CR
+  END
+IF LEFT(all_libs,1)='Y' THEN
+  DO i=1 TO 99
+    IF i>level THEN LEAVE i
+    IF dirs.i='' THEN ITERATE i
+    IF FIND(UPPER(excludes),UPPER(dirs.i))>0 THEN ITERATE i
+    numlist=STRIP(numlist i)
+    liblist=STRIP(liblist dirs.i)
+  END
+ELSE CALL chdir()
+SAY CR
+IF liblist='' | numlist='' THEN
+  DO
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 4
+  END
+SAY 'Archiving...'CR
+SAY 'When completed, the archive will be attached to email addressed to you.'CR
+SAY CR
+IF singleflag='A' THEN
+  ADDRESS AREXX ArcAlpha.rexx name lastbrowse alphaflag libflag numlist
+ELSE ADDRESS AREXX ArcBrowse.rexx name lastbrowse alphaflag libflag liblist
+EXIT 0
+
+
+chdir:
+string=''
+SAY CR
+SAY 'Enter a space separated list of library NUMBERS to be archived.'CR
+SAY pen3||LEFT('-',75,'-')||def||CR
+lns=GETCLIP('BBS_libs.0')
+IF ~DATATYPE(lns,'W') THEN
+  DO
+    SAY 'Library clip failed!  Please inform sysop.'CR
+    CALL SETCLIP('BBS_BROWSE')
+    EXIT 3
+  END
+DO i=1 TO lns
+  SAY GETCLIP('BBS_libs.'i)||CR
+END
+OPTIONS PROMPT pen3'Library Numbers: 'def
+PULL dirnums
+IF dirnums='' THEN RETURN
+maxdirs=WORDS(dirnums)
+IF totfiles>500 & singleflag='F' & lastbrowse=0 & maxdirs>MAX_LIBS_FULL THEN
+  DO
+    SAY CR
+    SAY 'You are only allowed to archive full descriptions for'CR
+    SAY MAX_LIBS_FULL 'complete file libraries at once.  Ignoring extras...'CR
+    SAY CR
+    maxdirs=MAX_LIBS_FULL
+  END
+DO i=1 TO maxdirs
+  dirnum=WORD(dirnums,i)
+  IF ~DATATYPE(dirnum,'W') | dirnum<1 | dirnum>99 THEN ITERATE i
+  IF dirs.dirnum='' THEN
+    DO
+      SAY pen3'Library number' dirnum 'is currently un-assigned.'def||CR
+      ITERATE i
+    END
+  IF dirnum>level | FIND(data.21,UPPER(dirs.dirnum))>0 THEN
+    DO
+      SAY pen3'You do not have authorization for library' dirnum'!'def||CR
+      ITERATE i
+    END
+  numlist=STRIP(numlist dirnum)
+  liblist=STRIP(liblist dirs.dirnum)
+END
+SAY CR
+IF liblist='' THEN RETURN
+SAY pen3'The following file libraries will be included.'def||CR
+DO i=1 TO WORDS(liblist)
+  SAY RIGHT(WORD(numlist,i),3)'.' WORD(liblist,i)
+END
+SAY CR
+OPTIONS PROMPT 'Ready to begin archiving? (nY) > '
+PULL temp
+IF LEFT(STRIP(temp),1)~='N' THEN RETURN
+
+ERROR:
+SYNTAX:
+FAILURE:
+BREAK_C:
+BREAK_E:
+CALL SETCLIP('BBS_BROWSE')
+EXIT 4
+
+
+comma:
+ARG num .
+dgt=LENGTH(num)
+numtext=''
+IF dgt>3 THEN numtext=','RIGHT(num,3)
+IF dgt>6 THEN numtext=','LEFT(RIGHT(num,6),3)||numtext
+IF dgt>9 THEN
+  DO
+    numtext=','LEFT(RIGHT(num,9),3)||numtext
+    numtext=LEFT(num,dgt-9)||numtext
+  END
+ELSE IF dgt>6 THEN numtext=LEFT(num,dgt-6)||numtext
+ELSE IF dgt>3 THEN numtext=LEFT(num,dgt-3)||numtext
+ELSE numtext=num
+RETURN(numtext)
+
+
+/* end of Make_BrowseList.rexx */

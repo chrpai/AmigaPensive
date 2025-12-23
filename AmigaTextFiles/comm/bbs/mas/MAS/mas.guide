@@ -1,0 +1,226 @@
+@database MAS
+@author S.Klemola
+@(c)1995 SH-Ware
+@node main "Message Area Scanner 1.50"
+@{b}User's manual@{ub}
+
+         @{" Taking MAS into use                " link MAS1}
+         @{" Using MAS                          " link MAS2}
+         @{" Technical details                  " link MAS3}
+         @{" Contacting the author              " link MAS4}
+
+©1995 SH-Ware. All Rights Reserved.
+
+This documentation, the source code, the executable and everything else
+in this distribution are copyright in 1995 by Sami Klemola. MAS is freeware.
+You may spread it in the original archive freely for no charge, and you do
+not have to pay anything for using it. Do not redistribute a distribution
+changed in any way.
+@endnode
+@node MAS1 "Taking MAS into use"
+@{b}Installing@{ub}
+
+Run the installation program provided by typing "install" to the shell
+prompt in any directory. The files that came in the archive must be in the
+same directory as the install program. You might first want to see what the
+program will do, before actually performing the installation. If this is the
+case, click "Fake it", when the second requester appears. Now, the program
+will not perform any installation, but just show you the commands it would
+have executed. Next, install for real.
+
+If anything should go wrong, for example the install program should not
+happen to work for some reason, here is, what it should be doing:
+
+         File              Destination directory
+
+         mas               BBS:Util
+         mas.guide         BBS:Docs
+         mas.doc           BBS:Text
+         mas.c & sub.asm   BBS:Programmer (optional)
+         mas.dat           Appended to BBS:Menu/MainMenu.dat (optional)
+
+You will be prompted for each of the files to be copied. You can specify
+another directory for each file, or press Proceed right away to accept the
+default directory. You will also be able to change the name of the file as
+it will appear in the destination directory. You will be prompted, whether
+you want to install the source code. Click Pass if you do not need it.
+Then, you will have the option of having the pre-made menu code segment
+to be appended to one of your menu files. Click Pass if you want to do this
+by hand or not do it at all, which is not recommended however. Otherwise
+select an existing menu file (with the dat extension), and press Proceed for
+magic do be done on it. The menu code will also be compiled if you want,
+and it is possible. After this, the installation is completed. You may
+now delete the original MAS directory. Make sure however, that you have read
+the note (readme) first. Now, you are ready to use MAS.
+
+Note! If you change the program directory, that is the directory where the
+executable is located, you must also make the change to the menu code.
+TechnoBBS must know where the executable can be found. It works fine on
+the console without the full path name, but not on any other node! This
+is one more peculiarity of TechnoBBS...
+@endnode
+@node MAS2 "Using MAS"
+@{b}Instructions@{ub}
+
+Template:         SIG/N,ALL/S,NEW/S,FORCE/S,CONT/S,USER/K/N
+
+Format:           [<Sig>|ALL] [NEW] [FORCE] [CONT] [USER=<Node>]
+
+Purpose:
+
+Read mas.doc for full description of the purpose and operation. In addition
+you can also scan all new messages using the CONT option, which is new in
+v1.50. Put a command such as this in your login program:
+
+    address command 'BBS:Util/mas ALL NEW CONT USER 'ln' <>TECHIO:'ln
+
+To scan all SIGs, you can either use the old way of passing 0 as the number
+of SIG, or use the new option ALL. This command uses the latter, and the
+menu code uses the first way.
+
+Note:    The NEW and FORCE options are for online use only. They can not
+         be used from the shell. The USER keyword is used to pass MAS the
+         node number when run from online. Do *NOT* use this from the
+         shell. In fact, do not use any of these from the shell. It is
+         only safe to specify the Sig number from the shell.
+
+Note:    When run from online, MAS will make log entries stating what
+         it has been doing.
+
+Note:    There is an undocumented feature in the menu code. One more option,
+         PLAIN, can be used by the system operator. You will need an access
+         level of at least 1000 to use this option (may be changed, see
+         mas.dat).
+
+PLAIN    No direct area-to-area communication between the scanner and
+         TechnoBBS. Runs faster, but does not show the amount of new
+         messages.
+
+Entering for example "Scan 3 PLAIN" when online, will make MAS act as if
+it were run from the shell. It will show all areas regardless of their
+protection. Therefore this option is restricted to the use of the SysOp.
+
+Note:    The NEW and FORCE options have no meaning when PLAIN is specified.
+         All areas will always be shown, and no new message information
+         will ever be presented.
+@endnode
+@node MAS3 "Technical details"
+@{b}General information@{ub}
+
+The full source code to the program is delivered within this distribution.
+Do not abuse it! You can use parts of it in your own programs, just credit
+me if you do. You will notice, that I am using the _main entry point, and
+a function set of my own instead of the standard C functions. I changed MAS
+to use these and the executable shrunk over half! The compiler insists on
+bringing in an enormous amount of code never used. You will find my
+substitutions for the standard functions in sub.asm, that among other
+things has been compiled as sub.lib.
+
+I rewrote much of the ARexx code by Ville-Pertti Keinonen. Some of the
+functions operate rather much differently now than they used to. I will
+make even more enhancements to them in the future, and to this program
+as well. BTW, the source code for the install program is available at
+request. You can use it to make installers for your own programs. Oh,
+one more thing. The header file sh/sub.h contains currently only the
+prototypes for the functions in sub.asm. They are here:
+
+ULONG rawprint(u_char *);
+ULONG print(u_char *,...);
+ULONG sprint(u_char *,u_char *,...);
+ULONG strcmp(u_char *,u_char *);
+ULONG strcpy(u_char *,u_char *);
+ULONG strlen(u_char *);
+void clear(APTR,ULONG);
+
+There is one more function in the main code that substitutes general code,
+strval(). It operates similarly to atoi(), but uses the dos.library function
+StrToLong() instead. Remember, that none of the standard C features are
+available in the code. Instead of stdin one must use Input(), rawprint()
+for plain printf() with no arguments etc. Also, no argument parsing is
+done, but this doesn't matter, since ReadArgs() does this for us in an
+AmigaDOS compatible way.
+
+@{b}Theory of operation@{ub}
+
+MAS makes a direct contact with TechCon and obtains an access to the SIG
+list maintained by it. The list is constructed of linked SigDat structures,
+that are used to access the area lists. Each SigDat has a list of AreaCfg
+structures bound to it. These structures contain information such as the
+name and number of the area, and the number of first and last message in
+the area. The structures are defined in the header file techprg.h.
+
+This is all the information that MAS will need - and present - when run from
+shell or from online with the PLAIN option given. Normally, information
+about new messages in each area will also be obtained. This is done by
+calling the TechnoBBS ARexx function GetHighRead(). The access to each area
+will be confirmed calling HasMsgAcc(). If the option FORCE has not been
+given, only areas that the user has joined to, will be scanned. This is
+checked calling GetAreaMode(). Calling ARexx functions is slow, and this
+does slow MAS down quite a bit. It would be faster to examine the user data
+directly, but obtaining the user data is not easy. Perhaps I will implement
+this later though.
+
+@{b}Online running@{ub}
+
+Here are the ways, the program is operated from shell and from online:
+
+Template:         SIG/N,ALL/S,NEW/S,FORCE/S,CONT/S,USER/K/N
+
+Format:  SCAN [ALL|<Sig>] [NEW] [FORCE] [CONT] [INTER]
+
+This is the command used to launch MAS:
+
+    dos("mas \($sig) \($new) \($cont) \($force) USER \(node())
+        <>TECHIO:\(node())");
+
+You will see, that normally the USER option is always specified, and the
+node number given as the value of the keyword. The SIG number is the one
+specified, or the number of current SIG (obtained by calling CurrentSIG()).
+Since the online format specifies ALL as the option to scan all areas, it
+will be converted to value 0 before giving it to the command. The menu code
+also checks for boundaries, but this is not absolutely necessary, because
+MAS will do that as well.
+
+The variables $new, $cont and $force will either be empty or contain the
+option names, NEW, CONT and FORCE respectively. If the user didn't specify
+them, MAS will get nothing but a lot of spaces... This doens't matter,
+because the dos.library function ReadArgs() will strip them for us. If the
+user specified INTER, the menu code will clear the variable $sig. This means
+that, there will be no SIG number given to MAS, and therefore it will go to
+the interactive mode, that can be invoked from the shell by running MAS with
+no arguments.
+
+You might be tempted to scan for new messages on a user logged in by
+typing for example "mas 3 NEW USER 1" in the shell. You would get the new
+message scan for the user and see the results in the shell window, but log
+entries would be made to the log file of node 1. This might also cause other
+problems. Imagine for example the user online performing a scan at the same
+time. It should not cause any collisions, but you never know about
+TechnoBBS... Anyway, this is highly *UNRECOMMENDED* activity.
+@endnode
+@node MAS4 "Contacting the author"
+It would be very nice to hear from you, user of MAS. Send me a postcard,
+a letter or electronic mail to let me know that you are using my program.
+I am also always open to suggestions and ideas for improving my software.
+You can reach me by various means. Try email at one of these addresses:
+
+         InterNet          shadow@spider.compart.fi
+
+         Sakunet           Sami Klemola@65:951/1
+
+Or the conventional mail:
+
+         Sami Klemola
+         Ummeljoentie 5
+         SF-46810 ANJALANKOSKI
+         FINLAND
+
+Or call my BBS:
+
+         Star Fleet TechnoBBS
+
+Or visit my home page in the World Wide Web:
+
+         http://spider.compart.fi/~shadow/
+
+@endnode

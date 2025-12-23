@@ -1,0 +1,359 @@
+; $VER: ProGuideList_Install 1.3 (11.8.96)
+; von Jörg Fenin
+;  
+
+(procedure CheckSystem)
+  (
+    (set osversion  (/ (getversion) 65536))
+    (debug "OS-Version: " osversion)
+    (if (< osversion 37)
+      (abort "ProGuideList benötigt AmigaOS 2.04 oder höher!" )
+    )
+; Choose default tool for guide, depending on user's OS version
+    (if (>= osversion 39)
+      (set guide_reader "MultiView")
+      (set guide_reader "AmigaGuide")
+    )
+    (if (< @installer-version 42)
+      (abort "Skript benötigt Installer V42 oder höher!")
+    )
+    (set muiversion (/ (getversion "MUI:libs/muimaster.library") 65536))
+    (debug "MUI-Version: " muiversion)
+    (if ( < muiversion 14)
+      (abort "ProGuideList benötigt MUI 3.3 oder höher!" )
+    )
+
+; feststellen ob, Magic-WB installiert ist
+    (set magicwb (exists "MagicWB:" (noreq)))
+
+)
+
+(procedure Defaultwerte
+  (
+    (set @abort-button "Abbruch")
+    (set @default-dest "Prometheus:Extern/")
+    (set dest_dir "")
+  )
+)
+
+(procedure Texte
+  (
+    (set MSG_DESTINATION
+      (cat "Wo soll %s installiert werden?\n"
+           "(Es wird kein eigenes Verzeichnis angelegt)"
+      )
+    )
+    (set MSG_PREFS_DESTINATION
+      "Wo soll PGLSysopPrefs installiert werden?")
+    (set MSG_DOKS_DESTINATION
+      "Wo soll die PGL-Dokumentation installiert werden ?")
+    (set MSG_COPYING "kopiere %s nach %s.")
+    (set MSG_THANKS "Danke für die Installation von %s!\n\n\n")
+    (set MSG_ICONS
+      (cat "Sollen die Magic-Workbench-Icons oder die 'normalen'\n"
+           "Workbench-Icons benutzt werden ?")
+    )
+    (set MSG_BEFEHL
+      (cat "Zum Abschluß der Installation müssen Sie nun manuell einen "
+           "Befehl in die Prometheus-Befehlsliste eintragen:\n\n"
+           "Name:           ProGuideList\n"
+           "Beschreibung:   bester Filelister wo gibt :-)\n"
+           "Parameter:      run prometheus:extern/PGLClient PORT=$PO BRETT=$BP\n"
+           "Typ:            Arexx/Library\n"
+           "Shortcut:       3\n"
+           "Befehl:         markieren\n\n")
+    )
+
+    (set MSG_TZ
+      (cat "Die Umgebungsvariable TZ ist nicht gesetzt!\n\n"
+           "Ist TZ nicht gesetzt, können Probleme bei der Datumsberechnung "
+           "auftreten! (dieses gilt übrigens unabhängig von PGL!)\n\n"
+           "(für weitere Informationen klicken Sie auf `HILFE`)\n\n"
+           "Soll jetzt die Umgebungsvariable TZ gesetzt werden ?"
+
+      )
+    )
+    (set MSG_TZ_Diff
+      (cat "Bitte geben Sie die Differenz der `Weltzeit` (GMT) zur lokalen"
+           " Zeit ein")
+    )
+
+    (set KeyInfo
+      (cat "Es wurde festgestellt, daß im Verzeichnis `%s` kein PGL-"
+           "Keyfile installiert ist.\n\nPGL läuft zwar auch ohne Keyfile, "
+           "allerdings nur eingeschränkt. Ein Keyfile ist zum günstigen "
+           "Preis von DM 15,- erhältlich und hebt alle Einschränkungen "
+           "auf. Näheres dazu siehe im ProGuideList.Guide!" )
+    )
+    (set InstallPGLBins "Installiere PGLProgramme...")
+    (set InstallPGLPrefs "Installiere PGLSysopPrefs...")
+    (set InstallPGLDoks "Installiere PGL-Dokumentationen...")
+    (set InstallWBIcons "Installiere Standard-Workbench-Icons...")
+
+    (set Icons-Help
+      (cat "Hier kann ausgewählt werden, ob für die auf die Magic-"
+           "Workbench angepassten Icons (8 Farben) oder die 'normalen' "
+           "Workbench-Icons (4 Farben) installiert werden soll.")
+    )
+    (set TZ-Help
+      (cat "Die Umgebungsvariable TZ sollte folgendes Format haben: "
+           "TZ=xxxnnyyy, wobei xxx für die Abkürzung der Zeitzone steht "
+           "(z.B. MEZ), nn die Differenz zur Weltzeit (GMT) angibt "
+           "(in Deutschland -01) und yyy die Abkürzung der Zeitzone angibt, "
+           "WENN die Sommerzeit gilt (also MES).\n\n"
+           "Zur Sommerzeit muß also TZ=MEZ-01MES sein\n"
+           "zur Winterzeit muß TZ=MEZ-01 sein."
+      )
+    )
+    (set TZ-Help1
+      (cat "Die Zeitzone muß eine 3-stellige Buchstabenkombination "
+           "sein, z.B. MEZ für `Mitteleuropäische Zeit`"
+      )
+    )
+    (set TZ-Help2
+      (cat "Hier muß die Differenz in Stunden der `Weltzeit` (Greenwich "
+           "Mean Time, GMT) zur lokalen Zeit eingegeben werden. Zu "
+           " Deutschland beträgt diese Differenz -1\n\n"
+           "ACHTUNG: Hier muß die Differenz zur Winterzeit eingetragen "
+           "werden, !NICHT! zur Sommerzeit! Die Sommerzeit wird "
+           "dadurch kenntlich gemacht, daß dem String noch die Angabe "
+           "einer Buchstabenkombination für den Namen der Sommerzeitzone "
+           "folgt!"
+      )
+    )
+    (set TZ-Help3
+      (cat "Die Zeitzone muß eine 3-stellige Buchstabenkombination "
+           "sein, z.B. MES für `Mitteleuropäische Sommerzeit`"
+      )
+    )
+
+    (set OldInfo
+      (cat "Das Format der PGLAutoList-Konfigurationsdateien hat sich "
+           "geändert!!\n\nAlte Konfigurationsdateien müssen mit "
+           "PGLSysopPrefs Version 1.2 oder höher geladen und erneut "
+           "gespeichert werden!")
+    )
+
+  )
+)
+
+(procedure Zeitzone
+(
+  (set TZ (getenv "TZ"))
+
+  (if (= TZ "")
+    (
+      (set result (askbool
+                    (prompt MSG_TZ)
+                    (help TZ-Help)
+                    (default 1)
+                  )
+      )
+      (if (= result 1)
+        (
+          (set xxx (askstring
+                     (prompt "Bitte geben Sie die Zeitzone ein")
+                     (help TZ-Help1)
+                     (default "MEZ")
+                   )
+          )
+          (set nn (asknumber
+                     (prompt MSG_TZ_Diff)
+                     (help TZ-Help2)
+                     (range -12 12)
+                     (default -1)
+                  )
+          )
+          (set askyyy
+            (askchoice (prompt "Welche Zeit ist zur Zeit aktiv?")
+                (choices "Winterzeit"
+                         "Sommerzeit")
+                (help @askchoice-help)
+                (default 1)
+            )
+          )
+          (if (= askyyy 1)
+            (set yyy (askstring
+                     (prompt "Bitte geben Sie die (Sommer-)Zeitzone ein")
+                     (help TZ-Help3)
+                     (default "MES")
+                   )
+            )
+            (set yyy "")
+          )
+          (set TZ ("%s%ld%s" xxx nn yyy) )
+          (run "SetEnv TZ=" TZ
+            (prompt ("Umgebungsvariable (TZ=%s) setzen?" TZ) )
+            (help "setzt die Umgebungsvariable TZ")
+            (confirm)
+          )
+          (run "Copy ENV:TZ ENVARC:"
+            (prompt ("Umgebungsvariable TZ nach ENVARC: kopieren?" TZ) )
+            (help "setzt die Umgebungsvariable TZ dauerhaft")
+            (confirm)
+          )
+        )
+      )
+    )
+  )
+)
+)
+
+(procedure Keycheck
+(
+  (set result (exists (tackon dest_dir "PGL.key") (noreq)))
+  (if (= result 0)
+  (
+    (message (KeyInfo dest_dir))
+  )
+  )
+)
+)
+
+;------------------------------------------------------------------------------
+
+(complete 0)
+(CheckSystem)
+(Defaultwerte)
+(Texte)
+
+(set installed "")
+
+
+; Verzeichnisse abfragen und setzen
+(set default-extern "Prometheus:extern/")
+(set dest_dir
+   (askdir (prompt (MSG_DESTINATION @app-name))
+           (help @askdir-help)
+           (default default-extern)
+           (newpath)
+   )
+)
+
+(set @default-dir dest_dir)
+(complete 1)
+
+(set default-prefs "SYS:Prefs/")
+(set prefs_dir
+   (askdir (prompt (MSG_PREFS_DESTINATION @app-name))
+           (help @askdir-help)
+           (default default-prefs)
+           (newpath)
+   )
+)
+(complete 2)
+
+(set default-doks "Prometheus:doks/")
+(set doks_dir
+   (askdir (prompt (MSG_DOKS_DESTINATION @app-name))
+           (help @askdir-help)
+           (default default-doks)
+           (newpath)
+   )
+)
+(complete 3)
+
+(set Icons
+   (askchoice (prompt MSG_ICONS)
+              (choices "MagicWorkbench (8 Farben)"
+                       "Standard-Workbench (4 Farben)")
+              (help Icons-help)
+              (default (- 1 magicwb))
+   )
+)
+(complete 4)
+
+
+(copyfiles
+  (prompt InstPGLBins)
+  (help @copyfiles-help)
+  (source "bin/extern")
+  (dest dest_dir)
+  (pattern "*" )
+  (confirm "expert")
+)
+(complete 40)
+
+(copyfiles
+  (prompt InstPGLPrefs)
+  (help @copyfiles-help)
+  (source "bin/prefs")
+  (dest prefs_dir)
+  (pattern "PGLSysopPrefs*" )
+  (confirm "expert")
+)
+(complete 50)
+
+(copyfiles
+  (prompt InstPGLDoks)
+  (help @copyfiles-help)
+  (source "doks/")
+  (dest doks_dir)
+  (pattern "*" )
+  (confirm "expert")
+)
+(complete 60)
+
+(if (= Icons 1)
+  (
+    (copyfiles
+      (prompt InstWBIcons)
+      (help @copyfiles-help)
+      (source "NOMWBIcons/prefs/PGLSysopPrefs.info")
+      (dest prefs_dir)
+      (confirm "expert")
+    )
+    (copyfiles
+      (prompt InstWBIcons)
+      (help @copyfiles-help)
+      (source "NOMWBIcons/doks/")
+      (pattern "*.info")
+      (dest doks_dir)
+      (confirm "expert")
+    )
+  )
+)
+(complete 70)
+
+(message "Tooltypes für Guide-Icons setzen...")
+(foreach doks_dir "PGL#?.Guide"
+  (
+    (set temp (tackon doks_dir @each-name))
+    (tooltype
+      (dest temp)
+      (setdefaulttool guide_reader)
+    )
+  )
+)
+(set temp (cat doks_dir "PGLQuickinstall.doc"))
+(tooltype
+  (dest temp)
+  (setdefaulttool guide_reader)
+)
+(complete 80)
+
+(Zeitzone)
+(complete 90)
+
+(Keycheck)
+(complete 95)
+
+(set result
+  (askbool
+    (prompt MSG_BEFEHL)
+    (help @askbool-help)
+    (choices "Weiter" "Weiter")
+  )
+)
+(complete 97)
+
+(message (OldInfo) (all))
+(complete 98)
+
+(set installed "YES")
+
+(complete 100)
+
+(if (= installed "YES") 
+  (exit)
+)   

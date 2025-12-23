@@ -1,0 +1,1023 @@
+; $VER: CNet Install 1.05 (5.01.97)
+(set CNetVersion "4.28d")
+ 
+; CNet PRO 4 Installation script
+;
+; The publishers of CNet PRO 4 wish to extend many THANKS to Bob Maple
+; for the creation of this install script, (version 1.0 (12.13.93))
+; His elegant work has been chopped and hacked by others since then,
+; so if you find something here that looks sloppy, DON'T BLAME BOB!
+;
+; Requires Commodore 'Installer' program
+;
+; Slight tweaks by Jim Selleck for CNet/3 release version 3.04, 3.05c
+;
+; Updated for CNet/4 install by Ray Akey
+;
+; LAST MODIFIED: 05-Sep-97
+
+; This installation script is provided AS-IS, with no warranties expressed
+; or implied.  The authors will not be held responsible for any damages due
+; to the use or mis-use of this installation script; using this script is
+; entirely at your own risk.
+
+;
+; Define some global variables
+;
+
+(set help-modify-self
+
+	(cat		"If you have modified any of these files, "
+			"you might want to skip this part and manually "
+			"look for any changes/modify them yourself."
+	)
+)
+
+(set ask-install-part	"Please select the partition/directory to " )
+(set ask-install-part2  "install the master CNET directory."        )
+(set ask-install-nodir  "(NOTE: A directory will NOT be created.)\n")
+
+
+;
+; BEGIN PROCEDURE DEFINITION
+;
+; The installer script basically consists of a series of calls to different
+; procedures which install certain sets of data, depending on whether or not
+; they are a new-installer or an update-installer.
+;
+
+(procedure	CopyExecutables1	; Copies executables/etc from disk 1
+(
+
+	(copyfiles
+
+		(source "cnet")
+		(dest   "CNET:")
+
+		(choices
+
+			"bbs"		"bbsroom0"	"bbswake"	"big_numbers"
+			"close"		"config"	"control"	"cron"
+			"file-task"	"mail-task"	"news-task"	"setpass"
+			"toss"		"unlock"	"vde"		"vde2"
+			"yank-task"	"useredit"	"cnsmtpd"
+		)
+
+		(optional "nofail" "askuser")
+	)
+
+	; Makes sure the PURE bit is set, saving millions of people asking
+	; why this new version eats so much RAM.
+
+	(protect "CNet:BBS" "+r +w +e +d +p")
+
+	(copyfiles
+
+		(source "cnet/doors")
+		(dest	"cnet:doors")
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+
+;	(copyfiles
+;
+;		(source "cnet/doors/internet_support")
+;		(dest	"cnet:doors/internet")
+;
+;		(all)
+;		(optional "nofail" "askuser")
+;	)
+
+)
+)
+
+
+
+
+
+
+(procedure	CopyExecutables2	; Copies executables from disk 2
+(
+
+	(copyfiles
+
+		(source "sys/c")
+		(dest	"sys:C"  )
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+
+	(copyfiles
+
+		(source "sys/fonts")
+		(dest	"sys:FONTS"  )
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+
+	(copyfiles
+
+		(source "sys/l")
+		(dest	"sys:L" )
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+
+	(message "\nI will now install some libraries which CNet "
+		"and other utilities require on your system."
+
+	(help	"These libraries are installed in LIBS: and are required "
+		"by CNet, and possibly used by other external utilities, including "
+		"the possibility of some 3rd-party programs. If you are upgrading "
+                "from a previous version of CNet, you should always install the newest "
+                "libraries"
+	)
+	)
+
+	(copyfiles
+
+		(source "sys/libs")
+		(dest	"sys:Libs"  )
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+
+)
+)
+
+
+(procedure	CopyConfigs
+(
+	(copyfiles
+		(source "cnet/configs") (dest "CNET:configs")
+		(choices "bbsconfig4_def" "bbsconfig_ext_def" )
+		(optional "nofail" "askuser")
+	)
+
+)
+)
+
+
+
+(procedure	CopyStandards
+(
+	(copyfiles
+
+		(source "cnet")
+		(dest   "CNET:")
+
+		(choices
+		
+			"!bbsmenu_stock"
+			"BIG_Numbers"		"!bbstext_stock"
+			"bbsroom0"		
+		)
+
+		(optional "nofail" "askuser")
+	)
+
+;       Rename cnet:!bbsmenu_stock as cnet:bbsmenu if bbsmenu not existant
+	(if	
+		(exists "cnet:bbstext" (noreq))
+
+		; TRUE statement
+		("")
+
+		; FALSE statement
+		(
+		(rename "cnet:!bbstext_stock" "cnet:bbstext")
+		)
+	)
+
+;       Rename cnet:!bbstext_stock as cnet:bbsmenu if bbstext not existant
+	(if	
+		(exists "cnet:bbsmenu" (noreq))
+
+		; TRUE statement
+		("")
+
+		; FALSE statement
+		(
+		(rename "cnet:!bbsmenu_stock" "cnet:bbsmenu")
+		)
+	)
+
+;       Rename cnet:configs/bbsconfig4_def as cnet:configs/bbsconfig4
+	(if	
+		(exists "cnet:configs/bbsconfig4" (noreq))
+
+		; TRUE statement
+		("")
+
+		; FALSE statement
+		(
+		(rename "cnet:configs/bbsconfig4_def" "cnet:configs/bbsconfig4")
+		)
+	)
+
+;       Rename cnet:configs/bbsconfig_ext_def as cnet:configs/bbsconfig_ext
+	(if	
+		(exists "cnet:configs/bbsconfig_ext" (noreq))
+
+		; TRUE statement
+		("")
+
+		; FALSE statement
+		(
+		(rename "cnet:configs/bbsconfig_ext_def" "cnet:configs/bbsconfig_ext")
+		)
+	)
+)
+)
+
+
+
+(procedure	CopySysdata
+(
+
+	(copyfiles
+
+		(source "cnet/sysdata")
+		(dest	"sysdata:")
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+)
+)
+
+
+
+(procedure	CopySpeller
+(
+	(set	DestPath
+
+		(askdir
+
+			(prompt	"\nPlease select where you want to install the speller "
+				"master dictionary "
+				ask-install-nodir
+			)
+			(help	"The dictionary can be anywhere you choose (suggestion: "
+				"CNet:Spell).  Note that you must set up this path "
+				"with CONFIG as well.  Consult your CNet manual."
+			)
+
+			(default "CNet:Spell")
+		)
+	)
+
+	(copyfiles
+
+		(source "cnet/Spell")
+		(dest	DestPath)
+
+		(pattern "#?")
+		(files)
+		(optional "nofail" "askuser")
+	)
+
+)
+)
+
+
+(procedure	CopyMenus
+(
+	(copyfiles
+
+		(source "cnet/systext/menu")
+		(dest	"SysText:Menu")
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+
+)
+)
+
+
+
+(procedure	CopyHelp
+(
+	(copyfiles
+
+		(source "cnet/systext/help")
+		(dest	"SysText:Help")
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+	
+)
+)
+
+(procedure	CopyTextMenu
+(
+	(copyfiles
+
+		(source "cnet/!bbstext_stock")
+		(dest	"CNet:")
+		(newname (cat "bbstext_" CNetVersion))
+
+		(files)
+		(optional "nofail" "askuser")
+	)
+
+	(copyfiles
+
+		(source "cnet/!bbsmenu_stock")
+		(dest	"CNet:")
+		(newname (cat "bbsmenu_" CNetVersion))
+
+		(files)
+		(optional "nofail" "askuser")
+	)
+)
+)
+
+(procedure	CopyNew
+(
+	(copyfiles
+
+		(source "cnet/systext/new")
+		(dest	"SysText:New")
+
+		(all)
+		(optional "nofail" "askuser")
+	)
+	
+)
+)
+
+
+
+;
+; BEGIN MASTER INSTALL PROCEDURES
+; 
+; The following two procedures handle new installations and update
+; installations, calling the proper procedures defined above as well as
+; doing other specialized tasks.
+;
+
+(procedure	DoUpdateInstall
+(
+	(CopyExecutables1)
+	(CopyTextMenu)
+
+	(if
+		(askbool
+		
+			(prompt "\nDo you want to re-install the menu files?")
+			(help	"Copies all the menu files into SYSTEXT:Menu. "
+				help-modify-self
+			)
+		)
+
+		; TRUE (Yes) statement
+		(
+			(CopyMenus)
+		)
+	)
+
+	(if
+		(askbool
+		
+			(prompt "\nDo you want to re-install the help files?")
+			(help	"Copies all the help files into SYSTEXT:Help. "
+				help-modify-self
+			)
+		)
+
+		; TRUE (Yes) statement
+		(
+			(CopyHelp)
+		)
+	)
+
+	(if
+		(askbool
+		
+			(prompt "\nDo you want to re-install the new-user files?")
+			(help	"Copies all the new-user help files into SYSTEXT:New.\n\n"
+				"The new-user files are all the pieces of text "
+				"which describe questions new users are asked when "
+				"logging in, as well as the public and sysop questions.\n\n"
+				help-modify-self
+			)
+		)
+
+		; TRUE (Yes) statement
+		(
+			(CopyNew)
+		)
+	)
+
+	(CopyExecutables2)
+
+	(if
+		(askbool
+		
+			(prompt "\nDo you want to re-install the CNet speller dictionary?" )
+			(help	"This master-dictionary rarely changes, and chances "
+				"are you have added words to it yourself already. "
+				"It is recommended that you skip this part of the "
+				"update installation if you have made any changes "
+				"to your dictionary."
+			)
+		)
+
+		; TRUE (Yes) statement
+		(
+			(CopySpeller)
+		)
+	)
+
+
+	(message
+
+		"\nUpdate installed.  CNet:BBSTEXT and "
+		"CNet:BBSMENU were NOT installed.  Most CNet SysOps "
+		"have heavily modified these files. There are several utilities "
+		"available which can detect changes and help transfer those "
+		"changes into your CURRENT files, saving you from "
+		"starting over completely from scratch.\n\nCheck the update "
+		"section of your CNet manual and the UPDATE directory "
+		"where the cnet archive was decompressed.  There may be conversion files to run or "
+		"other file renaming procedures needed before you can "
+		"run your CNet update.\n\n"
+		"The newer bbstext and bbsmenu files have been installed in your CNET: "
+		"directory titled as !bbstext_stock and !bbsmenu_stock, respectively."
+	)
+
+	(if
+		(askbool
+
+			(prompt "\nYou should also run the VDE programs "
+				"to create/update your system VDE files.\n\n"
+				"Do you wish to run the VDE executables now?"
+			)
+			(help	"VDE is a simple utility that creates the required system "
+				"VDE (Visual Data Editor) files.  See your CNet manual for more info."
+			)
+		)
+
+		; TRUE statement
+		(
+			(run "run CNet:VDE"  )
+			(run "run CNet:VDE2" )
+		)
+	)
+
+	(if
+		(askbool
+
+			(prompt "\nDo you will to run the CNet CONFIG program now?"
+			)
+			(help	"CONFIG is the CNet utility that allows you to "
+				"configure/customize/personalize your BBS."
+			)
+		)
+
+		; TRUE statement
+		(
+			(run "run CNet:CONFIG" )
+		)
+	)
+
+	(if
+		(askbool
+
+			(prompt "\nDo you wish to view the Amigaguide CNet "
+				"changes documentation?"
+			)
+			(help	"!changes.guide and !chagnes.readme contain "
+				"detailed descriptions of changes made to CNet."
+			)
+		)
+
+		; TRUE statement
+		(
+			(run "run CNet:VDE"  )
+			(run "run amigaguide cnet:!changes.guide" )
+		)
+	)
+
+)
+)
+
+
+(procedure	DoNewInstall
+(
+	(message
+
+		"\nCNet Amiga has many different data files, and most related "
+		"files are grouped into directories, so that you can choose "
+		"different places for each set of data to go (for instance, "
+		"you might put your menus, help files, and other small data "
+		"sets on one small HD partition, while you might want your "
+		"message bases on a larger HD partition.)\n\n"
+		"I will now ask you to choose a place for each data set.  "
+		"Consult your CNet Amiga manual for information on what is "
+		"what, or use the HELP key for information."
+	)
+
+	(set	DestDir
+
+		(askdir
+
+			(prompt	ask-install-part ask-install-part2
+			)
+			(help	"The master CNet directory is the home of the "
+				"main executable, as well as it's control files "
+				"like Config, your modem setups, BBSTEXT, etc.\n\n"
+				"It's suggested that you choose a medium-sized "
+				"partition and use this as a 'base' for all your "
+				"other directories, like GFiles, Mail, News, etc.\n\n"
+				"(A CNET drawer will be created)"
+			)
+			(default "Work:")
+		)
+	)
+	(makedir    (tackon DestDir "CNet"))
+	(makeassign "CNet" (tackon DestDir "CNet"))
+
+	(message
+
+		"\nAn assign called CNET: has been made to the master "
+		"directory just created.  Many of the following "
+		"installation questions might refer to this assignment."
+	)
+
+	(set	DestDir
+
+		(askdir
+
+			(prompt	ask-install-part "create the GFILES drawer"
+			)
+			(help	"The GFiles directory holds any extra text-files "
+				"(or [G]eneral text Files) you want to install for your "
+                                "users.\n\n"
+			)
+			(default "CNet:")
+		)
+	)
+	(makedir (tackon DestDir "GFiles"))
+	(makeassign "GFiles" (tackon DestDir "GFiles"))
+	(makedir "GFiles:Data")
+
+	(set	DestDir
+
+		(askdir
+
+			(prompt	ask-install-part "create the DOORS drawer"
+			)
+			(help	"The DOORS directory holds a series of executables "
+				"C-Net requires, as well as serving as a place to "
+                                "store any extra DOORS you wish to install for your "
+                                "users, like games.\n\n"
+			)
+			(default "CNet:")
+		)
+	)
+	(set DestDir (tackon DestDir "DOORS"))
+        (makedir DestDir)
+	(makeassign "DOORS" DestDir)
+	(makedir "DOORS:Data")
+
+	(set	DestDir
+
+		(askdir
+
+			(prompt	ask-install-part "create the MAIL drawer"
+			)
+			(help	"The Mail directory holds a series of directories "
+				"(one for each user) in which unique user data is "
+				"stored; user signature files, question files, their "
+				"e-mail, etc."
+			)
+			(default "CNet:")
+		)
+	)
+	(set DestDir (tackon DestDir "Mail"))
+        (makedir DestDir)
+	(makeassign "Mail" DestDir)
+	(makedir (tackon DestDir "Users"))
+
+	(set	DestDir
+
+		(askdir
+
+			(prompt	ask-install-part "create the NEWS drawer"
+			(help	"The News directory holds system NEWS files "
+                                "displayed to users at login or whenever they "
+				"enter the BBS news area."
+			)
+			)
+			(default "CNet:")
+		)
+	)
+	(makedir (tackon DestDir "News"))
+	(makeassign "News" (tackon DestDir "News"))
+	(makedir "cnet:News/Data")
+
+	(set	DestDir
+
+		(askdir
+
+			(prompt	ask-install-part "create the BASE0 drawer"
+			)
+			(help	"The Base0: directory holds the datafiles to your "
+				"message and file bases.  Messages and files are stored here, as well as "
+				"entry files, etc.  Base0: must be assigned to a specific area on your hard disk."
+			)
+			(default "CNet:")
+		)
+	)
+	(makedir (tackon DestDir "Base0"))
+	(makeassign "Base0" (tackon DestDir "Base0"))
+	(makedir "Base0:main")
+	(makedir "Base0:main/data")
+
+
+	(set	DestDir
+
+		(askdir
+
+			(prompt	ask-install-part "create the SYSDATA drawer"
+			)
+			(help	"The SysData directory holds critical BBS data like "
+				"the master user-file and it's associated index files, "
+				"as well as your BBSList files, log files, and "
+				"voting booth information."
+			)
+			(default "CNet:")
+		)
+	)
+	(set DestDir (tackon DestDir "SysData"))
+        (makedir DestDir)
+	(makeassign "SysData" DestDir)
+	(makedir (tackon DestDir "Log"))
+	(makedir (tackon DestDir "Vote"))
+	(makedir (tackon DestDir "BBSList"))
+
+	(set	DestDir
+
+		(askdir
+
+			(prompt	ask-install-part "create the SYSTEXT drawer"
+			)
+			(help	"The SysText directory holds all text-files used "
+				"throughout the BBS like menus, help files, and new "
+				"user files, as well as your VDE (Visual Data Editor) "
+				"files required by the BBS for editing certain data."
+			)
+			(default "CNet:")
+		)
+	)
+	(set DestDir (tackon DestDir "SysText"))
+        (makedir DestDir)
+	(makeassign "SysText" DestDir)
+	(makedir (tackon DestDir "VDE" ))
+	(makedir (tackon DestDir "Menu"))
+	(makedir (tackon DestDir "Help"))
+	(makedir (tackon DestDir "New" ))
+
+	(CopyExecutables1)
+	(CopySysdata)
+	(CopyMenus)
+	(CopyConfigs)
+	(CopyHelp)
+	(CopyNew)
+	(CopyStandards)
+
+	(CopyExecutables2)
+
+	(if	(askbool
+
+			(prompt	"\nWould you like to install the built-in spell "
+				"checker?"
+			)
+			(help	"CNet's VisualEd editor has a built-in spell "
+				"checker.  However, in order for the spell checker "
+				"to be activated, the master dictionary must be "
+				"installed.\n\nIn addition, a couple of utilities "
+				"will be installed which allow you to compress and "
+				"decompress the master dictionary so that you may "
+				"add/remove words from it."
+			)
+		)
+
+		; TRUE statement
+		(
+			(CopySpeller)
+
+			(set SplLine1 ( "copy		\"%s\" RAM:" (tackon DestPath "dict"      ) ))
+			(set SplLine2 ( "copy		\"%s\" RAM:" (tackon DestPath "dict.index") ))
+
+			(if
+				(askbool
+				
+					(prompt "\nWould you like to run the speller "
+						"out of RAM?"
+					)
+					(help	"Keeping the CNet dictionary in RAM "
+						"will help speed up spell checks.  "
+						"If you choose to install the dictionary "
+						"in RAM, a statement will be added to your "
+						"S:User-Startup file to automatically copy "
+						"it into RAM on startup.\n\n"
+						"Also remember that you should then set the "
+						"speller path through CONFIG to be RAM:, not "
+						("\"%s\" (where you installed the speller.)" DestPath )
+					)
+				)
+				
+				; TRUE statement
+				(
+					(message
+
+						"\nRemember to set your speller path to RAM: "
+						"when you configure your BBS with CONFIG."
+					)
+				)
+				
+				; FALSE statement
+				(
+					(set SplLine1 (cat "; " SplLine1))
+					(set SplLine2 (cat "; " SplLine2))
+				)
+			)
+		)
+	)
+
+
+	(if	(askbool
+	
+			(prompt "\nDo you want to run CNet resident?")
+			(help	"CNet is a 'pure' program, meaning it can be "
+				"made resident.  Programs which are resident "
+				"have the distinct advantage of being re-entrant; "
+				"meaning if you have 3 copies of it running, there "
+				"is really only 1 copy taking up memory, with three "
+				"different sets of variables.\n\n"
+				"This saves a LOT of memory when running CNet in a "
+				"multi-user enviornment, because you are saving about "
+				"260k of RAM for *EVERY* extra port you have loaded.\n\n"
+				"Even if you are only running 1 line, it's a good idea "
+				"to make it resident, since you will probably have a 'port 0' "
+				"or other local port up sometimes.\n\n"
+				"Note that it does NOT waste memory to have CNet "
+				"made resident even if you are only running 1 port."
+			)
+		)
+		
+		; TRUE statement
+		(
+			(set ResFlag "")
+		)
+		
+		; FALSE statement
+		(
+			(set ResFlag "; ")
+			
+			(message "\nThe BBS will NOT be made resident.  However, "
+				 "in your S:User-Startup file, the lines responsible "
+				 "for making the BBS resident will appear, but prefixed "
+				 "with semicolons (;), which comments them out.\n\n"
+				 "Should you wish to run the BBS resident in the future, "
+				 "all that needs to be done is removal of those semicolons."
+			)
+		)
+		
+	)
+
+	(if	(askbool
+	
+			(prompt "\nDo you want to run CNet automatically when your system "
+				"is started?"
+			)
+			(help	"If you wish CNet to automatically be started when your "
+				"system is booted, answer YES.  It is a good idea to have "
+				"CNet run automatically, especially in case of a power "
+				"outage and when you aren't around to manually startup "
+				"the BBS."
+			)
+		)
+		
+		; TRUE statement
+		(
+			(set RunFlag "")
+		)
+		
+		; FALSE statement
+		(
+			(set RunFlag "; ")
+			
+			(message "\nThe BBS will NOT be automatically run on startup. However, "
+				 "in your S:User-Startup file, the line responsible "
+				 "for starting the BBS will appear, but prefixed "
+				 "with a semicolon (;), which comments it out.\n\n"
+				 "Should you wish to run the BBS automatically on startup in the future, "
+				 "all that needs to be done is the removal of that semicolon."
+			)
+		)
+		
+	)
+
+	(startup "CNet Amiga Pro 4"
+
+		(prompt "\nSeveral assignments need to be made to your S:User-Startup "
+			"file which allow CNet to find all the files and directories "
+			"we've just installed.\n\n"
+			"In addition, other actions required by CNet will be "
+			"added."
+		)
+		(help	"CNet requires several assignments so that it can find "
+			"all it's files.  Many assign statements will be made "
+			"to your S:User-Startup file, and will also launch "
+			"several of the handlers CNet requires, set the stack "
+			"requirement automatically, etc."
+		)
+
+		(command
+
+		("\n"						)
+		("assign CNet:     \"%s\"\n" (getassign "CNet"		))
+		("assign SysText:  \"%s\"\n" (getassign "SysText"	))
+		("assign SysData:  \"%s\"\n" (getassign "SysData"	))
+		("assign News:     \"%s\"\n" (getassign "News"		))
+		("assign GFiles:   \"%s\"\n" (getassign "GFiles"	))
+		("assign DOORS:   \"%s\"\n" (getassign "DOORS"	))
+		("assign Mail:     \"%s\"\n" (getassign "Mail"		))
+		("assign Base0:    \"%s\"\n" (getassign "Base0"		))
+		("assign UDBase0:  \"%s\"\n" (getassign "UDBase0"	))
+
+		("\n; You may add other ASSIGNs here as necessary, for example")
+		("\n; for Base1: and UDBase1: etc.  Consult your manual!\n")
+		
+		("\n; Sets up/launches CNet Amiga\n\n"		 )
+		("run		<>NIL: L:FIFO-Handler\n"	 )
+		("mount		<>NIL: PIPE:\n"			 )
+		("rexxmast	 >NIL:\n\n"			 )
+		("stack		40000\n\n"			 )
+		("%s\n"					SplLine1 )
+		("%s\n\n"				SplLine2 )
+		("%sresident PURE CNet:bbs CNet:bbs ADD\n" ResFlag )
+		("%sresident PURE DOORS:bbs/vote DOORS:bbs/vote ADD\n" ResFlag )
+		("%sresident PURE DOORS:bbs/join DOORS:bbs/join ADD\n" ResFlag )
+		("\n%srun		<>NIL: CNet:Control\n"   RunFlag )
+		)
+	)
+
+;	(textfile
+;
+;		(dest	"S:CNet-Startup")
+;		(append
+;
+;		)
+;	)
+
+	(if
+		(askbool
+
+			(prompt "\nInstallation complete!\n\n  You should now further configure "
+				"your system using C-Net's CONFIG program.\n\n"
+				"Do you wish to run CONFIG now?"
+			)
+			(help	"CONFIG is a mouse-driven program that allows you "
+				"to configure many imporant things about your system, "
+				"such as new user defaults, message limits, paths to "
+				"system data, and much much more.  There are many things "
+				"that require your attention before the BBS is ready "
+				"to go on-line.  See your CNet manual for more info."
+			)
+		)
+
+		; TRUE statement
+		(
+			(run "run CNet:Config" )
+		)
+	)
+
+	(if
+		(askbool
+
+			(prompt "\nYou should also run the VDE programs "
+				"to create your system VDE files.\n\n"
+				"Do you wish to run the VDE executables now?"
+			)
+			(help	"VDE is a simple utility that creates the required system "
+				"VDE (Visual Data Editor) files.  See your CNet manual for more info."
+			)
+		)
+
+		; TRUE statement
+		(
+			(run "run CNet:VDE"  )
+			(run "run CNet:VDE2" )
+		)
+	)
+
+	(if
+		(askbool
+
+			(prompt "\nDo you wish to view the Amigaguide CNet "
+				"changes documentation?"
+			)
+			(help	"!changes.guide and !chagnes.readme contain "
+				"detailed descriptions of changes made to CNet."
+			)
+		)
+
+		; TRUE statement
+		(
+			(run "run CNet:VDE"  )
+			(run "run amigaguide cnet:!changes.guide" )
+		)
+	)
+
+)
+)
+
+
+;
+; BEGIN MAIN INSTALLATION SEQUENCE TREE
+;
+; The welcome statement determines whether or not to do an update
+; installation or a new-user installation, and then calls a master-procedure
+; defined above which handles that type of installation appropriately.
+;
+
+(welcome
+
+	(set @default-dest "CNet")
+
+	(if	
+		(exists "CNet:bbs" (noreq))
+
+		; TRUE statement
+		(
+			(set NewInstall 0)
+
+			(user 2)
+			(message
+				"\nThe system has detected that you already have "
+				"CNet Amiga installed.\n\nThe installer will perform "
+				"an update installation, only "
+				"copying over the necessary executables, and will "
+				"only copy files which you might have customized "
+				"(menus, help files, etc) if you ask it to."
+			)
+		)
+
+		; FALSE statement
+		(
+			(set NewInstall 1)
+
+			(message
+				"\nThe system has detected that you are installing "
+				"CNet for the first time.\n\nHave your manual handy, "
+				"and remember the HELP key works in most places."
+			)
+		)
+	)
+)
+
+(if	NewInstall
+
+	; TRUE statement
+	(
+		(DoNewInstall)
+	)
+
+	; FALSE statement
+	(
+		(DoUpdateInstall)
+	)
+)
+
+(if	
+	(exists "cnet:bbslicense" (noreq))
+	; TRUE statement
+	("")
+	; FALSE statement
+	(if	
+		(exists "cnet/bbslicense" (noreq))
+	
+		; TRUE statement
+		(
+		(copyfiles
+
+			(source "cnet")
+			(dest   "CNET:")
+			(choices "bbslicense")
+			(optional "nofail" "askuser")
+		)
+		)
+	)
+)

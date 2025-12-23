@@ -1,0 +1,244 @@
+                                                     Date: March, 1. 1995
+
+
+
+                          LogicBBS  v1.0 BETA
+                          <----------------->
+                             LITE VERSION
+
+                      Copyright 1995 ParCon Software
+
+
+    System/node/door/library/AIM-XIM support programmed by Michael Pendec
+        Filechecker/Arexxdoor support programmed by Nicholas Clarke
+      All Testing was done by friends. Ideas supplied by various people.
+
+
+      Read "HowToOrder.doc", if you want to get the FINAL version.
+-----------------------------------------------------------------------------
+
+
+
+
+                               Walkthrough
+-----------------------------------------------------------------------------
+
+This chapter will explain exactly what the system do, from the moment the
+system starts and until a node gets closed.
+
+When the server starts, it will look for a file is the SYSTEM/ directory called
+ SYSTEM.LOG, this file holds daily stats information and other viewable
+ information.  You can edit this file using a texteditor, if you want to modify
+ information.
+
+The server will launch all nodes, in the order, 1 and upwards to the number
+ of nodes specified in prefs file.  If the command: IDLENODE is used, the node
+ will stay offline(closed), otherwise the node is launched.
+
+
+NODESTART:
+When a node is launched, it will first look for a file in SYSTEM/ called 
+ NODEx.LOG, this is a log file mainly used for keeping track of uploads,
+ downloads made to this node during a day. next step is loading the
+ PROTOCOLS setup file found in the SYSTEM/ directory, this file is the setup
+ for transfer protocols. Next is initializing modem. command: MODEM_INIT
+ string will be sent to modem, and then a loop for this node is started.
+ Modem wil be initialized with command: MODEM_RESET,
+
+ The loop, contains following detections in await state
+
+ l.1: wait for carrier, and detect RING  (or what is specified through prefs,
+                                          MODEM_RING)
+ l.2: Node icon selection
+ l.3: server messages
+ l.4: Function keys
+
+ All functions except "l.1" will execute and return node to await state.
+
+ When a node receives a RING or a local login, the following events start.
+ Node will check if connected baudrate is really a different baud.
+ This is done using the SYSTEM/EMULATIONS setup file.  If a connect string
+ match is found, the system will be told to use new online baudrate specified
+ via the EMULATIONS file.  Then another check to see if connected baudrate
+ is allowed at this time.  If baudrate is accepted then login procedure
+ continues, otherwise a textfile will be shown to the user, file is located
+ in BBS:NODEx/ or BBS:DEF_BBSTEXT/ , called NOCALLERSATxxxxx, where xxxxx
+ is baudrate, also called PRIORITY 1.
+ Then the node will look for a file is the node path directory called
+ LOGINBATCH, it will execute this script file, as an executable,
+ meaning that you need to set the "S" protection bit for the LOGINBATCH file.
+ you can put doors or whatever you want in this file, if you include doors
+ to be started in this script, the door will not be able to use read/writes
+ through serial port.
+ When the script returns or if it is not found, then node will then check
+ if STEALTH MODE was selected for this node, if so, the user will be prompted
+ for a system password before he can enter system. If no system password is
+ selected, node will skip this part.
+ next is, user will be shown the welcome message , and node will look for
+ an external door called FRONTEND and execute it if found and then prompt
+ for ansi selection. User can select Q for QUICKMODE and N for NO ANSI.
+ If QUICKMODE is selected, node will skip showing logon/logoff textfiles,
+ and skip doors who checks for this mode.
+ In the BETA PRE-RELEASE version, Rip graphics is yet to come, and option
+ is ignored.
+ Node continues, and shows the textfile: login, located in BBS:NODEx/ or
+ BBS:DEF_BBSTEXT/ , file will be traced using PRIORITY 1.
+
+ User will be prompted for name, and password. If the user fail to enter
+ correct name after 5 times, user will be disconnected.
+ If user fail to enter the correct password after 5 times, he will be
+ disconnected, and a message will be sent to his account telling user
+ to change his password , due to expected attempt to hack the account.
+ User can enter the system in 3 different ways.
+
+ 1: Newuser
+ 2: Normal user
+ 3: Guest
+
+These 3 steps are explained below.
+
+
+1: NEWUSER LOGIN
+----------------
+
+ If user continues to enter the system as newuser, node checks if this
+ is a node with newuserpassword active, if so, it will show
+ textfile: NewUserPassword (PRIORITY 1) to the user and prompt him
+ for the password.
+ Next, node will show textfile: join (PRIORITY 1) to the user.
+ User will then be prompted for a firsttime setup of his account for use
+ on this system.
+ User will be prompted for the Following questions using these steps,
+ in the order shown here. Each step has a file related to its name,
+ when NAME is prompted, it will first show textfile: Name.NU (PRIORITY 1)
+ to the user, if its found.
+
+ s.1 : Name
+ s.2 : Location
+ s.3a: Int. Phonecode
+ s.3b: Phone
+ s.4 : Password
+ s.5 : ScreenLength
+ s.6 : ScreenClear
+ s.7 : ScreenType
+ s.8 : ComputerType
+ s.9 : Protocol
+ s.10: Newmailscan
+ s.11: NewFileScan
+ s.12: Questionare
+
+After Step 12, the system will try to execute a questionary script in your
+ node directory, called ANSWER(baud).SCP, where (baud) is the users
+ connected baudrate. If it do not find the file, it looks in your
+ DEF_BBSTEXT directory. Then it retries without the baudrate appended to
+ the filename, if it still do not find a script file, it will skip this part.
+We will assume the script file is found, and the script could look something
+ like this:
+
+-----------------------------------------------------------
+Ok... Lets go on with a few questions about yourself.
+Answer ALL questions. Otherwise you will not gain access!
+
+What is your name
+ : ?
+What is your Sex,Age
+ : ?
+-----------------------------------------------------------
+
+Script ends at the end of the file.
+
+the "?" is the command to the system, telling it to request the user for input,
+the answer is ended with a return and saved. The script text and the answers
+are all saved into a file, located in a directory called ANSWERS.
+
+After all these questions, the user is finally added as user on the system.
+User will be shown textfile: joined (PRIORITY 1)
+and his account will be created with the default newuser accesslevel,
+defined in NEWUSERACCLEVEL (prefs) or a default accesslevel of 5 will be given.
+
+User is now accepted and a normal login on the system will be made, next step
+ coming up.
+
+
+2: NORMAL LOGIN
+---------------
+
+Node will check if it is reserved for current user and proceed if so.
+If node is reserved for another user, then user will be told so, and
+disconnected from node.
+Users account will be updated, daily calls and download will be reset,
+if this is his first call this day.
+
+Node will look for a textfile: LOCKOUT(acc) (PRIORITY 1), (acc) is users
+accesslevel, if it is found user will be shown this text and disconnected.
+
+Users time left this day will be checked, if user got no time left,
+textfile: logon24hrs (PRIORITY 1) will be shown to the user and a disconnect
+will be executed.
+
+
+Node will look for a textfile: BULL (PRIORITY 4), and show text, if found,
+to the user.
+
+Next is checking for Lost carrier files, if any found, user will be prompted
+to enter a description for these files. and files will be put online for
+download.
+
+Message bases are being searched for mail to user and if any found user will be
+asked if he wants to read waiting messages now, depending on his selection of
+newmail scan. New files in all conferences are being searched for, and if any
+user will be shown these, depending on his selection of newfile scan.
+
+Finally user will join the conference, he left when he was online last time.
+
+
+3: GUEST LOGIN
+--------------
+
+Node will check if it is reserved and if node is reserved for another user,
+then user will be told so, and disconnected from node.
+
+User will be prompted for the Following questions using these steps,
+in the order shown here. Each step has a file related to its name,
+explained under NEWUSER LOGIN.
+
+ s.1 : ComputerType
+ s.2 : ScreenType
+ s.3 : ScreenLength
+ s.4 : ScreenClear
+
+Accesslevel 1 preset (ACCESSLEVEL/LEVEL_1) will be loaded as default
+account security.
+
+Node will look for a textfile: LOCKOUT(acc) (PRIORITY 1), (acc) is users
+accesslevel, if it is found user will be shown this text and disconnected.
+
+Users time left this day will be checked, if user got no time left,
+textfile: logon24hrs (PRIORITY 1) will be shown to the user and a disconnect
+will be executed.
+
+Node will look for a textfile: BULL (PRIORITY 4), and show text, if found,
+to the user.
+
+Message bases are being searched for mail to user and if any message is found
+user will be asked if he wants to read waiting messages now.
+
+Finally the user will join the conference specified in accesslevel file.
+
+
+
+
+-------------
+- NEXT STEP -
+-------------
+
+When a conference is entered, system will look for
+  textfile: JOINCONF (PRIORITY 3) and if found, show the file to user.
+Then will there be searched for a textfile: BULL (PRIORITY 4), and displayed
+if found.
+A newmail scan will be made in this conference, and if any new mail found,
+user will be asked if he wants to read it now.
+Node will look for a menu textfile: MENU (PRIORITY 3), and display this
+to the user. If the user selected expert mode, the menu file will not be
+displayed. Now we are at the main menu prompt.
+

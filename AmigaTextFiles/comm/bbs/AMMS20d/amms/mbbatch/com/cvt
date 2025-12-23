@@ -1,0 +1,50 @@
+;
+;       CVT : AMMS-Script zum Konvertieren von AMMS-Befehlstexten
+;
+;       $VER: 1.02 (21-Aug-1995)
+;
+;       Mit diesem Script wird der Text des angegegebenen Befehls in
+;       der aktuellen Sprache aus MBTEXT:<SPRACHE>/COM nach
+;       MBCOM:<SPRACHE> konvertiert.
+;
+;
+;       Das Script sollte so eingebunden werden, dass es ueber Level und
+;       Flags auf die folgende Befehle zugreifen kann :
+;
+;       CONVERT COMTEXT
+;       ECHO
+;       EOD
+;       IF
+;       ON ERROR
+;       PARSE
+;	CHECK FILE
+;
+
+; Parameter auswerten
+
+_parse "CVT" p0 N/Befehlsname p1 N p2   ; Befehlsname als Parameter einlesen
+_if p1 == "" then _goto END             ; Keinen angegeben -> Ende
+_if p2 == "" then _goto CONVERT         ; Zwei Befehlswoerter ?
+p1="'p1'_'p2'"                          ; Ja, zusammenfuegen
+
+; Befehlstext konvertieren
+
+CONVERT:
+_echo/nolf "'{alanguage}' : 'p1' ..."
+_on error END
+
+_check file "mbcom:'p1'" NOCOM
+
+_convert comtext "mbtext:'{alanguage}'/com/'p1'" "mbcom:'{alanguage}'/'p1'"
+_goto OK
+
+NOCOM:
+_convert comtext "mbtext:'{alanguage}'/com/'p1'" "mbres:'{alanguage}'/'p1'"
+
+OK:
+_echo " OK"
+
+; Ende
+
+END:
+_eod                                    ; Ende

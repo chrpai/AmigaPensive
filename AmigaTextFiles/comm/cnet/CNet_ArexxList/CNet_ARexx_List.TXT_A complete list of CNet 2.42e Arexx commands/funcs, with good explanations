@@ -1,0 +1,487 @@
+
+                             The Unauthorized
+
+              C N e t   A R e x x   C o m m a n d   L i s t
+              =============================================
+
+                                By Le Chat
+
+                        Current for CNet/3 v2.42e
+
+        This  list  is  compiled  from,  but  not  exclusively, Perspective
+        Software's CNet SysOp Manual  and  Beta  Release update notes.  The
+        five digit GETUSER lists are  courtesy  of  a Future World user who
+        didn't sign his  name  to  the  file  that  I  downloaded  (I hope,
+        whomever he is, that he doesn't mind me including his list here).
+
+        The data contained in  this  text  file  is intended for registered
+        CNet SysOps only.  I can not  guarantee  the accuracy of any of the
+        information in this file  (especially the extended GETUSER listings
+        - I rarely use those  anyway).   Most  of  the commands, however, I
+        have tried myself, and they  work.  Where possible, I have expanded
+        upon, corrected, and/or  updated  information  originally  given by
+        Perspective Software.  The usage notes are entirely my own work.
+
+
+        ADDKEYS {string} - Adds a  string  of  characters  into  the port's
+                           input buffer.  This can be useful for automating
+                           logons or pre-inputting  data  (i.e.  if  a game
+                           asks a user for  a  handle  to use for the game,
+                           prior to receiving or querying for the handle an
+                           ADDKEYS call can input the user's current handle
+                           as  a  default).   Use  d2c(13)  or  d2c(10)  to
+                           represent a carriage return.
+
+        ADDPOINTS {string} - Addpoints adds a  number  of  'points'  to the
+                             user's Game Points total.
+
+        ADDTIME {string} - Adds a  number  of  minutes  to  the user's time
+                           remaining  for  the  total  day.   Use  negative
+                           numbers to subtract.
+
+        BAUD {number} - Set the current baud rate to {number}
+
+        BBSCOMMAND {string} - Attempt to  execute  a  BBS command {string}.
+                              The   command   must    be    an   all-prompt
+                              (everywhere) command  such  as  WHO,  STATUS,
+                              TIME, etc.  My experience  has shown that WH,
+                              ST, T, etc. work just  as well.  You can also
+                              issue this command  without  any arguments to
+                              allow a  check  for  OLMs  when  your  script
+                              wouldn't  otherwise   allow   OLMs   to  pass
+                              through.
+
+        BBSIDENTIFY {argument} - Returns  the  following   for   the  given
+                                 arguments:
+
+                  {argument}      RESULT
+                  ABBEREXX        "1.0"
+                  BBS             Current CNet version
+                  EMULATION       "ASCII" or "ANSI"
+                  NAME            Your BBS's name as set in CONFIG
+                  SYSOP           SysOp's name as set in CONFIG
+                  TERM            <baud> <columns> <rows> <line>
+                  USER            "<username>" "<callingfrom>" <access>
+                                  <access> will be GUEST for new users
+                                  MEMBER for other users
+                                  SYSOP for account #1
+                                  CO-SYSOP  for  accounts  with maintenance
+                                  access
+
+        CALLEDITOR {number} - This invokes the  user's default editor.  The
+                              current contents  of  the  editor  is loaded.
+                              The number  parameter  specifies  the maximum
+                              number of lines to  input (it will not exceed
+                              the user's predefined  maximums).   Passing a
+                              zero  will  use  the  user's  default.  After
+                              exiting the editor,  "1" indicates the buffer
+                              contains data, and a "0" indicates the buffer
+                              is empty.
+
+        CHANGEWHAT {string} - Change WHAT command the user last used in the
+                              control panel and status window.
+
+        CHANGEWHERE {string} - Set the user's ACTION  field  in the WHO and
+                               Control Panel.
+
+        CHECKABORT - Returns a one  if  a  user  has  pressed  Control-C or
+                     SPACEBAR, and a  zero  otherwise.   Each time there is
+                     output this will be reset, so you should only use this
+                     command  immediately  after  sending  out  data  (i.e.
+                     immediately after a SENDFILE and the like).
+
+        CHECKIO - Returns either a '1' or a '0' depending on whether or not
+                  there are characters  waiting  to  be  input using either
+                  QUERY, GETCHAR, or RECEIVE.  It is a BAD idea to use this
+                  command in any  type  of  LOOP,  as  this could SERIOUSLY
+                  degrade the  performance  of  a  multi-user  system.  (My
+                  experience with using this command  in a LOOP didn't seem
+                  to have any effect on  any  other  ports - maybe I lucked
+                  out.)  You can alternatively  use  the MAYGETCHAR command
+                  if you want to poll  for a character without halting your
+                  script instead of continually issuing CHECKIO looking for
+                  input.
+
+        CLEAREDITOR - Clears the contents of  the temp editor file.  Useful
+                      before you STARTEDITOR or if you do not LOADEDITOR.
+
+        CLOSEDISPLAY - Close the port screen or workbench window.
+
+        CLS - Sends the clear screen code.
+
+        DROPCARRIER - Disconnects the  caller,  but  does  not  perform any
+                      additional reset commands.
+
+        FEEDBACK - Does the same  thing  as  BBSCOMMAND  F  - initiates the
+                   standard feedback.
+
+        FINDACCOUNT {string} - Passing  a  handle  or  account  number will
+                               search for that account.   If  the handle is
+                               not  an  exact   match,  the  handle  search
+                               procedure will be  initiated.   The function
+                               returns the account number if no problem was
+                               found; otherwise, a zero  is passed back.  A
+                               future release may return  a  -1 if you pass
+                               an account  number  that  exceeds  the total
+                               number of accounts on the system.
+
+        GETCARRIER - Result contains either "TRUE"  or "FALSE" depending on
+                     the carrier  detect  signal  status  from  the  serial
+                     device.
+
+        GETCHAR - Pauses for a character to  enter the port's input buffer.
+                  The key will be placed into RESULT.  See also MAYGETCHAR.
+
+        GETSCRATCH {string} - Operates like GETUSER,  but reads the scratch
+                              user  structure.   Use  LOADSCRATCH  to  load
+                              other  user  information   into  the  scratch
+                              buffer.
+
+        GETUSER {number} - Used to pull  various  pieces  of  the user data
+                           file into the  ARexx  program.   The  number may
+                           take on the following values:
+
+               1       User's Handle
+               2       User's Password
+               3       Users's full real name
+               4       User's City and State
+               5       User's Zip Code
+               6       User's Street address
+               7       Time remaining (minutes)
+               8       SysOp Comment
+               9       User's Voice Phone Number
+               10      User's Data Phone Number
+               11      Last call date
+               12      Current date and time (affected by Edit Preferences'
+                       Time Zone!)
+               13      Number of mail items waiting
+               14      Number of new mail items waiting
+               15      User's access group (0-23)
+               16      Access group name
+               17      System maintenance.  0==No,  anything else==Yes
+               18      Number of minutes used today
+               19      Screen clear code (returns 12==`L)
+               20      Reserved for future use
+               21      Users's game points
+               22      Total calls to the system by user
+               23      The current port number
+               24      The current CPS (baud rate divided by ten)
+               25      User's FILE RATIO default (#1)
+               26      User's BYTE RATIO default (#1)
+               27      Current line width (e.g. 40 or 80)
+               28      Terminal type (0=Dumb, 1=C/G, 2=ANSI, 3=IBM, 4=Sky)
+               29      Default protocol
+               30      Total uploaded kbytes
+               31      Total uploaded files
+               32      Total downloaded kbytes
+               33      Total downloaded files
+               34      File credits
+               35      Byte credits
+               36      Total public messages
+               37      Total private messages
+               38      User's WHO banner
+               39      UUCP User directory
+               40      User's account number
+               41      User's unique ID number
+               42      Bytes uploaded today
+               43      Bytes downloaded today
+               44      Files uploaded today
+               45      Files downloaded today
+
+               Alternatively,  you  have  the   option  of  specifying  ANY
+               variable  in  either  of  the  CNet's  PortData  or MainPort
+               structures by using the format XT##### where:
+
+               X:  1==PortData, 2==MainPort
+               T:  1==char, 2==short integer,  4==long  integer, 3==string,
+                   5==IsDate, 6==CHAR *
+               #:  Must be a FIVE  DIGIT  offset  from the beginning of the
+                   structure.  CNET.H has  been  labelled  with the offsets
+                   for  several  of  the  important  structures  (MainPort,
+                   PortData,  and  UserData  for  the  use  with  user1  of
+                   PortData).
+
+               The following are some  extended  GETUSER values complied by
+               another CNet SysOp.  I have  not  verified that all of these
+               work.  Remember that you can  NOT use these with the scratch
+               user buffer (GETSCRATCH).
+
+               Main Port Data:
+               2203094      ID# of who's on port 0 (-1=no one)
+               2203096      ID# of who's  on  port  1  -  add four for each
+                            successive port
+               2600096      What user on port 0 is doing
+               2600100      What user on port  1  is  doing  - add four for
+                            each successive port
+               2314266      last user on the BBS (independent of port)
+
+               User Port Data:
+               1307444      Previous command in buffer
+               1400026      Time left this call
+               1400030      Time used this call
+               1200600      Calls per day
+               1200682      Time limit per call
+               1200680      Call limit per day
+               1200016      Age of user
+               1200012      Account Number
+               1200018      Baud Rate (Divided by ten)
+               1400068      Unique Serial ID Number
+               1300072      User's Handle
+               1300093      User's Full Real Name
+               1300119      User's Street Address
+               1300150      User's City and State
+               1300181      User's Zip Code
+               1300192      User's Country
+               1300200      User's Voice Phone Number (?)
+               1300217      User's Password
+               1300232      SysOp Comment
+               1300266      User's Macro 1
+               1300302      User's Macro 2
+               1300338      User's Macro 3
+               1300374      User's Macro 4
+               1500410      User's Birthdate
+               1500416      User's Firstcall date to the BBS
+               1500422      User's Lastcall date
+               1500428      Number of new mail items (?)
+               1500434      Current Baud Rate (?)
+               1500440      Expansion? - reserved for future expansion
+               1100446      User's Access Group (0-23)
+               1100447      User's Expiration Group (0-23)
+               1400448      User's Expiration Date
+               1100452      Current BBSText in use
+               1100453      24 hour or AM/PM  Time form
+               1100454      MorePrompt selection
+               1100455      LineFeeds selection
+               1100456      Paranoia selection
+               1100457      User's Time Zone
+               1100458      ANSI Colors selection
+               1100459      ANSI tabs selection
+               1100460      ANSI selection
+               1100461      Gender - male/female
+               1100462      AutoMore selection
+               1100463      Term Type (Dumb, ANSI, IBM, C/G)
+               1100464      Help Level (Novice, etc.)
+               1100465      Computer type
+               1100466      Default Protocol
+               1100467      Terminal Width (number of columns)
+               1100468      Terminal Length (number of rows)
+               1100469      Mailbox Open
+               1200470      Foward Mail To User
+               1400472      Total Calls to the system
+               1400476      Number of Public Msgs
+               1400480      Number of Private Msgs
+               1400484      Total Upload Bytes
+               1400488      Total Upload Files
+               1400492      Total Download Bytes
+               1400496      Total Download Files
+               1400500      Total File Credits Remaining
+               1400504      Total Byte Credits Remaining
+               1400508      Total Time Credits
+               1400512      Balance
+               1400516      NetCredits
+               1400520      DoorPoints
+               1400524      Total Bytes Uploaded Today
+               1400528      Total Downloaded Bytes Today
+               1200532      Total Uploaded files for the day
+               1200534      Total Downloaded files for the day
+               1200536      Total Calls Today
+               1200538      Time Today Used Today
+               1200540      Number of bad Logon Attempts
+
+               Subboard Port Data:
+               1206202      current item number
+               1206366      total number of items
+               1310688      title of item
+               1309752      Path for  direct  exchange  subboard (or udbase
+                            path for sub?)
+               1410780      Size in bytes of current file (0=message)
+               1510046      EITHER the date of  last  visit OR new date for
+                            current subboard
+
+        HANGUP - Same as DROPCARRIER.
+
+        IREADY - Same as CHECKIO.
+
+        LOADEDITOR {path} - This will read the  filename  given by the path
+                            into the temp editor buffer.
+
+        LOADSCRATCH {number} - If  passed  a  valid  account  number,  that
+                               user's account  information  will  be loaded
+                               into the scratch  buffer.   A  result of "0"
+                               indicates  a  load  error  (invalid  account
+                               number), and "1" indicates everything loaded
+                               correctly.
+
+        LOGENTRY {string} - Writes a string  into  your  call  log (no need
+                            terminate the line  with  a  carriage return or
+                            line feed).
+
+        MAYGETCHAR - Returns the waiting-input character or "NOCHAR" if the
+                     input buffer is empty.
+
+        MODEM {number} - The passed number must be one of the following:
+                           0 - Close Serial Device
+                           1 - Re-Open  the   serial   device   for  normal
+                               operation.
+                           2 - Do not close the  serial  device but inhibit
+                               all modem related I/O.
+
+        NEWLINE - Sends the newline code.
+
+        OPENDISPLAY - Attempt  to  open  the  port's  screen  or  WorkBench
+                      window.  It may take a few seconds for the display to
+                      open.
+
+        PRINT {string} - Same as TRANSMIT.
+
+        PROMPT <length> {argument} '"<prompt>"'
+               <length> is the maximum number of characters to input.
+               {argument} is one of:
+                     NORMAL
+                     HIDE      : password input
+                     YESNO     : Yes/No with Yes as default
+                     NOYES     : Yes/No with No as default
+               <prompt> must be surrounded by double quotes and then single
+               quotes so AREXX  will  actually  send  the  double quotes to
+               CNet.  This will be the prompt string.
+
+               The result will contain the inputted string.
+
+        PUTSCRATCH {number} - This takes the same  (two digit) arguments as
+                              GETSCRATCH except, it will place whatever was
+                              passed to SETOBJECT  into the scratch buffer.
+                              The data will  not  be  saved into the user's
+                              actual data structures until to SAVESCRATCH.
+
+        PUTUSER {number} - Operates analogously to  GETUSER except that the
+                           object last set using the SETOBJECT command will
+                           be  PUT  into  memory.   This  is  an  extermely
+                           powerful feature, and must  be used with extreme
+                           care.
+
+        QUERY {string} - Uses the supplied string  as  a prompt; otherwise,
+                         this command is identical to RECEIVE.
+
+        RECEIVE - Pauses for the user to  input  a  line.  The line of text
+                  will appear in the RESULT variable.
+
+        RESETMODEM - Sends the initialization  strings  to  the  modem, and
+                     resets the baud rate according to the BBSPORT file.
+
+        SAVEEDITOR {path} - Write the contents of the temp editor buffer to
+                            the file specified  by  the  path.  If the file
+                            already  exists,  it  will  be  overwritten.  A
+                            result of one  indicates everything was written
+                            correctly;  otherwise,  "0"  is  some  type  of
+                            error.
+
+        SAVESCRATCH {number} - This will  take  the  current scratch buffer
+                               and save it to  whatever  account number you
+                               have supplied.  Be careful with this command
+                               - it can be  VERY dangerous.  I believe this
+                               command returns  a  "1"  if everything saved
+                               properly and a  "0"  otherwise (i.e. account
+                               number invalid).
+
+        SCREENOUT {string} - Displays a string, but  only to the screen and
+                             not to the modem.
+
+        SENDFILE {path} - Displays the text file  specified by the supplied
+                          path and filename.   MCI  codes  and ANSI will be
+                          interpreted.
+
+        SENDMODEM {string} - Sends a string to  the  modem,  but not to the
+                             screen.
+
+        SENDSTRING {string} - Identical  to  TRANSMIT  except  it  will not
+                              append a carriage return (advance to the next
+                              line automatically)
+
+        SEND {string} - Send the passed string  without  any translation of
+                        any kind.  (no MCI, etc.)
+
+        SETMAILSUBJ {string} - This command should be performed before EACH
+                               WRITEMAIL  command  in   order  to  set  the
+                               SUBJECT of the mail about to be sent.
+
+        SETMINFREE {number} - This command  tells  CNet  when  to  STOP  an
+                              upload-in-progress  due   to   critical  disk
+                              space.  The passed value should be the lowest
+                              free-BYTES on the hard drive.
+
+        SETNODELOCATION {string} - Same as CHANGEWHERE.
+
+        SETOBJECT {string} - This must  be  used  before  each  PUTUSER  or
+                             PUTSCRATCH.   This  command   will  place  the
+                             supplied string into a  buffer until a PUTUSER
+                             or PUTSCRATCH is issued.
+
+        SETPROTOCOL {character} - This command should be used before XUP or
+                                  XDN.  The passed  character  should match
+                                  one of those given  in the protocols menu
+                                  of the CONFIG program.  You can allow the
+                                  user to specify the  protocol  by using a
+                                  null string ("").
+
+        SHUTDOWN - This is a null  command  which  does nothing and is only
+                   added for compatibility.
+
+        SPAWN {path} - Asynchronously runs  another  ARexx  file.   This is
+                       useful  for  starting  another  program  just before
+                       exiting the first program.
+
+        SYSOPLOG {string} - Same as LOGENTRY.
+
+        TRANSMIT {string} - Sends the string  to  the  screen and modem.  A
+                            carriage   return   is   added   to   the   end
+                            (automatically advances to the next line).
+
+        VERSION - Returns the  "CNet  AMIGA  2.XX"  version  number  to the
+                  result variable.
+
+        WRITEMAIL {number} - Write the  contents  of  the  temporary editor
+                             buffer  to  the   user's   mailbox  specified.
+                             Result will carry a "1" if everything was sent
+                             OK, "0" otherwise.
+
+        XDN {path} - This command will send the specified path and filename
+                     to the  user.   The  command  SETPROTOCOL  is  used to
+                     select which protocol will be used.
+
+        XUP {path} - This command works similiarly to  XDN,  but if a batch
+                     protocol is used, the path only need to be specified.
+
+        
+
+        Notes:
+        ======
+
+        You may address any CNet port with ADDRESS CNETREXX# where # is the
+        port number you wish to access 0,  1,  2, ..., 22, and 23.  If this
+        address is being made from  another  port,  it will NOT release the
+        original port, so be careful if  you address another port and issue
+        command like SENDFILE, QUERY,  etc.;  the  calling port will not be
+        released until the other port has "exited" the command, etc.
+
+        QUERY,  RECEIVE,  GETCHAR,  MAYGETCHAR,   and  PROMPT  will  return
+        ###PANIC if the user has dropped  carrier or run out of time.  Make
+        your scripts robust by always checking for this result.
+
+        It is a bad idea to use GETUSER  7 to determine the time of the day
+        in games that only allow  users  to  play  once or day or something
+        because this time is easly  adjusted  in the preferences menu which
+        can allow  users  to  cheat  in  your  game.   Use  GETUSER  7  for
+        displaying time  to  the  user,  and  use  the  DATE() function for
+        keeping up with actual dates.
+
+        General Information:
+        ===================
+
+        You can contact Le Chat by sending netmail to:
+
+                    FIDONET  Le Chat @   1:3800/26.0
+                    CLINK    Le Chat @ 911:5162/0.0
+
+        Or by EMail on CNet's support board, Future World, to Gate Keeper.
+
+        Our Home BBS is (504)272-2000 3/12/24/HST - all are welcome.

@@ -1,0 +1,103 @@
+/*
+**  $VER: CL-SetComment.clrexx 1.4 (05 Feb 1996)
+**
+**        © 1995-96 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-SetComment.clrexx
+**
+**  FUNCTION:
+**      Demonstrationsskript zur cl_rexx.library, Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl_rexx.library © 1995 Mathias Mischler
+**
+**      Dieses Skript liest Brettlisten von Connectline 5.0 (genauer
+**      gesagt 'Re: LIST BRETTER VERBOSE') und Checkgroups ein und
+**      ergänzt im eigenen System nicht vorhandene Brettkommentare
+**      mit denen aus der Liste.
+**
+*/
+
+file=arg(1)
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then exit 10
+    end
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*40
+windowheight=Fontsize*15
+windowY=Fontsize+1
+WindowX=Fontsize
+
+/* Standard-IO umleiten */
+
+screen=CLGET_FrontScreenName()
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-SetComment/SCREEN'screen,'W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+if file='' then do
+    say "Name und Pfad der Quell-Brettliste :"
+    file=CLGET_FileRequest()
+    end
+
+if file='' then ende
+
+if ~open('in',file,'R') then do
+    say 'Quell-Brettliste konnte nicht gefunden werden!'
+    call ende
+    end
+
+do until eof('in')
+    line=readln('in')
+    if line~='' then do
+        if left(line,1)='/' then line=right(line,length(line)-1)
+
+/* Wer jetzt die Lesbarkeit bemängelt, wird erschossen ;) */
+
+        select
+            when CLGET_BoardAbout(word(line,1))='' then CLSET_BoardAbout(upper(translate(word(line,1),'/','.')),strip(substr(line,length(brett)+1,length(line))))
+            when CLGET_BoardAbout(word(line,1))='Neues Brett' then CLSET_BoardAbout(upper(translate(word(line,1),'/','.')),strip(substr(line,length(brett)+1,length(line))))
+            when word(CLGET_BoardAbout(word(line,1)),1)='Autoeintrag' then CLSET_BoardAbout(upper(translate(word(line,1),'/','.')),strip(substr(line,length(brett)+1,length(line))))
+            otherwise nop
+            end
+       end
+    end
+
+call close 'in'
+
+call CL_LogAdd(0,'SETCOMMNT','Brettkommentare neu erstellt')
+say 'Speichere Brettliste.'
+
+call CL_SaveBoardList()
+say 'Fertig.'
+
+ende:
+
+options prompt "<Bitte drücken Sie RETURN>"
+pull dummy
+
+call close STDOUT
+call close STDIN
+exit

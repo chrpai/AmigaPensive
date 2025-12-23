@@ -1,0 +1,1 @@
+%TC=3.Use %BOLD=1.%TC=7.<%BOLD=0.%TC=3. and %BOLD=1.%TC=7.>%BOLD=0.%TC=3. KEYS%BOLD=0.%TC=3. to select option, then %BOLD=1.%TC=7.RETURN%BOLD=0.%TC=3. to Execute command.

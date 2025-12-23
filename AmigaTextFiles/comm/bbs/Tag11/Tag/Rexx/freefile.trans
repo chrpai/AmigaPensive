@@ -1,0 +1,123 @@
+/* Free Files
+
+          Written by S.Bird - TA #2157 - Testdrive BBS 081 395 5096 
+      If You Use this script and find it usefull please give me a call. 
+
+       Please keep this archive complete with its original docs.           
+
+v2.0 fixes, additions/etc. by Stuart Gillibrand - TA #3011 - Digital Dreams
+                                                          (UK) 01772 454995*/
+
+/*******************  DO NOT CHANGE ANYTHING BELOW HERE ********************/
+version = 2.0
+options results      
+
+CALL config
+cls
+NEWLINE
+TRANSMIT f6||'Free File v'version
+TRANSMIT f3||'Modifications by S.Gillibrand 1996'
+NEWLINE
+TRANSMIT f2||'Please Wait Reading config...'NOANSI
+NEWLINE
+CALL ReadList
+CALL Screen
+CALL Choice
+IF CHR~="Q" THEN CALL Sendfile
+CALL FINISH
+
+exit 0
+
+config:
+userinfo 'x' ; ansi = result
+userinfo 'o' ; uacc = result
+if ansi = 'ON' then do
+  ESC = '1B'X
+  BRIGHT = ESC||'[1m'
+  NOANSI = ESC||'[0m'
+  f0 = ESC||'[30m' ;b0 = ESC||'[40m'  /* Black  */
+  f1 = ESC||'[31m' ;b1 = ESC||'[41m'  /* Red    */
+  f2 = ESC||'[32m' ;b2 = ESC||'[42m'  /* Green  */
+  f3 = ESC||'[33m' ;b3 = ESC||'[43m'  /* Yellow */
+  f4 = ESC||'[34m' ;b4 = ESC||'[44m'  /* Blue   */
+  f5 = ESC||'[35m' ;b5 = ESC||'[45m'  /* Purple */
+  f6 = ESC||'[36m' ;b6 = ESC||'[46m'  /* Cyan   */
+  f7 = ESC||'[37m' ;b7 = ESC||'[47m'  /* White  */
+end
+else do
+  BRIGHT = ''
+  NOANSI = ''
+  f0 = '' ; b0 = ''
+  f1 = '' ; b1 = ''
+  f2 = '' ; b2 = ''
+  f3 = '' ; b3 = ''
+  f4 = '' ; b4 = ''
+  f5 = '' ; b5 = ''
+  f6 = '' ; b6 = ''
+  f7 = '' ; b7 = ''
+end
+TAB = '09'x
+
+RETURN
+
+ReadList:
+  If ~open('cfg','BBS:configs/FreeFile.cfg','R') then call boom
+  count   = 0 ; x = 1
+  entries = readln('cfg')
+   do while count ~= entries
+     count = count + 1
+     file.x = readln('cfg')
+     filename.x = readln('cfg')
+     desc.x = readln('cfg')
+     access.x = readln('cfg')
+      if access.x <= uacc & exists(filename.x) then x = x + 1 
+   end
+  count = 1
+close('cfg')
+
+RETURN
+
+screen:
+  TRANSMIT center('* * * Free Files V'version' * * *',79)
+  NEWLINE
+  TRANSMIT center(f2||'All these files are FREE downloads, they do not affect your ratio.',79)
+  NEWLINE
+  count = 1
+  do while count ~= x
+    Transmit ' 'f7||count||f1') '||f3||overlay(file.count,' ',1,21)||' '||f6||desc.count
+    count = count + 1
+  end
+  NEWLINE
+RETURN
+
+Choice:
+  done = 0
+  NEWLINE
+  TRANSMIT f6||'Please make your selection or 'f1'Q'f6' to exit:'
+   do while done ~= 1   
+     GetChar ; CHR = upper(RESULT)
+     if (CHR>0&chr<x) | CHR="Q" then done = 1
+   end
+  if CHR="Q" then RETURN
+  done = 0
+  CLS
+  NEWLINE
+  TRANSMIT f6||file.CHR||f3' Selected.'
+  NEWLINE
+RETURN
+
+SendFile:
+  QUERYY f7||'Ready to recieve ? (Y/N)'
+  ans = UPPER(RESULT)
+  if ans = 'Y' then protocolsend filename.CHR
+RETURN
+
+Finish:
+RETURN
+
+boom:
+  NEWLINE
+  TRANSMIT f1||'OOopps Something went wrong with FreeFile, Please tell 'SysOp
+  CONTINUE
+  exit 10
+

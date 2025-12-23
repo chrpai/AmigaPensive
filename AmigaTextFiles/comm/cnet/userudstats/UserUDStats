@@ -1,0 +1,40 @@
+/* User Upload-Download Stats, by Galactus and Dotoran, December 1, 1992 */
+
+options results ; tr=transmit ; se=sendstring ; flag=0
+
+pt='pfiles:UserUDStats.Data'
+
+getuser 25 ; ratiof=result  ; if ratiof=0 then ratiof='UnLimited!'
+getuser 26 ; ratiob=result  ; if ratiob=0 then ratiob='UnLimited!'
+getuser 21 ; gamep=result   ; getuser 40 ; id=result ; skip=id-1
+getuser 34 ; creditF=result ; getuser 35 ; creditB=result
+if ratiof='UnLimited!' then creditF='UL'
+if ratiob='UnLimited!' then creditB='UL'
+if gamep>100000 then gamep='UnLimited!'
+call open(f1,'sysdata:bbs.sam','r') ; call seek(f1,212,'b')
+do i=1 to 4 ; a=readch(f1,4) ; a.i=c2d(a,4) ; end i
+call close(f1) ; upfiles=a.1 ; upbytes=a.2 ; dnfiles=a.3 ; dnbytes=a.4
+call open(f1,pt,'r') ; do skip ; j=readln(f1) ; end ; data=readln(f1) ; call close(f1)
+parse var data ds1'|'df1'|'ds2'|'df2'|'us1'|'uf1'|'us2'|'uf2
+
+tr '\f1\c4\@4קקקקקקקקקקקקקקקקקקקקקקקקק \caUser Upload - Download Stats \c4קקקקקקקקקקקקקקקקקקקקקקקק\n1'
+tr '                     \c6Handle\cb: \cf\v2            \c6Account #\cb: \cf'id'\n1'
+tr '         \c9Total\cb>     \c6Uploads\cb: \cd\vf         \c9Total\cb>   \c6Downloads\cb: \ce\ve'
+tr '                   \c6In Bytes\cb: \ce\vh                   \c6In Bytes\cb: \ce\vg\n1'
+tr '   \c9<\c6Last 2 Files You Uploaded\u0\c9>          <\c6Last 2 Files You Downloaded\u0\c9>\n1'
+tr '    \ca'left(uf1,16)' \cf(\cb'us1' \c6bytes\cf)[10;42H\ca'left(df1,16)' \cf(\cb'ds1' \c6bytes\cf)'
+tr '    \ca'left(uf2,16)' \cf(\cb'us2' \c6bytes\cf)[11;42H\ca'left(df2,16)' \cf(\cb'ds2' \c6bytes\cf)'
+se '\c4'copies('ִ',79)'\n1'
+tr '\c9  System Totals\cb>    \c6Uploads\cb: \cd'left(upfiles,5)'              \c6Downloads\cb: \cd'dnfiles
+tr '\ce                   \c6In Bytes\cb: \ca'left(upbytes,7)'             \c6In Bytes\cb: \ca'dnbytes
+tr '\ccררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררר'
+tr '                \z4\c6You have the File Ratio of:\c6\z0 'ratiof
+tr '                \z4\c6You have the Byte Ratio of:\c6\z0 'ratiob
+tr '\ccררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררררר'
+tr '\c6Your File Credits:\c9 'creditf'  \c6Your Byte Credits:\ca 'creditb'   \c6Your Pfile Points:\cb 'gamep
+tr '\c4'copies('ִ',79)
+
+bufferflush
+exit
+
+/*                          < END OF FILE MARKER >                        */

@@ -1,0 +1,116 @@
+
+===============================================================================
+v1.0 (13-Okt-96)
+-------------------------------------------------------------------------------
+ + Complete new DoorStartup code.
+   You can't compile your doors with version 1.0 !!!
+   You have to change some parts of your door, see TestDoor.c (TestDoor.FIM)
+   for an example.
+
+ - With the new DoorStartup code some bugs have been eleminated:
+
+   - FAME.libray has been closed by some kind of C exit code which caused
+     trouble on closing it by hand.
+
+   - FAME Error handling was buggy in some cases.
+
+ + FAME.library is strictly *REQUIRED*, but from now you have to open the
+   FAME.library by yourself !!!
+
+ + You have to support the ShutDown() procedure where you have to unallocate
+   all additional ressources you have opened followed by an exit() at the
+   very last command in your ShutDown() procedure.
+
+   ShutDown() will be called if the DoorStartup has to end the communication
+   with the Node. This may happen on some internal errors or if you use
+   FAMEEnd() to end the door startup code. You *MUSTN'T* call ShutDown()
+   by yourself from the point you have used FIMStart(), because FIMEnd()
+   will do this for you! You can call ShutDown() before you've called
+   FIMEStart() if something fails of your own ressources you may open before
+   FIMStart() call.
+
+   For more informations about this refer to the TestDoor.c example source!
+
+ + You are now able to handle your own additional user signals parallel to
+   the DoorStartup code (FAME DoorPort signal handling).
+
+   To do this you can call FIMHandlePort() with the bitmask of your
+   additional signal bits.
+
+   Alternative you can use the global variable "GlobUserSigs" so you
+   needn't to call FIMHandleport() by yourself. In this case you *MUST*
+   pass NULL to FIMEHandlePort() for the argument "UserSigs", because
+   the argument has a higher priority.
+
+   For your own additional user signals you *MUST* support the
+   UserSigHandle() function which will be called if some signals have
+   been received. UserSigHandle() will have the argument "ULONG UserSigs"
+   for you to check for your signals.
+
+   Note that the doorport signal can be also included in this bitmask.
+
+   You have only to use if(UserSigs & MySignal) to check for your signals!
+   Please put no additional code outside those bit tests!
+===============================================================================
+v1.1 (01-Nov-96)
+-------------------------------------------------------------------------------
+ + Completely reorganized the FAMEDoorStartUp.
+   It's no longer compatible with the old one.
+===============================================================================
+v1.2 (22-Dez-96)
+-------------------------------------------------------------------------------
+ - Fixed some bugs in the version 1.1 and
+
+ + Added new functions NC_PutString() and NC_PutStringFormat().
+===============================================================================
+v1.3 (16-Mar-97)
+-------------------------------------------------------------------------------
+ - To free the MyFAMEDoorMsg FreeVec() has been used what is a big mistake!!!
+   MyFAMEDoorMsg is allocated with FAMEAllocObject() out of the FAME.library
+   and therefor it has to be removed with FAMEFreeObject(). Fixed.
+
+ - Added the statement 'MyFAMEDoorMsg->fdom_Data1 = 0;' to the support
+   function PutStringFormat(), because without it this function was randomly
+   adding a linefeed (data1<>0) or no linefeeds. Now it's defined.
+
+ - Fixed some various small bugs like in one case the ShutDown() Door
+   function wasn't called and a dead loop on starting the Door from CLI with
+   a number as argument.
+
+ + Added a second argument to the private function FIMFree() called Quiet
+   which indicates if FIMFree() shall send the MC_ShutDown command or not.
+   Used in the cases where the DoorStartUp code failed before the DoorStartUp
+   has completely set up the port and before it has registered with the Node.
+
+ + Added two new defines called FE_QUIET and FE_NOTQUIET for the point above.
+
+ + Added a seconf argument to the function FIMStart() called FIMFlags and
+   added a new global variable to the code called GlobFIMFlags.
+
+   FIMFlags argument is used to let the Door inform the DoorStartUp code
+   about different possible flags and how the Door likes the DoorStartUp code
+   to handle some things.
+
+   Flags are: FIMF_USERSIGMODE to enable the user signal check.
+              FIMF_NOCHECK to disable the error check of FIM commands send to
+              the door. Some doors might need to continue work also if there
+              is a problem with the port or a command like a lost carrier.
+              If FIMF_NOCHECK is set *YOU* have to check the return code of
+              the support commands you are using yourself!
+
+              Example: (FIM_CMDSUCCESSFULL = 0)
+
+              if(GetString(StrBuffer,50) < FIM_CMDSUCCESSFULL)
+              {
+                ...
+
+                FIMEnd(0);
+              }
+ + Example door TestDoor(.FIM|.c) now completely commented.
+   Nearly every line is commented now to understand what happens in the code.
+
+ + FAMEDoorStartUp.c and FAMEDoorProto.h completely commented.
+   In FAMEDoorStartUp.c now nearly every line is commented except the
+   support functions to understand what happens in the code.
+===============================================================================
+

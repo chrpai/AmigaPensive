@@ -1,0 +1,1385 @@
+@DATABASE "FastNet-Format converted to Guide by CPU@SETUP"
+@VER: V1.01 (02-05-1995)
+@node main "FastNet Format"
+
+			     Das FastNet-Format
+
+                       Grundlagen zum Fastnet-Format
+			 @{"    Informationsgehalt    " link "Infor"}
+			 @{"       Netzstruktur       " link "NetzStruk"}
+
+                         Aufbau des Fastnet-Formats
+                          Oeffentliche Nachrichten
+			 @{"          Aufbau          " link "AufOef"}
+			 @{"          Dupes           " link "OefDup"}
+			 @{" User-Point-Konvertierung " link "OefPoint"}
+
+                              Private Nachricht
+			 @{"          Aufbau          " link "AufPri"}
+			 @{"          Dupes           " link "PriDup"}
+			 @{" User-Point-Konvertierung " link "PriPoint"}
+			 @{"       Weiterleiten       " link "PriWeit"}
+
+                             Oeffentliche Files
+			 @{"          Aufbau          " link "AufFil"}
+			 @{"          Dupes           " link "FilDup"}
+			 @{" User-Point-Konvertierung " link "FilPoint"}
+
+                                Private Files
+			 @{"          Aufbau          " link "AufPriFil"}
+			 @{"          Dupes           " link "PriFilDup"}
+			 @{" User-Point-Konvertierung " link "PriFilPoint"}
+			 @{"       Weiterleiten       " link "PriFilWeit"}
+
+                              Systemnachrichten
+			 @{"         Nodeliste        " link "NodLi"}
+			 @{"       NodeInfoText       " link "NodeInf"}
+			 @{"   NodeInfoText-Request   " link "NodeInfReq"}
+			 @{"    LocalGate-Nodeliste   " link "LocGate"}
+
+                               Netcall-Ablauf
+			 @{"      Server-Netcall      " link "NetServ"}
+			 @{"      Client-Netcall      " link "NetCli"}
+
+@endnode
+
+@node "Infor" "FastNet / Informationsgehalt"
+
+                            Informationsgehalt
+                            ------------------
+
+Das Fastnet-Format unterscheidet grundsaetzlich fuenf Formen von
+Informationen : - @{"Oeffentliche Nachrichten" link AufOef}
+		- @{"Private Nachrichten     " link AufPri}
+		- @{"Oeffentliche Files      " link AufFil}
+		- @{"Private Files           " link AufPriFil}
+		- Systemnachrichten
+@endnode
+
+@node "NetzStruk" "FastNet / Netzstruktur"
+
+                               Netzstruktur
+                               ------------
+
+Eine Netzstruktur ist nur fuer die optimale Uebertragung der privaten
+Nachrichten und Files wichtig. Dabei liegt die Idee zu Grunde, dass alle
+privaten Nachrichten und Files nur ueber die unbedingt notwendigen Nodes
+uebertragen werden, damit kein unnoetiger Datenverkehr zu Stande kommt.
+Zusaetzlich kommt der Aspekt des Datenschutzes dazu.
+
+Die Netzstruktur des Fastnets muss wie ein Baum organisiert sein :
+
+
+				 N
+			        /.\\
+			       /...\\
+			      N     N
+			     /.\\   /.\\
+			    /...\\ /...\\
+			   N    ...    N
+			  /.\\         /.\\
+			 /...\\       /...\\
+
+
+Dabei darf jede Node als Server beliebig viele Nodes als Clients anschliessen.
+Hauptsache es existieren nie zwei Wege, die eine private Nachricht oder ein
+privates File nehmen koennen, um an das Ziel zu gelangen.
+Daher ist eine Ringstruktur absolut verboten!
+
+Wer sich dennoch unbedingt an eine Node anschliessen will, mit der es
+normalerweise zu einer Ringstruktur kommt, muss den Netcall so konfigurieren,
+dass bei der Uebertragung keine Nodeliste verschickt wird.
+Lese dazu Informationen in der @{"Netzwerk-Dokumentation" link amms:dok/netzwerke.guide/main} unter dem Stichwort
+@{"LOCALNET" link amms:dok/netzwerke.guide/F_LLG}.
+
+@endnode
+
+@node "AufOef" "FastNet / Aufbau Oeffentlicher Nachrichten"
+
+                                  Aufbau
+                                  ------
+
+Eine oeffentliche Nachricht besteht aus einem Header und einem Nachrichten-
+inhalt. Genau diese Reihenfolge muss eingehalten werden.
+Die einzelnen Headerinformationen muessen mit einem LF (Linefeed, Bytewert
+$0a=10) abgeschlossen werden, ihre Reihenfolge ist bis auf zwei Ausnahmen
+(TYP: und LEN:) beliebig.
+Der Nachrichteninhalt besteht neben den normalen ASCII-Zeichen aus den
+internen AMMS Text- und Emufunktionen, das Zeilenende ist nur ein LF.
+
+Oeffentliche Nachrichten werden, in Brettern organisiert, uebertragen. Daher
+ist die Angabe eines Zielusers nicht zwingend. Wird dennoch ein Zieluser
+angegeben, so kann das direkt ueber einen Zielusernamen oder indirekt ueber
+die MID (Message Identfication, Identifikation einer Nachricht) der
+Originalnachricht, auf die diese Nachricht eine Antwort ist, ablaufen.
+Dabei steht dann die MID des Originals im OID-Eintrag.
+Wird die Original-Nachrichten dann ueber die OID gefunden, so wird der Sender
+der Original-Nachricht als Empfaenger dieser Nachricht eingesetzt.
+
+Folgende Headerinformationen werden bei den oeffentlichen Nachrichten
+benoetigt :
+
+- DAT: Datum des Abschickens der Nachricht, pflicht
+
+       DAT:<Datum><LF>
+
+       Das Datum muss folgendes Format besitzen : TT-MM-JJJJ
+
+       TT = Tag als Zahl
+       MM = Monat als Zahl
+       JJJJ = Jahr als Zahl
+	  
+       Beispiele : DAT:1-8-1994<LF>
+		   DAT:01-08-1994<LF>
+
+
+- FBO: Name des Filesbretts, in dem das File gespeichert ist, worauf der
+       Link-Eintrag dieser Nachricht zeigt, optional
+
+       FBO:<Filebrettname><LF>
+
+       Der Filebrettname muss folgendes Format besitzen :
+
+       :<Pfad>/<Filebrett>
+
+       Beispiele : FBO::Fastnet/System/Updates<LF>
+		   FBO::Allgemeine_Files<LF>
+
+
+- LEN: Laenge des Nachrichteninhalts, pflicht, muss in letzter Headerzeile
+       stehen, schliesst Header ab
+
+       LEN:<Laenge><LF>
+
+       Beispiele : LEN:1234<LF>
+		   LEN:0<LF>
+
+
+- MBO: Name des Bretts, in dem die Nachricht importiert werden soll,
+       pflicht
+
+       MBO:<Brettname><LF>
+
+       Der Brettname muss folgendes Format besitzen :
+
+       :<Pfad>/<Brett>
+
+       Beispiele : FBO::Fastnet/System/AMMS-Talk<LF>
+		   FBO::TalkImTurm<LF>
+
+
+- MID: Identifikation der Nachricht, pflicht
+
+       MID:<MessageID><LF>
+
+       Die MessageID ist ein String, der netzweit eindeutig ist. Dieser
+       String sollte aus einem Teilstring bestehen, der eindeutig in der
+       Absendenode ist, und dem Absendenodenamen.
+
+       Beispiele : MID:1234567890@PHASE1<LF>
+		   MID:abcdefg123@PHASE1<LF>
+
+
+- NAM: Name des Files, das im angegebenen Filebrett (siehe FBO:) steht,
+       worauf diese Nachricht als Link zeigt, optional
+
+       NAM:<Filename><LF>
+
+       Der Filename darf aus max. 12 Zeichen bestehen.
+
+       Beispiele : NAM:AMMS_121.lha<LF>
+		   NAM:Witze.lha<LF>
+
+
+- OID: Identifikation der Original-Nachricht, auf die diese Nachricht
+       eine Antwort ist, optional
+
+       OID:<MessageID><LF>
+
+       Die MessageID ist ein String, der netzweit eindeutig ist. Dieser
+       String sollte aus einem Teilstring bestehen, der eindeutig in der
+       Absendenode ist, und dem Absendenodenamen.
+
+       Beispiele : OID:1234567890@PHASE1<LF>
+		   OID:abcdefg123@PHASE1<LF>
+
+
+- ORS: Originalsender der Nachricht (urspruenglicher Sender), optional
+
+       ORS:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : ORS:Fastman@Phase1<LF>
+		   ORS:Iron@Paradies<LF>
+
+
+- REC: Empfaenger der Nachricht, optional
+
+       REC:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : REC:Fastman@Phase1<LF>
+		   REC:Iron@Paradies<LF>
+
+
+- SEN: Sender der Nachricht, pflicht
+
+       SEN:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : SEN:Fastman@Phase1<LF>
+		   SEN:Iron@Paradies<LF>
+
+
+- SUB: Thema der Nachricht, pflicht
+
+       SUB:<Thema>
+
+       Das Thema ist ein max. 40 Zeichen langer String, das den Inhalt
+       der Nachricht kurz beschreibt.
+
+       Beispiele : SUB:Ist AMMS wirklich ein Multiuser-System
+		   SUB:Ich suche dringend eine HD
+
+
+- TIM: Zeit des Abschickens der Nachricht, pflicht
+
+       TIM:<Zeit><LF>
+
+       Die Zeit muss folgendes Format besitzen : SS-MM-ss
+
+       SS = Stunden als Zahl (0-23)
+       MM = Minuten als Zahl (0-59)
+       ss = Sekunden als Zahl (0-59)
+    
+       Beispiele : TIM:00:00:00<LF>
+		   TIM:23:59:59<LF>
+
+
+- TNO: Transfernode-String (Liste mit allen Nodes, die diese Nachricht
+       schon passiert hat), pflicht
+
+       TNO:<Nodestring><LF>
+
+       Jede Node, die die Message passiert, muss sich ans Ende des
+       Transfernode-Strings haengen. Die Node des Senders muss auch
+       in diesem String stehen. Die Nodenamen sind mit einem Klammeraffen
+       (@) voneinander getrennt.
+       Der Transfernode-String darf max. 159 Zeichen lang werden, wird er
+       laenger, so werden soviele Nodenamen am Anfang geloescht, so dass
+       der neue Nodename vollstaendig ans Ende gehaengt werden kann.
+
+       Beispiele : TNO:Raiser@Paradies@Phase1
+		   TNO:Phase1
+
+
+- TYP: Erkennung der oeffentlichen Nachricht, pflicht, muss in erster
+       Headerzeile stehen
+
+       TYP:M<LF>
+
+       Beispiel: TYP:M<LF>
+
+
+
+Beispiel fuer eine oeffentliche Nachricht :
+
+TYP:M<LF>
+MBO::Fastnet/System/AMMS-Talk<LF>
+SEN:Sysop@Phase1<LF>
+REC:Fastman@Paradies<LF>
+ORS:Adrock@Planet<LF>
+DAT:1-1-1994<LF>
+TIM:18:36:21<LF>
+TNO:Phase1@TMX@Planet@Raiser<LF>
+MID:123456abcdef@Phase1<LF>
+SUB:Eine oeffentliche Nachricht<LF>
+LEN:49<LF>
+Hallo Fastman,<LF>
+<LF>
+dies ist ein Test<LF>
+<LF>
+ciao...Adrock<LF>
+
+@endnode
+
+@node "OefDup" "FastNet / Oeffentliche Dupes"
+
+                                   Dupes
+                                   -----
+
+Alle oeffentlichen Nachrichten, die als Doppel erkannt werden, muessen
+geloescht werden. Wird eine Kopie in einem Trashcan-Brett angelegt, so darf
+sie vollstaendig importiert werden.
+
+Die Import-Dupe-Erkennung muss wie folgt arbeiten :
+
+- Hat eine aeltere Nachricht in diesem Brett die gleiche MID, so ist es ein
+  Dupe
+- Stammt der Absender (SEN) aus der Import-Node, so ist es ein Dupe
+- Steht die Import-Node im Transfernode-String (TNO), so ist es ein Dupe
+
+Die Export-Dupe-Erkennung muss wie folgt arbeiten :
+
+- Stammt der Absender (SEN) aus der Import-Node, so ist es ein Dupe
+- Steht die Import-Node im Transfernode-String (TNO), so ist es ein Dupe
+
+@endnode
+
+@node "OefPoint" "FastNet / Oeffentliche User-Point-Konvertierung"
+
+                         User-Point-Konvertierung
+                         ------------------------
+
+Ist ein User ein Point einer Node, so duerfen nicht alle Daten im Header
+der Nachricht uebernommen werden.
+
+Folgende Daten muessen konvertiert werden :
+
+- SEN: Das System traegt immer den akt. Usernamen ein.
+
+- TNO: Dieser Eintrag muss als Leerstring uebergeben werden.
+       Ist der String nicht leer, so muss ein Dupe-Check ablaufen.
+       Das System loescht immer den Transfernode-String.
+
+- MID: Der User muss eine eindeutige MID mit dem Aufbau <ID1>@<ID2>
+       uebergeben. In ID1 steht eine eindeutige Teil-ID, die vom
+       System zur Erstellung einer neuen eindeutigen ID benoetigt wird.
+       @<ID2> muss nicht unbedingt uebergeben werden, da dieser Teil
+       auf alle Faelle ignoriert wird.
+       Das System erstellt eine neue netzweit eindeutige MID im
+       folgenden Format : <ID1><Username>@<Systemname>
+
+       ID1      : Vom User erzeugte eindeutige Teil-ID
+       Username : Name des User im Importsystem
+       Systename: Name des Importsystems
+
+@endnode
+
+@node "AufPri" "FastNet / Aufbau Privater Nachrichten"
+
+                                  Aufbau
+                                  ------
+
+Eine private Nachricht besteht aus einem Header und einem Nachrichteninhalt.
+Genau diese Reihenfolge muss eingehalten werden.
+Die einzelnen Headerinformationen muessen mit einem LF (Linefeed, Bytewert
+$0a=10) abgeschlossen werden, ihre Reihenfolge ist bis auf zwei Ausnahmen
+(TYP: und LEN:) beliebig.
+Der Nachrichteninhalt besteht neben den normalen ASCII-Zeichen aus den
+internen AMMS Text- und Emufunktionen, das Zeilenende ist nur ein LF.
+
+Private Nachrichten werden gezielt zu einem Empfaenger geschickt, daher muss
+ein Zielusername angegeben werden.
+
+Folgende Headerinformationen werden bei den privaten Nachrichten
+benoetigt :
+
+- COP: Anzahl der Weiterleitungen der Nachricht, optional
+
+       COP:<Anzahl><LF>
+
+       Die Anzahl wird nur erhoeht, wenn der Empfaenger der Nachricht
+       eine Weiterleitung an andere Zieluser verlangt. Ab welcher Anzahl
+       die Nachricht gefiltert wird, bleibt jedem System frei, nur muss
+       es eine max. Anzahl geben, damit Rekursionen verhindert werden.
+
+
+       Beispiele : COP:1<LF>
+		   COP:2<LF>
+
+
+- DAT: Datum des Abschickens der Nachricht, pflicht
+
+       DAT:<Datum><LF>
+
+       Das Datum muss folgendes Format besitzen : TT-MM-JJJJ
+
+       TT = Tag als Zahl
+       MM = Monat als Zahl
+       JJJJ = Jahr als Zahl
+    
+       Beispiele : DAT:1-8-1994<LF>
+		   DAT:01-08-1994<LF>
+
+
+- FBO: Name des Filesbretts, in dem das File gespeichert ist, worauf der
+       Link-Eintrag dieser Nachricht zeigt, optional
+
+       FBO:<Filebrettname><LF>
+
+       Der Filebrettname muss folgendes Format besitzen :
+
+       :<Pfad>/<Filebrett>
+
+       Beispiele : FBO::System/Privat<LF>
+		   FBO::Allgemeine_Files<LF>
+
+
+- LEN: Laenge des Nachrichteninhalts, pflicht
+
+       LEN:<Laenge><LF>
+
+       Beispiele : LEN:1234<LF>
+		   LEN:0<LF>
+
+
+- MID: Identifikation der Nachricht, pflicht
+
+       MID:<MessageID><LF>
+
+       Die MessageID ist ein String, der netzweit eindeutig ist. Dieser
+       String sollte aus einem Teilstring bestehen, der eindeutig in der
+       Absendenode ist, und dem Absendenodenamen.
+
+       Beispiele : MID:1234567890@PHASE1<LF>
+		   MID:abcdefg123@PHASE1<LF>
+
+
+- NAM: Name des Files, das im angegebenen Filebrett (siehe FBO:) steht,
+       worauf diese Nachricht als Link zeigt, optional
+
+       NAM:<Filename><LF>
+
+       Der Filename darf aus max. 12 Zeichen bestehen.
+
+       Beispiele : NAM:AMMS_121.lha<LF>
+		   NAM:Witze.lha<LF>
+
+
+- ORS: Originalsender der Nachricht (urspruenglicher Sender), optional
+
+       ORS:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : ORS:Fastman@Phase1<LF>
+		   ORS:Iron@Paradies<LF>
+
+
+- REC: Empfaenger der Nachricht, pflicht
+
+       REC:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : REC:Fastman@Phase1<LF>
+		   REC:Iron@Paradies<LF>
+
+
+- SEN: Sender der Nachricht, pflicht
+
+       SEN:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : SEN:Fastman@Phase1<LF>
+		   SEN:Iron@Paradies<LF>
+
+
+- SUB: Thema der Nachricht, pflicht
+
+       SUB:<Thema>
+
+       Das Thema ist ein max. 40 Zeichen langer String, das den Inhalt
+       der Nachricht kurz beschreibt.
+
+       Beispiele : SUB:Ist AMMS wirklich ein Multiuser-System
+		   SUB:Ich suche dringend eine HD
+
+
+- TIM: Zeit des Abschickens der Nachricht, pflicht
+
+       TIM:<Zeit><LF>
+
+       Die Zeit muss folgendes Format besitzen : SS-MM-ss
+
+       SS = Stunden als Zahl (0-23)
+       MM = Minuten als Zahl (0-59)
+       ss = Sekunden als Zahl (0-59)
+    
+       Beispiele : TIM:00:00:00<LF>
+		   TIM:23:59:59<LF>
+
+
+- TNO: Transfernode-String (Liste mit allen Nodes, die diese Nachricht
+       schon passiert hat), pflicht
+
+       TNO:<Nodestring><LF>
+
+       Jede Node, die die Message passiert, muss sich ans Ende des
+       Transfernode-Strings haengen. Die Node des Senders muss auch
+       in diesem String stehen. Die Nodenamen sind mit einem Klammeraffen
+       (@) voneinander getrennt.
+       Der Transfernode-String darf max. 159 Zeichen lang werden, wird er
+       laenger, so werden soviele Nodenamen am Anfang geloescht, so dass
+       der neue Nodename vollstaendig ans Ende gehaengt werden kann.
+
+       Beispiele : TNO:Raiser@Paradies@Phase1
+		   TNO:Phase1
+
+
+- TYP: Erkennung der privaten Nachricht, pflicht, muss in erster Header-
+       zeile stehen
+
+       TYP:P<LF>
+
+       Beispiel: TYP:P<LF>
+
+
+
+Beispiel fuer eine private Nachricht :
+
+TYP:P<LF>
+COP:1<LF>
+SEN:Sysop@Phase1<LF>
+REC:Fastman@Paradies<LF>
+ORS:Adrock@Planet<LF>
+DAT:1-1-1994<LF>
+TIM:18:36:21<LF>
+TNO:Phase1@TMX@Planet@Raiser<LF>
+MID:123456abcdef@Phase1<LF>
+SUB:Eine private Mail<LF>
+LEN:48<LF>
+Hallo Fastman,<LF>
+<LF>
+dies ist ein Test<LF>
+<LF>
+ciao...Adrock
+
+@endnode
+
+@node "PriDup" "FastNet / Private Dupes"
+
+                                   Dupes
+                                   -----
+
+Alle privaten Nachrichten, die als Doppel erkannt werden, muessen geloescht
+werden. Wird eine Kopie in ein Trashcan-Brett angelegt, so darf diese keinen
+Inhalt besitzen, nur der Header darf vollstaendig importiert werden.
+
+Die Import-Dupe-Erkennung muss wie folgt arbeiten :
+
+- Hat eine aeltere PM die gleiche MID, so ist es ein Dupe
+- Stammt der Absender (SEN) aus der Import-Node, so ist es ein Dupe
+- Steht die Import-Node im Transfernode-String (TNO), so ist es ein Dupe
+
+Die Export-Dupe-Erkennung muss wie folgt arbeiten :
+
+- Stammt der Absender (SEN) aus der Import-Node, so ist es ein Dupe
+- Steht die Import-Node im Transfernode-String (TNO), so ist es ein Dupe
+
+@endnode
+
+@node "PriPoint" "FastNet / Private User-Point-Konvertierung"
+
+                         User-Point-Konvertierung
+                         ------------------------
+
+Ist ein User ein Point einer Node, so duerfen nicht alle Daten im Header
+der Nachricht uebernommen werden.
+
+Folgende Daten muessen konvertiert werden :
+
+- SEN: Das System traegt immer den akt. Usernamen ein.
+
+- TNO: Dieser Eintrag muss als Leerstring uebergeben werden.
+       Ist der String nicht leer, so muss ein Dupe-Check ablaufen.
+       Das System loescht immer den Transfernode-String.
+
+- MID: Der User muss eine eindeutige MID mit dem Aufbau <ID1>@<ID2>
+       uebergeben. In ID1 steht eine eindeutige Teil-ID, die vom
+       System zur Erstellung einer neuen eindeutigen ID benoetigt wird.
+       @<ID2> muss nicht unbedingt uebergeben werden, da dieser Teil
+       Teil auf alle Faelle ignoriert wird.
+       Das System erstellt eine neue netzweit eindeutige MID im
+       folgenden Format : <ID1><Username>@<Systemname>
+
+       ID1      : Vom User erzeugte eindeutige Teil-ID
+       Username : Name des User im Importsystem
+       Systename: Name des Importsystems
+
+@endnode
+
+@node "PriWeit" "FastNet / Weiterleiten privater Nachrichten"
+
+                               Weiterleiten
+                               ------------
+
+Private Nachrichten koennen vom Empfaenger automatisch an ein oder mehrere
+Vertreter weitergeleitet werden. Der Sinn besteht darin, dass User, die in
+mehren Systemen eingetragen sind, sich eine Hauptmail-Adresse erstellen
+koennen, wo alle PMs hingeleitet werden.
+Auch koennen damit bei Abwesendheit ein oder mehrere Vertreter benannt
+werden, die die Post fuer den entsprechenden User zeitweise lesen.
+
+Das Weiterleiten von PMs muss wie folgt ablaufen :
+
+1. Es existiert ein Originalabsender (ORS) :
+   - Transfernode-String (TNO) loeschen
+   - Neue Message ID (MID) erzeugen
+   - Alter Empfaenger (REC) wird zum Absender (SEN)
+   - Vertreter wird neuer Empfaenger (REC)
+
+2. Es existiert kein Originalabsender :
+   - Transfernode-String (TNO) loeschen
+   - Neue Message ID (MID) erzeugen
+   - Absender (SEN) wird zum Originalsender (ORS)
+   - Alter Empfaenger (REC) wird zum Absender (SEN)
+   - Vertreter wird neuer Empfaenger (REC)
+
+@endnode
+
+@node "AufFil" "FastNet / Aufbau oeffentlicher Files"
+
+                                  Aufbau
+                                  ------
+
+Eine oeffentliches File besteht aus einem Header, einem Extra-Kommentar
+und einem File. Genau diese Reihenfolge muss eingehalten werden.
+Die einzelnen Headerinformationen muessen mit einem LF (Linefeed, Bytewert
+$0a=10) abgeschlossen werden, ihre Reihenfolge ist bis auf zwei Ausnahmen
+(TYP: und LEN:) beliebig.
+Der Extra-Kommentar besteht neben den normalen ASCII-Zeichen aus den
+internen AMMS Text- und Emufunktionen, das Zeilenende ist nur ein LF.
+Der Extra-Kommentar ist optional.
+Das File kann alle Zeichen von 0 bis 255 enthalten, es unterliegt
+keinem Filter.
+
+Oeffentliche Files werden, in Brettern organisiert, uebertragen.
+Daher gibt es keine Angabe eines Zielusers.
+
+Folgende Headerinformationen werden bei den oeffentlichen Nachrichten
+benoetigt :
+
+- CLN: Laenge des Extra-Kommentars, optional
+
+       CLN:<Laenge><LF>
+
+       Beispiele : CLN:123<LF>
+		   CLN:10<LF>
+
+- DAT: Datum des Abschickens des Files, pflicht
+
+       DAT:<Datum><LF>
+
+       Das Datum muss folgendes Format besitzen : TT-MM-JJJJ
+
+       TT = Tag als Zahl
+       MM = Monat als Zahl
+       JJJJ = Jahr als Zahl
+    
+       Beispiele : DAT:1-8-1994<LF>
+		   DAT:01-08-1994<LF>
+
+
+- FBO: Name des Filesbretts, in dem das File importiert werden soll,
+       pflicht
+
+       FBO:<Filebrettname><LF>
+
+       Der Filebrettname muss folgendes Format besitzen :
+
+       :<Pfad>/<Filebrett>
+
+       Beispiele : FBO::Fastnet/System/Updates<LF>
+		   FBO::Allgemeine_Files<LF>
+
+
+- FID: Identifikation des Files, pflicht
+
+       FID:<MessageID><LF>
+
+       Die FileID ist ein String, der netzweit eindeutig ist. Dieser
+       String sollte aus einem Teilstring bestehen, der eindeutig in der
+       Absendenode ist, und dem Absendenodenamen.
+
+       Beispiele : FID:1234567890@PHASE1<LF>
+		   FID:abcdefg123@PHASE1<LF>
+
+
+- LEN: Laenge des Files, pflicht, muss in letzter Headerzeile stehen,
+       schliesst Header ab
+
+       LEN:<Laenge><LF>
+
+       Beispiele : LEN:123456<LF>
+		   LEN:0<LF>
+
+
+- NAM: Name des Files, pflicht
+
+       NAM:<Filename><LF>
+
+       Der Filename darf aus max. 12 Zeichen bestehen.
+
+       Beispiele : NAM:AMMS_121.lha<LF>
+		   NAM:Witze.lha<LF>
+
+
+- SEN: Sender des Files, pflicht
+
+       SEN:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : SEN:Fastman@Phase1<LF>
+		   SEN:Iron@Paradies<LF>
+
+
+- SUB: Thema des Files, pflicht
+
+       SUB:<Thema>
+
+       Das Thema ist ein max. 30 Zeichen langer String, das den Inhalt
+       der Files kurz beschreibt.
+
+       Beispiele : SUB:Ein schneller Packer
+		   SUB:AMMS-Demo V1.21
+
+
+- TNO: Transfernode-String (Liste mit allen Nodes, die dieses File
+       schon passiert hat), pflicht
+
+       TNO:<Nodestring><LF>
+
+       Jede Node, die das File passiert, muss sich ans Ende des
+       Transfernode-Strings haengen. Die Node des Senders muss auch
+       in diesem String stehen. Die Nodenamen sind mit einem Klammeraffen
+       (@) voneinander getrennt.
+       Der Transfernode-String darf max. 159 Zeichen lang werden, wird er
+       laenger, so werden soviele Nodenamen am Anfang geloescht, so dass
+       der neue Nodename vollstaendig ans Ende gehaengt werden kann.
+
+       Beispiele : TNO:Raiser@Paradies@Phase1
+		   TNO:Phase1
+
+
+- TYP: Erkennung des oeffentlichen Files, pflicht, muss in erster
+       Headerzeile stehen
+
+       TYP:F<LF>
+
+       Beispiel: TYP:F<LF>
+
+
+
+Beispiel fuer ein oeffentliches File :
+
+TYP:F<LF>
+FBO::Fastnet/System/Updates<LF>
+NAM:AMMS_121.LHA
+SEN:Sysop@Phase1<LF>
+DAT:1-1-1994<LF>
+TNO:Phase1@TMX@Planet@Raiser<LF>
+FID:123456abcdef@Phase1<LF>
+CLN:29<LF>
+SUB:Ein Textfile<LF>
+LEN:84<LF>
+Dies ist der Extra-Kommentar<LF>
+Dies ist zufaellig ein Textfile, reine Binaerfiles sind<LF>
+natuerlich auch erlaubt ...<LF>
+
+@endnode
+
+@node "FilDup" "FastNet / File Dupes"
+
+                                   Dupes
+                                   -----
+
+Alle oeffentlichen Files, die als Doppel erkannt werden, muessen geloescht
+werden. Wird eine Kopie in einem Trashcan-Brett angelegt, so darf das File
+vollstaendig importiert werden.
+
+Die Import-Dupe-Erkennung muss wie folgt arbeiten :
+
+- Hat eine aelteres Files in diesem Brett die gleiche FID, so ist es ein Dupe
+- Stammt der Absender (SEN) aus der Import-Node, so ist es ein Dupe
+- Steht die Import-Node im Transfernode-String (TNO), so ist es ein Dupe
+
+Die Export-Dupe-Erkennung muss wie folgt arbeiten :
+
+- Stammt der Absender (SEN) aus der Import-Node, so ist es ein Dupe
+- Steht die Import-Node im Transfernode-String (TNO), so ist es ein Dupe
+
+@endnode
+
+@node "FilPoint" "Files User-Point-Konvertierung"
+
+                         User-Point-Konvertierung
+                         ------------------------
+
+Ist ein User ein Point einer Node, so duerfen nicht alle Daten im Header des
+Files uebernommen werden.
+
+Folgende Daten muessen konvertiert werden :
+
+- SEN: Das System traegt immer den akt. Usernamen ein.
+
+- TNO: Dieser Eintrag muss als Leerstring uebergeben werden.
+       Ist der String nicht leer, so muss ein Dupe-Check ablaufen.
+       Das System loescht immer den Transfernode-String.
+
+- FID: Der User muss eine eindeutige FID mit dem Aufbau <ID1>@<ID2>
+       uebergeben. In ID1 steht eine eindeutige Teil-ID, die vom
+       System zur Erstellung einer neuen eindeutigen ID benoetigt wird.
+       @<ID2> muss nicht unbedingt uebergeben werden, da dieser Teil
+       Teil auf alle Faelle ignoriert wird.
+       Das System erstellt eine neue netzweit eindeutige FID im
+       folgenden Format : <ID1><Username>@<Systemname>
+
+       ID1      : Vom User erzeugte eindeutige Teil-ID
+       Username : Name des User im Importsystem
+       Systename: Name des Importsystems
+
+@endnode
+
+@node "AufPriFil" "FastNet / Aufbau privater Files"
+
+                                  Aufbau
+                                  ------
+
+Ein privates File besteht aus einem Header, einem Nachrichteninhalt, einem
+Extra-Kommentar und einem File. Genau diese Reihenfolge muss eingehalten
+werden.
+Die einzelnen Headerinformationen muessen mit einem LF (Linefeed, Bytewert
+$0a=10) abgeschlossen werden, ihre Reihenfolge ist bis auf zwei Ausnahmen
+(TYP: und LEN:) beliebig.
+Der Nachrichteninhalt besteht neben den normalen ASCII-Zeichen aus den
+internen AMMS Text- und Emufunktionen, das Zeilenende ist nur ein LF.
+Der Extra-Kommentar besteht neben den normalen ASCII-Zeichen aus den
+internen AMMS Text- und Emufunktionen, das Zeilenende ist nur ein LF.
+Das File kann alle Zeichen von 0 bis 255 enthalten, es unterliegt keinem
+Filter.
+
+Private Nachrichten werden gezielt zu einem Empfaenger geschickt,
+daher muss ein Zielusername angegeben werden.
+
+Folgende Headerinformationen werden bei privaten Files benoetigt :
+
+- CLN: Laenge des Extra-Kommentars, optional
+
+       CLN:<Laenge><LF>
+
+       Beispiele : CLN:123<LF>
+		   CLN:10<LF>
+
+
+- COP: Anzahl der Weiterleitungen des Files, optional
+
+       COP:<Anzahl><LF>
+
+       Die Anzahl wird nur erhoeht, wenn der Empfaenger des Files eine
+       Weiterleitung an andere Zieluser verlangt. Ab welcher Anzahl das
+       File gefiltert wird, bleibt jedem System frei, nur muss es eine
+       max. Anzahl geben, damit Rekursionen verhindert werden.
+
+
+       Beispiele : COP:1<LF>
+		   COP:2<LF>
+
+
+- DAT: Datum des Abschickens des Files, pflicht
+
+       DAT:<Datum><LF>
+
+       Das Datum muss folgendes Format besitzen : TT-MM-JJJJ
+
+       TT = Tag als Zahl
+       MM = Monat als Zahl
+       JJJJ = Jahr als Zahl
+    
+       Beispiele : DAT:1-8-1994<LF>
+		   DAT:01-08-1994<LF>
+
+
+- FID: Identifikation des Files, pflicht
+
+       FID:<FileID><LF>
+
+       Die FileID ist ein String, der netzweit eindeutig ist. Dieser
+       String sollte aus einem Teilstring bestehen, der eindeutig in der
+       Absendenode ist, und dem Absendenodenamen.
+
+       Beispiele : FID:1234567890@PHASE1<LF>
+		   FID:abcdefg123@PHASE1<LF>
+
+
+- LEN: Filelaenge, pflicht
+
+       LEN:<Laenge><LF>
+
+       Beispiele : LEN:1234<LF>
+		   LEN:0<LF>
+
+
+- MLN: Laenge des Nachrichteninhalts, optional
+
+       MLN:<Laenge><LF>
+
+       Beispiele : MLN:1234<LF>
+		   MLN:0<LF>
+
+
+- NAM: Name des Privat-Files
+
+       NAM:<Filename><LF>
+
+       Der Filename darf aus max. 12 Zeichen bestehen.
+
+       Beispiele : NAM:AMMS_20.lha<LF>
+		   NAM:Witze.lha<LF>
+
+
+- ORS: Originalsender des Files (urspruenglicher Sender), optional
+
+       ORS:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : ORS:Fastman@Phase1<LF>
+		   ORS:Iron@Paradies<LF>
+
+
+- REC: Empfaenger der Files, pflicht
+
+       REC:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : REC:Fastman@Phase1<LF>
+		   REC:Iron@Paradies<LF>
+
+
+- SEN: Sender der Files, pflicht
+
+       SEN:<Username><LF>
+
+       Der Username besteht aus der kompletten Netzadresse des Users.
+
+       Beispiele : SEN:Fastman@Phase1<LF>
+		   SEN:Iron@Paradies<LF>
+
+
+- SUB: Thema der Files, pflicht
+
+       SUB:<Thema>
+
+       Das Thema ist ein max. 40 Zeichen langer String, das den Inhalt
+       der Nachricht kurz beschreibt.
+
+       Beispiele : SUB:Neuste AMMS-Version
+		   SUB:Die Demo eines Mailbox-Systems
+
+
+- TIM: Zeit des Abschickens des Files, pflicht
+
+       TIM:<Zeit><LF>
+
+       Die Zeit muss folgendes Format besitzen : SS-MM-ss
+
+       SS = Stunden als Zahl (0-23)
+       MM = Minuten als Zahl (0-59)
+       ss = Sekunden als Zahl (0-59)
+    
+       Beispiele : TIM:00:00:00<LF>
+		   TIM:23:59:59<LF>
+
+
+- TNO: Transfernode-String (Liste mit allen Nodes, die dieses File
+       schon passiert hat), pflicht
+
+      TNO:<Nodestring><LF>
+
+       Jede Node, die dieses File passiert, muss sich ans Ende des
+       Transfernode-Strings haengen. Die Node des Senders muss auch
+       in diesem String stehen. Die Nodenamen sind mit einem Klammeraffen
+       (@) voneinander getrennt.
+       Der Transfernode-String darf max. 159 Zeichen lang werden, wird er
+       laenger, so werden soviele Nodenamen am Anfang geloescht, so dass
+       der neue Nodename vollstaendig ans Ende gehaengt werden kann.
+
+       Beispiele : TNO:Raiser@Paradies@Phase1
+		   TNO:Phase1
+
+
+- TYP: Erkennung des privaten Files, pflicht, muss in erster Headerzeile
+       stehen
+
+       TYP:B<LF>
+
+       Beispiel: TYP:B<LF>
+
+
+
+Beispiel fuer ein privates File :
+
+TYP:B<LF>
+COP:1<LF>
+SEN:Sysop@Phase1<LF>
+REC:Fastman@Paradies<LF>
+ORS:Adrock@Planet<LF>
+DAT:1-1-1994<LF>
+TIM:18:36:21<LF>
+TNO:Phase1@TMX@Planet@Raiser<LF>
+FID:123456abcdef@Phase1<LF>
+SUB:Ein privates File<LF>
+NAM:TestFile.lha<LF>
+MLN:49<LF>
+CLN:20<LF>
+LEN:12<LF>
+Hallo Fastman,<LF>
+<LF>
+dies ist ein Test<LF>
+<LF>
+ciao...Adrock<LF>
+Ein Extra-Kommentar<LF>
+Das File ...
+
+@endnode
+
+@node "PriFilDup" "FastNet / Dupes bei privaten Files"
+
+                                   Dupes
+                                   -----
+
+Alle privaten Files, die als Doppel erkannt werden, muessen geloescht werden.
+Wird eine Kopie in ein Trashcan-Brett angelegt, so darf diese keinen Inhalt
+besitzen, nur der Header darf vollstaendig importiert werden.
+
+Die Import-Dupe-Erkennung muss wie folgt arbeiten :
+
+- Hat ein aelteres File die gleiche FID, so ist es ein Dupe
+- Stammt der Absender (SEN) aus der Import-Node, so ist es ein Dupe
+- Steht die Import-Node im Transfernode-String (TNO), so ist es ein Dupe
+
+Die Export-Dupe-Erkennung muss wie folgt arbeiten :
+
+- Stammt der Absender (SEN) aus der Import-Node, so ist es ein Dupe
+- Steht die Import-Node im Transfernode-String (TNO), so ist es ein Dupe
+
+@endnode
+
+@node "PriFilPoint" "FastNet / Privatfile User-Point-Konvertierung"
+
+                         User-Point-Konvertierung
+                         ------------------------
+
+Ist ein User ein Point einer Node, so duerfen nicht alle Daten im Header
+des Files uebernommen werden.
+
+Folgende Daten muessen konvertiert werden :
+
+- SEN: Das System traegt immer den akt. Usernamen ein.
+
+- TNO: Dieser Eintrag muss als Leerstring uebergeben werden.
+       Ist der String nicht leer, so muss ein Dupe-Check ablaufen.
+       Das System loescht immer den Transfernode-String.
+
+- FID: Der User muss eine eindeutige FID mit dem Aufbau <ID1>@<ID2>
+       uebergeben. In ID1 steht eine eindeutige Teil-ID, die vom
+       System zur Erstellung einer neuen eindeutigen ID benoetigt wird.
+       @<ID2> muss nicht unbedingt uebergeben werden, da dieser Teil
+       auf alle Faelle ignoriert wird.
+       Das System erstellt eine neue netzweit eindeutige FID im
+       folgenden Format : <ID1><Username>@<Systemname>
+
+       ID1      : Vom User erzeugte eindeutige Teil-ID
+       Username : Name des User im Importsystem
+       Systename: Name des Importsystems
+
+@endnode
+
+@node "PriFilWeit" "FastNet / Weiterleiten privater Files"
+
+                               Weiterleiten
+                               ------------
+
+Private Files koennen vom Empfaenger automatisch an ein oder mehrere
+Vertreter weitergeleitet werden. Der Sinn besteht darin, dass User, die
+in mehren Systemen eingetragen sind, sich eine Hauptmail-Adresse erstellen
+koennen, wo alle privaten Messages und Files hingeleitet werden.
+Auch koennen damit bei Abwesendheit ein oder mehrere Vertreter benannt
+werden, die die Post fuer den entsprechenden User zeitweise lesen.
+
+Das Weiterleiten von privaten Files muss wie folgt ablaufen :
+
+1. Es existiert ein Originalabsender (ORS) :
+   - Transfernode-String (TNO) loeschen
+   - Neue Message ID (FID) erzeugen
+   - Alter Empfaenger (REC) wird zum Absender (SEN)
+   - Vertreter wird neuer Empfaenger (REC)
+
+2. Es existiert kein Originalabsender :
+   - Transfernode-String (TNO) loeschen
+   - Neue Message ID (FID) erzeugen
+   - Absender (SEN) wird zum Originalsender (ORS)
+   - Alter Empfaenger (REC) wird zum Absender (SEN)
+   - Vertreter wird neuer Empfaenger (REC)
+
+@endnode
+
+@node "NodLi" "FastNet / Node Liste"
+
+                                 Nodeliste
+                                 ---------
+
+Die Nodeliste wird automatisch beim Netcall erzeugt und beinhaltet immer den
+Teil der Netzstruktur, der nicht ueber die Gegennode zu erreichen ist.
+Es duerfen nur die Informationen uebertragen werden, an den die andere Node
+sonst nicht herankommt, also auch der eigene Nodename.
+
+Diese Systemnachricht besteht aus einem Header, der nur die Nachricht selber
+identifiziert, und dem Inhalt, der die Netzstruktur enthaelt.
+
+Folgende Headereintraege unterstuetzt diese Systemnachricht :
+
+- LEN: Laenge des Systemnachrichteninhalts, pflicht, muss in letzter
+       Headerzeile stehen
+
+       LEN:<Laenge><LF>
+
+       Beispiele : LEN:1234<LF>
+		   LEN:0<LF>
+
+
+- SID: Art der Systemnachricht, pflicht
+
+       SID:0<LF>
+
+       Die Nummer 0 steht fuer die Systemnachricht Nodeliste.
+
+       Beispiel : SID:0<LF>
+
+
+- TYP: Erkennung der Systemnachricht, pflicht, muss in erster Headerzeile
+       stehen
+
+       TYP:S<LF>
+
+       Beispiel: TYP:S<LF>
+
+
+Der Inhalt der Systemnachricht besteht aus der Beschreibung der Netzstruktur.
+Dazu existieren zwei Arten von Eintraegen, die immer mit einem LF enden.
+Der Eintrag A besteht aus Nodename, Datum und Anzahl der Eintraege,
+die direkt an der angegebenen Node angeschlossen sind (ausser die Node,
+die als uebergeordnete Node schon zuvor angegeben wurde).
+Unter dem Eintrag A folgen nun der Anzahl entsprechend viele Eintraege
+des Typs A oder B. Eintraege des Typs A mit allen ihren Untereintraegen
+gelten jeweils als ein Eintrag.
+Der Eintrag B besteht nur aus Nodename und Datum, das bedeutet, es sind
+keine weitere Nodes angeschlossen.
+
+Aufbau Eintrag A : <Nodename> <Datum> <Anzahl><LF>
+Aufbau Eintrag B : <Nodename> <Datum><LF>
+
+Der Nodename darf max. 16 Zeichen lang sein und keine Spaces enthalten.
+Das Datum entspricht dem typischen Aufbau, siehe dazu DAT: der
+oeffentlichen Nachrichten.
+Die Anzahl ist eine Zahl, die max. 999.999.999 gross sein darf.
+
+Beispiel :
+
+TYP:S<LF>
+SID:0<LF>
+LEN:127<LF>
+Phase1 10-12-1994 3<LF>
+Warthole 9-12-1994<LF>
+Paradies 10-12-1994 2<LF>
+Planet 5-12-1994<LF>
+Voyager 8-12-1994<LF>
+WSB 9-12-1994 1<LF>
+FIDO 9-12-1994<LF>
+
+@endnode
+
+@node "NodeInf" "FastNet / NodeInfoTexte"
+
+                               NodeInfoText
+                               ------------
+
+Der Nodeinfotext kann von jeder Node im Netz verschickt werden, dieser Text
+sollte allen User zugaenglich sein und die Node repraesentieren, von der er
+erstellt wurde.
+
+Diese Systemnachricht besteht aus einem Header, der nur die Nachricht
+selber identifiziert, und dem Nodeinfotext.
+
+Folgende Headereintraege unterstuetzt diese Systemnachricht :
+
+- LEN: Laenge des Nodeinfotextes, pflicht, muss in letzter Headerzeile
+       stehen
+
+       LEN:<Laenge><LF>
+
+       Die Laenge darf max. 32768 gross sein.
+
+       Beispiele : LEN:1234<LF>
+		   LEN:0<LF>
+
+- NOD: Name der Node, die diese Nachricht verschickt hat, pflicht
+
+       NOD:<Nodename><LF>
+
+       Beispiele : NOD:Phase1<LF>
+		   NOD:Paradies<LF>
+
+- SID: Art der Systemnachricht, pflicht
+
+       SID:1<LF>
+
+       Die Nummer 1 steht fuer die Systemnachricht Nodeinfotext.
+
+       Beispiel : SID:1<LF>
+
+
+- TYP: Erkennung der Systemnachricht, pflicht, muss in erster Headerzeile
+       stehen
+
+       TYP:S<LF>
+
+       Beispiel: TYP:S<LF>
+
+
+Der Nodeinfotext folgt direkt dem Header und unterliegt keinem Filter.
+
+Beispiel :
+
+TYP:S<LF>
+SID:1<LF>
+NOD:Phase1<LF>
+LEN:24<LF>
+Phase1 : 030 / 833 4778<LF>
+
+@endnode
+
+@node "NodeInfReq" "FastNet / NodeInfoText request"
+
+                           NodeInfoText-Request
+                           --------------------
+
+Fehlen einer Node Nodeinfotexte, so koennen alle Nodeinfotexte ueber eine
+Systemnachricht angefordert werden.
+Diese Systemnachricht besteht nur aus einem Header.
+
+Folgende Headereintraege unterstuetzt diese Systemnachricht :
+
+- LEN: Inhaltslaenge der Systemnachricht, pflicht, muss in letzter Zeile
+       stehen und den Wert Null enthalten
+
+       LEN:0<LF>
+
+       Beispiel : LEN:0<LF>
+
+
+- SID: Art der Systemnachricht, pflicht
+
+       SID:2<LF>
+
+       Die Nummer 2 steht fuer die Systemnachricht Nodeinfotext-Request.
+
+       Beispiel : SID:2<LF>
+
+
+- TYP: Erkennung der Systemnachricht, pflicht, muss in erster Headerzeile
+       stehen
+
+       TYP:S<LF>
+
+       Beispiel: TYP:S<LF>
+
+
+Beispiel :
+
+TYP:S<LF>
+SID:2<LF>
+LEN:0<LF>
+
+@endnode
+
+@node "LocGate" "FastNet / LocalGate-Nodeliste"
+
+                            LocalGate-Nodeliste
+                            -------------------
+
+Ein lokales Gate simuliert ein einseitiges Gate, wobei die Import-Node das
+zusaetzliche Netz ueber die Gate-Adressierung erhaelt, weil sie nicht die
+Nodenamen im zusaetzlichen Netz kennt.
+Das Localgate erscheint lokal in der Nodeliste.
+Damit aber auch das zusaetzliche Netz parallel zum Fastnet an weitere
+Nodes im Fastnet uebertragen werden kann, muss das lokale Gate in 
+allen Nodes bekannt gemacht werden, die es auch erhalten.
+Dafuer existiert diese Systemnachricht, die den lokalen Gatenamen von
+der Import-Node an alle weiteren Empfaengernodes schickt.
+
+Diese Systemnachricht besteht aus einem Header und einem Inhalt.
+
+Folgende Headereintraege unterstuetzt diese Systemnachricht :
+
+- LEN: Laenge des Nodelisteneintrags, pflicht, muss in letzter
+       Headerzeile stehen
+
+       LEN:<Laenge><LF>
+
+       Die Laenge darf max. 28 gross sein.
+
+       Beispiel : LEN:20<LF>
+
+- NOD: Name der Node, fuer die diese Nachricht ist, pflicht
+
+       NOD:<Nodename><LF>
+
+       Beispiele : NOD:Phase1<LF>
+		   NOD:Paradies<LF>
+
+- SID: Art der Systemnachricht, pflicht
+
+       SID:3<LF>
+
+       Die Nummer 3 steht fuer diese Systemnachricht.
+
+       Beispiel : SID:3<LF>
+
+
+- TYP: Erkennung der Systemnachricht, pflicht, muss in erster Headerzeile
+       stehen
+
+       TYP:S<LF>
+
+       Beispiel: TYP:S<LF>
+
+
+Der Inhalt der Systemnachricht besteht in der ersten Zeile aus dem
+Nodenamen, an der das lokale Gate direkt angeschlossen ist.
+In der zweiten Zeile steht nun der Name des lokalen Gates und das
+Datum der letzten Kommunikation (siehe Eintrag Typ B im Kap. 2.5.1).
+
+Aufbau des Inhalts : <Nodenamen><LF>
+		     <LocalGate> <Datum><LF>
+
+Beispiel :
+
+TYP:S<LF>
+SID:1<LF>
+NOD:Phase1<LF>
+LEN:27<LF>
+Paradies<LF>
+Z-NETZ 10-12-1994<LF>
+
+In diesem Beispiel haengt das lokale Gate Z-NETZ direkt an der Node Paradies.
+Diese Systemnachricht verschickt die Node Paradies bei allen Z-NETZ-Netcalls
+an die Phase1, damit die Phase1 in ihrer Nodeliste das lokale Gate Z-NETZ
+hinter die Paradies haengen kann. In der normalen Nodeliste werden ja keine
+lokalen Gates mit uebertragen.
+
+@endnode
+
+@node "NetServ" "FastNet / Server-Netcall"
+@endnode
+
+@node "NetCli" "FastNet / Client-Netcall"
+@endnode

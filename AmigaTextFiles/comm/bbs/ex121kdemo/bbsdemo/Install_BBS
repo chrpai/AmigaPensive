@@ -1,0 +1,199 @@
+;  EXCELSIOR! BBS Installation Script
+;  © Copyright 1995-1996 AmiCom! (Amiga Communications), ALL RIGHTS RESERVED
+
+;  EXCELSIOR! BBS Evaluation Release (v1.21k) Feb 5, 1996
+
+
+ (welcome "Welcome to the EXCELSIOR! BBS Installation Utility")
+
+ (transcript "Starting Install")
+
+
+ (welcome "Welcome to the EXCELSIOR! BBS Demo Installation Utility.")
+
+ (set level @user-level)
+ (user 2)
+
+ (set destP 
+   (askdir
+     (prompt "Please select a drawer or partition where you want the MAIN BBS files installed to.\n"
+             "NOTE: A unique drawer WILL be created automatically.")
+     (help "\nPlease pick a directory or partition you want EXCELSIOR! installed to.  The installer will automatically create a sub-directory 'EXCELBBS' so you need not create a new one unless you want to.")
+     (default "Work:")
+   )
+ )
+
+; (set sysopname 
+;   (askstring 
+;     (prompt "Please enter the name you want to be known as on your BBS\n«25 characters max»")
+;     (help "\nYou can enter your real name or a handle you want to "
+;           "be known as on your system.  Once you have "
+;           "installed the BBS you can change this at any time.")
+;     (default "Your Name")
+;   )
+; )
+
+; (set sysoppasswd
+;   (askstring 
+;     (prompt "Please enter the password you want to use\n«15 characters max»")
+;     (help "\nThis is your secret login password.  This is "
+;           "needed for remote logins.  When selecting a password, try "
+;           "to choose something unique.  Perhaps something that is "
+;           "familiar to only you, or a combination of letters and "
+;           "numbers.  Be sure to make a note of this password "
+;           "since it will be needed if you are going to login "
+;           "remotely.")
+;     (default "Your Password")
+;   )
+; )
+
+
+ (set maindir (tackon destP "EXCELBBS"))
+ (makedir maindir)
+ (set root (cat maindir "/"))
+ (set @default-dest root)
+
+ (run ("copy EXCELBBS.info %s QUIET CLONE" destP))
+
+ (makedir ("%sMBase" root))
+ (makedir ("%sFBase" root))
+ (makedir ("%sNews" root))
+ (makedir ("%sMail" root))
+ (makedir ("%sDoors" root))
+ (makedir ("%sTBase" root))
+ (makedir ("%sData" root))
+ (makedir ("%sRIP" root))
+ (makedir ("%sLanguages" root))
+ (makedir ("%sTranslation" root))
+ (makedir ("%sEditors" root))
+ (makedir ("%sHelp" root))
+ (makedir "S:Excel")
+ (makedir ("%sText" root))
+ (makedir ("%sText/English" root))
+ (makedir ("%sText/Logs" root))
+ (makedir "FONTS:RipStandard")
+
+ (textfile
+   (prompt "Setting up...")
+   (help "No help")
+   (dest "T:excelsiorpath")
+   (append root)
+ )
+
+; (textfile
+;   (prompt "Setting up...")
+;   (help "No Help")
+;   (dest "T:excelsiorbin")
+;   (append ("%s\n%s\n" sysopname sysoppasswd))
+; )
+
+ (message ("\nI will now unpack and install the main BBS files to '%s'\n\nThis may take a few minutes..." root))
+
+ (set undof "bin/binfiles.lha")
+ (set undop root)
+ (run ("lha x %s %s" undof undop))
+
+ (protect ("%sBB" root) "+r +w +e +d +p")
+
+ (set undof "C/cfiles.lha")
+ (set undop ("%sC/" root))
+ (run ("lha x %s %s" undof undop))
+
+ (set undof "Data/datfiles.lha")
+ (set undop ("%sData/" root))
+ (run ("lha x %s %s" undof undop))
+
+ (set undof "Text/English/textfiles.lha")
+ (set undop ("%sText/English/" root))
+ (run ("lha x %s %s" undof undop))
+
+ (run "copy Devs/mountlist.excelsior DEVS: QUIET CLONE")
+ (run "copy L/null-handler L: QUIET CLONE")
+ (run ("copy %sEXCELBBS.info %s QUIET CLONE" destP))
+
+ (set @default-dest root)
+
+ (set undof "RIP/ripfiles.lha")
+ (set undop ("%sRIP/" root))
+ (run ("lha x %s %s" undof undop))
+
+ (run "copy Fonts/RipStandard.font TO FONTS: QUIET")
+ (run "copy Fonts/RipStandard/8 TO FONTS:RipStandard/ QUIET")
+
+ (copyfiles
+   (prompt "Available Languages")
+   (help "\nThis directory contains a list of all the available languages your system will support.")
+   (source "Languages/" )
+   (dest ("%sLanguages" root))
+   (pattern "#?")
+   (files)
+ )
+
+ (copyfiles
+   (prompt "System Files")
+   (help "\nThis directory contains a list of all the System Files.")
+   (source "System/")
+   (dest root)
+   (pattern "#?")
+   (infos)
+ )
+
+ (copyfiles
+   (prompt "Available Translation Tables")
+   (help @copyfiles-help)
+   (source "Translation/")
+   (dest ("%sTranslation/" root))
+   (pattern "#?")
+   (files)
+ )
+
+ (copyfiles
+   (prompt "External Script Files")
+   (help "\nThese script files can be used with the BBS to perform "
+         "external tasks.  They also can be used in conjunction with "
+         "internal BBS functions.  Most of these files should be copied "
+         "to S:")
+   (source ("%sS/" disk2))
+   (dest "S:Excel/")
+   (pattern "#?")
+   (confirm)
+   (files)
+ )
+
+
+ (startup "EXCELSIOR! Professional BBS"
+   (prompt "Some commands must be added to your S:User-Startup file in "
+           "order for EXCELSIOR! to function properly.  You can later "
+           "edit these commands with a standard text editor.")
+   (help "\nThis part of the installation patches your S:User-"
+         "Startup file with all of your preferences you have "
+         "chosen during the installation procedure.  The BBS "
+         "may not operate correctly if these commands are not "
+         "executed each time your system boots.")
+   (command
+     ("\n  Assign bbs: \"%s\" " root)
+     ("\n  path add \"%sC\" " root)
+     ("\n  run >nil: <nil: \"%sC/ecom\"" root)
+     ("\n  mount NULL: from DEVS:mountlist.excelsior")
+    )
+ )
+
+
+ (if
+  (askbool
+    (prompt "Installation is now complete.  This demo version will "
+            "allow you to use EXCELSIOR! BBS fully for the local "
+            "session.\n\n"
+            "Once you have Master running, press the Sysop Login "
+            "button to log into the BBS.\n\n"
+            "The program \"XPrefs\" must be run first to configure "
+            "your system. Would you like to run XPrefs now?")
+            
+    (help "\nXPrefs needs to be run to configure your system "
+          "before using the BBS.  It is a good idea that you "
+          "configure your system now.")
+  )
+  (
+    (run ("%sXprefs" root))
+  )
+ )

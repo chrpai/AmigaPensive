@@ -1,0 +1,149 @@
+/**************************************************************************/
+/*                          Tagger V1.5 for E!                            */
+/*                                  by                                    */
+/*                              Greg Fitch                                */
+/*                                  of                                    */
+/*                              XyonicS BBS                               */
+/*                            +61-7-3808-4806                             */
+/*                             1200-28800bps                              */
+/**************************************************************************/
+/*                  SysOp defineable variables here                       */
+/**************************************************************************/
+path="Doors:Tagger.data/"        /* Edit this to reflect the correct path */
+totaltags=220                    /* total number of tags in tagfile.      */
+bbstag="** XyonicS TAG **"       /* Displays this on the line before tag  */
+/**************************************************************************/
+/* WARNING: */
+/* DON'T CHANGE ANYTHING UFTER HERE UNLESS YOU KNOW WHAT YOU ARE DOING*/
+
+Options results ; signal on SYNTAX ; signal on ERROR ; signal on IOERR
+tr=transmit ; se=sendstring ; getuser 23 ; port=result
+
+GETWHAT port
+buggy=result
+If buggy ~= "Sending Mail" then CALL TEST
+else CALL STARTING
+
+TEST:
+If buggy ~= "Posting Message" then CALL MORETEST 
+else CALL STARTING
+
+MORETEST:
+If buggy ~= "Reading e-mail" then CALL LASTTEST 
+else CALL STARTING
+
+LASTTEST:
+If buggy ~= "Responding" then CALL DONE 
+else CALL STARTING
+
+STARTING:
+queryy "\n2\c2 Do you want add a tagline to this message?\c3 (Y/n) "
+  Choice = upper(result)
+  If Choice = YES then CALL ANT
+  If Choice = NO then CALL DONE
+
+ANT:
+  line=vrnd(1,totaltags,time('S'))
+  call open(tagfile,path||"tagfile","R")
+  do x=1 to line ; tag=readln(tagfile) ; end x
+  tr '\f1'
+  tr '\c5------------------------------------------------------------------------------\c7'
+  tr '\n1'tag
+  tr '\n1\c5------------------------------------------------------------------------------'
+  call close(tagfile)
+  sendstring "\n2\c2 \c7U\c2se this tagline, \c7C\c2hoose another or \c7A\c2dd your own ?\c3 (U/C/A) "
+  getchar
+  Choice = upper(result)
+  If Choice = C then CALL ANT
+  If Choice = U then CALL DITO
+  If Choice = A then CALL GITITON
+     end
+    end
+   end
+
+GITITON:
+  tr '\f1'
+  tr '\n3'
+  tr '\c1  Please type the tag you want added to this message below MAX 70 CHARS!'
+  tr '\c2  [--------------------------------------------------------------------]\c3'
+line1 = ''
+/*if line = '' then signal editwall*/
+query '\c2> \c7'
+line1=result
+CALL editwall
+
+editwall:
+tr '\n2\c2You Entered : \n1\c7'center(trim(line1),71)
+sendstring '\n2\c2Does This Look Ok? (Y/n)? \c1'
+getchar
+an = result
+if an = "###PANIC" then exit
+if upper(an) = 'N' then do
+transmit 'Nope!'
+CALL AGN
+end
+transmit 'Yes! \n2\c2Adding Your Tag to the message...\w1'
+call DITO1
+
+AGN:
+sendstring '\n2\c2Want to try again <NO = QUIT>? (Y/n)? \c1'
+getchar
+an = result
+if an = "###PANIC" then exit
+if upper(an) = 'N' then do
+tr 'Nope!'
+CALL DONE
+end
+tr 'Ok lets try it again'
+call GITITON
+
+DITO:
+  ADDLINE ''
+  ADDLINE ''
+  ADDLINE bbstag' '
+  ADDLINE tag''
+tr '\n1\c7                               -= Done! =-\c3'
+CALL DONE
+
+DITO1:
+  ADDLINE ''
+  ADDLINE ''
+  ADDLINE bbstag' '
+  ADDLINE line1''
+tr '\n1\c7                               -= Done! =-\c3'
+
+DONE:
+
+exit
+
+VRnd:
+   procedure      /*  Very Random v1.1  [c] 1990 Shane D. Killian  */
+   arg lo,hi      /*    Feel free to use this as long as these     */
+   n1 = time('E') /* comments remain intact.  Works like random(). */
+   n2 = time('S')
+   parse var n1 n11 '.' n12
+   n1 = n11 || n12
+   if lo > hi then do
+      x = lo
+      lo = hi
+      hi = x
+   end
+   if hi ~= lo then do
+      d = hi - lo + 1
+      x = length(d)
+      n1 = right(n1,x)
+      n2 = right(n2,x)
+      p = d
+      if p > 999 then p = 999
+      r = n1 + n2 + random(0,p,time('S'))
+      r = r // d + lo
+   end
+   else r = hi
+return r
+
+SYNTAX: ; ERROR: ; IOERR:
+    tr '\c1___________________________________________________________________'
+    tr '\n1\c7'rc' ('errortext(rc)') in line 'sigl'.'
+    tr 'Please notify the SysOp!'
+    tr '\c1___________________________________________________________________\n1'
+  bufferflush

@@ -1,0 +1,277 @@
+                                                     Date: March, 1. 1995
+
+
+
+                          LogicBBS  v1.0 BETA
+                          <----------------->
+                             LITE VERSION
+
+                      Copyright 1995 ParCon Software
+
+
+    System/node/door/library/AIM-XIM support programmed by Michael Pendec
+        Filechecker/Arexxdoor support programmed by Nicholas Clarke
+      All Testing was done by friends. Ideas supplied by various people.
+
+
+      Read "HowToOrder.doc", if you want to get the FINAL version.
+-----------------------------------------------------------------------------
+
+
+
+                               Rexx support
+-----------------------------------------------------------------------------
+
+LogicBBS supports Rexx both for use with server and in doors. If you want
+to start a terminal program, you can make a simple rexx script and execute
+it with RX either from shell, or through the buttons available to sysop
+in "server extended commands".
+
+
+Server message port: Sv1_MsgPort
+
+Commands supported for use with the server are:
+
+EXITSYSTEM  (n)      : System shutdown (n), where (n) is Server number
+                     : (n) must be assigned as 1, future versions support
+                       multiply servers.
+
+SHUTDOWN (n)         : Close node (n)
+
+OPENNODE (n)         : restart node (n)
+                     : If node is already running, the window will be opened,
+                     : and put in front as active window.
+
+
+rexx example for closing a node, and starting another task.
+-----------------------------------------------------------
+
+-----------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+LogicBBS have two rexx script types available.
+The supported Ami-Express command glossary, and the new faster rexx support.
+
+
+If you want to "talk" to the node through the Ami-Express rexx script,
+you have the following commands available/supported:
+
+
+Portname/address:  AERexxControlN               ;where N is nodenumber
+
+
+PUTUSTR            : Set write value/string
+                     Used with  PUTUSER , PUTINFO
+
+QUERY              : Set maximum number of characters which a user can
+                     enter, at a prompt for input.
+
+RECEIVE            : Get input from serial/user
+
+TRANSMIT           : Send string to user, and adds a return (CR/LF) at
+                     the end of string.
+
+SENDMESSAGE        : Send string to user
+SENDSTRING         : Same as above
+
+GETCHAR            : Read one character from serial
+
+GETUSER            : Retrieve user information
+
+PUTUSER            : Save user information
+
+EDITFILE           : Edit file using internal message editor
+
+FLAGFILE           : Add file to tagged files for download
+
+SHOWFILE           : Display a file to user
+
+SHOWGFILE          : Same as above, but checks for accesslevel dependent
+                     texts
+
+SHUTDOWN           : Exit this script, and free node
+
+REMOVERESERVED     : Remove node reservation if node is reserved for a user
+
+PUTINFO            : Command valid only in combination with few cmd.numbers
+
+GETINFO            : Command valid only in combination with few cmd.numbers
+
+
+
+
+
+
+
+
+
+LogicBBS ARexx Support Documentation.
+
+The lbbs.library arexx support was written to provide an easy to use
+interface between ARexx programs and LogicBBS. As you may have noticed
+this library is also accessible from other programs. In other words this
+library offers supports for ARexx and non ARexx programs. The specific
+technical info is irrelevant but all options available to ARexx is also
+available for non ARexx programs using lbbs.library as a custom library.
+
+The library is resident in the LogicBBS software. So if you cannot find
+the physical library you should not panic.
+
+To use lbbs.library form ARexx you must add it to the global library list
+using either the addlib() function or the rxlib() command.
+
+The current version number of this library is 5 and the query function
+offset is -474.
+
+Examples:
+ from ARexx: addlib( 'lbbs.library', 0, -474, 1 )
+ from CLI  : rxlib lbbs.library 0 -474 1
+
+Examples of ARexx doors are supplied else where in the LogicBBS package.
+
+Table of Functions
+
+LAllocNode
+LFreeNode
+LRead
+LReadNoCR
+LWrite
+LWriteCRLF
+LPrompt
+LReadOne
+LDisplayFile
+LEditFile
+LSendTextConsole
+LLoadLetter
+LSaveLetter
+
+;LGetData *FINAL VERSION*
+;LSetdata *FINAL VERSION*
+
+Usage:
+
+LAllocNode()
+Usage: NodePtr = LAllocNode(NodeNr)
+Allocate a node for use with the program.
+Examples:
+	NodePtr = LAllocNode( NodeNr )			==> NodePtr
+
+LFreeNode()
+Usage: Boolean = LFreeNode(NodePtr)
+Removes an allocated node. If the node is already free or node pointer
+invalid false is returned.
+Examples:
+	LFreeNode( NodePtr )				==> True/False
+
+LRead()
+Usage: String = LRead(NodePtr,Length)
+This function reads a string from serial/console port, and returns the
+string. Reading is terminated with a CR, and stringbuffer is ended with
+a NULL. Function will automatically send a CR after its pressed.
+Examples:
+	String = LRead( NodePtr, 30 )			==> String
+
+LReadNoCR()
+Usage: String = LReadNoCR(NodePtr,Lenght)
+This function reads a string from serial/console port, and returns the
+string. Reading is terminated with a CR, and stringbuffer is ended with
+a NULL. Function will not send a CR after its pressed.
+Examples:
+	String = LReadNoCR( NodePtr, 30 )		==> String
+
+LWrite()
+Usage: String = LWrite(NodePtr,String,Length)
+Sends a string to serial/console, and returns.
+Examples:
+        text = 'hello there...'
+	LWrite( NodePtr, text, length( text ) )		==> 1
+
+LWriteCRLF()
+Usage: String = LWriteCRLF(NodePtr,String,Length,Boolean))
+Sends a string to serial/console, adds a CR/LF to the end of the string
+and returns.
+Examples:
+        text = 'hello there...'
+	LWriteCRLF( NodePtr, text, length( text ), 0 )	==> 1
+
+LPrompt()
+Usage: String = LPrompt(NodePtr,Length,String)
+This function types a string to the user and thereafter gets an
+inputstring from serial/console port. Reading is terminated with a CR,
+and stringbuffer is ended with a NULL.
+Examples:
+	text = 'Login: '
+	String = LPrompt( NodePtr, 30, text )		==> String
+
+LReadOne()
+Usage: String = LReadOne(NodePtr)
+This function reads a single character from serial/console port.
+Examples:
+	String = LReadOne( NodePtr )			==> String
+
+LDisplayFile()
+Usage: Boolean = LDisplayFile(NodePtr,FileName)
+This function will display a file to the user, function is given the
+full pathname together with the filename.
+Examples:
+	LDisplayFile( NodePtr, 'S:user.data' )		==> 1
+
+LEditFile()
+Usage: Boolean = LEditFile(NodePtr,Buffer,Maxlines)
+This function will allow the user to edit a file with use of the
+internal editor. Function only edits buffer, the file to edit, must
+be loaded into the buffer before this function is started.
+Examples:
+	LEditFile( NodePtr, Buffer, 100 )		==> 1
+
+LSendTextConsole()
+Usage: Boolean = LSendTextConsole(NodePtr,Text,Length,Boolean)
+Sends a string to console, if selected adds a CR/LF to the end of
+the string and returns.
+Examples:
+	text = 'Evening!'
+	LSendTextConsole( NodePtr, text, lenght(text), Boolean)
+							==> 1
+
+LLoadLetter()
+Usage: Boolean = LLoadLetter(NodePtr,conference,letternumber,display/buffered,text,size)
+Loads a message, if selected into a buffer, otherwise display it to user
+
+Examples:
+        display = 0
+        conference = 1
+        msgnumber = 1
+        size = 10000
+	LLoadLetter(NodePtr, conference, msgnumber, display, text, size)
+
+
+LGetData() *FINAL VERSION*
+LSetdata() *FINAL VERSION*
+
+
+
+
+simple rexx example for sending a text to a node.
+-----------------------------------------------------------
+NodeNr=1
+
+addlib( 'lbbs.library', 0, -474, 0 )
+
+NodePtr = LAllocNode( NodeNr )
+text = 'hello there...'
+LWrite( NodePtr,  text , length( text ) )
+LFreeNode( NodePtr )
+
+remlib( 'lbbs.library' )
+exit
+-----------------------------------------------------------

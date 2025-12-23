@@ -1,0 +1,57 @@
+/*
+                        C-Net Speaker Logoff
+                            Version 2.1
+                     by Le Chat and Gate Keeper
+
+                         Copyright (c) 1992
+                      A BoothWare Presentation
+
+                   Call Phone Booth BBS for more!
+                  (504)272-2000  3/12/24/HST 24hrs
+*/
+
+options results
+
+signal on error
+signal on syntax
+
+GETUSER 1
+name = result
+GETUSER 23
+port = result
+
+if exists("cnet:sound") then
+  do
+    call open(sndfile,"cnet:sound","R")
+    line = readln(sndfile)
+    if upper(line) = "OFF" then line = "OFF"
+      else line = "ON"
+  end
+else line = "ON"
+
+if line = "ON" then
+  do
+    opt   = ""
+    if exists("PFiles:SpeakerLogoff.Config") then
+      do
+        call open(in,"PFiles:SpeakerLogoff.Config","R")
+        if eof(in) then type = ""
+          else type = readln(in)
+        if type = "Speaker Logoff Version 2.1 by Le Chat" then
+          if eof(in) then opt = ""
+            else opt = readln(in)
+        call close(in)
+      end
+    string = 'echo >speak:'opt' "'name', logging off port 'port'!"'
+    address command string
+  end
+exit
+
+SYNTAX:
+ERROR:
+line = sigl
+err = rc
+transmit "Error in "line" type "rc" "errortext(rc)
+logentry "Error in SpeakLogoff.v2"
+logentry "Error in "line" type "rc" "errortext(rc)
+exit

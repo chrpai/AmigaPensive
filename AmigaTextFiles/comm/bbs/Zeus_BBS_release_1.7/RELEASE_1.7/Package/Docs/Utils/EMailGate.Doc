@@ -1,0 +1,125 @@
+
+EMailGate, part of Zeus BBS.
+Copyright ©1999 Zeus Developments.
+
+
+             How to `Gate' to FidoNet Nodes via. Internet E-Mail
+             ===================================================
+                       (known as e-mail tunnelling)
+
+Fidonet via e-mail is an area of Fidonet which is growing daily.  While not
+having anywhere near the speed of a dial up connection, Fidonet via e-mail
+provides a way to cheaply distribute networks over long distances, such as
+international links.
+
+EMailGate is a program which allows the sending of normal Fidonet mail over
+e-mail which, once at the destination, can be decoded back into real Fidonet
+bundles and packets.  This is known as tunnelling Fidonet style mail over
+e-mail.
+
+Zeus does not current provide facilities for decoding mail, although this is
+easily done by running a uudecoder and MIME decoder over a specifically named
+mailbox.  We will endevour to expand Zeus BBSs features to include a purpose
+built decoder soon (one which will allow easy integration with shared
+mailboxes, if you only have a single e-mail address, for example).
+
+
+Usage
+=====
+
+EMailGate can either place tunnelled mail in the UUSpool: assign, ready for
+sending with SMTPpost (please see the script provided below), or it can use
+PutMail by Martin Lanza to directly send mail to your Internet provider's
+servers.  PutMail is available on AmiNet.
+
+If the mail is placed in UUSpool:, then it is in a raw e-mail format.  This
+is suitable for sending via any other means, either by importing directly
+into a package such as YAM or even processed by some ARexx for sending by any
+method at all.
+
+If you wish to use PutMail, you should have a directory PutMail in AmiTCP:
+in which PutMail is place (i.e., "AmiTCP:PutMail/PutMail" is the executable).
+If you use Miami or another TCP/IP stack, you will have to assign AmiTCP: to
+your Miami directory and place the PutMail directory in there.  This is
+problem which will be readdressed.
+
+
+Configuration
+=============
+
+1) Edit Zeus:Config/EmailTunnel.cfg :
+
+   The first line is an identification of the configuration being used, and
+   is ideally used to put a short identifier to highlight that the messages
+   being generated contain UUEncoded Fidonet-type mail.
+
+   To gate to three nodes, an example config might be:
+
+   ----------------cut-----------------
+   FIDONET
+   85:1/467.0   someone@address.com
+   85:1/543.0   another@hello.com
+   2:1/344.0   another@blah.com
+   ----------------cut-----------------
+
+
+2) Load up Prefs/Archivers and add a new archiver "UUENCODE"
+
+   Enter data for your UUEncoder (UUxt is recommended) so that `Compress'
+   uuencodes data, and `Decompress' uudecodes data.  Since this is useless
+   to general BBS use, deselect `Show User'.
+
+   For example:
+
+   Name:      UUENCODE
+   Compress:  c:uuxt a ~a ~f
+   Extract:   c:uuxt x ~a
+   Show User: NO 
+
+   Leave the other fields blank.
+
+   Run "UpdateConfigs ARC" to update this.
+
+
+3) Using PUTMAIL:
+
+   To use PutMail, include the PUTMAIL argument when running the program.
+
+   My email address for Fidonet is "fido@freeserve.co.uk" and my SMTPHOST is
+   "smtp.freeserve.co.uk" so I would use the following command line.
+
+   Run Zeus:Bin/INetGate CONFIGFILE Zeus:Config/EmailTunnel.cfg MAILADDRESS fido@tkgbbs.freeserve.co.uk SMTPHOST smtp.freeserve.co.uk ARCHIVER UUENCODE PUTMAIL COPYOLD
+
+   Demon configurations might use (for example):
+ 
+   Run Zeus:Bin/INetGate CONFIGFILE Zeus:Config/EmailTunnel.cfg MAILADDRESS zeusnet@zeus.demon.co.uk SMTPHOST post.demon.co.uk ARCHIVER UUENCODE COPYOLD
+
+
+   Using UUSpool:
+
+   Run Zeus:Bin/INetGate CONFIGFILE Zeus:Config/EmailTunnel.cfg MAILADDRESS fido@tkgbbs.freeserve.co.uk SMTPHOST smtp.freeserve.co.uk ARCHIVER UUENCODE COPYOLD
+
+   This will leave files in UUSpool: which can be sent using SMTPpost (from
+   the INetUtils package on AmiNet) using a script such as:
+
+------------ cut -------------------
+; Send queue mail via SMTP
+
+pcd uuspool:
+List >T:SendMailQueue.temp D.#? lformat "SMTPPost -S %n*Nif not error*N delete %n*N delete X.%e*Nendif*N"
+Execute T:SendMailQueue.temp
+Delete T:SendMailQueue.temp
+pcd
+------------ cut -------------------
+
+   Or processed however you wish.
+
+
+4) COPYOLD
+
+   This argument, on the command line, will copy mail which has been sent
+   into a directory called "Old" in your outbound directory.  Should
+   something go wrong and the mail is not delivered, you can resend it
+   manulally from here.
+
+

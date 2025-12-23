@@ -1,0 +1,89 @@
+<html>
+<head>
+  <title></title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="msg.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="getmsgpointer.html"><img src="prev.gif" alt="PREV" border=0></a><a href="getthread.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+<PRE>
+   NAME
+                GetPointer -- Returns pointer data about an area number.
+
+   SYNOPSIS
+                GetPointer [Area Number] [LOW|HIGH|HSBN]
+
+   FUNCTION
+                Returns information about the low, high, and highest
+                exported messages in the specified area number. The high
+                message pointer updates by one every time a message in
+                saved in the area.
+
+                Whenever the message base is trimmed, the low message
+                number may increase to limit the number of messages that
+                area in the area.
+
+   INPUTS
+                Area Number - Area to retrieve information for.
+
+                LOW    - Return the lowest message number in the area.
+                HIGH   - Return the highest message number in the area.
+                HSBN   - Return the highest message by the network in
+                         the area.
+
+   RESULT
+                Data requested.
+
+   RC
+                 0 -- Data requested returned
+                 5 -- Bad arguments
+                15 -- Could not get area pointers
+                20 -- Fatal error
+
+   EXAMPLE
+                /*
+                ** GetPointers
+                */
+
+                Options Results
+                Parse Arg Line
+
+                i   = 0
+                fin = 0
+
+                do until fin = 1
+                        GetMsgArea 'Ordinal' '&quot;'i'&quot;' 'Number'
+                        if RC = 0 then do
+                                Number = RESULT
+                                GetMsgArea 'Ordinal' '&quot;'i'&quot;' 'Name'
+                                AreaName = RESULT
+
+                                GetPointer Number 'LOW'
+                                Low = RESULT
+
+                                GetPointer Number 'HIGH'
+                                High = RESULT
+
+                                GetPointer Number 'HSBN'
+                                HSBN = RESULT
+
+                                Write '&quot;'Number' - 'Name' Low: 'Low' High: 'High' HSBN: 'HSBN'n&quot;'
+                                if RC ~= 0 then fin = 1
+
+                                i = i + 1
+                                end
+                        else do
+                                /* No more areas */
+                                fin = 1
+                                end
+                        end
+
+
+   NOTES
+
+   SEE ALSO
+                rexxMsgCommands/SetPointers
+
+</PRE><br></body>
+</html>

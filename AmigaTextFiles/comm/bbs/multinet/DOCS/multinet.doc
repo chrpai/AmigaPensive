@@ -1,0 +1,784 @@
+
+
+                       MultiNet Amiga V1.1010 (DEMO)
+ 
+              sehr schnelles, HST- und AMNET(R)-netzfaehiges
+                     Mailboxprogramm fuer alle AMIGAs
+     
+                         Release-Date: 10.10.1991
+
+
+
+
+
+                        - Users Manual (aehem....) -
+                                  oder
+                      "Das Chaos schlaegt zurueck" ;-)
+
+                                    d.h.
+
+                  Ich suche noch einen DOC-Schreiber fuer
+                           mein Proggy, hehe...
+
+    
+
+Hinweis:
+--------
+
+Diese Demoversion soll nur einen Ueberblick ueber die Leistungsfaehigkeit
+des Programms geben. Es wird daher kein Anspruch auf Vollstaendigkeit
+des Manuals gestellt. Am Programm selber kann sich auch noch einiges
+aendern, aber es ist in dieser Version schon voll betriebsfaehig und
+laeuft in einigen Boxen im Netzwerk (siehe Netinfo-Liste am Ende
+dieses Textes..)
+
+
+Voraussetzung für den einwandfreien Betrieb von Multinet Amiga
+
+ -   Hostrechner AMIGA 500/1000/2000 mit mindestens 1 MByte Hauptspeicher.
+ -   Hardwaremäßig unterstützte Systemzeit (int. batteriegepufferte Uhr).
+ -   HAYES - kompatibles Modem (z.B. USR HST,Discovery 1200C+, Lightspeed etc.)
+ -   Kenntnisse der CLI-Oberfläche in Bedienung und deren Funktionsweise.
+ -   1 Datenleitung (Hauptanschluß) der DBP.
+ -   Der Netzwerkbetrieb ist nur mit einer Festplatte möglich!
+
+ -   !! ferner muessen sich auf der Platte alle wichtigen CLI-Befehle
+        und Libraries/Devices in den Systempfaden libs: devs: c: etc
+        befinden.
+
+Das Programm MultiNet ist in GFA-BASIC 3.52 geschrieben worden, und
+mit dem Compiler Version 3.52 compiliert.
+
+
+
+Zum Installieren:
+-----------------
+
+WICHTIG!!!!
+-----------
+SAeMTLICHE VERAeNDERUNGEN AN SYSTEMDATEIEN DER MAILBOX DUeRFEN NUR
+BEI AUSGESCHALTETEN MAILBOXPROGRAMM ERFOLGEN!!!!
+
+
+1. Das Programm mit allen Verzeichnissen in ein Unterverzeichnis auf die 
+   Festplatte kopieren.
+
+1.1 In den Directories LIBS, C und DEVS befinden sich CLI-Befehle/Libraries
+    und Devices, welche die Box zusaetzlich braucht. Bitte in die
+    entsprechenden aktiven Systemdirectories der WB dazukopieren.
+
+2. Mit einem Editor  folgende Zeilen in die S:STARTUP-SEQUENCE einfuegen:
+
+         ASSIGN BBS: DH0:MULTINET
+                    ;^^^^^^^^^^^^ 
+                    ;Das Hauptverzeichnis, wo das Multinet installiert ist!
+         CD BBS:
+         START      ;Zum Aufruf des Mailboxprogrammes           
+
+
+3. Das Modem muss so configuriert sein, dass das "DTR-SIGNAL" immer AN ist!
+   Beim HST setzt man dazu einen DIP-Schalter (Nr. 1 auf ON)
+   Bei anderen Modemtypen siehe Handbuch.
+
+   Das S0-Register muss den Wert "0"  enthalten, am besten setzt man das
+   Register mit dem Befehl:
+
+         ATS0=0&W
+
+   Das bewirkt, dass das Modem nicht selbsttaetig einen Anruf entgegennimmt,
+   sondern vom Programm einen Befehl dazu bekommen muss. (ATA)
+
+   Bei einem HST Modem sollten man das Terminalprg auf 19200 BPS stellen,
+   und denn den Befehl:
+
+         AT&B1&W
+
+   eingeben, dieser Befehl stellt das Modem auf eine "FIXED" Baudrate ein.
+   Das Modem wird denn staendig, egal was fuer ein Connect nur mit 19200
+   BPS  oder was Sie grade einstellen, angesprochen und verwaltet die
+   Geschwindigkeitsunterschiede mittels internen Buffer und Handshake.
+ 
+4. Man laedt einen guten TEXTEDITOR, es gibt ja so viele in der PD-WELT,
+   und editiert die Datei:
+
+                  SYSTEMDATEN/MB.CONFIG
+
+   Die Datei sieht so aus (hinter den ";" steht immer die Erklaerung):
+
+
+19200               ; Baudrate Modem-Computer (300-19200)       -Mailboxprog
+FIXED               ; Anpassung der Rate VARIABEL (2400er) oder FIXED (z.B. HST)
+atz                 ; modeminit-String
+NETPASSWORT         ; Net-Passwort fuer anrufende Boxen
+0                   ; Default-Area bei Login (0 = area0 = Local-Mail)
+0                   ; 0=AMNET(R) (voreingestelltes Netzwerk)
+BBS:                ; Pfad der Mailbox
+-reserved-
+-reserved-
+-reserved-;-----------------------------------------------------------------
+atz                 ;Modem-Init-String                          -Mailer
+WSB                 ;Node des Servers
+076346888           ;Tel-# des Servers
+SENDPASSWORT        ;Netpasswort im Server
+lharc               ;Verwendeter Packer (Name des Programmes im c:-Dir)
+xprcall -s B0F0 xprzspeed.library serial.device %f ;Aufruf fuer Zmodem-Send
+xprcall -r B0F0 xprzmodem.library serial.device %f ;und ZModem-Empfang
+-reserved-                                         ;bei %f wird Filename eingesetzt
+
+
+
+
+  Wichtig ist eigendlich alles an dieser Datei, aber ich werde es mal  
+  erlaeutern:
+
+  19200              Ist die Baudrate, mit der das Modem initialisiert wird!
+                     19200 darf dabei nur fuer ein HST oder 9600 er MNP Modem
+                     stehen.. Bei einem 2400 Bps  MNP5  Modem stellt man da
+                     am Besten 9600  ein!
+
+  FIXED              FIXED bedeutet, das das Modem selbstaendig intern die 
+                     BPS Rate an die Gegenstelle anpasst. Leider koennen 
+                     so etwas nur MNP-Modems oder HST`s. Andere Modems
+                     sollten anstatt  FIXED,.. das Wort:
+                     VARIABEL   stehen haben, denn wird die DTE Rate der 
+                     Connect-Rate angepasst!
+
+  ATZ                Init-String fuer das Modem.
+
+  NETPASSWORT        DAS PASSWORT fuer eine Box, die Daten in DIESER
+                     Box holt. Ist nur wichtig bei Serverbetrieb
+
+  -reserved-         Fuer spaetere Erweiterungen reserviert.
+
+  ATZ                Init-String fuer das Modem beim MAILTRANSFER.
+
+  WSB                BOXNODE DER SERVERBOX (Da wo die Daten geholt werden).
+
+  076346888          Telefonnummer des Servers.
+
+  SENDPASSWORT       Dieses Passwort bekommt man beim Server, Ohne dieses
+                     Passwort ist KEIN Nettransfer moeglich.
+
+  Lharc              Name des Packers im C: Verzeichnis 
+                     (LHARC, LZ, ZOO oder kompatibles)
+
+  XPRD -oB0F0 -x%b s %f  Externer Aufruf des SEND Z-Modem Protokolls
+  XPRCALL  bla bla       fuer den NETTRANSFER!! 
+                         "%f" ist der Platzhalter die den Filenamen.
+                         "%b" fuer die Baudrate Modem<->Comp als Zeichenkette
+
+  XPRD bla bla r %f  Externer Aufruf des RECEIVE Z-MODEM Protokolls
+  XPRCALL  bla bla   fuer den NETTRANSFER!!
+
+
+
+
+Anschluss der Box an das AMNET(R) und Installation von Points
+-------------------------------------------------------------
+
+Damit ueberhaupt Daten in die eigene Box einsortiert ,
+bzw. an andere verteilt werden kann, muss die Einstellung der
+VERTEILER.CON  (Bei Multiuse hies diese Datei: NODES.DAT)
+Diese Datei wird meist vom Server verteilt. Wenn man sich aber zutraut
+diese Datei selber zu editieren ist das nur gut.
+Das Format ist einfach erklaert, wichtig ist jedoch das eine
+Zeile Maximal 256 Zeichen lang sein darf.
+
+
+
+CLI     |CLI|SYSTEM|------------|#500|#501|#502|#503|
+USMB    |USMB|SYSTEM|NODE|ABS|--|#500|#501|#502|#503|
+
+
+Das ist ein Beispiel, wie diese Datei  aussehen koennte (in Kurzform).
+
+Wichtig ist vor allem das Format einzuhalten, vor allem die SPACES
+am Ende des ersten Namen.
+
+In der Ersten Zeile steht folgendes:
+
+1. Der EIGENE BOXNODE
+
+2. Noch einmal der eigene Boxnode!!
+
+3. Und der Node "SYSTEM" sollte noch hinter Jeder Zeile stehen, 
+   damit man auch  SYSTEMDATEIEN UPDATEN kann.
+
+4. Danach die Brettnummern, die in die eigene Box einsortiert werden.
+   Im Selben Format, wie vorgegeben.
+
+DIE 2. und die folgenden Zeilen beschreiben, welche  Daten
+an welche BOX geschickt werden sollen im Format:
+
+NODE    |NODE|usw|usw|usw|#500|#501|.....usw
+
+POINTS werden auch wie ein an der eigenen Box pollender Node behandelt!
+der einzigste Unterschied besteht darin, dass ein Point in seiner Config-Datei
+(systemdaten/POINTNAME.config) in der vierten Zeile die Kennung POINT stehen
+haben muss:
+
+   lz a
+   lz e
+   ZERBERUS
+   POINT
+
+und der Pointname die ersten 8 Zeichen(!) des Usernamens des Users in der Box
+enthalten muss, der den Point aufmachen will. Ferner verwendet ein Point
+auch nicht das NETPASSWORT zum Pollen an der Box, sondern sein Passwort,
+das er auch normalerweise in der Box zum Einloggen benutzt (max. 12 Zeichen!)
+
+PMs an den Point, die in der Box geschrieben werden oder uebers Netz ankommen
+und an den User adressiert worden sind, der den Point betreibt, werden
+direkt an den Point geschickt und landen NICHT in der Userpost der Box!!
+
+Die Konvertierung fuer den Point macht das verteiler-Modul. hat z.B. der
+user STARKILLER einen Point an der WSB, so heisst der Point "STARKILL" und
+alle PMs an STARKILLER;WSB werden im Verteiler zum Point STARKILL geroutet,
+wobei als Username dann SYSOP verwendet wird. (z.B. Zerberus-Point Empfaenger:
+"SYSOP@STARKILL.ZER".
+
+Umgekehrt wird der Absender, den der Point liefert (z.B. bei Zerberus-Points
+"SYSOP@STARKILL.ZER") wieder STARKILLER;WSB rueckkonvertiert und ins Netz/Box
+geschickt...
+
+
+
+--------------------------------------------------------------------------
+Areas und Bretter erstellen
+--------------------------------------------------------------------------
+
+----------------------------------
+!! Genereller wichtiger Hinweis !!
+Bei allen Systemfiles sollte hinter dem letzten Eintrag nur EIN
+Linefeed stehen, dieses bitte auch keinesfalls vergessen !!
+Am besten einen tauglichen Editor nehmen (Cygnus-ED etc.)
+---------------------------------------------------------
+
+1. File systemdaten/areas erstellen
+
+   Mit dieser Datei legt man Reihenfolge und Anzahl der Hauptareas
+   sowie deren Art an.
+   
+   Dazu die Datei wie sie im Demo installiert ist:
+   
+   Local-Mail  0
+   Filearea    1
+   AMNET       0
+   FIDO        0
+   Zerberus    0
+  
+   Vorne steht der Areaname und hinten eine 0 (Textarea) oder eine
+   1 (Programmarea)
+   
+   Es koennen bis zu zehn Areas erstellt werden, deren Arten beliebig
+   gemischt werden duerfen..
+  
+
+2.  Fuer JEDE Area-Eintragung ein Directory im Hauptverzeichnis
+    erstellen, im Demo sind es fuenf Areas, also Directories BBS:area0/,
+    BBS:area1/ ,BBS:area2/ usw. .
+
+    Die Numerierung entspricht der Reihenfolge im systemdaten/areas-File.
+    Zu Local-mail gehoert also das Dir area0, zu der Filearea area1 und
+    AMNET haette das Directory area2 usw.
+  
+3.  Fuer jede Area muss jeweils ein File systemtexte/inhaltkopf.areaX und
+    systemtexte/inhaltkopf_tty.areaX existieren! (X = 0,1,2,3...)
+  
+Ist das geschehen, kann mit der Installierung der Bretter begonnen
+werden:
+
+4.  Festlegen der Bretter in den Areas
+  
+    Dazu bitte fuer jede Area ein files.areaX erstellen, welches
+    folgendes Format aufweisen muss (siehe auch Beispieldateien):
+
+    Allgemeines         2000BBS06-08-199120:14:2180 500 AMNET
+    ^                   ^   ^  ^         ^       ^  ^   ^
+    1                   2   3  4         5       6  7   8
+    
+     1. Brettname (20 Bytes)
+     2. Flags     (4 Bytes)
+     3. Laufwerk  (3 Bytes)
+     4. Datum     (10 Bytes)
+     5. Uhrzeit   (8 Bytes)
+     6. Hoechstanzahl der Mails im Brett (1-99) (2 Bytes+SPACE)
+        (wird in spaeterer Version >V1.1010 auf 999 erweitert!!, dann 3 Bytes)
+     7. AMNET(R)-Brettcode (3 Bytes+SPACE)
+     8. Net-Kennung                   
+    
+    ZUm AMNET(R)-Brettcode und der Net-Kennung:
+    
+    Ein voellig lokales Brett besitzt KEINES dieser beiden Daten, bei einem
+    vernetzten Brett MUSS hier der im Netz vereinbarte Brettcode und
+    die Netkennung AMNET stehen
+    
+    Diese Struktur macht es moeglich, Netz- und Lokalbretter
+    beliebig zu mischen bzw. alle Bretter, auch solche in einer
+    lokalen Area fuer die Points zugaenglich zu machen... dazu bestimmt
+    man einfach selbst Brettcodes, welche dann nur an die Points weiter-
+    geroutet werden. diese Brettcodes duerfen sich aber nicht mit denen
+    der Netz-Brettern ueberschneiden...
+  
+5.  Eigentliches Installieren der Bretter:
+
+    dazu einfach das Tool "Brettanleger" aus dem Directory "tools" starten
+    das aktuelle Dir MUSS BBS: sein. Als Parameter fuer den Brettanleger
+    gibt man die Area an, die angelegt werden soll.
+
+    Beispiel:
+
+    1> brettanleger area0
+
+    bearbeitet das erstellte File systemdaten/area0, legt den Area-Zaehler
+    an (area0/zaehler) und erstellt die Brett-Directories und Indexfiles.
+    Ist ein Directory in der Area vorhanden, das nicht mehr in der Datei
+    files.areaX steht, wird es nach Abfrage samt den darin enthaltenen Files
+    geloescht!!
+
+
+6. Sonstiges
+
+   In einem Brettdirectory kann noch eine Textdatei "brettinfo" angelegt
+   werden. Dessen Inhalt wired dann bei einem Aufruf des Brettes ausgegeben
+   z.B. fuer Regeln oder Beschreibung fuer jedes einzelne Brett verwendbar
+
+---------------------------------------------------------------------------
+Interner Aufbau sonstiger systemspezifischer Dateien
+---------------------------------------------------------------------------
+
+1. systemdaten/systemdaten  (14 Zeilen)
+
+  Anzahl der Anrufer
+  Anzahl der User +1
+  1
+  0
+  Max. Onlinezeit in Sek. fuer Level 0
+  Max. Onlinezeit in Sek. fuer Level 1
+  Max. Onlinezeit in Sek. fuer Level 2
+  Max. Onlinezeit in Sek. fuer Level 3
+  Max. Onlinezeit in Sek. fuer Level 4
+  Max. Onlinezeit in Sek. fuer Level 5
+  Max. Onlinezeit in Sek. fuer Level 6
+  Max. Onlinezeit in Sek. fuer Level 7
+  Max. Onlinezeit in Sek. fuer Level 8
+  Max. Onlinezeit in Sek. fuer Level 9
+
+
+2. systemdaten/files.areaX
+
+
+
+
+3. systemdaten/befehle
+
+   Diese Datei entaehlt zeilenweise Befehle und darunter den Mindestlevel,
+   ab dem der Befehl aufrufbar ist.
+
+   Es koennen sog. "Ersatzbefehle" definiert werden. um zum Beispiel statt
+   CHAT auch den Befehl DIALOG oder OPERATOR benutzen zu koennen, muss man
+   die Befehlsdatei hinter dem Befehl CHAT folgendermassen abaendern:
+   .
+   .
+   Chat|Dialog|Operator
+   0
+   .
+   usw.
+
+4. systemdaten/vorwahlen
+
+   da muessen die Vorwahlnummern des Boxstandortes eingetragen werden,
+   die im Nahbereich bzw. Fernzone 1 erreichbar sind
+   Dazu gibt es beim lokalen Postamt ein Faltblatt "Gespraechsgebuehren,
+   Beilage zum amtlichen Verzeichnis der Vorwahlnummern (AVON)",
+   aus der diese Vorwahlen entnommen werden koennen...
+   Auf diesen Daten basieren dann die statistischen Daten ueber die
+   Gebuehren und die Info fuer die Neu-User.
+   
+   Aufbau:
+
+   0761  N    Zuerst kommen die Vorwahlen im Nahbereich mit der Kennung
+   07634 N    "N", die in der 7.Spalte der Zeile stehen muss!
+     .        Kuerzere Vorwahlen entsprechend mit Spaces auffuellen
+     .
+     .
+     .
+   07721 F    Fernzone-1-Vorwahlen haben die Kennung F..
+     .
+     .
+
+5. systemdaten/ eventlist, netzsperrzeiten, externsperrzeiten, sorterzeiten
+  
+   enthalten zeilenweise Zeitintervalle, in denen
+ 
+  - ein Netztransfer stattfinden soll (eventlist)
+
+  - nur anrufende Boxen Zugang zur Box haben sollen (netzsperrzeiten,
+    nur bei Serverbetrieb noetig, mehrere Zeitintervalle moeglich)
+
+  - Uploads, Onlinegames und externe Programme gesperrt bleiben
+    sollen (externsperrzeiten, nur EIN Zeitintervall moeglich)
+
+  - Der Net-Sorter nur zu einer bestimmten Zeit gestartet wird
+    (nach Reset, spart Speicher und ist sicherer) (sorterzeiten)
+
+6. systemdaten/systemstate
+  
+   Wird vom "start"-Programm eingelesen und entaehlt den aktuellen
+   Status in der ersten Zeile.
+
+     Steht in der ersten Zeile "polling", wird beim Start 
+     der multinetmailer geladen, bei allen anderen Angaben wird das
+     Mailboxprogramm gestartet..
+
+   In der zweiten Zeile steht der naechste faellige Netztransfer
+   aus der Datei systemdaten/eventlist.
+
+7. userdaten/user.rel (speziell Up/Download-Ratio!)
+
+   Fuer jeden User kann ein individuelles Ratio bestimmt werden 1:1 bis 1:99
+   sowie die Anzahl der KB, die er gutgeschrieben bekommt, wenn er einen
+   Textbeitrag liefert (in ein oeffentliches Brett)
+   Die Anzahl der freien Downloadbytes reicht von 0 - 99999999
+
+   Userflags (Beginn an der 166.Spalte eines Eintrags in user.rel
+   V
+   0001+<Up/download-Ratio 1:x (2 Zeichen)>
+       +<KB-Verguetung bei Textupload (2 Z.)>
+        <Bytes free zum Download>
+
+   das sieht dann z.B. so aus:
+
+   00011 1 99999999
+   |  |\|\|\_______\__freie Download-Bytes (0-99999999)
+   | /  | |
+   |/   |  KB-Verguetung fuer Messageuploads(1-99)
+   |   ud-Ratio (1-99)
+   Userflags
+
+   EIn GAST sollte Byteanzahl=0 haben...
+
+   Files, die download-free sein sollen, muessen in der Beschreibung
+   ein "/" am Anfang stehen haben, dann kann auch ein GAST dieses File
+   ziehen..
+
+   Darueber hinaus kann noch ein Text ausgegeben werden, wenn ein
+   Downloadversuch an der Ratio scheitert (systemtexte/ratiohinweis)
+
+8. systemdaten/login.bat   /logoff.bat
+
+   Batchdateien, die, wenn sie existieren, nach einem Login und Logout
+   eines Users ausgefuehrt werden. 
+
+===========================================================================
+Befehlssatz
+---------------------------------------------------------------------------
+
+                           
+----------------------------------------------------
+BEFEHLS-UEBERSICHT von Multinet ---------------
+Stand: 11.9.1991 --------------------------
+----------------------------------------
+
++                  Scanner fuer News. Sucht in der aktuellen Area nach
+                   Brettern mit Neueintraegen seit dem letzten Anruf.
+                   Nach "+" sollte kann man die News am besten mit den
+                   Befehlen "Inhalt" oder "Lesen" anzeigen lassen
+                   (jeweils ohne Parameter, siehe auch Hilfstext
+                    zu LESEN und INHALT)
+-                  Wie '+', nur in umgekehrter Richtung.
+?                  Auflistung der Befehle fuer den momentanen Userlevel
+Area <Name>        In andere Area wechseln. Ohne Parameter -> Area-Menue
+Brett *            Alle fuer den Userlevel zugaenglichen Bretter auflisten
+                   (wie <RETURN>)
+Brett <Name>       Brett <Name> aufrufen (Brettname kann abgekuerzt werden !)
+BRIef <Username>   Brief an einen User in dieser Box schreiben
+BRIef <UserimNet>  Net-Mail an einen User verschicken. Parameter wie folgt:
+                   - MultiNet:  BRI Username;Boxnode;M-NET
+                   - SMBX:      BRI Boxnode:Username;SMBX
+                   - FIDO:      BRI Vorname Nachname zone:net/node.point;FIDO
+                   Uebersicht der erreichbaren Boxnodes fuer MultiNet und SMBX
+                   mit 'NETInfo'!
+BOXinfo            Technische Daten der Box und Adresse vom Sysop
+Chat               bimmelt den Sysop zu einem Schwaetzchen an den Computer.
+DOS                SYSOP/COSYSOP: Zugriff auf Amiga-DOS
+EDit <Nr.>         Selbst geschriebene Nachrichten/Programme
+                   editieren/loeschen
+Edit POST          Noch nicht gelesene Briefe koennen geloescht werden
+Ende               Aktuelles Brett verlassen
+Filearea           Wechselt in die PD-Programm-Area (Vorsicht, dann sind
+                   andere Befehle aktiv! Auflisten mit '?')
+Gateways           Zeigt die Syntax der Adressierungen aktueller
+                   Gateways vom AMNET(R) in andere Netze
+GEbuehren          Besser nicht aufrufen :-)
+Hilfe              Gibt diese Seite aus.
+Hilfe <Befehl>     Hilfe zu einem bestimmten Befehl abrufen, es koennen aber
+                   auch nur Anfangsbuchstaben angegeben werden, dann werden
+                   Hilfstexte zu allen Befehlen ausgegeben, die mit dieser
+                   Zeichenkette beginnen.
+INFo               Informationen zum angewaehlten Brett 
+Inhalt             Kein Brett aktiv: Brettuebersicht (wie <RETURN>), sonst
+                   Uebersicht aller NEUEN Nachrichten im aktuellen Brett
+Inhalt *           Brettuebersicht/Uebersicht aller Nachrichten eines Brettes
+Inhalt <Name>      Nachrichten von User <Name> im Brett
+Inhalt <Nr>-<Nr>   Inhaltsverzeichnis von <Nr> bis <Nr> im Brett
+Inhalt <Nr>-       Inhaltsverzeichnis von <Nr> bis Ende im Brett
+Inhalt -<Nr>       Inhaltsverzeichnis von Anfang bis <Nr> im Brett
+Lesen              Lesen/Downloaden der NEUEN Eintraege im Brett
+Lesen *            - aller Eintraege im Brett
+Lesen <Nr>         - eines einzelnen Eintrags
+Lesen <Nr1,Nr2,.>  - mehrerer Eintraege
+Lesen <Nr>-<Nr>    - von <Nr> bis <Nr>
+Lesen <Nr>-        - von <Nr> bis Ende
+Lesen -<Nr>        - von Anfang bis <Nr>
+LOCalmail          wechselt in lokale Bretter.
+LOGoff             Damit verlaesst man die Box wieder.
+NETInfo            Zeigt die angeschlossenen Net-Boxen
+NEUESlesen         ALLE NEUEN Nachrichten aller Areas hintereinander lesen
+NEUEIntraege       Setzt das Datum des letzten Anrufs und zeigt danach
+                   die Bretter mit Neueintraegen seit diesem Datum an.
+Onlinegames        Liste der Online-Games anzeigen und Game aufrufen
+PAsswort           Passwort zum Zugang der Box aendern
+PRotokoll          Zeigt an, wer in letzter Zeit alles angerufen hat.
+POst               ruft das persoenliche Postfach auf und zeigt dessen Inhalt
+                   an. Mit 'L <Nr>'kann man die Post lesen/downloaden
+Quickdown          Spezielle Download-Option, bei der ein File mit Pfadangabe
+                   direkt von einem Laufwerk gesaugt werden kann
+                   (Kann nur vom SYSOP/COSYSOP aktiviert werden) 
+QUPload            siehe Quickdown, nur fuer Upload
+Relogin            Neuer Login unter anderem Namen
+Schreiben          An aktuelles Brett eine Nachricht/Programm senden
+SEtup              Aendern der persoenlichen Systemparameter
+                   wie ANSI ein/aus, Seitenstop ein/aus
+STatus             Zeigt Deinen Userstatus an
+STATIstik          Zeigt Systemauslastung der Box in den letzten 24 Std.
+                   als Balkengrafik oder der letzten 10 Tage als Tabelle
+SUchen             Nach Eingabe eines Suchbegriffes werden im aktuellen
+                   Brett alle Nachrichten danach durchsucht.
+SYsteminfo         Gibt Infos ueber Hardware und Plattenspeicher der Box aus
+Teilnehmer         gibt eine Liste der in DIESER BOX eingetragenen User aus.
+Teilnehmer <text>  Gibt nur Eintraege in der Userliste aus, welche die
+                   Zeichenkette <text> enthalten.
+Userantrag         Hiermit richtet man ein persoenliches Fach ein.
+Version            Zeigt die aktuelle Version und Beuzugsadressen fuer's
+                   Multinet-Amiga an..
+Zeit               Was sagt das Atom-Zeiteisen (DCF-77-Funkuhrmodul) ??
+
+WICHTIG: ALLE BEFEHLE UND BRETTNAMEN KOENNEN A B G E K U E R Z T  WERDEN !!!!
+
+So funktionierts:
+
+Abkuerzung der Befehle:
+Bei den Befehlen muessen mindestens soviele Buchstaben eingegeben werden,
+wie in der Befehlsliste '?' in Grossbuchstaben angezeigt sind !!!!!!!!!!
+
+Abkuerzung der Brettnamen:
+Es werden immer nur die Anfangsbuchstaben, die man eingibt, mit den
+Brettnamen verglichen. Existieren also zwei Bretter mit gleichem
+Anfangsbuchstaben, so muss man dementsprechend mindestens zwei Buchstaben
+eingeben.
+
+Anstatt die Befehle einzeln einzugeben, koennen auch mehrere Befehle
+hintereinander durch Backslash getrennt eingegeben werden !!!!
+
+Beispiel: Von der Local-Mail-Area ins AMNet-Brett 'A-Amiga' wechseln
+          und dort alle Messages nacheinander zu lesen:
+
+WSB/Noch xx MIN. > LOCAL-Mail:> A A\B A-AM\L *
+
+
+ - Es koennen sog. "Ersatzbefehle" definiert werden. um zum Beispiel
+   auch denn Befehl DIALOG oder OPERATOR benutzen zu koennen, muss man
+   die Befehlsdatei hinter dem Befehl CHAT folgendermassen abaendern:
+   .
+   .
+   Chat|Dialog|Operator
+   0
+   .
+   usw.
+
+
+
+
+
+
+Tastaturbelegung:
+-----------------
+
+
+F5  = Wechsel auf ANSI-Hardware_Screen (ohne Maus)
+      Nochmaliger Druck auf F5 schliesst den 8-Farben Screen.
+      ACHTUNG!! Im Hintergrund ist der andere Screen noch aktiv
+                bitte nciht uebrmaessig mit der Maus klicken, denn
+                wenn man ein falsches Fenster trifft, erkennt das
+                Programm die F5-Taste nicht mehr...
+                die Tasten sind ja nur aktiv, wenn das Statusfenster
+                angeklickt ist.
+
+F10 = CHAT Annahme  bzw. Chat beenden (Chatmode 1)
+      Chat ende bei Chatmode 2  mit (ESC)
+
+
+SYSOP-Sonderfunktionen:
+-----------------------
+
+Dieses Programm unterscheidet zwischen der Eingabe von CONSOLE und vom MODEM!
+
+Der SYSOP kann praktisch JEDEN BEFEHL den es gibt von der Console ausfuehren,
+egal welchen Level der User hat!! Wenn der User versucht, den gleichen
+Befehl anzuwenden., bekommt er eine Fehlermeldung 
+Dabei ist vorsicht geboten, denn man kann praktisch keinen User duch 
+die Box fuehren, wie gewohnt, weil ein paar befehle von der Console 
+anders wirken, wie vom User!!
+
+Solang es nur um das lesen von TEXT Nachrichten geht, ist es egal, ob der
+SYSOP oder der USER den LESEN Befehl eingibt, nur bei Binaerfiles sollte
+es nur der USER machen, sonst kommt der Filerequester..
+
+Aus diesem Grund koennen und sollen auch folgende Befehle auf Level 0 bleiben:
+(siehe Datei systemdaten/befehle)
+
+EDIT, QUICKDOWNLOAD, QUPLOAD, ZUGRIFF und DOS.
+
+
+EDIT
+----
+
+ED POSTALLES -  listet das gesamte Postfachverzeichnis der Box auf
+ED USER      -  Userverwaltung
+
+ZUGRIFF
+-------
+
+   Um ein Brett fuer bestimmte User zu sperren bzw. freizugeben, bitte das
+   betreffende Brett anwaehlen und den Befehl "ZUGRIFF" anwenden..
+   Der Rest erklaert sich selbst, es wird je nach Zugriffsart in dem Brett
+   eine Datei namens "zugriff.dat" oder "sperr.dat" erstellt, in der die
+   Usernamen untereinander drinstehen. Das uebernimmt aber alles
+   der Befehl ZUGRIFF
+
+QUPLOAD/QDOWNLOAD
+-----------------
+
+Damit koennen Files direkt von der Platte oder auf die Platte Up/Downgeloadet
+werden (vor allem fuer Fernwartung der Box geeignet)
+
+DOS
+---
+
+DOS-Zugriff fuer den Sysop; Damit kann die Box exetern oder von der Console
+aus gewartet werden. Vorsicht: der DOS-Befehl "cd" funktioniert nicht und
+auch unzulaessige Devices koennen Haenger zur Folge haben (d.h. es kommt
+ein Requester und die Box faehrt nach Carrier-lost und Runterzaehlen des
+"watchdog"-Utilities und Reset wieder hoch!
+
+
+Im Editor:
+
+.ul          - lokales Textupload 
+               (filerequester, wenn von der Tastatur, sonst Eingabe)
+
+Beim "A,N,W,B,RETURN"-Prompt:
+
+    Taste "S" : Saven des gerade angezeigten Textes (Filerequester/Eingabe)
+
+
+
+
+Man kann als SYSOP mit LEVEL 9 (auch der COSYSOP)
+SYSTEMFILES verschicken. das geht  folgendermassen:
+
+BRIEF  SYSTEM;SYSTEM             ;AN ALLE SYSTEME
+
+BRIEF  SYSTEM;CLI                ;Sendet ein SYSTEMFILE an EINE Box
+                                  (in diesem Fall an die CLI)
+
+
+Sendet ein SYSTEMFILE an alle Boxen im NETZ. Folgende Betreffs
+sind moeglich:
+
+#RBSYSOP             ;Damit kann man einen RUNDBRIEF an alle SYSOPS
+                      schreiben.
+
+!!! Folgende Dateien duerfen nur vom Netkoordinator verschickt werden !!!!
+
+
+#NODELIST.TXT        ;Damit kann man eine NODELISTE fuer dieses PROG.
+                      verschicken. (Sollte man aber  einen einzigen 
+                      ueberlassen, oder nur nach absprache. Meistens
+                      macht das der  Netkoordinator oder ein Server)
+
+#NODES.DAT           ;Damit kann der NETKOORDINATOR oder ein SERVER
+                      eine NODES.DAT an eine GATEWAY-BOX schicken.
+
+#VERTEILER.CON       ;Sendet eine VERTEILER.CON an eine Box und 
+                      installiert diese.
+                      Das sollte NICHT an SYSTEM;SYSTEM adressiert 
+                      werden, sondern an eine einzelne Box!! z.B.
+                      BRIEF SYSTEM;CLI
+                      Weil jede Box eine andere VERTEILER.CON hat.
+ 
+#NETINFO.TXT         ;Sendet die NETINFO.TXT an die SYSTEME.
+
+#NETPLAN.TXT         ;Damit sendet man den NETPLAN.TXT an die 
+                      SYSTEME. Das ist eine neue Datei, die es bei
+                      Multiuse bzw. Gateway nicht gibt. Erhaelt eine
+                      solche Box dieses File, wird es nicht beachtet.
+
+#NETCALL.TXT         ;Sendet die NETCALL.TXT an die Boxen.
+
+#SYSOPCALL.TXT       ;Damit sendet man die aktuelle SYSOPCALL.TXT
+                      an die SYSTEME.
+
+
+=============================================================================
+AmNet(R) NETINFO      * = NET aktiv     o = NET gestoert      Stand: 04.10.91
+=============================================================================
+BIT      *  Wuppertal       0202/ 508731    HansJuergen 24h    1200 HST 14400
+SKY      o  Wuppertal       0202/ 597645    Klaus       24h     300 ---  2400
+WDB      *  Wuppertal       0202/ 595908    Reiner      20-08   300 DUA 14400
+<BTX>    *  Wuppertal    <BTX------GATEWAY> Reiner      20-08   300 ---  2400
+DKB      *  Gelsenkirchen   0209/  66373    Stefan      24h     300 ---  2400
+SDB      *  Solingen        0212/ 870279    Kay         24h     300 ---  2400
+TWZ      *  Dortmund        0231/ 891795    Harald      24h     300 DUA 14400
+HUT      *  Hattingen       02324/ 80087    Arno        24h     300 ---  2400
+LITB     *  Datteln         02363/ 66378    Robert      24h     300 HST 14400
+PEN      o  Remscheid       02191/ 27627    Patrick     24h     300 ---  2400
+AHBH     *  Hamburg         040/ 6793866    Sebastian   18-07   300 MNP  2400
+SAB      *  Stade           04141/ 84195    Jonny       24h     300 ---  2400
+CLI      *  Jork            04162/  5724    Andreas     24h     300 DUA 14400
+HDB      *  Helmstedt       05351/ 31254    Lutz        24h     300 HST 14400
+USMB     *  Helmstedt       05351/ 33311    Uwe         24h     300 HST 14400
+<Z-NETZ> *  Helmstedt    <ZERBERUS-GATEWAY> Uwe         24h     300 HST 14400
+MSB      *  Brachtal        06054/  6145    Heiko       24h     300 DUA 14400
+FLOH     *  Hattersheim     06190/  8389    Michael     24h     300 ---  2400
+ABBS     *  Frankfurt       069/  357498    Christian   24h     300 ---  2400
+HTH      *  Frankfurt       069/ 5975113    Joerg       24h     300 ---  2400
+WAMBS    *  Waldenbuch      07157/  7752    Carsten     23-08   300 ---  2400
+WSB      *  Laufen          07634/  6888    Johannes    24h     300 HST 14400
+<FIDO>   *  Laufen       <FIDO-----GATEWAY> Johannes    24h     300 HST 14400
+<ANET>   *  Laufen       <ANET-----GATEWAY> Johannes    24h     300 HST 14400
+BABO     o  Rheinfelden     07623/ 63465    Roland      24h     300 ---  2400
+MAB      *  Britzingen      07631/ 14115    Frank       24h     300 HST 14400
+=============================================================================
+AmNet(R) Netz-Koordination: SYSOP;USMB   VOICE: 05351/31224  BOX: 05351/33311
+=============================================================================
+                        AmNet(R)   per   B T X   !!!
+Wir sind nun auch per BTX erreichbar:  BKZ  *717#  und dann  * 938855 #  oder
+einfach   *REINER VOGT#   SoftwareEntwicklung & Vertrieb DFUe Netze Mailboxen
+                 Mailboxwerbung fuer Eure Boxen moeglich!!!
+=============================================================================
+AmNet(R) -> Das Paradies fuer alle, die ihre Box selber programmieren wollen.
+=============================================================================
+
+
+
+Falls noch etwas unklar sein sollte, ich bin in SYSOP folgender Box im AMNET:
+
+Weird Science BBS - 07634-6888   300-14400 bps   24h online  AMNET-Node: WSB
+
+oder unter folgender FIDO-Netadresse:  Johannes Guentert 2:247/12.5
+
+Viel Erfolg beim Installieren!!
+
+Johannes.

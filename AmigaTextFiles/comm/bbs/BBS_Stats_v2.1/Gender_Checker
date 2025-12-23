@@ -1,0 +1,70 @@
+/*  Gender Checker      Written By: The Marshal, September, 1992 */
+
+options results ; signal on SYNTAX ; signal on IOERR ; signal on ERROR
+
+tr=transmit ; se=sendstring ; gc=getchar ; qu=query ; id=0
+
+tr '\f1\n1\r1  Gender Checker  \r0\n1'
+se '   Newer versions of C-Net(v2.27-up) use a different method of storing '
+se 'the users gender. Older versions stored an M or an F, while newer versions '
+se 'use a 0 or a 1. C-Net only updates this when the user calls back while '
+se 'the newer version is in use. Because of this, the BBS_Stats program can '
+se 'not correctly count the genders of your BBS. I have rewritten the code '
+se 'to now read the 0/1, instead of M/F, but I do not have the knowledge to '
+se 'update the bbs.udata file. This program will read all user accounts, and '
+se 'list to the screen those accounts that have not had their genders corrected. '
+se 'You can then use the "EA" command to correct the genders to fix the problem '
+tr 'or simply wait for all your users to sign on to the newer system.\n1'
+qu 'Press any key to start the user-scan...'
+tr
+
+AGAIN:
+
+id=id+1 ; x=GetUserStats(id) ; if x=-1 then signal DONE
+
+if index('01',sex)>0 then do ; se '.' ; signal AGAIN ; end
+tr '\n1ID: 'left(IDNum,4)'Handle: 'handle
+
+signal AGAIN
+
+DONE:
+    se '\n2ALL ACCOUNTS SCANNED! Any accounts that were printed need to '
+    se 'have their gender fields corrected, via the "EA" command.\n2'
+  exit
+
+GetUserStats:
+    arg id
+    call open(f1,'sysdata:bbs.udata','R')
+        pointer = 672*(id-1)+1
+        bytes = seek(f1,pointer,'B')
+        if bytes ~= pointer then do
+            call close(f1) ; return(-1) ; end
+
+        JUMP   = MPointer(-1)
+        IDNum  = GetVar(4)
+        Handle = GetVar(21)
+        JUMP   = MPointer(368)
+        Sex    = GetVar(1)
+    call close(f1)
+  return(0)
+
+GetVar:
+    arg kind
+    t=readch(f1,kind)
+    if kind=1 | kind=2 | kind=4 then
+        return(c2d(t))
+  else return(substr(t,1,pos(d2c(0),t)-1))
+
+MPointer:
+    arg bytes
+    JUMP=seek(f1, bytes,'c')
+  return(0)
+
+SYNTAX:
+IOERR:
+ERROR:
+    tr '\n1ER: 'rc' ('errortext(rc)') @ 'sigl
+    bufferflush
+  exit
+
+/*                      < END OF FILE MARKER >                          */

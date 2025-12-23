@@ -1,0 +1,136 @@
+                                                     Date: March, 1. 1995
+
+
+
+                          LogicBBS  v1.0 BETA
+                          <----------------->
+                             LITE VERSION
+
+                      Copyright 1995 ParCon Software
+
+
+    System/node/door/library/AIM-XIM support programmed by Michael Pendec
+        Filechecker/Arexxdoor support programmed by Nicholas Clarke
+      All Testing was done by friends. Ideas supplied by various people.
+
+
+      Read "HowToOrder.doc", if you want to get the FINAL version.
+-----------------------------------------------------------------------------
+
+
+
+
+                            External doors setup
+-----------------------------------------------------------------------------
+
+With the Ami-Express compability and the internal library support.
+A sysop can make his own utilities for use with LogicBBS.
+It is quite simple to setup an external door. Below is a few examples
+supplied.
+
+
+All doors are placed in directory called {bbsmainpath}commands/bbscmd,
+doors reserved for system use only, are placed in a divrectory called
+{bbsmainpath}commands/syscmd.
+
+Doors can also be reserved for use only on a single node or specific
+conference.
+If you choose a door to be available only to ex. node 3, then you
+create the "commands" & "commands/bbscmd" directories in the
+ {bbsmainpath}node3 directory. Put your special doors here.
+They will only be accessable from node 3.
+
+
+
+
+
+XIM DOORS
+---------
+
+XIM doors are executable programs which communicate with the system
+using the internal library, or message ports.
+
+An example could be that you wanted the C command "DIR" to be available for
+remote users.
+
+
+Cutout example.1 for a DIR door.
+>-------------------------------
+QUICKMODE			;Skip door if QUICKMODE was selected
+				;MUST BE FIRST PARAMETER IN TEXT
+				;TO WORK PROPERLY
+
+NAME		Command DIR	;Name of this door (shown in serveraction)
+ CONFERENCE	Publicdomain
+ACCESSLEVEL	5		;accesslevel needed to run this door.
+LOCATION	C:DIR		;full path and filename to door.
+ PASSWORD			;no password need
+PRIORITY	1		;give door priority 1
+STACK		4096		;set stacksize
+PASSPARAMETERS			;pass menu prompt parameters on to this door.
+				;after its LOCATION name
+				;ex: DIR RAM:
+
+RETURNOUTPUT			;Return all output sent by DIR to a temp file
+				;and display output to user after returning
+				; from door.
+TYPE		XIM		;Door type is XIM
+-----------------------------<
+
+
+
+
+Cutout example.2 for a internal sysopdownload door
+>-------------------------------------------------
+NAME		SysopDownload
+ CONFERENCE	Publicdomain
+ACCESSLEVEL	255		;accesslevel needed
+LOCATION	D		;Internal command name
+PASSWORD	testing		;password to be entered before door
+				;can be executed
+TYPE		INT		;Door type INT
+PASSPARAMETERS			;Pass parameters to internal door
+ACS_SYSOP_DOWNLOAD		;Set temporary acs flag.
+ACS_DOWNLOAD
+--------------------------------------------------<
+
+
+
+
+Cutout example.3 for a external filelisting door
+>-----------------------------------------------
+NAME		NewFiles
+ACCESSLEVEL	50
+LOCATION	doors:NOC-NS/NS.X
+PRIORITY	1
+STACK		16384
+TYPE		XIM
+-----------------------------------------------<
+
+
+
+
+
+AIM/ARX DOORS
+-------------
+
+AIM or ARX doors are Arexx scripts which communicate with the system
+through the rexx ports. Arexx scripts needs RX to start and that is
+what the system do when you specify AIM or ARX.
+System will Execute the RX and pass the filename and node number as parameter.
+
+
+Cutout example.4 for a external rexx door
+>----------------------------------------
+NAME		Arexx_Door
+ACCESSLEVEL	5
+LOCATION	DOORS:Wall/VN_Wall3.AIM
+ PASSWORD
+ RETURNSTATUS
+PRIORITY	0
+STACK		4096
+ RETURNOUTPUT
+ QUICKMODE
+TYPE		ARX			;Or AIM
+----------------------------------------<
+

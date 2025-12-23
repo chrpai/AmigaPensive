@@ -1,0 +1,129 @@
+/*
+------------------------------------------------------------------------
+                 Oves SommarHus BBS +46-(0)16-146837 
+    $VER: SaveHig.Rexx 3.5 (05-01-97) Snille Of LoserKlubben.inc
+------------------------------------------------------------------------
+
+Description:  Saves the Most Stupid User HigScore List to HD...
+              Use this alogn whith the other programs to get a FULLY 
+              Most Stupid User HigScore List! :-)
+              I'm not a GOOD programer so the code can be abit messy...
+
+Requirements: CNet 3.05
+
+Install:      Copy ALL files and Dirs in this archive somewere in Pfiles
+              and config below... Remember to Config ALL Rexx programs!
+
+              See other programs for more info....
+
+Mail me at:   E-Mail:
+              snille@swipnet.se
+
+------------------------------------------------------------------------
+*/
+
+options results ; Signal on SYNTAX ; Signal on ERROR ; Signal on IOERR
+tr=Transmit ; se=sendstring ; gc=getchar ; gu=getuser ; gs=getscratch
+a='rexxsupport.library' ; IF ~show('l',a) Then IF ~addlib(a,0,-30) Then Exit
+
+/* --------------------------- Config here -------------------------- */
+HigPath='PFiles:Utilities/RTP/Hig/' /* HigScore SAVE path (On HD)     */
+UserPath='Ram:RTP/Users/'           /* Path to User files (In RAM)    */
+QuotePath='Ram:RTP/Quotes/'         /* Path to Quotes     (In RAM)    */
+Guest='Guest'                       /* Gest username, if you have an  */
+                                    /* Guest account enter the name of*/
+                                    /* that account here.             */
+/* ------------------------ Config ends here ------------------------ */
+
+
+/* ------------------ Loding data if there is any... ---------------- */
+OldPlats=0
+Times=0
+AntalFel=0
+GU 1500000 ; Date=result ; Year=substr(date,14,2)
+GU 1  ; name=result
+If name=Guest then Exit
+If open(1,UserPath''name,'r') Then do
+	Times=readln(1)
+	OldPlats=readln(1)
+	Date=readln(1)
+	call close(1)
+end
+
+/* ---------------------- Loading HighScore list -------------------- */
+If open(1,HigPath'ReturnProgHig.'||year,'r') then do
+	Plats=1
+	Lista:
+	Ant.Plats=readln(1)
+	Namn.Plats=readln(1)
+	Date.Plats=readln(1)
+	Plats=plats+1
+	If Plats>10 then do
+		Call close(1)
+		Signal go
+	end
+	Signal Lista
+end
+If open(1,HigPath'ReturnProgHig.empty','r') then do
+	Plats=1
+	NewLista:
+	Ant.Plats=readln(1)
+	Namn.Plats=readln(1)
+	Date.Plats=readln(1)
+	Plats=plats+1
+	If Plats>10 then do
+		Call close(1)
+		Signal go
+	end
+	Signal NewLista
+end
+tr 'n1Can`t find defult file '||HigPath||'ReturnProgHig.empty'
+Exit 
+
+/* ----------------- Checks if user enters the list ----------------- */
+Go:
+do x=1 to 10
+	if Ant.x > Times then do
+		NewAnt.x = Ant.x
+		NewNamn.x = Namn.x
+		NewDate.x = Date.x
+		end
+	else break
+end
+
+NewAnt.x = Times
+NewNamn.x = Name
+NewDate.x = Date
+postition=0; Position=x
+
+do x=x+1 to 10
+	y=x-1
+	NewAnt.x = Ant.y
+	NewNamn.x = Namn.y
+	NewDate.x = Date.y
+end
+changed=1
+
+
+/* ----------------------- Saving HighScore list -------------------- */
+call open(dat,HigPath'ReturnProgHig.'||year,'W')
+do x=1 to 10
+	call Writeln(dat,NewAnt.x)
+	call Writeln(dat,NewNamn.x)
+	call Writeln(dat,NewDate.x)
+end
+call close(dat)
+
+Goon:
+times=0
+call open(1,UserPath''name,'w')
+call writeln(1,Times)
+call writeln(1,Times)
+call writeln(1,Times)
+call close(1)
+Exit
+
+SYNTAX: ; ERROR: ; IOERR: ; er=rc' ('errortext(rc)') in line 'sigl
+	getuser 1311992 ; a=result ; getuser 1311960 ; b=result ; c='"'a||b'"'
+	er='Error Code 'er' of 'c ; tr er ; logentry er ; bufferflush
+Exit

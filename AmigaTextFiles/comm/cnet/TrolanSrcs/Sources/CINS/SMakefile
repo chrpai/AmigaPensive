@@ -1,0 +1,96 @@
+#
+# CINS SMakefile
+# by Kelly Cochran
+# Last modified: Fri Mar 26 13:09:05 1999
+#
+
+VER = 4_23
+PROJECT = CINS
+
+LHA = lha a -aexr
+LZX = LZX -r -e -9 -Y -x -Qf a
+
+CONTRIB = .Contrib
+DIST = .Dist
+
+TD = RAM:
+
+CP   = COPY
+MV   = MOVE
+RM   = DELETE
+MAKE = SMake
+DIZ  = FILE_ID.DIZ
+
+EXES = CINS CINSConfig CINSDir CINSEdit CINSMaint CINSWeb
+
+OBJS = CINS.o CINSConfig.o CINSDir.o CINSEdit.o CINSMaint.o CINSWeb.o
+
+SRCS = CINS.c CINSConfig.c CINSDir.c CINSEdit.c CINSMaint.c CINSWeb.c
+
+HDRS = CINS.h CINSConfig.h CINSDir.h CINSEdit.h CINSMaint.h CINSWeb.h \
+       CINSVDE.h CINS_lib.h CINS_proto.h CINS_rev.h
+
+all-dist: all dist
+
+all: clean
+    $(CP) bin/SCOPTIONS SCOPTIONS
+    $(MAKE) files
+    $(MV) $(EXES) bin/
+
+files: $(EXES)
+
+CINS: CINS.c CINS.h CINS_protos.h CINS_rev.h
+    $(CC) $@
+
+CINSConfig: CINSConfig.o CINSConfig_vde.o
+    $(CC) CINSConfig.o CINSConfig_vde.o STARTUP=c
+
+CINSConfig.o: CINSConfig.c CINSConfig.h CINS.h CINS_rev.h
+    $(CC) CINSConfig.c NOLINK
+
+CINSConfig_vde.o: CINSConfig_vde.c CINSConfig.h CINS.h CINSVDE.h CINS_rev.h
+    $(CC) CINSConfig_vde.c NOLINK
+
+CINSDir: CINSDir.c CINSDir.h CINS.h CINS_rev.h
+    $(CC) $@
+
+CINSEdit: CINSEdit.c CINSEdit.h CINS.h CINS_rev.h
+    $(CC) $@
+
+CINSMaint: CINSMaint.c CINSMaint.h CINS.h CINS_rev.h
+    $(CC) $@ STARTUP=c
+
+CINSWeb: CINSWeb.c CINSWeb.h CINS.h CINS_rev.h
+    $(CC) $@
+
+clean:
+    -$(RM) \#?.o
+    -$(RM) \#?.lnk
+
+clean-dist:
+    -$(RM) /$(PROJECT)\#?.lha
+    -$(RM) /$(PROJECT)\#?.lzx
+
+dist: CINS.c dist-lha dist-lzx
+
+dist-all: dist-lzx dist-lha
+
+dist-lha: bin/CINS CINS.c
+    $(MAKE) dist-prep
+    $(LHA) /$(PROJECT)$(VER).lha $(TD)$(PROJECT) $(TD)$(DIZ)
+    $(MAKE) dist-clean
+
+dist-lzx: bin/CINS CINS.c
+    $(MAKE) dist-prep
+    $(LZX) /$(PROJECT)$(VER).lzx $(TD)$(PROJECT) $(TD)$(DIZ)
+    $(MAKE) dist-clean
+
+dist-prep:
+    $(CP) $(DIST) $(TD)$(PROJECT) ALL CLONE QUIET
+    $(CP) bin/$(DIZ) $(TD)
+    $(CP) bin/\#? $(TD)CINS/CNet/Doors/CINS/ CLONE QUIET
+    -$(RM) $(TD)CINS/CNet/Doors/CINS/SCOPTIONS $(TD)CINS/CNet/Doors/CINS/$(DIZ)
+    $(CP) $(CONTRIB) $(TD)$(PROJECT)/Contrib ALL CLONE QUIET
+
+dist-clean:
+    -$(RM) RAM:CINS RAM:$(DIZ) ALL QUIET

@@ -1,0 +1,123 @@
+                              ADSeXtract v1.0
+
+                       by Ray Akey (aka Heavy Metal)
+
+          Written and debugged using the SAS/C Development System
+
+
+Changes CNetADSEx v1.01
+-----------------------
+1. Added support for SYSDATA:ADS.args.  SYSDATA:ADS.ARGS should contain
+   your DEFAULT preferences for ADSeXtract.  for instance, if you commonly
+   use "ADSEXTRACT PAT *.ads FILESBBSNAME dh0:downloads/files.bbs DELFILENOTE"
+   then SYSDATA:ADS.ARGS should containn the following:
+   
+      PAT *.ads
+      FILESBBSNAME dh0:downloads/files.bbs
+      DELFILENOTE
+      
+   Note that the above can be simply placed on a single line in ADS.ARGS. I
+   have split it up for examples sake.
+
+Changes ADSeXtract v1.01
+-----------------------
+1. Added support for multiple "SHORT" patterns.  You can use this arg
+   (and associated data) as many times as you want.  ie:
+
+      ADSEXTRACT SHORT short: SHORT desc:
+
+2. Added support for multiple "PAT" patterns.  Like SHORT, you can use this
+   arg and associated data as many times as you want.  ie:
+
+      ADSEXTRACT PAT *.ads PAT *.readme
+
+
+
+About the Program
+-----------------
+ADSeXtract is a tool to be used in extracting "short" descriptions from
+.ADS and .README style files.  It was originally designed for CNet SysOps
+and there is a special CNet/PFile utility included to aid in their running
+ADSeXtract whenever they "AO" files.  Is is NOT limited to CNet use though,
+as the command line arguments are what ultimately controls how the program
+behaves.  So without further ado..
+
+
+Installation
+------------
+non-CNet Installation:
+1. Copy ADSeXtract to a directory somewhere in your command "path".
+2. Run the program with the appropriate arguments as described in the
+   section titled "CLI Args"
+3. The extracted descriptions will be either saved to a "files.bbs" file
+   of your choice or simply echoed to stdio (current window), dependant
+   simply on the arguments that you supply on the command line.
+
+
+CNET Installation:
+1. Copy ADSeXtract to your PFILES: directory.
+2. Copy CNetADSeX to PFILES: also.
+3. Edit BBSMENU and search for the section titled "4; ud/base"
+4. Now search the section mentioned above for the line that says
+   "AO, Adopt Orphans".
+5. Change the above mentioned line to say
+
+      "AO, Adopt Orphans |{#2pfiles:system/CNetADSeX}
+
+                          ^ left curly bracket (brace) is actually a CTRL-Q
+
+6. select the CNet CONTROL PANEL menu item "TEXT/MENU RELOAD"
+7. Use the "AO" command and CNet will now ask you if you want to run
+   ADSeXtract before adopting orphans.  This is done BEFORE adoption
+   so that all descriptions will be in your desired FILES.BBS (or
+   whatever you call it) before adoption begins.
+8. ADSeXtract will prompt you for "Additional arguments"..  See the
+   section of thiis document titled, "CLI Args" if you are unsure
+   what to enter.
+9. THIS IS SUPER IMPORTANT!!! -> After "AO", when the CNet prompt for the
+   name of the files.bbs file comes up, you MUST enter the same filename
+   (WITH PATH!!) that you specified in the "FILESBBSNAME" argument of
+   ADSeXtract (see the section below for the FILESBBSNAME argument).  If
+   you don't supply a FULL PATH, CNet will attempt to look for it in the
+   directory that it is currently adopting files into.  ADSeXtract does not
+   handle this (yet).  You MUST include a PATH for files.bbs in both CNet
+   **AND** ADSeXtract if you want CNet to find the extracted descriptions.
+
+
+CLI Args
+--------
+ADSeXtract accepts a few CLI arguments to fine tune its operation.
+
+   PAT/K  - the file pattern to match when searching for "README" files.
+            If you specify "*.ADS", ADSeXtract will look for files ending
+            with the extension ".ADS" and will then proceed to extract the
+            "SHORT:" description from those files.
+
+   NOFILESBBS - tells ADSeXtract to echo it's output only to the screen/window
+                and not to save its output to a file.
+
+   FILESBBSNAME/K - The filename to save short descriptions/filenotes to.  All
+                    descriptions found will be saved to the filename you
+                    specify.
+
+   SHORT - The text to look for in "readme/ADS" files that precedes the actual
+           short description.  This will usually be "SHORT:" but this option
+           is included for completeness. :)
+
+   DELFILENOTE - tells ADSeXtract to delete the CURRENT filenote from the
+                 files that are described in ADS/README files.  CNet REQUIRES
+                 that you do this, or it will simply use the AmigaDOS filenote
+                 in the CNet short description, rather than using the
+                 extracted short description.
+
+
+The SYSDATA:ADS.DIRS file
+-------------------------
+This file MUST exist.  It is the file that contains the FULL path of all
+directories that you want ADSeXtract to search, one per line.
+
+eg.
+
+   udbase1:ADSMISC
+   udbase1:CLINKFILES
+   udbase1:FIDOFILES

@@ -1,0 +1,179 @@
+/* 
+
+File list download script for use within TransAmiga
+Requires GKupload to run
+
+*/
+
+SystemData:
+Program  = 'FListDL'
+revision = 'Version 1.02'
+date     = '13th of November 1992'
+author   = 'Gregory M. Kerr'
+fileconfig  = 'BBS:Configs/file.cfg'
+FileName = 'FileList.lha'
+bulletins = 'BBS:bulletins/'
+temp = 'T:BBSFiles'
+
+options results
+userinfo 'w' ; name = result
+userinfo 'o' ; access = result
+call setansi
+transmit
+Sendstring '[0;0H[J'f3'Building list of files... '
+call readfconfig
+AreaList = ''
+pragma('D',bulletins)
+if exists('head') then do
+ call open(infile,'head','R')
+ do while ~eof(infile)
+  line = readln(infile)
+  arealist = arealist||line'0a'x
+  end
+ call close(infile)
+ end
+cdate = date()
+ctime = time()
+arealist = arealist'0a'x'                   Created on the' cdate 'at' ctime'0a'x
+call open(outfile,'T:H','W')
+call writeln(outfile,arealist)
+call close(outfile)
+arealist = 'T:H'
+do a = 1 to numareas
+ filearea a
+ if AreaAccess.a > access then iterate
+ pragma('D',bulletins)
+ AreaList = AreaList a
+ end
+address command
+'join' AreaList 'as' temp
+address
+filename = temp
+Sendstring 'Archiving...'noansi
+address command 'C:LhA a' filename'.LHA' filename
+done = no
+transmit
+transmit
+do while done = no
+ listprotocols
+ transmit ''
+ transmit ''
+ query f3'Select a protocol ('f7'Zmodem is the Default'f3') 'b4||f7'  'left||left
+ pr = upper(result)
+ done = yes
+ if pr = 'RESULT' then pr = 1
+ if pr < 1 | pr > numproto then do
+  transmit ''
+  transmit f1||b0'  Invalid response - Try That Again.'noansi
+  done = no
+  end
+ end
+setprotocol pr
+Protocolsend filename'.lha'
+address command 'delete 'filename'.LHA' filename 'T:H quiet'
+sysoplog name||' used FListDL to receive file list'
+call thankyou
+continue
+shutdown ; exit 0
+
+
+readfconfig:
+/*
+    this routine reads BBS:Configs/file.cfg to find file area
+    names and paths for directorys to process. It also determines
+    the number of areas.
+*/
+config = exists(fileconfig)
+if config ~= 0 then do
+ config = 1
+ do a = 1 to 3
+  call open('infile',fileconfig,'R')
+  dud = readln('infile')
+  if a = 3 then do
+   numareas = readln('infile')
+   do b = 1 to numareas
+    libraryname.b = readln('infile')
+    path.b = readln('infile')
+    do c = 1 to 2
+     dud = readln('infile')
+     end
+    AreaAccess.b = readln('infile')
+    do c = 1 to 3
+     dud = readln('infile')
+     end
+    end
+   numarcs = readln('infile')
+   do b = 1 to numarcs
+    do c = 1 to 3
+     dud = readln('infile')
+     end
+    end
+   numproto = readln('infile')
+   end
+  end
+ end
+close('infile')                       
+say ''
+return
+
+
+setansi:
+/*
+    Use to set ansi on and use colors
+*/
+ userinfo 'x' ; ansiflag = result
+ if ansiflag = 'ON' then do
+  ESC     = '1B'X
+  BRIGHT  = ESC||'[1m'
+  NOANSI  = ESC||'[0m'
+  ITALICS = ESC||'[3m'
+  ULINE   = ESC||'[4m'
+  INVERSE = ESC||'[7m'
+  UP      = ESC||'[A'
+  DOWN    = ESC||'[B'
+  RIGHT   = ESC||'[C'
+  LEFT    = ESC||'[D'
+  f0 = ESC||'[30m' ;b0 = ESC||'[40m'  /* Black  */
+  f1 = ESC||'[31m' ;b1 = ESC||'[41m'  /* Red    */
+  f2 = ESC||'[32m' ;b2 = ESC||'[42m'  /* Green  */
+  f3 = ESC||'[33m' ;b3 = ESC||'[43m'  /* Yellow */
+  f4 = ESC||'[34m' ;b4 = ESC||'[44m'  /* Blue   */
+  f5 = ESC||'[35m' ;b5 = ESC||'[45m'  /* Purple */
+  f6 = ESC||'[36m' ;b6 = ESC||'[46m'  /* Cyan   */
+  f7 = ESC||'[37m' ;b7 = ESC||'[47m'  /* White  */
+  end
+ else do
+  ESC     = '1B'X
+  BRIGHT  = ''
+  NOANSI  = ''
+  ITALICS = ''
+  ULINE   = ''
+  INVERSE = ''
+  UP      = ESC||'[A'
+  DOWN    = ESC||'[B'
+  RIGHT   = ESC||'[C'
+  LEFT    = ESC||'[D'
+  f0 = '' ; b0 = ''
+  f1 = '' ; b1 = ''
+  f2 = '' ; b2 = ''
+  f3 = '' ; b3 = ''
+  f4 = '' ; b4 = ''
+  f5 = '' ; b5 = ''
+  f6 = '' ; b6 = ''
+  f7 = '' ; b7 = ''
+  end
+ return
+
+Thankyou:
+/*
+    Print thank you message on successful run
+*/
+transmit '[H[2J'
+transmit '  Thank you'f6 name f7'for using' program 'if you have any comments or'
+transmit '  bug reports I can be contacted at Info BBS on +61-3-3700309'
+transmit '  FidoNet 3:635/547.2, AmigaNet 41:300/547.2 or TriNet 42:8699/3.2.'
+transmit ''
+transmit '   Written By' author 'on the '||date
+transmit '         This is '||revision
+transmit ''
+return

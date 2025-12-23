@@ -1,0 +1,143 @@
+(transcript "Installing MUI TransAmiga Configurator...")
+
+
+; **************************************************************************
+; **************************************************************************
+; **************************************************************************
+
+
+(set @default-dest "SYS:")
+
+
+; **************************************************************************
+; **************************************************************************
+; **************************************************************************
+
+
+(copylib
+	(prompt "Installing MUI-TransAmiga Configurator...")
+	(source "MUITACfg")
+	(confirm)
+	(infos)
+	(noposition)
+	(help @copylib-help)
+	(dest
+		(askdir
+			(prompt "Please select a place for the configurator program.")
+			(help @askdir-help)
+			(default "BBS:bin")
+			(newpath)
+		)
+	)
+)
+
+(complete 20)
+
+; **************************************************************************
+; **************************************************************************
+; **************************************************************************
+
+
+(copylib
+	(help @copylib-help)
+	(prompt "Installing muimaster.library...")
+	(confirm)
+	(source "Libs/muimaster.library")
+	(dest
+		(askdir
+			(prompt "Please select a place for \"muimaster.library\".")
+			(help @askdir-help)
+			(default "LIBS:")
+		)
+	)
+)
+
+
+(complete 40)
+
+; **************************************************************************
+; **************************************************************************
+; **************************************************************************
+
+
+(copylib
+	(prompt "Installing the preferences program...")
+	(source "Prefs/MUI")
+	(confirm)
+	(infos)
+	(noposition)
+	(help @copylib-help)
+	(dest
+		(askdir
+			(prompt "Please select a place for the preferences program.")
+			(help @askdir-help)
+			(default "SYS:Prefs")
+			(newpath)
+		)
+	)
+)
+
+(complete 60)
+
+; **************************************************************************
+; **************************************************************************
+; **************************************************************************
+
+
+(set classdest
+	(askdir
+		(prompt "Please select a place for the classes. A sub drawer called \"MUI\" will be created here.")
+		(help @askdir-help)
+		(default "SYS:Classes")
+		(newpath)
+	)
+)
+
+
+(makedir classdest)
+
+(makedir (tackon classdest "MUI"))
+
+
+(foreach "Classes/MUI" "#?.mui"
+	(copylib
+		(prompt "Installing Classes...")
+		(source (tackon "Classes/MUI" @each-name))
+		(help @copylib-help)
+		(dest (tackon classdest "MUI"))
+	)
+)
+
+
+(complete 80)
+
+
+; **************************************************************************
+; **************************************************************************
+; **************************************************************************
+
+(set vernum (getversion "exec.library" (resident)))
+(set ver (/ vernum 65536))
+
+(if (< ver 39)
+(
+	(startup "MUI"
+		(prompt "You are not running Kickstart 3.0 or higher, so I have to add some commands to your user-startup.")
+		(help @startup-help)
+		(command "assign add LIBS: \"" classdest "\"")
+	)
+)
+)
+
+
+(complete 99)
+
+
+; **************************************************************************
+; **************************************************************************
+; **************************************************************************
+
+
+
+
+(exit)

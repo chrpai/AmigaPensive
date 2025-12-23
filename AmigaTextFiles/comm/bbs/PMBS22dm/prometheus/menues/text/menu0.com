@@ -1,0 +1,17 @@
+B;C:B #!;M:menu4
+A;C:ANTRAG
+S;M:menu1
+O;C:EX
+?;C:HILFE
+C;C:CHAT
+U;C:MULTIPORT
+!;C:LOGOFF
+W;C:WHO;TASTE
+Z;C:BRETT /;C:SUCHEN
+Y;C:SCANNER
+P:C:PM;M:menu5
+I;M:menu2
+X;C:!
+5;C:set
+1;C:menu CURSUR
+2;C:menu Geonet

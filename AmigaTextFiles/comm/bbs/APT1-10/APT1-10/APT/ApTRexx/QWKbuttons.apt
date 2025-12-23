@@ -1,0 +1,923 @@
+/* QWK_buttons.apt
+**
+** $VER: QWK.apt 0.0.2 (2.1.94)
+**
+** ARexx program for QWK message handling, by ApT-Design.
+**
+** Copyright � 1994 ApT-Design All Rights Reserved,TS,DM
+**
+**   #^# 
+**  '%-%'  Tabs Set at 3 chars!
+**    o
+**
+**  Before you even THINK of running this QWK Door read the Doc!
+**  You have been warned ;)
+*/
+/* ######################################################################### */
+
+
+/*
+     Plan! :)
+
+     Selecting areas:
+
+     Areas are available in pages.  Pages only have about 10 areas in.
+     Top of screen has the names, could take up a large portion of display.
+     Bottom is a button-grid of numbers, when selected change red/green etc.
+     This selects which areas are off/on.  In supplement, a quit and page-cue
+     button should be available (keyed).  Maybe page-buttons instead of cue ones.
+
+*/
+
+
+/* ######################################################################### */
+
+/*
+** TABLE LIST AND DEFINES:
+**
+** Version 0.0.2
+**
+** The following block of code should remain untouched by 3rd party
+** programmers. The block will be updated at times and all that will
+** be required from you is to paste the new block in. You may
+** alter code only when told.  (Sounds a bit bitchy Dave?)
+*/
+
+		/* Used within the CALLFUNCTION calls */
+
+COMPUTERTYPE_CALL	= 0
+COUNTRY_CALL		= 1
+BIRTHDAY_CALL		= 2
+PROTOCOL_CALL		= 3
+ARCHIVER_CALL		= 4
+SHOW_PASSWORD_AND_NAME_CALL = 5
+
+
+		/* This block is used in the SET GFX FLAG  function ONLY */
+
+ANSI_COL_FLG = 0 	/* Ansi Colour Flag	*/
+ANSI_POS_FLG = 1	/* Ansi Positioning 	*/
+ANSI_FLG_FLG = 2	/* ANSI at all!?	*/
+ANSI_SCR_FLG = 3	/* Ansi Scrolling	*/
+ANSI_CUR_FLG = 4	/* Ansi Cursor		*/
+SCRN_CLR_FLG = 7	/* Screen Clears	*/
+
+	/* This block is used in the GET VAR and  SET VAR ONLY */
+
+ACCESSLEVEL_VAR	= 0
+VALID_VAR			= 1
+CALLSMADE_VAR		= 2
+MSGSLEFT_VAR		= 3
+MSGSREC_VAR		= 4
+UPLOADS_VAR		= 5
+DNLOADS_VAR		= 6
+BYTESUP_VAR		= 7
+BYTESDN_VAR		= 8
+BYTESLEFT_VAR	= 9
+FILERATIO_VAR	= 10
+BONUSRATIO_VAR	= 11
+HOTKEY_VAR		= 12
+EDITOR_VAR		= 13
+COMPTYPE_VAR	= 14
+SCRLENGTH_VAR	= 15
+SCRWIDTH_VAR	= 16
+GENDER_VAR		= 17
+MORE_VAR			= 18
+PROTOCOL_VAR	= 19
+ARCHIVER_VAR	= 20
+MENUSET_VAR		= 21
+
+	/* This block is used in the GET STR and SET STR functions ONLY */
+
+USERNAME_STR	= 0
+ADDR1_STR		= 1
+ADDR2_STR		= 2
+ADDR3_STR		= 3
+POSTCODE_STR	= 4
+COUNTRY_STR		= 5
+VOICENO_STR		= 6
+DATANO_STR		= 7
+PASSWORD_STR	= 8
+HANDLE_STR		= 9
+
+FIRELEN_OPT 	= 0
+FIRECASE_OPT	= 1
+FIREFILT_OPT	= 2
+
+LETTER_FLT		= 1
+NUMBER_FLT		= 2
+ASCII_FLT		= 4
+UPFIRST_FLT		= 8
+PUNCT_FLT		= 16
+
+FILE 		= 0
+STRING 	= 1
+
+USER_MEMBER		= 0	/* For the MOVEUSER function */
+USER_NEW			= 1
+USER_REVIEW		= 2
+
+DAYS2REVIEW_STVAR		= 0
+DAYSLASTCALL_STVAR	= 1
+
+LASTDATECALL_STSTR	= 0
+LASTTIMECALL_STSTR	= 1
+
+	CR = '0D'x
+	LF = '0A'x
+	CRLF = '0D0A'x
+	red = '%TC=1.'
+	green = '%TC=2.'
+	yellow = '%TC=3.'
+	blue = '%TC=4.'
+	magenta = '%TC=5.'
+	cyan = '%TC=6.'
+	white = '%TC=7.'
+	italics = '%ITALICS=1.'
+	bold = '%BOLD.'
+	normal = '%ANSIRESET.'
+	inverse = '%RVIDEO=1.'
+	CLS = '%CLS.'
+	QT = '22'x
+
+
+
+/*
+** QWK Initialisation data:
+** ========================
+**
+** You should not alter the paths etc. that are defined here. As they may be
+** REQUIRED in their specified form!
+**
+*/
+
+parse arg lineno SIG
+options results
+portname = 'APTREXX'lineno
+address value portname
+
+qdir = "T:ApT-Misc-"lineno"/QWKdir"   /* BEWARE! This dir gets cleared!! */
+
+IF EXISTS(qdir)  THEN ADDRESS COMMAND 'delete 'qdir'/#? quiet'
+IF ~EXISTS(qdir) THEN ADDRESS COMMAND 'makedir 'qdir
+
+/* End of Initialisation data! */
+
+
+
+/*
+**
+**  System Configuration Details:  Change to suit YOUR requirements...
+**
+*/
+
+BBSNAME	=	'CHIBA CITY'			/* BBS Name 		*/
+BBSID		=	'CHIBA'
+/*   BBSID - 8 chars or less! Also Note that BBSID is used in the Msg Uploader.
+**   BBSID Should not have any SPACES within the Name!
+*/
+
+CITY	=		'Whitburn, W.L.'			/* City & State */
+TELNO	=		'0501-744262'				/* BBS tel no   */
+SYSOP	=		'Dave McIntosh, Sysop'	/* Sysops name  */
+
+incfiles = 'APT:QWK/COMMON/'	/* Where HELLO/GOODBYE etc files are stored */
+maxbundle = 500			/* Maximum number of messages that a user can Bundle up! */
+update=1			/* Define 'Update Last Read' default Flag = ON */
+
+/*
+** End of Configuration details!
+*/
+
+
+
+'GETSTR' USERNAME_STR	; name=result
+'GETUSERDIR' name	; UserDir = result ; name=space(name,1,'_')
+'SHOWGLOBALFILE' "APT:QWK/Display/Welcome.ans"
+'ISDROP' ; if(result=1) then EXIT
+
+RESTART:
+
+'DAVE_CMD' "MAILCMD I S="SIG		/* Let User select mail Areas */
+areanum = 1
+entries = 0
+
+do until areanum = ""
+'DAVE_CMD' "MAILCMD Next"		/* Let User select mail Areas */
+info=result
+parse var info areanum areaname high low lr tog
+if areanum ~= "" then do
+	anumstr.entries = areanum ;
+	anamestr.entries = areaname ;
+	ahigh.entries = high ;
+	alow.entries = low ;
+	alr.entries = lr ;
+	astart.entries = lr ;	/* default start posn to last read pointer */
+	if lr < high then astart.entries = lr + 1
+	if tog=" ON" then atog.entries = "ON"
+   else atog.entries=tog ;
+	entries=entries+1
+	end
+end
+
+AreaRefresh=0
+mode="ONOFF"
+
+/*
+**
+** QWKSELECT  Display available message areas and get user selections.
+**
+*/
+
+QWKSELECT:
+
+
+/*
+** Get provisional messages per area for bundling
+**  - change when someone edits that area :)
+*/
+item = 0
+new = 0
+lowest = anumstr.0
+highest = anumstr.0
+totalnew = new
+do until item = entries
+ if anumstr.item > highest then highest = anumstr.item
+ if anumstr.item < lowest then lowest = anumstr.item
+ if AreaRefresh=0 then do
+  if alr.item > alow.item then astart.item = alr.item
+  else astart.item = alow.item
+ end
+ if astart.item > ahigh.item then astart.item=ahigh.item
+ else astart.item = astart.item + 1
+ amax.item = ahigh.item-astart.item
+ if amax.item <0 then amax.item =0
+ if AreaRefresh=0 then agrab.item = amax.item
+ if atog.item="ON" then togcol=green;				/* togcol business, well why */
+ else if atog.item="OFF" then togcol=red;       /* delete it ..              */
+ item=item+1
+end
+
+refresh=1
+reload=1
+buttonnumber=0
+bundle=0
+PNum=0
+firstrun=1
+strict=""
+
+do forever
+	if(reload) then do
+		'BUTTONOPTS' 'LOADBANK="tplates:qwk/qwk.bank"'
+		reload=0
+		refresh=1
+	end
+
+	if(refresh) then do
+		'SHOWGLOBALFILE' 'tplates:qwk/buttons.tpl'
+		call ShowPage
+		'BUTTONOPTS' "SETPOS="buttonnumber
+		refresh=0
+	end
+	if firstrun then do; call ShowPage; firstrun=0; end	/* Get initial page.. */
+
+	/* Totalmsgs calculation */
+	call TMPage
+	'msg' yellow"%CPOS=21,0.Msgs to bundle: this page: "white||pmsgs"    "
+	'msg' yellow"%CPOS=21,37.On all pages: "white||tmsgs||white"    "
+	'msg' yellow"%CPOS=21,65.               "
+	'msg' yellow"%CPOS=21,58.Mode: "cyan
+	select
+		when mode="ONOFF" then 'msg' "Toggle on/off   "
+		when mode="START" then 'msg' "Edit start num  "
+		when mode="NUM"   then 'msg' "Grab # from area"
+		otherwise 'msg' "OOOOPS!"
+	end
+
+	'BUTTONOPTS' "USEBANK"	; rawkey=result;	key=upper(rawkey)
+	'BUTTONOPTS' "GETPOS"	; buttonnumber = result
+
+	'ISDROP'	;	if(result) then break
+
+	select
+		when (rawkey=CR)|(rawkey=LF) then do;	SELECT
+			/* Have selected current buttonnumber */
+
+			/* Pages A through i */
+
+			when buttonnumber=0 then do; signal SHUTDOWN; end
+			when buttonnumber=1 then do; PNum = 0; call ShowPage; end
+			when buttonnumber=2 then do; PNum = 1; call ShowPage; end
+			when buttonnumber=3 then do; PNum = 2; call ShowPage; end
+			when buttonnumber=4 then do; PNum = 3; call ShowPage; end
+			when buttonnumber=5 then do; PNum = 4; call ShowPage; end
+			when buttonnumber=6 then do; PNum = 5; call ShowPage; end
+			when buttonnumber=7 then do; PNum = 6; call ShowPage; end
+			when buttonnumber=8 then do; PNum = 7; call ShowPage; end
+			when buttonnumber=9 then do; PNum = 8; call ShowPage; end
+
+			/* Lines 0 through 9 */
+
+			when buttonnumber=10 then do;	lnm=0;	call updal; end
+			when buttonnumber=11 then do; lnm=1;	call updal; end
+			when buttonnumber=12 then do;	lnm=2;	call updal;	end
+			when buttonnumber=13 then do;	lnm=3;	call updal; end
+			when buttonnumber=14 then do; lnm=4;	call updal; end
+			when buttonnumber=15 then do;	lnm=5;	call updal;	end
+			when buttonnumber=16 then do;	lnm=6;	call updal; end
+			when buttonnumber=17 then do; lnm=7;	call updal; end
+			when buttonnumber=18 then do;	lnm=8;	call updal;	end
+			when buttonnumber=19 then do;	lnm=9;	call updal;	end
+
+			/* Special functions, other than exit */
+
+			when buttonnumber=20 then call ShowPage	/* ReDisp */
+			when buttonnumber=21 then do;					/* All ON */
+					do lnm=0 to 9;	strict="ON"; call updal;	end
+				end
+			when buttonnumber=22 then do;					/* All OFF */
+					do lnm=0 to 9; strict="OFF"; call updal;	end
+				end
+			when buttonnumber=23 then do;					/* Helpfile */
+				'msg' CLS
+				'SHOWGLOBALFILE' "APT:QWK/Help/Areas.HELP"
+				'HOTKEY' white"Press a key : "; 'msg' "\n"
+				refresh=1;
+			end
+			when buttonnumber=24 then do; signal BUNDLEMENU; end
+			when buttonnumber=25 then do; call cmode; end
+			when buttonnumber=26 then do;
+			'DAVE_CMD' "MAILSELECT" SIG
+			signal	RESTART; end
+
+			OTHERWISE end;
+		end
+
+		/* When a <CR> type selection not made, a key may be pressed! :) */
+
+			/* Page selection, oh and exit.. */
+		when rawkey="!" then do; 'BUTTONOPTS' "SETPOS=0"; call SHUTDOWN; exit; end
+		when key="A" then do; 'BUTTONOPTS' "SETPOS=1"; PNum = 0; call ShowPage; end
+		when key="B" then do; 'BUTTONOPTS' "SETPOS=2"; PNum = 1; call ShowPage; end
+		when key="C" then do; 'BUTTONOPTS' "SETPOS=3"; PNum = 2; call ShowPage; end
+		when key="D" then do; 'BUTTONOPTS' "SETPOS=4"; PNum = 3; call ShowPage; end
+		when key="E" then do; 'BUTTONOPTS' "SETPOS=5"; PNum = 4; call ShowPage; end
+		when key="F" then do; 'BUTTONOPTS' "SETPOS=6"; PNum = 5; call ShowPage; end
+		when key="G" then do; 'BUTTONOPTS' "SETPOS=7"; PNum = 6; call ShowPage; end
+		when key="H" then do; 'BUTTONOPTS' "SETPOS=8"; PNum = 7; call ShowPage; end
+		when key="I" then do; 'BUTTONOPTS' "SETPOS=9"; PNum = 8; call ShowPage; end
+
+			/* Area's line selection */
+		when key="0" then do; 'BUTTONOPTS' "SETPOS=10"; lnm=0; call updal; end
+		when key="1" then do; 'BUTTONOPTS' "SETPOS=11"; lnm=1; call updal; end
+		when key="2" then do; 'BUTTONOPTS' "SETPOS=12"; lnm=2; call updal; end
+		when key="3" then do; 'BUTTONOPTS' "SETPOS=13"; lnm=3; call updal; end
+		when key="4" then do; 'BUTTONOPTS' "SETPOS=14"; lnm=4; call updal; end
+		when key="5" then do; 'BUTTONOPTS' "SETPOS=15"; lnm=5; call updal; end
+		when key="6" then do; 'BUTTONOPTS' "SETPOS=16"; lnm=6; call updal; end
+		when key="7" then do; 'BUTTONOPTS' "SETPOS=17"; lnm=7; call updal; end
+		when key="8" then do; 'BUTTONOPTS' "SETPOS=18"; lnm=8; call updal; end
+		when key="9" then do; 'BUTTONOPTS' "SETPOS=19"; lnm=9; call updal; end
+
+			/* Special function selection */
+		when key="R" then do; 'BUTTONOPTS' "SETPOS=20"; call ShowPage; end
+		when rawkey="+" then do;
+				'BUTTONOPTS' "SETPOS=21"
+				do lnm=0 to 9;	strict="ON"; call updal;	end
+			end
+		when rawkey="-" then do;
+				'BUTTONOPTS' "SETPOS=22"
+				do lnm=0 to 9;	strict="OFF"; call updal;	end
+			end
+		when key="?" then do;
+			'BUTTONOPTS' "SETPOS=23"
+			'msg' CLS
+			'SHOWGLOBALFILE' "APT:QWK/Help/Areas.HELP"
+			'HOTKEY' white"Press a key : "; 'msg' "\n"
+			refresh=1;
+		end
+		when rawkey="#" then do; 'BUTTONOPTS' "SETPOS=24"; signal BUNDLEMENU; end
+		when key="M" then do; 'BUTTONOPTS' "SETPOS=25"; call cmode; end
+
+		when key="S" then do
+		'DAVE_CMD' "MAILSELECT" SIG
+		signal	RESTART;
+		end
+
+		OTHERWISE end;
+	end
+end
+
+
+BUNDLEMENU:
+
+refresh=1
+reload=1
+buttonnumber=0
+
+DO FOREVER
+
+	totalmsgs=0
+	do count=0 to entries-1; if atog.count="ON" then totalmsgs=totalmsgs+(agrab.count)
+	end
+
+	if(reload) then do
+		'BUTTONOPTS' 'LOADBANK="tplates:qwk/qwkbundle.bank"'
+		reload=0
+		refresh=1
+	end
+
+	if(refresh) then do
+		'SHOWGLOBALFILE' 'tplates:qwk/bundle.tpl'
+		'msg' "%CPOS=12,7."
+		if update=1 then 'msg' yellow" Update Last Read: "white"ON"
+		else 'msg' yellow" Update Last Read: "white"OFF"
+		'msg' yellow"    Total Marked: "white||totalmsgs||yellow"   Limit is: "white||maxbundle"    \n"
+		'BUTTONOPTS' "SETPOS="buttonnumber
+		refresh=0
+	end
+
+	'BUTTONOPTS' "USEBANK"	; rawkey=result;	key=upper(rawkey)
+	'BUTTONOPTS' "GETPOS"	; buttonnumber = result
+
+	'ISDROP'	;	if(result) then break
+
+	select
+		when (rawkey=CR)|(rawkey=LF) then do;	SELECT
+			/* Have selected current buttonnumber */
+
+			when buttonnumber=0 then do;
+
+         if totalmsgs >0 & totalmsgs <= maxbundle then signal BUNDLE
+         if totalmsgs > maxbundle then do;
+          'msg' green"%CPOS=15,1.You have "white||totalmsgs||green" msgs marked for Bundling but you are limited to a maximum\n",
+          ||"of "white||maxbundle||green" messages.\n",
+          ||"You can continue and download upto your limit, or re-edit your Area pointers.\n",
+          ||"Continue Download"white" Y/n : "
+          call YESNO 1 ; choice=(result);
+          if choice ="1" then signal BUNDLE ; end
+
+         if totalmsgs = 0 then ;
+         'msg' green"%CPOS=15,1.You Don't have any msgs marked for Bundling!",
+         "Please select Menu option"yellow" [\c74\c3]"green"\nthen switch on some messages!\n"white;
+         'msg' "Please press a key to continue =>%WAITKEY=500."
+          refresh=1; end
+
+			when buttonnumber=1  then do ; CALL UPLOADBUNDLE ; refresh=1; end
+
+			when buttonnumber=2	then do ; 'msg' "\c2%CPOS=15,5.Update your Last Read Msg Pointers?\c7 Y/n : " ;
+			 call YESNO 1 ; update=(result);
+			refresh=1; end
+
+			when buttonnumber=3	then do ; signal QWKSELECT ; refresh=1; end
+
+			when buttonnumber=4	then do; signal SHUTDOWN; end
+
+			when buttonnumber=5	then do;					/* Helpfile */
+				'msg' CLS
+				'SHOWGLOBALFILE' "APT:QWK/Help/BUNDLE.HELP";
+				'HOTKEY' white"Press a key : "; 'msg' "\n"
+				refresh=1; end
+
+			OTHERWISE end;
+		end
+
+		/* When a <CR> type selection not made, a key may be pressed! :) */
+
+		/* Page selection, oh and exit.. */
+		when rawkey="1" then do; 'BUTTONOPTS' "SETPOS=0";buttonnumber=0
+         if totalmsgs >0 & totalmsgs <= maxbundle then signal BUNDLE
+         if totalmsgs > maxbundle then do;
+          'msg' green"%CPOS=15,1.You have "white||totalmsgs||green" msgs marked for Bundling but you are limited to a maximum\n",
+          ||"of "white||maxbundle||green" messages.\n",
+          ||"You can continue and download upto your limit, or re-edit your Area pointers.\n",
+          ||"Continue Download"white" Y/n : "
+          call YESNO 1 ; choice=(result);
+          if choice ="1" then signal BUNDLE ; end
+
+         if totalmsgs = 0 then ;
+         'msg' green"\nYou Dont have any msgs marked for Bundling!",
+         "Please select Menu option"yellow" <4>"green"\nthen switch on some messages!\n"white;
+         refresh=1; end
+
+		when rawkey="2" then do; 'BUTTONOPTS' "SETPOS=1"; CALL UPLOADBUNDLE ; refresh=1; buttonnumber=1; end
+
+		when rawkey="3" then do; 'BUTTONOPTS' "SETPOS=2";buttonnumber=2
+		 'msg' "\c2%CPOS=15,5.Update your Last Read Msg Pointers?\c7 Y/n : " ;
+		 call YESNO 1 ; update=(result);
+		refresh=1; end
+
+		when rawkey="4" then do; 'BUTTONOPTS' "SETPOS=3"; signal QWKSELECT ; refresh=1; end
+
+		when rawkey="5" then do; 'BUTTONOPTS' "SETPOS=4"; signal SHUTDOWN; end
+
+		when key="H" then do;'BUTTONOPTS' "SETPOS=5"; buttonnumber=5
+			'msg' CLS
+			'SHOWGLOBALFILE' "APT:QWK/Help/BUNDLE.HELP";
+			'HOTKEY' white"Press a key : "; 'msg' "\n"
+		refresh=1; end
+
+		OTHERWISE end;
+	end
+end
+
+/*
+** QWK Shutdown Routine.
+*/
+
+SHUTDOWN:
+
+'SHOWGLOBALFILE' "APT:QWK/Display/Goodbye.ans"
+CALL TIME 'R'	/* Reset Elapsed time counter */
+do until elap>=2; elap=TIME('E'); end
+if EXISTS(qdir) then ADDRESS COMMAND 'delete 'qdir' all quiet'
+EXIT
+
+
+
+/*
+** Bundle up Mail: (Areas and start numbers already set)
+**
+*/
+
+BUNDLE:
+
+
+/*
+**	Construct 'Control.Dat' file.
+**
+** Note: This file MUST use a specific layout format. Do not add or delete
+**       lines, or otherwise edit this control file!!
+**       You should only edit the system specific information to suit your
+**       BBS. eg. System Name,Address etc. This system specific info
+**       is in an area clearly marked near the start of this script.
+**
+*/
+
+'msg' yellow"%CPOS=15,0.\n\n\n\nBundling Mail:\n"green
+'DAVE_CMD' "QWKDATE"	; Date=result		/* Get QWK Formatted Date	*/
+'GETSTR' USERNAME_STR	; Uname=upper(result)
+
+ICD	=	BBSNAME||CRLF||CITY||CRLF||TELNO||CRLF||SYSOP||CRLF,
+		||'0 ,'BBSID||CRLF||Date||CRLF||Uname||CRLF||CRLF,
+		||'0'CRLF||'0'CRLF
+
+
+totalareas=0
+do count=0 to entries-1; if atog.count="ON" & agrab.count>0 then totalareas=totalareas+1
+end
+if totalareas = 0 then signal SHUTDOWN
+ICD=ICD||totalareas-1||CRLF
+
+count=0
+do item=0 to entries-1
+ if atog.item="ON" & agrab.item>0 then do
+  tally=count + agrab.item
+  if tally > maxbundle then do ; limit = maxbundle-count
+    ICD=ICD||anumstr.item||CRLF||LEFT(anamestr.item,10)CRLF
+    if update=1 then ;
+     'DAVE_CMD' "QWKBUNDLE AREA="anumstr.item" BBSID="BBSID" START="astart.item" GRAB="limit" UPDATE PATH="qdir
+    if update~=1 then ;
+     'DAVE_CMD' "QWKBUNDLE AREA="anumstr.item" BBSID="BBSID" START="astart.item" GRAB="limit" PATH="qdir
+    leave; end
+  ICD=ICD||anumstr.item||CRLF||LEFT(anamestr.item,10)CRLF
+  if update=1 then ;
+  'DAVE_CMD' "QWKBUNDLE AREA="anumstr.item" BBSID="BBSID" START="astart.item" GRAB="agrab.item" UPDATE PATH="qdir
+  if update~=1 then ;
+  'DAVE_CMD' "QWKBUNDLE AREA="anumstr.item" BBSID="BBSID" START="astart.item" GRAB="agrab.item" PATH="qdir
+  count=tally 
+ end
+end
+
+ICD=ICD||"HELLO"CRLF||"NEWS"CRLF"GOODBYE"CRLF"0"CRLF
+call open out,qdir"/CONTROL.DAT",write
+call writech(out,ICD)
+call close out
+
+IF EXISTS(DispPath) THEN ADDRESS COMMAND 'delete 'DispPath
+ADDRESS COMMAND 'copy 'incfiles'#? to 'qdir' quiet'
+
+SrcFiles = qdir"/#?"
+filename = qdir"/Chiba.QWK"
+archive = "address command 'LHA >NIL: -x0 -f -u -m -P-1 a "filename qdir"/#?'"
+'msg' "%TC=2....%TC=7.\nArchiving (please wait...)"; interpret archive
+
+'XFEROPTS' 'CLEARLIST TAGFILE "'filename'" SENDFILES'
+'REMOVEFILE' filename
+signal SHUTDOWN
+
+
+
+/*
+** UPLOADBUNDLE
+**
+** Arexx SHOULD be fast enough to cope with UPLOADS!
+**
+*/
+
+UPLOADBUNDLE:
+
+'msg' CLS
+updir	=	qdir"/upload"
+IF EXISTS(updir) THEN ADDRESS COMMAND 'delete 'updir'/#? quiet'
+IF ~EXISTS(updir) THEN ADDRESS COMMAND 'makedir 'updir
+
+'DAVE_CMD' "QWKBUNDLE RECEIVE PATH="updir" BBSID="BBSID ; if result ~= 0 then return 1
+
+/* 'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7." */
+
+/* We should now have a file within the upload directory (name BBSID.REP)
+   Remember the BBSID part is your custom BBS ID Name as already defined.
+   This file should be Unarced and the message(s) uploaded */
+
+
+/*
+** ARCHIVER SUPPORT:
+**
+** This next section should contain all of the archiver(s) along with
+** pathnames (if required) of the ones you wish to support.
+**
+** Change these if you want, ="" to remove a command.
+**
+** Supports: Arc,Zoo,LhArc,LHA,Zip,Arj
+*/
+
+unpacker.arc		= "PKxArc -e"
+unpacker.zoo		= "zoo e"
+unpacker.lharc		= "lha e"
+unpacker.lha		= "lha e"
+unpacker.zip		= "unzip -q"
+unpacker.arj		= "unarj e"
+
+/*
+** The main part of the file which does the actual scanning of
+** the fileheaders to see what archive format was used upon
+** itself. Depending on whats found, a suitable archiver
+** will be used.
+*/
+
+fname = updir"/"BBSID".REP"
+
+if ~open(file,fname,R) then do
+	'MESSAGE' "%BOLD=1.%TC=1.Couldn't open %TC=7.>%TC=3. Your Upload File!%TC=7.<%BOLD=0.%TC=7."
+	'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	return 1
+end
+
+'MESSAGE' "%BOLD=1.%TC=6.Unarcing your archive contents...%BOLD=0.%TC=7.%NL."
+
+readin = readch(file,6)
+call close file
+
+if length(readin) < 6 THEN DO
+	'MESSAGE' "%BOLD=1.%TC=1.Archive is too short"
+	'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	return 1
+END
+
+SELECT
+	when left(readin,3) = "ZOO" then method = "ZOO"
+	when substr(readin,3,4) = "-lh5" then method = "LHA"
+	when substr(readin,2,3) = "-lh" then method = "LHARC"
+	when substr(readin,3,3) = "-lh" then method = "LHARC"
+	when left(readin,2) = "PK" then method = "ZIP"
+	when left(readin,2) = "60ea"x then method = "ARJ"
+	when left(readin,1) = "1a"x then method = "ARC"
+	otherwise do
+		'MESSAGE' "%BOLD=1.%TC=1.Can't handle archive."
+		'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	end
+	return 1
+end
+
+if unpacker.method = "" then do
+	'MESSAGE' "%BOLD=1.%TC=1.Can't do that !%BOLD=0.%TC=7."
+	'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	return 1
+end
+
+address command unpacker.method fname updir"/"
+
+msgfile = updir"/"BBSID".MSG"
+
+'DAVE_CMD' "QWKBUNDLE WRITE PATH="updir" BBSID="BBSID ; if result ~= 0 then return 1
+
+'HOTKEY' "%NL.%BOLD=1.%TC=1.Upload completed! Hit a key when ready...%BOLD=0.%TC=7."
+return 0
+
+
+/*
+** PROCEDURE: NUMERIC_PROMPT
+**
+** Used whenever requesting a Integer value from the user.
+**
+** Whatever = Text string or Template FileName
+**     Type = Is the above a string or file?
+**      Def = Default value to be used
+**      Min = Values below this are not allowed
+**      Max = Values above this are not allowed
+**
+** RETURNS: Entered Integer value
+**
+*/
+
+NUMERIC_PROMPT: procedure expose STRING FILE FIREFILT_OPT FIRELEN_OPT NUMBER_FLT
+
+parse arg Whatever,Type,Def,Min,Max
+
+	Width = LENGTH(max)
+	DataRequired=1
+	DO UNTIL (DataRequired==0)
+		IF (Type) THEN	'MSG' Whatever
+		ELSE		'SHOWFILE' Whatever
+		'FIREOPTS' FIREFILT_OPT NUMBER_FLT
+		'FIREOPTS' FIRELEN_OPT Width
+		'DOTIT' Width
+		'FIREPROMPT' Def ; strval=result
+		'ISDROP' ; if(result=1) then break
+		if(strval < Min | strval > Max) THEN DO
+			'MSG' "%NL.%BOLD=1.%TC=3.Value out of range, acceptable range between %TC=7." Min " %BOLD=3.and %TC=7." Max "%BOLD=0.%TC=7.%NL.%NL."
+			DataRequired=1
+			END
+		ELSE DataRequired=0
+	END
+	return strval
+
+/*
+** PROCEDURE: YESNO
+**
+** Used whenever requesting a [Y/n] [y/N] style hotkey input
+**
+** Flag = 1 for Default to YES, 0 for Default to NO on return
+**
+** RETURNS: 1 for YES and 0 for NO
+*/
+
+YESNO: procedure
+
+parse arg Flag
+
+'HOTKEY' ""
+Key=upper(result)
+if(Flag=0) THEN DO
+	if(Key='Y') THEN DO
+		'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+		Flag = 1
+	END
+	ELSE DO
+		'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+		Flag = 0
+	END
+END
+ELSE
+if(Key='N') THEN DO
+	'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+	Flag = 0
+END
+ELSE DO
+	'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+	Flag = 1
+END
+	return Flag
+
+/*
+** MakePage
+**
+** MakePage, macro, uses global var's for information passing.
+**
+** Will generate a stemmed variable with 10 parts, containing 10
+** consecutive displayable lines of information on areaname, msgs, etc.
+**
+*/
+MakePage:
+/* PNum is page number.  Start-area is PNum*10 */
+
+highest =0; lowest =0; i=0;
+item=PNum*10
+endarea=item + 10	/* only showing 10-area pages */
+
+if item > entries then signal blagh	/* Expletive Deleted?! */
+if endarea > entries then endarea=entries
+
+do until item = endarea
+	if anumstr.item > highest then highest = anumstr.item
+	if anumstr.item < lowest then lowest = anumstr.item
+	if astart.item <1	then astart.item = alow.item
+	if astart.item > ahigh.item then astart.item=ahigh.item
+	amax.item = (ahigh.item) - (astart.item)
+	if amax.item < 0 then amax.item = 0
+	if atog.item="ON" then togcol=green
+		else if atog.item="OFF" then togcol=red
+
+	realitem.i = item
+	displine.i=white||i||" "LEFT(anumstr.item,7)yellow||LEFT(anamestr.item,20)" ",
+				  white||left(ahigh.item,7)" "LEFT(alow.item,7)||" "LEFT(astart.item,7)" ",
+				  ||LEFT(amax.item,7)" "LEFT(agrab.item,7)||togcol||atog.item||white"      "
+	i=i+1; item=item+1
+end
+
+blagh:
+
+do j= i to 9
+	realitem.j=-1
+end
+
+return
+
+/*
+** Display page
+**
+** No input, no return
+**
+*/
+ShowPage:
+
+call MakePage
+'msg' "%CPOS=4,0.\c7Ln Area    Name                High    Low     Start   Max     Grab  Status\n"
+'msg' "\c1컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴\c7\n"
+do i=0 to 9
+	if realitem.i ~= -1 then 'msg' displine.i"\n"
+		else 'msg' "[                                                                         ]\n"
+end
+return
+
+/*
+** CMODE - flick through modes if a number button is hit
+**
+*/
+cmode:
+if mode ="ONOFF" then do; mode="START" ; return; end
+if mode ="START" then do; mode="NUM"   ; return; end
+if mode ="NUM"   then do; mode="ONOFF" ; return; end
+'msg' "*** DEBUG: ERROR! CURRENT MODE UNKNOWN"
+mode="ONOFF"
+return
+
+
+/*
+** UPDAL - UpdateAreaLine
+**
+** no input, no return .. updates the current line
+**
+** lnm is the line in the arealist that it appears, 0-9.
+*/
+updal:
+areanum=realitem.lnm
+if realitem.lnm=-1 then return /* not available! not there! */
+if (atog.areanum="ON")&(strict="ON") then do; strict=""; return; end
+if (atog.areanum="OFF")&(strict="OFF") then do; strict=""; return; end
+
+SELECT
+	WHEN mode="ONOFF" then DO
+		if atog.areanum="ON" then do; atog.areanum="OFF"; togcol=red; end
+			else do; atog.areanum="ON"; togcol=green; end
+		shln=white||lnm||" "LEFT(anumstr.areanum,7)yellow||LEFT(anamestr.areanum,20)" ",
+				  white||left(ahigh.areanum,7)" "LEFT(alow.areanum,7)||" "LEFT(astart.areanum,7)" ",
+				  ||LEFT(amax.areanum,7)" "LEFT(agrab.areanum,7)||togcol||atog.areanum||white"     "
+		shps="%CPOS="6+lnm",0."
+		'msg' shps||shln
+	END
+	WHEN mode="START" then DO
+		/* Clear some space.. */
+		do i=1 to 4
+			'msg' "%CPOS="16+i",0.                                                                             \n"
+		end
+		Text="%CPOS=18,0.            %CPOS=17,0.%TC=7.Please enter the message number to start bundling from ["alow.areanum" - "ahigh.areanum"].%NL.." ;
+		call NUMERIC_PROMPT Text,STRING,"",alow.areanum,ahigh.areanum ; SelNum=result ;
+		astart.areanum=SelNum
+		amax.areanum = ahigh.areanum - astart.areanum	/* update max msgs/area */
+		if agrab.areanum > amax.areanum then agrab.areanum = amax.areanum
+		refresh=1
+	END
+	WHEN mode="NUM" then DO
+		/* Clear some space.. */
+		do i=1 to 4
+			'msg' "%CPOS="16+i",0.                                                                             \n"
+		end
+		Text="%CPOS=18,0.            %CPOS=17,0.%TC=7.Please enter the maximum number of messages to bundle in this Area [0 - "amax.areanum"].%NL.." ;
+		'msg' "%CPOS=21,0."
+		call NUMERIC_PROMPT Text,STRING,"",0,amax.areanum ; GrabNum= result ;
+		agrab.areanum = GrabNum	/* When saving last-read pointers, save*/
+		refresh=1
+	END
+	OTHERWISE do; 'msg' "*** DEBUG:  OOPS.  MODE not found"; end
+END
+return
+
+/*
+** Routine to return total messages for bundling in this page/all in a global var
+*/
+TMPage:
+item=PNum*10
+endarea=item+10
+pmsgs=0							/*pmsgs - total messages in this page for bundling */
+do until item=endarea
+	if atog.item="ON" then pmsgs=pmsgs+amax.item
+	item=item+1
+end
+item=0;	tmsgs=0
+do until item=entries
+	if atog.item="ON" then tmsgs=tmsgs+amax.item
+	item=item+1
+end
+return

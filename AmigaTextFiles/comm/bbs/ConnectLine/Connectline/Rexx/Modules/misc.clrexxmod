@@ -1,0 +1,101 @@
+/*
+**  $VER: misc.clrexxmod 0.1 (05 Feb 1996)  **
+**
+**        © 1996 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      misc.clrexxmod
+**
+**  FUNCTION:
+**      clrexx-Modul für Funktionen, die nicht so
+**      recht in andere Module passen
+**
+**      Bisherige Funktionen:
+**      CREATEBOARD
+**
+**  $HISTORY:
+**
+**   05 Feb 1996 : 0.1 : CREATEBOARD implementiert
+*/
+
+line=upper(arg(1))
+line=translate(line,' ',',')
+procname=word(line,1)
+if words(line)>1 then do
+    do argctr=1 to words(line)
+        param.argctr=word(line,argctr+1)
+        end
+    end
+
+ctr=0
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+select
+    when procname='CREATEBOARD' then interpret 'call' procname
+    otherwise nop
+    end
+
+exit
+
+/* CREATEBOARD <Brettname>
+**
+** Parameter:
+**
+**  <Brettname> = Name des Brettes der Gruppe,
+**                egal ob in ZConnect-, RFC-,
+**                FTS- oder cl_Rexx-Schreibweise.
+**
+** Funktion:
+**
+** Legt ein Brett an und verpasst ihm folgende
+** Grundeinstellungen zusätzlich zu den Einstellungen,
+** die die cl_rexx.library automatisch vornimmt:
+**
+**  NewsgroupName entspricht dem gewandelten Brettnamen
+**  FTSName entspricht dem gewandelten Brettnamen
+**  keine Routgrenze
+**  Binaries sind erlaubt
+**  Text ist erlaubt
+**  Mapszugriff erlaubt
+**  Autoeintrag ist gesetzt
+**  Ratio ist abgeschaltet
+**  Brett wird nicht automatisch gelöscht
+**  Brett ist kein Routebrett
+**  Es wird auf neue Inhalte gescannt
+*/
+
+CREATEBOARD:
+
+remote=param.2
+
+brett=translate(word(param.1,1),xrange('A','Z'),xrange('a','z'))      /* Brettnamen in uppercase */
+brett=translate(brett,'/','.')                                        /* Punkte in Slashes       */
+if left(brett,1)='/' then brett=right(brett,length(brett)-1)          /* Führender Slash raus    */
+if brett~='' then do
+    if ~CLIS_BoardExists(brett) then do
+        Say 'Neues Brett: /'brett
+        CL_BoardNew(brett)
+        call CL_LogAdd(0,'CBOARD','Neues Brett: /'brett)
+        newsgroupname=translate(brett,'.','/')                        /* In Newsgroupname wandeln */
+        ftsname=newsgroupname                                         /* FTS-Name */
+        newsgroupname=translate(newsgroupname,xrange('a','z'),xrange('A','Z'))
+        CLSET_BoardNewsgroupName(brett,newsgroupname)
+        CLSET_BoardFTSName(brett,ftsname)
+        CLSET_BoardMaxNet(brett,'0')
+        CLSET_BoardBin(brett,'1')
+        CLSET_BoardText(brett,'1')
+        CLSET_BoardMapsAllowed(brett,'1')
+        CLSET_BoardAutoEntry(brett,'1')
+        CLSET_BoardDLRatio(brett,'0')
+        CLSET_BoardAutoRemove(brett,'0')
+        CLSET_BoardRouteOnly(brett,'0')
+        CLSET_BoardNoScan(brett,'0')
+        end
+    end
+
+return

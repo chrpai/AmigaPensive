@@ -1,0 +1,134 @@
+<html>
+<head>
+  <title></title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="file.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="movefile.html"><img src="prev.gif" alt="PREV" border=0></a><a href="nextscanfile.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+<PRE>
+   NAME
+       NextMark
+
+   SYNOPSIS
+       NextMark
+
+   FUNCTION
+       Sets the current file (access throught CC numbers %10xx|)
+       to the next marked file.
+
+       This should be called immediatly after marking files using
+       the ARexx command <a href="markfiles.html">MarkFiles</a> in order to determine if
+       each file name passed was marked or not, in order to
+       inform the user.
+
+   INPUTS
+
+   RESULT
+       File name of marked file.
+
+   RC
+        0 -- END of Marked files list.
+        1 -- File was successfully marked for download.
+        2 -- File does not exist
+        3 -- File was already marked
+        4 -- Undefined - should not happen.
+        5 -- File would exceed byte ratio
+        6 -- File would exceed file ratio
+        7 -- User does not have access to the area the file is stored in
+        8 -- User may not download from area file is stored in
+        9 -- Undefined - should not happen.
+       10 -- Bad arguments
+       11 -- Maximum file marks exceeded (see FileConfig-&#062;General)
+       12 -- File is unvalidated
+       13 -- File is offline
+       15 -- File catalogue error
+
+   EXAMPLE
+
+MarkFiles Files
+if RC = 0 then do
+    fin = 0
+    do until fin = 1
+        NextMark
+        Mk = RC
+        Name = RESULT
+
+        Select
+            When Mk = 0 then fin = 1
+            When Mk = 1 then do
+                Write '&quot;rMarked File ['Name'].&quot;' 'NoMore'
+                end
+            When Mk = 2 then do
+                if Name ~= 'RESULT' then
+                    Write '&quot;rError Marking ['Name']. File does not exist!n&quot;' 'NoMore'
+                end
+            When Mk = 3 then do
+                if Name ~= 'RESULT' then
+                    Write '&quot;rFile ['Name'] already marked!n&quot;' 'NoMore'
+                end
+            When Mk = 4 then nop
+
+            When Mk = 5 then do
+                Write '&quot;rSorry! You have exceeded your Byte Ratio!n&quot;' 'NoMore'
+                end
+
+            When Mk = 6 then do
+                Write '&quot;rSorry! You have exceeded your File Ratio!n&quot;' 'NoMore'
+                end
+
+            When Mk = 7 then do
+                /* User may not access area! */
+                Write '&quot;rError Marking ['Name']. File does not exist!n&quot;' 'NoMore'
+                WriteLog '*' '&quot;User doesn't have area access for 'Name'. Told them it doesn't exist!&quot;'
+                end
+            When Mk = 8 then do
+                Write '&quot;rYou do not have Download Access for ['Name'].n&quot;' 'NoMore'
+                end
+
+            When Mk = 9 then nop
+
+            When Mk = 10 then do
+                Write '&quot;rBad Arguments!n&quot;' 'NoMore'
+                end
+
+            When Mk = 11 then do
+                Write '&quot;rMaximum File marks exceeded!n&quot;' 'NoMore'
+                fin = 1
+                end
+
+            When Mk = 12 then do
+                Write '&quot;rFile has not yet been validated by SysOp!n&quot;' 'NoMore'
+                end
+
+            When Mk = 13 then do
+                Write '&quot;rThis file is currently offline!n&quot;' 'NoMore'
+                end
+
+            When Mk = 15 then do
+                Write '&quot;rFile Catalogue error!n&quot;' 'NoMore'
+                WriteLog '*' '&quot;File Catalogue error trying to mark file 'Name'!&quot;'
+                end
+            Otherwise do
+                Write '&quot;rFatal Error RC 'RC'!n&quot;' 'NoMore'
+                WriteLog '*' '&quot;Fatal Error RC 'Mk' trying to mark file 'Name'!&quot;'
+                fin = 1
+                end
+            end
+        end
+    end
+else do
+    Write '&quot;nFatal Error!nn&quot;'
+    WaitReturn
+    if RC ~= 0 then exit
+    end
+
+Write '&quot;n&quot;'
+
+   NOTES
+
+   SEE ALSO
+
+</PRE><br></body>
+</html>

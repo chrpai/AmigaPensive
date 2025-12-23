@@ -1,0 +1,249 @@
+--------------------------------------------------------------------------
+v1.0 September 16 1990
+--------------------------------------------------------------------------
+PLB:
+
+Welcome to The Never Ending Story Door.
+
+This is a door I put together today just for the heck of it.
+
+To run it just copy it into its own DOORX dir, and rename it to the same
+name as the DOORX dir.
+
+When run, it will allow you and your users to Read, Add to, or Create up to
+50 stories. There will be a file called 'stories' created or appended to 
+when a New story is created, this file will have the list of the available
+stories.
+
+Also there will be file(s) for each story and they will be named the same
+as the story name.
+
+This door is written with GFA-Basic using the GFA door routines I put out,
+also it includes THE METRO text editor which you are welcome to use in your
+own doors. The door routines 'PROCEDURE 3' was modified to allow the text
+editor to work.
+
+It also is the FIRST ANSI DOOR for THE METRO BBS.
+
+Oh: I included the source code in ascii format so you can look and learn!
+
+Have fun, and if you find any bugs, let me know.
+
+Percy L. Broadnax..... Author of THE METRO BBS
+
+THE METRO DETROIT BBS.... 313-893-7773
+
+--------------------------------------------------------------------------
+v1.2 September 24 1990
+--------------------------------------------------------------------------
+PLB:
+
+Sorry but a bug slipped into the code, a GOTO with the wrong line label.
+Seems like the compiler should have spotted this, but it did not. Anyways
+if you tried to put ANSI in the message, GURU city. This has been fixed.
+
+Also new: you can enter the number of the story you want to read instead
+of the complete filename.
+
+--------------------------------------------------------------------------
+v1.95 June 5 1991
+--------------------------------------------------------------------------
+PFD:
+
+The above were Percy's docs for the door. I decided to start working on
+doors in GFA Basic, so the first thing I did was have a very good look at
+the Never Ending Story code. I'm sorry, I couldn't resist, so decided to
+have a good hack around with it to see what I could add.
+
+
+For users who are now running Never Ending Story:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If upgrading from the early versions of the Never Ending Story here's what
+you MUST do:
+
+Your old file called 'Stories' needs a new format. This was the only
+thing I had to change so the [N]ew lines bit works. Let's say your old
+Stories file looked like this:
+
+STORY NAME 1
+STORY NAME 2
+STORY NAME 3
+STORY NAME 4
+STORY NAME 5
+STORY NAME 6
+
+Load it into a text editor and make it look like this:
+
+STORY NAME 1
+0
+STORY NAME 2
+0
+STORY NAME 3
+0
+STORY NAME 4
+0
+STORY NAME 5
+0
+STORY NAME 6
+0
+
+You MUST do this before running the door. I was going to do a program
+to convert the old 'stories' files over, but I'm sure you can manage
+to add a zero after every line in your 'stories' file okay!
+
+The number you have to add is the index number for that story, and if
+the story is added to, you'll see that value go up. Make it zero for the
+start - then your old stories will not come up as NEW for the first time a
+user visits the new door. If you want them to come up as New, use a '1'
+instead of a zero. Your old stories files are compatible, except the [N]ew
+lines option won't work for those yet. The users will have to read it from
+the beginning. Once the stories are added to, however, this feature will
+work like a treat.
+
+
+For all users:
+~~~~~~~~~~~~~~
+Firstly the code has been re-structured somewhat to make it a little easier
+to modify in the future. You won't see much difference when running the
+door, but you will if listing the source (which is included in ASCII form).
+
+The screen will open the same size as the settings you have in the 
+s:metro.config file, meaning us blokes with PAL can open a 640*256 screen.
+US sysops will have to be content with the 640*200, as they'll have in the
+metro.config. The window itself is opened up a whole 11 pixels down from 
+the top of the screen, making it possible to click on the screen-to-back
+gadgets that were actually there in the old version, except not accessible.
+
+The door checks for ram:doordata. If it's there it will know whether the
+user has ANSI or not, and open in the appropriate colours. If the door
+has been run off a main BBS menu (not the dhandler) we can't find out
+the ANSI setting, and so have to ask the user.
+
+The main addition is the keeping of a door index which records the number
+of door invocations. With this, it is possible to read each story which
+has NEW LINES in it since the user's last visit to the door. Such stories
+with newlines added will be marked with an asterisk on the stories
+selection menu, and when the user is reading the story, they can choose
+to read from the start, or just the new lines.
+
+I removed the option of adding ANSI with the F-keys from the editor. Sorry,
+but the code was taking up a bit of space, and not used all that much. It
+speeds up the modem.in routines in the editor a little. It also prevents
+the problems we've had with line noise entering a weird ANSI code.
+
+The stories will now be saved with a few extra lines to indicate when they
+were written, so the [N]ew Lines option works. The users now don't have
+to use their real names with the stories (It asks 'Use an Alias?'), and
+entering the date is optional. The users will not see the extra lines
+added when they read a story, however it's possible to use the Sysop
+Maintenance section to do this, for level 9 users ONLY. I decided to leave
+the [M]aintenance option displayed on the main menu, but if a user of less
+than level 9 attempts it, he won't get all that far! 
+
+Maintenance gives you two more options: Delete a story and Rename a 
+story. Deleting a story doesn't really delete the story file, it will
+simply remove it from the menu file, and rename it on disk to
+StoryName.deleted. You can easily fix it up by adding it back to the
+'stories' file, and renaming it back. The Rename A Story gives you the
+option to change a story name, if it has gotten so far off-topic the
+title bears no relation to the story contents!
+
+Story Names can now be upper OR lowercase.
+
+I nearly forgot, but page pausing is now suported. This calms the door
+operation down a bit! The page pause setting is obtained from the userlog
+file when it loads up, so the users have the same values set in the door
+as they do back on the BBS.
+
+Of course, it's always possible to change the Page Pause setting and toggle
+ANSI on and off from the main door menu itself if you like.
+
+Two new files will be created when the door is run the first time. I added
+code so you don't have to muck around yourself too much. The first file is
+the stories.index file which has two lines. The first is the number of
+times the door has been invoked, the second is the number of users who've
+ever entered the door. I don't recommend you changing the second line of
+this file, however if you do, your random file 'stories.visitors' must
+match this setting. Ensure that the byte size of 'stories.visitors'
+divided by 32 equals this second line in the index file. If you can't
+work out what I'm saying here, DON'T change the second line!
+
+The other file is a random file called 'stories.visitors'. This cannot be
+edited in a text editor, and contains a list of the door users, and the
+index number for the last time they used the door. This is so the door
+knows whether there are new lines in the stories or not. I chose to
+field this file with a data length of 32, so if you load it up into
+NewZap, editing this file is quite easy (newzap displays 32 character
+columns). The file simply contains the username (25 chars) and the index
+number of the last visit (7 chars).
+
+Observation shows that this door can run 9,999,999 times before an overflow
+occurs in the index number. If any sysop has this door run 10 million
+times, it will be necessary to set the index number down a bit. Let me
+know when you get to about 9 million invocations, and I'll modify the
+program :-)
+
+Well, that's just about it... If you can think of any more additions this
+door needs, let me know. Especially on the Sysop Maintenance side of things.
+
+
+Distribution:
+~~~~~~~~~~~~~
+
+Since I basically pinched a large chunk of Percy's code, I cannot claim
+any rights to this one! Many code fragments from this door will be used in
+later doors I do in GFA. I haven't done all that much in regard to doors
+in the last month (I've been playing with the Metro Code itself), but on
+the cards are Time Banking (for which it will be necessary to use my version
+of the dhandler) and another, better BBS lister, based on Ben Margolin's
+Masterfile BBS list.
+
+You never know what else I'll come up with!! Until then.
+
+                        - Peter Deane
+
+--------------------------------------------------------------------------
+v2.0 24 November 1994
+--------------------------------------------------------------------------
+
+The door has been recompiled for OzMetro and had a couple of changes
+made to it.
+
+Firstly, the window is a lot better, the screen title disappearance bug
+is gone, the screen is sent to the back and not made active on a remote
+call, pressing both mouse buttons brings up a requester, rather than
+just quitting outright, the mystical window on the workbench screen is
+no longer opened (that took a while to find), and the s:Metro.cfg is
+where all the settings are obtained from.
+
+Under OzMetro, ALL doors except the two logoff doors get a ram:DoorData
+file written for them, so the note above about not being able to find
+the ANSI setting doesn't apply unless you're running this as DOOR1000
+from the logoff menu.
+
+If you're setting this up the first time, don't panic about the above
+notes.  All you have to do is copy the Door.exe to a vacant DOORx
+directory.  That's it.  The door creates all the files it needs on its
+first run, if they are not already there.
+
+The only time you have to worry about the files if you want to start
+editing things!  Be aware there is some rudimentary Sysop Maintenance
+from the door itself.
+
+
+Contact Me:
+-----------
+
+Postal:
+
+Peter Deane
+PO Box 228
+Swansea  NSW  2281
+AUSTRALIA
+
+Call Inquestor BBS 24 Hours:
+
+011-61-49-72-1647 from the USA
+(049) 72-1647 from within Australia
+
+

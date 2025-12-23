@@ -1,0 +1,207 @@
+; $VER: hardcheker v1.9 installerscript v1.2
+;
+
+(complete 0)
+
+(set prg-version "1.9")
+
+;====================================================================
+; Einige Initialisierungen
+;====================================================================
+
+
+(set _prg                               "filechecker/checker")
+(set _sent                              "filechecker/sentby")
+(set _edit                              "filechecker/harded")
+
+(set _text                              "filechecker.guide")
+
+(set destbin				"s:hard/")
+(set _cat                               "catalogs/deutsch/hardchecker.catalog")
+
+(set _liba                               "libs/FileID.library")
+(set _libb                               "libs/rexxsupport.library")
+(set _libc                               "libs/rexxtricks.library")
+(set _libd                               "libs/rexxreqtools.library")
+(set _libe                               "libs/reqtools.library")
+
+(set _ce                                 "c/MPProSP")
+
+(set _cdest                              "c:")
+
+
+
+(set #intro
+(cat "Willkommen zum Installationsprogramm des hARDcHECKERs 1.9\nDieses Script hilft ihnen das programm und alle Programmteile zu installieren. Bitte folgen sie den Anweisungen wärend der installation.\n\nInstallieren sie den HardChecker das erste mal benötigen sie unter umständen auch das Archiv p_hcxtra.lha in dem sich die c: Tools befinden!\n\n(c)1998-2000 Phoenix Soft\nslarti@cyberdude.com\nhttp://slarti.ixy.de"
+))
+(set #extro
+(cat "Die Installation vom hardchecker "prg-Version" ist nun beendet. Weitere Infos entnehmen sie bitte dem Filechecker.Guide im Verzeichniss "destdir"\n\nBitte checken sie die Pfade in den Befehlen und der Upload.bat auf Richtigkeit! "
+))
+
+(message #intro)
+
+(complete 20)
+
+(set destdir
+        (askdir
+                (prompt "Wohin soll das Hauptprogramm CHECKER kopiert werden? \n")
+                (help "In dieses Verzeichniss wird der Filechecker und die guide kopiert")
+                (default "prometheus:extern")
+        )
+)
+
+(set destdirb
+        (askdir
+                (prompt "Wohin soll der SentBy-Line-Editor kopiert werden? \n")
+                (help "In dieses Verzeichniss wird der Sentby-Line editor kopiert")
+                (default "prometheus:extern")
+        )
+)
+
+(set destdirc
+        (askdir
+                (prompt "Wohin soll der Online Konfig-Editor HardEd kopiert werden? \n")
+                (help "In dieses Verzeichniss wird der Online Konfig-editor kopiert")
+                (default "prometheus:extern")
+        )
+)
+
+(complete 30)
+
+
+(copyfiles
+          (prompt "Hardschecker "prg-version" kopieren?\n")
+          (help "Die alte Checkerversion wird ueberschrieben")
+          (source _prg)
+          (dest destdir)
+          (confirm)
+)
+
+(copyfiles
+          (prompt "Sentby-line-editor 1.3 kopieren?\n")
+          (help "Die alte version wird ueberschrieben")
+          (source _sent)
+          (dest destdirb)
+          (confirm)
+)
+
+(copyfiles
+          (prompt "Online Konfig-editor HardEdit-II 1.0 kopieren?\n")
+          (help "Die alte version wird ueberschrieben")
+          (source _edit)
+          (dest destdirc)
+          (confirm)
+)
+
+(copyfiles
+          (prompt "Neue Filechecker.guide kopieren?\n")
+          (help "Die alte anleitung wird überschrieben!!")
+          (source _text)
+          (dest destdir)
+ (confirm)
+)
+
+(copyfiles
+          (prompt "MPProSP v1.7 nach c: kopieren?\n")
+          (help " -- ")
+          (source _ce)
+          (dest "c:")
+ (confirm)
+)
+
+
+
+(message "Es wird nun das verzeichniss s:hard/ erzeugt in dem alle configs abgelegt werden. Sollten sie bereits eine HardChecker version installiert haben (min. v1.4) können sie ihre alten configs dorthin kopieren oder aber im alten verzeichniss cg-tools:filechecker/ belassen.")
+
+(if
+	(= (exists destbin) 0)
+	(makedir destbin)
+)
+
+(copyfiles
+ (source "s/hard")
+ (dest destbin)
+ (all)
+)
+
+(copyfiles
+ (prompt "NEUES (v1.9) deutsches Catalog-file kopieren?\n")
+ (help "Seit version 1.4 ist der HardChecker lokalisiert")
+ (source _cat)
+ (dest "locale:catalogs/deutsch/")
+ (confirm)
+)
+
+(copylib
+          (prompt "Rexxtricks.library kopieren?")
+          (help #select1_help)
+	 (source _libc)
+	 (dest "libs:")
+          (confirm)
+)
+
+(copylib
+          (prompt "rexxsupport.library kopieren?")
+          (help #select1_help)
+	 (source _libb)
+	 (dest "libs:")
+          (confirm)
+)
+
+(copylib
+          (prompt "FileID.library kopieren?")
+          (help #select1_help)
+	 (source _liba)
+	 (dest "libs:")
+          (confirm)
+)
+
+(copylib
+          (prompt "reqtools.library kopieren?")
+          (help #select1_help)
+	 (source _libe)
+	 (dest "libs:")
+          (confirm)
+)
+(copylib
+          (prompt "rexxreqtools.library kopieren?")
+          (help #select1_help)
+	 (source _libd)
+	 (dest "libs:")
+          (confirm)
+)
+
+(textfile
+ (append "/* */\ncheckpfad = lastpos('/',destdir);checkpfad2 = length(destdir);checkpfad3 = lastpos(':',destdir);if checkpfad3 ~= checkpfad2 then checkpfad3 = 0;if checkpfad3 = 0 then do;if checkpfad ~= checkpfad2 then checkpfad = 0;if checkpfad = 0 then destdir = destdir||'/';end;if ~exists('prometheus:batches/upload.bat') then call open btwrite,'prometheus:batches/upload.bat','W';else call open btwrite,'prometheus:batches/upload.bat','A';writeln(btwrite,'#RUN "destdir"checker $PO $BP $LF');call close btwrite\n")
+ (dest "t:login.rexx")
+)
+
+(complete 80)
+
+(rexx ("t:login.rexx")
+ (prompt "Soll der Checker nun in die upload.bat eingefügt werden? Es darf vor und nachher kein anderer checker laufen! (logisch ;)")
+ (help "zur zeit keine hilfe verfügbar")
+
+ (confirm)
+)
+
+(run ("delete t:login.rexx"))
+
+(set #inste (cat "InstallCommand BN=SentByEditor A=\""destdirb"/sentby $PO P\" SC=5 Kommentar=\"SentBy-Line-Editor fuer den HardChecker\" SB B T=2"))
+(set #instf (cat "InstallCommand BN=HardEditor A=\""destdirc"/harded $PO P\" SC=5 Kommentar=\"Online Konfig-Editor fuer den HardChecker\" SB B T=2 G=SYSOP"))
+
+
+(run #inste (SAFE)
+ (prompt "Befehl für den SentBy-Line-Editor erstellen ?\nSENTBy-line\n\nBitte kontrolieren sie nach der Installation den Befehl auf den Richtigen Pfad und die richtige Gruppe!!!!\n")
+ (help "zur zeit keine hilfe verfügbar")
+ (confirm)
+)
+
+(run #instf (SAFE)
+ (prompt "Befehl für den OnLine konfig-Editor erstellen ?\nHardEditor\n\nBitte kontrolieren sie nach der Installation den Befehl auf den Richtigen Pfad und die richtige Gruppe!!!!\n")
+ (help "zur zeit keine hilfe verfügbar")
+ (confirm)
+)
+
+(complete 100)
+(message #extro)

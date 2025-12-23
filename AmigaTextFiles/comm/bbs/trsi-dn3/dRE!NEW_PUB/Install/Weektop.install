@@ -1,0 +1,157 @@
+;
+;	Install Script for dRE!NEW v3.0
+; ©1996 Bodo Hoffmann
+; 
+; $VER: dRE!NEW.install v1.8 (09-Sep-96)
+;
+
+(complete 0)
+
+(if (= @language "deutsch")
+	(
+		(set	#welcome						(cat	"\nWillkommen zur Installation von\n"
+																		"dRE!NEW v3.0 (fiM) for FAME BBS\n"
+																		"Dieses Script installiert dRE!NEW\n"
+																		"auf ihrem AMIGA, so das Sie das DOOR\n"
+																		"direkt in Benutzung nehmen könnenn\n\n\n"
+																		"Dieses Program ist REGISTERWARE\n"
+																		"Um eine volle Version zu bekommen sollten\n"
+																		"Sie sich bei mir registrieren lassen, bitte\n"
+																		"lesen Sie in dem Amigaguide Document wo und\n"
+																		"wie Sie dieses tuen können\n"
+															)
+		)
+
+		(set	#regdir-prompt			(cat	"Selektieren Sie jetzt bitte das Verzeichnis, in der die registrierten Hauptprogramme liegen"))
+
+		(set	#getinstdir-prompt	(cat	"Bitte wählen sie jetzt das Verzeichnis in dem dRE!NEW installiert werden soll, eine Schublade wird erzeugt"))
+	
+		(set	#doorname-prompt		(cat "Bitte wählen Sie jetzt den Name unterdem das Door in der BBS aufzurufen ist"))
+
+		(set	#level-prompt				(cat "Bitte wählen Sie jetzt den Accesslevel unterdem das Door in der BBS abrufbar ist"))
+
+		(set	#askfont-prompt			(cat	"Bitte wählen sie nun einen 8 punkt font für das GUI aus, z.B. topaz.font"))
+	)
+)
+
+(if	(=	@language "english")
+	(
+		(set #welcome							(cat	"\nWelcome to the Installation of\n"
+																		"dRE!NEW v3.0\n"
+																		"This program will install dRE!NEW\n"
+																		"on your AMIGA, so it is ready to use after\n"
+																		"this procedure\n\n\n"
+																		"This program is REGISTERWARE\n"
+																		"To become a full version you should register\n"
+																		"my programs, please refer to the AmigaGuide\n"
+																		"Document for more informations how and where\n"
+																		"you can do this...\n"
+															)
+		)
+
+		(set	#regdir-prompt			(cat	"Please select now the the drawer, where the registered mainfiles are located"))
+
+		(set	#getinstdir-prompt	(cat	"Please select the drawer where dRE!NEW should be installed, a drawer will be created"))
+
+		(set	#doorname-prompt		(cat "Please choose now the name for the door"))
+
+		(set	#level-prompt				(cat "Please choose now the access-level for the door"))
+
+		(set	#askfont-prompt (cat	"Please select now the font for the GUI, it must have size 8, iE: topaz.font"))
+	)
+)
+
+(complete 0)
+
+	(run "run /files/welcome")
+	(message	#welcome)
+
+	(set regdir		(askdir	(prompt	#regdir-prompt)
+													(help	@askdir-help)
+													(default	"SYS:")
+								)
+	)
+
+	(set doors		(askdir		(prompt #getinstdir-prompt)
+													(help @askdir-help)
+													(default	"DOORS:")
+								)
+	)
+
+	(set	destdir		(tackon doors		"dRE!NEW"))
+	(set	guidedir	(tackon destdir	"Guides"))
+
+	(makedir	destdir		(infos))
+	(makedir	guidedir	(infos))
+
+	(copyfiles		(source	"/Files/dRE!NEW")
+								(dest		destdir)
+								(optional nofail askuser)
+								(confirm)
+	)
+
+
+	(copyfiles		(source	"/guides")
+								(dest		guidedir)
+								(infos)
+								(all)
+								(optional nofail askuser)
+								(confirm)
+	)
+
+	(copyfiles		(source	"/Headers")
+								(dest		destdir)
+								(all)
+								(optional nofail askuser)
+								(confirm)
+	)
+
+	(copyfiles		(source	"/Icons")
+								(dest		destdir)
+								(infos)
+								(all)
+								(optional nofail askuser)
+								(confirm)
+	)
+
+	(copylib      (prompt "DRE.library")
+				        (source "/Libs/DRE.library")
+				        (dest   "LIBS:")
+        				(confirm)
+	)
+
+	(copylib      (prompt "FAME.library")
+				        (source "/Libs/FAME.library")
+				        (dest   "LIBS:")
+        				(confirm)
+	)
+
+	(tooltype
+		(dest	(tackon	destdir	"dRE!NEW"))
+		(settooltype	"HEADER" (tackon destdir "dRE!NEW.header"))
+		(settooltype	"FAKE_COLOR" "35")
+		(settooltype	"FILE_COLOR" "21")
+	)
+
+	(set	doorname	(askstring	(prompt #doorname-prompt)
+															(help		@askstring-help)
+															(default	"NEW")
+									)
+	)
+
+	(set level	(asknumber	(prompt		#level-prompt)
+													(help			@asknumber-help)
+													(range		10 255)
+													(default	10)
+							)
+	)
+
+	(set confdir	("FAME:SETTINGS/DOORS/BBSCMD"))
+	(set cmd (tackon destdir "dRE!NEW"))
+
+	(set make	("/Files/MakeCMD NAME=%s PATH=%s SERVERNAME=dRE!NEW STACK=4096 ACSLEVEL=%ld CMDTYPE=-1 MULTINODE PRI=0 DOORTYPE=0 NR NC CF SR SC AR AC RD" doorname cmd level))
+	(run make)
+
+	(complete 100)
+
+	(run	"SYS:Utilities/MultiView /Guides/dRE!NEW.guide")

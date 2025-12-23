@@ -1,0 +1,264 @@
+/**************************************************************************\
+$VER: BBSLink Solar, v1.0.0 (Sep-14-2019) by k1ds3ns4t10n of -X-caliber BBS
+\**************************************************************************/
+options results;signal on SYNTAX;signal on ERROR;signal on IOERR
+a=sourceline(2);parse var a . " " title ", " ver " (" vdate ") by " author " " .
+tr=transmit;se=sendstring;gc=getchar;gu=getuser;gs=getscratch;mg=maygetchar
+bbsidentify bbs;cv=left(word(result,3),4);cnet4=(datatype(cv,"n")=1&cv>"4.25")
+bbsidentify name;g.bbsName=strip(result, 'B');esc="1b5b"x;cty="19"x;ctq="11"x
+rs="rexxsupport.library";if ~show("l",rs) then if ~addlib(rs,0,-30) then exit
+parse source . . fp .; df=left(fp,max(lastpos('/',fp),lastpos(':',fp))) 
+changewhere "BBSLink Solar"
+/**************************************************************************/
+/*                                                                        */
+/*  C-Net BBSLink Solar                          -X-caliber BBS           */
+/*    Used to seamlessly connect a C-Net            bbs.aholix.net:6800   */
+/*    Amiga BBS to the BBSLink.net                                        */
+/*    Solar and Terrestrial data service                                  */
+/*                                                                        */
+/*  Changelog:                                                            */
+/*    v1.0.0 (14 Sep 2019) by k1ds3ns4t10n of -X-caliber BBS              */
+/*                                                                        */
+/*  Use at your own risk.                                                 */
+/*                                                                        */
+/*  INSTALATION INSTRUCTIONS:                                             */
+/*                                                                        */
+/*  1) Create a folder called 'BBSLink' in your PFiles: directory.        */
+/*     Copy this file there.                                              */
+/*                                                                        */
+/*  2) Download http_get from Aminet and install in C:                    */
+/*     https://aminet.net/package/comm/tcp/http_get                       */
+/*                                                                        */
+/*  3) Add a line to your SYSTEXT:sys.welcome file like this:             */
+/*                                                                        */
+/*     Q#0 pfiles:bbslink/bbslinksolar}                                   */
+/*                                                                        */
+/*     ^ NOTE: "Q" here is a ctrl-Q                                       */
+/*                                                                        */
+/*  4) That's it!                                                         */
+/*                                                                        */
+/**************************************************************************/
+/* SysOp Configurable Options *********************************************/
+
+/* this path will be created as needed */
+g.tempPath         = 'RAM:BBSLINKSOLAR/' /* must end with a trailing slash */
+
+/* these swtiches (0=off, 1=on) control how the Wall functions */
+g.showStatus       = 1  /* Show http type status messages to the user */
+g.autoRetry        = 1  /* Auto-retry web request if it times out or returns
+                           a blank result. User may cancel the request by
+                           pressing the ESC key */
+g.debug            = 0  /* Show Errors to the SysOp's (account 1) screen.
+                           This is for debug purposes and should not be left
+                           on during normal operations */
+
+/* ok to change these as needed for your system */                          
+g.timeout          = 20 /* API http request timeout in seconds */
+
+/* ok to change these messages, but do not add ANSI or MCI codes. */
+s.retrieving       = 'Retrieving Data'
+s.reqTimedOut      = 'Request timed out, please try again later.'
+s.cancelled        = 'Request Cancelled'
+s.escToCancel      = '(ESC to cancel)'
+s.anyKey           = 'Smash any key to continue..'
+
+/* End of SysOp Configurable Options **************************************/
+/**************************************************************************/
+
+if ~exists(g.tempPath) then address command'makedir 'strip(g.tempPath,"T","/")
+  
+gu 40;g.uid = space(result ,0)
+
+g.debug = g.debug&g.uid==1
+
+/* Show the solar data */
+call getSolar
+
+/* reset ANSI env */
+se ctq"Q1}"
+
+EXIT:
+  se s.anyKey
+  gc
+  tr
+  exit
+
+/* Procedures *************************************************************/
+
+/* Delete the results file */
+deleteFile: procedure expose tr g.
+  parse arg filename
+  
+  filePath= g.tempPath||filename
+  
+  if exists(filePath) then do
+    do delLoop = 1 to 3
+      if delete(filepath) then leave delLoop
+      call delay(25)
+    end
+    if g.debug & exists(filePath) then tr 'BBSLINKWALL: Unable to delete 'filePath' after 'delLoop' tries.'
+  end 
+return
+
+/* fetches web request 
+   @param uri       the url to retrieve
+   @param fileName  the filename where to store results
+   @param type      0=retrieve, 1=send
+   
+   returns results as an array called resultsArr structured as:
+     resultArr.0 = line count
+     resultArr.1 = line 1 string
+     resultArr.2 = line 2 string
+      .
+      .
+      .
+     resultArr.n = line n string  
+*/
+fetchWebRequest: procedure expose se tr mg esc ver s. g. resultArr.
+  parse arg uri, fileName, type 
+  
+  filePath=g.tempPath||fileName
+  userAgent= "http_get/1.0 (AmigaOS 3.1; Amiga; 680x0; ks:40.68; wb:40.42) CNet/5 BBSLinkSolar/"strip(ver,'L','v')" ("g.bbsName")"
+
+  /* run through outer loop at least once, repeat the loop if g.autoRetry is 
+     enabled and line count in resultArr.0 == 0 */
+     
+  do until ~g.autoRetry | resultArr.0>0 
+    /* clear any previous data in resultArr */
+    drop resultArr.
+    
+    /* init resultArr */
+    resultArr.0=0
+    resultArr.1=""
+    
+    /* make web request */
+    httpcmd = 'run >nil: http_get "'uri'" >'filePath
+    address command httpcmd
+    
+    call time('r')
+    
+    /* show status message */
+    if g.showStatus then do
+      if type then reqType=s.sending
+      else reqType=s.retrieving
+      dotCount=0
+      se reqType
+    end
+    
+    /* inner loop checks if the results file is ready and exits if the 
+       file is ready or the timeout period has been reached */
+      
+    bufferflush   
+    do until time('e') > g.timeout + 1
+      mg
+      if result=="NOCHAR" then nop
+      else if C2D(result)==27 then do
+        /* ESC key will exit */
+        resultArr.0 = 1
+        resultArr.1 = s.cancelled
+        leave /* cause loop to exit */
+      end
+      else call check
+      
+      call delay(25) /* 1/2 second */
+   
+      /* check if results file is ready yet */
+      if exists(filePath) then do
+        if open(BLW, filePath, R) then do
+          /* read results file into resultsArr */
+          line=0
+          do while ~eof(BLW)
+            line=line+1
+            resultArr.line = readln(BLW)
+          end
+          /* place line count at resultArr.0 */
+          resultArr.0 = line
+          call close(BLW)
+          leave /* cause loop to exit */
+        end
+        else if g.debug then tr "BBSLINKWALL: "filePath" exists but could not open"
+      end
+      else if g.debug then tr "BBSLINKWALL: "filePath" does not exist, could not open"
+      
+      /* update status message */
+      if g.showStatus then do 
+        if dotCount==0 then se " "s.escToCancel
+        else se "."
+        dotCount = dotCount + 1
+      end    
+    end
+    bufferflush
+    
+    /* clear status message */
+    if g.showStatus then do
+      computeLen = length(reqType) + length(s.escToCancel) + dotCount + 1
+      se esc||computeLen"D"copies(' ', computeLen)||esc||computeLen"D"
+    end
+  end
+  
+  /* check if request timed out */
+  if resultArr.0==0 then do
+    resultArr.0=1
+    reslutArr.1=s.reqTimedOut
+  end  
+return
+
+/* Show the solar data */
+getSolar: procedure expose se tr mg esc ver s. g. resultArr.
+  
+  filename= "user"g.uid
+  
+  /* Delete the last results file in case it wasn't deleted last time */
+  call deleteFile(filename)
+
+  /* Fetch the wall from BBSLink */
+  rcd="http://games.bbslink.net/solar.php?action=show"
+  call fetchWebRequest(rcd, filename, 0)
+  
+  /* display wall */
+  if resultArr.0 > 0 then do
+    cls
+    do i=1 to resultArr.0
+      tr resultArr.i
+    end
+  end
+  
+  /* Delete the results file */
+  call deleteFile(filename)
+return
+
+/**************************************************************************/
+  
+CHECK:
+  if ARG() & ARG(1)~="###PANIC" then return ARG(1)
+  getcarrier
+  if result="TRUE" then do
+    if ARG() then return ARG(1)
+    else return
+  end
+  logentry "Lost Carrier!!"
+  bufferflush
+  exit
+  
+SYNTAX:
+ERROR:
+IOERR:
+  e1="n1 Error: "rc" ("errortext(rc)")"
+  e2="  Line: "left(sigl,4)"File:"
+  c="`"fp", "ver"'"
+  e2=e2" "c
+  tr e1
+  tr e2
+  logentry e1
+  logentry e2
+  e=strip(translate(sourceline(sigl),"\{",""))
+  do while e~=""
+    e3="Source: "left(e,37)
+    tr e3
+    logentry e3
+    e=substr(e,38)
+    end
+  bufferflush
+  exit
+/**************************************************************************\
+\*************************** -X-caliber BBS telnet://bbs.aholix.net:6800 **/

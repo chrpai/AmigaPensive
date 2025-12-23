@@ -1,0 +1,265 @@
+
+
+  Introduction
+  ------------
+
+   This chapter describes how the Trion BBS menu system works
+   and how to edit and make menus.
+
+
+
+
+
+      ===( Trion BBS Menu Commands )=================
+
+
+      The trion BBS system works with menus , these consist of
+      readable text files with commands and a pascal like structure.
+
+      To make a menu is easy, menus have a simple structure and
+      there are a lot of commands you can Use in a menu to
+      create a complete BBS system.
+      The first menu which is started when someone 'logs in' is
+      the 'start.menu'.
+      In a menu you can call other menus, so you
+      can expand it almost infinitly.
+
+      Before you can use a menu you have to 'compile' it, this
+      is done by calling the 'menu' utility which checks your
+      menus on errors and makes a binary file from it.
+
+      The text files are called 'source' and the result of the
+      menu compiler are the menus.
+      You find the sources of the menus in the 'trion:menus/' 
+      directory, this also consist a subdirectory for the
+      compiled menus.
+
+
+      Compiling a menu:                'menu door.src'
+      (compiles the 'door' menu)
+
+      Wildcards are allowed:           'menu #?'
+      (this compiles all menus)
+
+
+
+      Example of a bit of menu:
+      =========================
+
+
+
+Menu "start.menu"                        ; Name of the menu after compiling
+
+flags  hotkeyable                        ; Make menu hotkeyable
+level  0 - 255 , "Start.Ansi"            ; List with ANSI files and levels
+prompt 0 , 0 - 255 , "Start Menu : "     ; List with prompts
+prompt 1 , 0 - 255 , "Start Menu : "
+
+BEGIN     ; Start the command definitions
+
+
+Cmd "G"                               ; Reachable for all users.
+   Print "Bye.|"
+   Logout
+EndCmd
+
+Cmd "D"  , 255                        ; Reachable only to sysops.
+   DosShell
+EndCmd
+
+Cmd "T" , 128 - 255                   ; Users with level 128 or higher.
+   GotoMenu "Test.Menu"               ; Jump to an other menu
+EndCmd
+
+END                                   ; End of commands section
+
+
+
+      More about the menu structure:
+      ==============================
+
+      The first part of a menu is the definitions part.
+      This tells the BBS how to execute the menu and what for
+      screens and prompts te Use.
+
+      Menu line:
+
+      The first line should be 'Menu  "name.menu"'
+      This line tells the compiler how the binary file it
+      makes is called. This is the file the BBS uses to
+      execute a menu. When you call an other menu you
+      also should use this name.
+
+      flags, level and prompt lines:
+
+      The next lines in the definitions part are lines where
+      you can define flags, screens and prompts.
+
+      At this moment there is only the flags 'hotkeyable' and 'noscreen' 
+      if you want to use hotkeys in this menu you put a line:
+      'flags  hotkeyable' or 'FLAGS HOTKEYABLE' here.
+      This means that the BBS doesn't wait for a return after
+      the input of a user but directly interpretes every key a
+      user hit in real time.
+      The 'noscreen' flag was thougth up for menus which use doors
+      for generating an ANSI or RIPscrip menu screen.
+      If you put this after flags then the normal menu screen will
+      not be printed.
+
+
+      With the level lines you can define what screens are
+      showed in combination with what level.
+      The format of this line is:
+      'level  level-range , screenfile'
+
+      The system searched for the 'screenfile' in the directory
+      'trion:menutext/' if the menu set if the user is set 0.
+      If the set is higher the system searches in directory
+      'trion:menutext1/' or 'trion:menutext2/' or higher.
+      If there is no such directory or file the system uses the
+      default 'trion:menutext/' directory.
+
+      With the prompt lines you can define what prompt line is
+      displayed under a menu screen.
+      The format of this line is:
+      'prompt  menu-set, level-range , prompt-line'
+      Because of the menuset parameter you can make a line
+      for each language set you use.
+
+      There can be as many level or prompt lines as needed in your menu.
+
+
+
+
+      The second part of a menu file is the commands section.
+
+      This section start with a 'BEGIN' line and ends with a 'END'
+      line.
+      Between these lines are the commands.
+
+      Command lines start with a 'Cmd "string"' part optionally
+      folowed with levels or flags to indicate who can run this command.
+      You can use a single level like '255' or a range like '10 - 255'.
+      There are to possible flags you can use:
+      S = sysop, only local (at the keyboard) can use the command.
+      U = user, only remote users (at a serial port) can use the command.
+      Flags and levels are separated by a comma.
+
+      Examples:
+
+Cmd  "A"                ; Can be used by everyone.
+Cmd  "A" , 5 - 255      ; Can be used by users with a level from 5 to 255.
+Cmd  "A" , S            ; Only to use localy.
+Cmd  "A" , 255 , U      ; Only to use remotely with a sysop level.
+Cmd  "A" , SU           ; Can be used everywhere
+
+
+
+      Instead of 'Cmd' you also van use 'MenuBegin', 'MenuEnd',
+      'CommandBegin', 'CommandEnd' or 'BuildScreen'.
+      With these you can execute an number of menu commands each
+      time a command is started or finished, or when a menu is
+      entered, or after the ANSI screen is drawn and the system
+      is waiting for input.
+
+      This is Usefull when you want to log whenever a user
+      enters a menu, for example:
+
+MenuBegin
+   LogMessage "Entered main menu."
+EndCmd
+
+
+      Or when you want to use RIP-scrip commands in a menu:
+
+MenuBegin
+   Print "[2!|"                          ;RIP-scrip mode on
+EndCmd
+
+MenuEnd
+   Print "[1!|"                          ;RIP-scrip mode off
+EndCmd
+
+
+
+      After a 'Cmd' line a number of lines with commands if followed
+      after the last of these lines a 'EndCmd' line is needed.
+
+
+; Write a comment to sysop
+
+Cmd "C" , 0-255
+   CommentToSysop
+EndCmd
+
+
+; Write a comment to a CoSysop
+
+Cmd "S" , 0-255
+   ChangeMessageArea "1"          ;Area 'comment to sysop'
+   FlushBuffer
+   PushIntoBuffer "Cosysop|"
+   WriteMessage
+EndCmd
+
+
+; Write a message to all
+
+Cmd "A" , 10-250
+   ChangeMessageArea "5"          ;Area 'Message To All'
+   FlushBuffer
+   PushIntoBuffer "All|"
+   WriteMessage
+EndCmd
+
+
+; Ask for a file and Download it
+
+Cmd "D"
+   MarkFile
+   Download
+   More
+EndCmd
+
+
+
+; Send an Allfiles file to the user
+
+Cmd "A"
+   MarkName "ALLFILES.LHA"
+   Download
+   More
+EndCmd
+
+
+
+; Ask for a file and Download it and logoff
+
+Cmd "G"
+   MarkFile
+   Download
+   Logout
+EndCmd
+
+
+; Let's new users scan for waiting mail
+
+Cmd "?" , 0- 255
+   Confirm  "Do you really want to scan for waiting mail (Y/n) ? " 
+   ScanWaitingMail
+   More
+EndCmd
+
+
+
+
+      Menu commands:
+      ==============
+
+      Commands may be in Uppercase, Lowercase or both mixed.
+      Some commands need an 'argument', arguments may be placed between ""
+      which means that that data is taken exactly as it was typed in, if
+      you don't use "" the first word or number will be used en spaces
+      will be removed.
+
+

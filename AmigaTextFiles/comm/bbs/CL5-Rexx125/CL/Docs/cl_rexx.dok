@@ -1,0 +1,2177 @@
+Connectline cl_rexx.library, Copyright 1995 by Mathias Mischler
+===============================================================
+
+Dokumentation erstellt von Mathias Mischler, bearbeitet von Ralf Ramge.
+
+
+
+Einführung:
+-----------
+
+Die Connectline cl_rexx.library stellt  ein  mächtiges  Werkzeug  dar,  mit
+welchem Sie leistungsfähige ARexx-Skripte für die Wartung Ihres Systems und
+die Onlineunterstützung der User erstellen können.
+
+Diese Dokumentation erläutert sämtliche Funktionen der  cl_rexx.library  in
+thematisch  zusammengehörigen  Kapiteln.  Folgende  Bereiche werden von der
+cl_rexx.library unterstützt:
+
+      1. Allgemeine Funktionen
+      2. Befehle für Zugriffe auf Brettdaten
+      3. Befehle für Zugriffe auf Userdaten
+      4. Befehle für Zugriffe auf Systeme
+      5. Funktionen für Onlinebefehle
+      6. Befehle für Zugriffe auf Nachrichten
+      7. Befehle für Zugriffe auf die Ports
+      8. Befehle zum Auslesen von Defaultpfaden
+
+
+
+Funktionstypen der cl_rexx.library
+----------------------------------
+
+Die  Funktionen  der  cl_rexx.library  sind  verschiedenen   Funktionstypen
+zugeordnet und ihre Zugehörigkeit ist an folgenden Prefixen erkennbar:
+
+CLGET... - Liefert Wert von Connectline
+CLSET... - Setzt Wert bei Connectline
+CLIS...  - Abfragen von Flags, Wert immer "1" (wahr) oder "0" (falsch).
+CLONL... - Macht Ein-/Ausgaben in der Shell. Je nach Funktion wird ein Wert
+           zurückgeliefert.
+
+
+
+
+1. Allgemeine Funktionen:
+-------------------------
+
+    o CLInfo()
+
+       Testfunktion der cl_rexx.library. Sie liefert die aktuelle
+       Versionsnummer und einen Copyrightvermerk zurück.
+
+
+    o CLGET_OwnSystemName()
+
+       Diese Funktion liefert den eigenen Systemnamen ohne die Domainan-
+       gabe zurück.
+
+        Beispiel:
+
+         systemname=CLGET_OwnSystemName()
+         say systemname
+
+
+    o CLGET_OwnSystemAddress()
+
+       Diese Funktion dient dem  Ermitteln  des  eigenen  Systemnamens  inkl.
+       der Domainangabe. Es wird immer die Hauptdomain zurückgegeben, auch
+       wenn das System an mehreren Domains teilnimmt.
+
+        Beispiel:
+
+         /* Ermitteln der Systemadresse und Zerlegen in System- und
+            Domainname                                               */
+
+         adresse=CLGET_OwnSystemAddress()
+         system=left(adresse,pos('.',adresse)-1)
+         domain=right(adresse,length(adresse)-pos('.',adresse))
+         say 'Systemname:'system
+         say 'Domainname:'domain
+
+
+    o CLGET_GroupName(<gruppennr>)
+
+       Mit dieser Funktion erhält man den Gruppennamen von <gruppennr> zurück.
+       Die Übergabe eines Parameters > 0 ist zwingend erforderlich. Ist für
+       <gruppennr> kein Gruppenname spezifiziert, wird ein Leerstring zurück-
+       gegeben.
+
+
+        Beispiel:
+
+         say CLGET_GroupName(1)
+
+
+    o CLGET_TransferList(<variable>)
+
+       Diese Funktion liefert die Anzahl der eingestellten Transferprotokolle
+       zurück. Bei dem Parameter <variable> handelt es sich um den Namen einer
+       STEM-Variablen, welche nach erfolgreichem Aufruf der Funktion die Namen
+       der Protokolle enthält. Erster Index ist 0, letzter Index ist <Rückgabe-
+       wert>-1.
+
+
+    o CLGET_PackerList(<variable>)
+
+       Diese Funktion liefert die Anzahl der eingestellten Packer zurück. Bei
+       dem Parameter <variable> handelt es sich um den Namen einer STEM-Varia-
+       blen, welche nach erfolgreichem Aufruf der Funktion die Namen der Packer
+       enthält. Erster Index ist 0, letzter Index ist <Rückgabewert>-1.
+
+
+    o CL_SendMailFull (<absender>, <empfänger>, <sourcefile>,
+                       <commentfile>, <shortcomment>. <subject>,
+                       <contenttype>, <sortinpri>)
+
+       Diese Funktion dient dem externen Verschicken von Nachrichten. Siehe
+       auch CLONL_SendMail().
+
+        Parameter:
+
+         absender   - Username des Absenders. Es wird nicht geprüft, ob
+                      der User im System existiert. System- und Domainan-
+                      gabe werden automatisch ersetzt, der Realname bleibt
+                      erhalten.
+
+         empfänger  - Empfänger der Nachricht.
+
+         sourcefile - Pfad und Name des zu verschickenden Textes/Files.
+
+         commentfile- Parameter mit Pfad und Name des lagen Kommentars
+                      (KOM:-Header). Soll kein langer Kommentar in die
+                      Mail eingefügt werden, ist ein Leerstring zu über-
+                      geben.
+
+         shortcomment-Angabe des kurzen Kommentars (ZUSAMMENFASSUNG:-
+                      Header). Wird als String übergeben, ist dieser
+                      Header nicht gewünscht, erfolgt die Übergabe eines
+                      Leerstrings.
+
+         subject    - String mit dem Betreff der Nachricht.
+
+         contenttype- Soll die Nachricht als Binärfile verschickt werden,
+                      geben sie hier 'BIN' an, ansonsten 'TEXT'.
+
+         sortinpri  - Priorität der Mail. Sie beeinflusst die Reihenfolge,
+                      in welcher der Sorter die vorliegenden Puffer bear-
+                      beitet. Höchste Priorität (Eilmail) ist 'A'.
+
+        Beispiel:
+
+         cl_sendmailfull(test,root,'s:startup-sequence',,,'subject',TEXT,'A')
+
+         /* Verschickt das File s:startup-sequence als Textnachricht an den
+         User 'root'. Als Absender wird der User 'test' angegeben. Der Be-
+         treff der Nachricht lautet 'subject', die Nachricht hat höchste
+         Priorität. Langer und kurzer Kommentar werden nicht gesetzt.    */
+
+
+    o CL_LogAdd(<priorität>,<ID>,<text>)
+
+       Fügt einen Eintrag ins Logfile von Connectline 5.0 ein.
+
+       Parameter:
+
+        priorität - Priorität des Logeintrags (0<=x<=10)
+        ID        - Kennung des Prozesses
+        text      - Einzutragender Text
+
+       Beispiel:
+
+        call CL_LogAdd(5,'CL_REXX','Das ist ein Test.')
+
+
+    o CL_LogDelete()
+
+       Löscht das Logfile.
+
+
+    o CL_LogRename(<dateiname>)
+
+       Benennt das Logfile in <dateiname> um. Ein eventueller Pfad muß angegeben werden.
+
+
+    o CLGET_FileRequest([<pfad>])
+
+       Diese Funktion öffnet einen Filerequester und liefert den Namen und Pfad des an-
+       gewählten Eintrages zurück. Optional kann mit <pfad> ein Defaultpfad angegeben
+       werden. Multiselect ist nicht möglich.
+
+
+    o CLGET_FrontScreenName()
+
+       Diese Funktion liefert den Namen des vordersten Public Screens zurück.
+
+
+    o CL_GetText(<textdatei>,<varname>)
+
+        Es wird ein File zeilenweise in eine STEM-Variable eingelesen.
+        Die Anzahl der eingelesenen Zeilen wird zurückgegeben.
+
+        Parameter:
+
+         textdatei - Pfad und Name des einzulesenden Textes
+         varname   - Name der STEM-Variable ohne Index
+
+        Beispiel:
+
+         anzahl=CL_GetText('s:startup-sequence',zeile)
+         do x=0 to anzahl-1
+            say zeile.x
+            end
+
+
+    o CL_PutStr(<text>)
+
+        Gibt einen Text direkt auf dem Bildschirm aus, es wird kein LF
+        ausgeführt.
+
+
+
+
+2. Befehle für Zugriffe auf Brettdaten
+---------------------------------------
+
+    Allgemeine Anmerkungen:
+    -----------------------
+
+    Wenn versucht wird, auf ein nicht existentes Brett zuzugreifen, wird beim
+    Lesen generell ein Leerstring "" zurückgegeben, und beim Schreiben False
+    "0".
+
+    Bretter werden generell so angegeben, wie sie im Bretteditor auftauchen.
+    Ein führendes Slash ("/") darf nicht übergeben werden.
+
+
+
+
+2.1 Allgemeine Befehle
+----------------------
+
+    o CL_SaveBoardlist()
+
+       Speichert die Brettliste.
+
+
+    o CL_BoardNew(<brettname>)
+
+       Diese Funktion legt ein neues Brett an. Initialisieren Sie dieses Brett
+       anschließend mit allen CLSET_BoardX()-Funktionen (siehe Abschnitt 2.3
+       und 2.7 in diesem Kapitel), da diese Funktion lediglich Defaultwerte
+       vorgibt.
+
+       Die Defaultwerte sind:
+
+        - Als Pfad wird der Defaultpfad für Bretter eingesetzt, mit der Er-
+          gänzung auf diesen Brettnamen.
+
+        - Lese- und Schreibzugriff werden auf Level 99 begrenzt.
+
+        - Als Brettkommentar wird "Neues Brett (cl_rexx)" eingetragen.
+
+        - Das Flag 'Realname' wird auf TRUE gesetzt.
+
+       Alle anderen Brettparameter sind entweder 0 oder deaktiviert.
+
+        Beispiel:
+
+         if (CL_BoardNew('INTERN/TEST') then
+             say 'Das Brett /INTERN/TEST wurde angelegt.'
+         else
+             say 'Es ist ein Fehler aufgetreten!'
+
+
+    o CL_BoardDelete(<brettname>)
+
+       Das Brett <brettname> wird aus der Brettliste gelöscht.
+
+        Beispiel:
+
+         if (CL_BoardDelete('INTERN/TEST') then
+             say 'Das Brett /INTERN/TEST wurde gelöscht.'
+         else
+             say 'Das Brett /INTERN/TEST existiert nicht!'
+
+
+
+
+2.2 Befehle zum Auslesen der Brettdaten
+---------------------------------------
+
+    o CLGET_BoardList(<varname> [,<pattern>])
+
+       Legt eine vollständige Brettliste in der STEM-Variablen <varname> an.
+       Der größte Index wird zurückgegeben, der niedrigste Index ist 0. Wird
+       ein Muster <pattern> angegeben, so werden nur diese Bretter, die zu
+       dem Muster passen, berücksichtigt (z.B. 'CLC/#?').
+
+       Parameter:
+
+        varname - Bezeichnung der STEM-Variable ohne Index
+        pattern - Optionaler Parameter mit Suchmuster
+
+       Beispiel:
+
+        anzahl1=CLGET_BoardList(alleBretter)
+        anzahl2=CLGET_BoardList(alleCLCBretter,'CLC/#?')
+        do x = 0 to anzahl1-1
+            say 'Brett Nummer 'x': 'alleBretter.x
+            end
+        do x= 0 to anzahl2-1
+            say 'CLC-Brett Nummer 'x': 'alleCLCBretter.x
+            end
+
+
+    o CLIS_BoardExists(<brettname>)
+
+       Diese Funktion testet, ob das Brett <brettname> in der Brettliste
+       existiert.
+
+        Beispiel:
+
+         if (CLIS_BoardExists('INTERN/TEST') then
+             say '/INTERN/TEST ist ein vorhandenes Brett.'
+         else
+             say '/INTERN/TEST ist ein unbekanntes Brett.'
+
+
+    o CLGET_BoardNumberOf()
+
+       Liefert die Anzahl der eingetragenen Bretter zurück.
+
+
+    o CLGET_BoardNext(<brettname>)
+
+       Diese Funktion gibt den Namen des Brettes zurück, welches <brettname>
+       folgt. Möchte man das erste Brett der gesamten Brettliste ermitteln,
+       übergibt man als Parameter einen Leerstring. Ist das letzte Brett der
+       Liste erreicht, wird von der Funktion ein Leerstring zurückgegeben.
+
+        Beispiel:
+
+         /* Einlesen der gesamten Brettliste in eine STEM-Variable */
+
+         x=CLGET_BoardNumberOf()
+         brett.1=CLGET_BoardNext()
+         do i=2 to x
+             brett.i=CLGET_BoardNext(brett.(i-1))
+             end
+
+
+
+    o CLGET_BoardPrevious(<brettname>)
+
+       Diese Funktion gibt den Namen des Brettes zurück, welches <brettname>
+       vorhergeht. Möchte man das letzte Brett der gesamten Brettliste
+       ermitteln, übergibt man als Parameter einen Leerstring. Ist das erste
+       Brett der Liste erreicht, wird von der Funktion ein Leerstring zurück-
+       gegeben.
+
+        Beispiel:
+
+         /* Einlesen der gesamten Brettliste in eine STEM-Variable */
+
+         x=CLGET_BoardNumberOf()
+         brett.x=CLGET_BoardPrevious()
+         do i=(x-1) to 1 by -1
+             brett.i=CLGET_BoardPrevious(brett.(i+1))
+             end
+
+
+    o CLGET_BoardPrefix(<prefix>)
+
+       Diese Funktion versucht, <prefix> zu einem existierenden Brettnamen
+       zu ergänzen.
+
+        Beispiel:
+
+         say 'CLGET_BoardPrefix('CLC/')
+         /* Als Ergebnis wird das erste Brett der Hierarchie /CLC zurück-
+         gegeben. */
+
+
+    o CLGET_BoardNewsgroupName(<brettname>)
+
+       Liefert den Newsgroupnamen dieses Brettes (rfc-Modul).
+
+
+    o CLGET_BoardFTSName(<brettname>)
+
+       Liefert den FTS-Namen dieses Brettes (FIDO-Modul).
+
+
+    o CLGET_BoardPath(<brettname>)
+
+       Diese Funktion gibt den Dos-Pfad eines Brettes zurück.
+
+
+    o CLGET_BoardAdmin(<brettname>)
+
+       Liefert den Usernamen des Brettverwalters des angegebenen Brettes.
+
+
+    o CLGET_BoardPri(<brettname>)
+
+       Liefert die Mindestpriorität zum Lesen des Brettes.
+
+
+    o CLGET_BoardWritePri(<brettname>)
+
+       Liefert die Mindestpriorität zum Beschreiben des Brettes.
+
+
+    o CLGET_BoardMaxNet(<brettname>)
+
+       Gibt die maximale zugelassene Nachrichtengröße in diesem Brett zurück.
+
+
+    o CLGET_BoardAbout(<brettname>)
+
+       Liefert den Kommentar dieses Brettes.
+
+
+    o CLGET_BoardCensor(<brettname>)
+
+       Liefert den Usernamen des Zensors dieses Brettes.
+
+
+    o CLGET_BoardHoldKB(<brettname>,<maxkb>)
+
+       Liefert das maximale Haltevolumen in KB für  den  Cruncher  in  diesem
+       Brett.
+
+
+    o CLGET_BoardHoldDays(<brettname>,<maxdays>)
+
+       Liefert die maximale Haltezeit in Tagen für  den  Cruncher  in  diesem
+       Brett.
+
+
+    o CLGET_BoardLastWrite(<brettname>)
+
+       Liefert den Zeitpunkt zurück, an welchem der letzte Schreibzugriff in
+       diesem Brett stattgefunden hat. Es wird ein String mit zwei Worten zu-
+       rückgegeben; das erste Wort enthält das Datum im Format DD.MM.YYYY, das
+       zweite Wort die Uhrzeit im Format HH:MM:SS.
+
+        Beispiel:
+
+         /* Ermitteln und zerlegen des letzten Schreibzugriffes im Brett
+            /CLC/USER/FRAGEN.                                            */
+
+         all=clget_BoardLastWrite('CLC/USER/FRAGEN')
+         datum=translate(word(all,1),' ','.')
+         zeit=translate(word(all,2),' ','.')
+         Tag=word(datum,1); Monat=word(datum,2); Jahr=word(datum,3)
+         Stunde=word(zeit,1); Minute=word(zeit,2); Sekunde=word(zeit,3)
+
+
+    o CLIS_BoardGroup(<brettname>,<group>)
+
+       Diese Funktion dient der Abfrage, ob ein Brett einer bestimmten Gruppe
+       angehört.
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         group      - Nummer der Gruppe
+
+
+        Beispiel:
+
+         /* Heiteres Gruppenraten :-) */
+
+         brett='CLC/USER/FRAGEN'
+         options prompt 'Ihr Tip: '
+         do forever
+             pull gruppennr
+             select
+                 when gruppennr=-1 then leave
+                 when ~CLIS_Boardgroup(brett,gruppenr) then do
+                     say 'Nein, /CLC/USER/FRAGEN ist nicht in'
+                     say 'der Gruppe "'CLGet_GroupName(gruppennr)'"!'
+                     end
+                 otherwise do
+                     say 'Sie haben richtig geraten!'
+                     exit
+                     end
+                 end
+             end
+
+
+
+
+2.3 Befehle zum Setzen der Brettdaten
+-------------------------------------
+
+    Bei Erfolg wird generell '1' zurückgeliefert, bei Mißerfolg '0'.
+
+    Beispiel für die Benutzung dieser Funktionen:
+
+        if (funktionsaufruf) then
+
+            ...     /* Aufruf war erfolgreich */
+
+        else
+
+            ...     /* Aufruf war nicht erfolgreich */
+
+
+
+    o CLSET_BoardNewsgroupName(<brettname>,<ngname>)
+
+       Setzt den Newsgroupnamen dieses Brettes (für rfc-Modul).
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         ngname     - gewünschter Newsgroupname
+
+
+    o CLSET_BoardFTSName(<brettname>,<ftsname>)
+
+       Setzt den FTS-Namen dieses Brettes (für FIDO-Modul).
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         ftsname    - gewünschter Echoname
+
+
+    o CLSET_BoardAdmin(<brettname>,<admin>)
+
+       Setzt den Brettverwalter des Brettes.
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         admin      - Username des Brettverwalters
+
+
+    o CLSET_BoardPri(<brettname>,<pri>)
+
+       Setzt die erforderliche Mindestpriorität zum Lesen des Brettes.
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         pri        - Priorität (0<=pri<=99)
+
+
+    o CLSET_BoardWritePri(<brettname>,<pri>)
+
+       Setzt die erforderliche Mindestpriorität zum Beschreiben des Brettes.
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         pri        - Priorität (0<=pri<=99)
+
+
+    o CLSET_BoardMaxNet(<brettname>,<maxnet>)
+
+       Setzt die maximal zugelassene Nachrichtengröße des Brettes.
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         maxnet     - Maximallänge in Byte oder 0.
+
+
+    o CLSET_BoardAbout(<brettname>,<infotext>)
+
+       Setzt den Kommentar dieses Brettes.
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         infotext   - Brettkommentar
+
+
+    o CLSET_BoardCensor(<brettname>,<censor>)
+
+       Setzt den Zensor dieses Brettes.
+
+         Parameter:
+
+          brettname - Name des Brettes
+          censor    - Username des Zensors
+
+
+    o CLSET_BoardHoldKB(<brettname>)
+
+       Setzt das maximale Brettvolumen in Kilobyte für den Cruncher.
+
+
+    o CLSET_BoardHoldDays(<brettname>)
+
+       Setzt die maximale Haltezeit in Tagen für den Cruncher.
+
+
+    o CLSET_BoardGroup(<brettname>,<gruppennr> [,<flag>])
+
+       Trägt ein Brett in eine Gruppe ein oder trägt es aus einer Gruppe aus.
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         gruppennr  - Nummer der Gruppe
+         flag       - Optionales Flag; ist dies angegeben und hat den Wert 0,
+                      wird das Brett aus der Gruppe ausgetragen. Fehlt dieses
+                      Flag beim Aufruf, wird ein Eintragen in die Gruppe ver-
+                      sucht.
+
+
+        Beispiel:
+
+            if (CLSET_BoardGroup('CLC/USER/FRAGEN',1) then do
+                say '/CLC/USER/FRAGEN in Gruppe 1 eingetragen!'
+
+                call CLSET_BoardGroup('CLC/USER/FRAGEN',1,'0')
+                say '/CLC/USER/FRAGEN aus Gruppe 1 ausgetragen!'
+                end
+
+
+
+
+2.4 Befehle zum Auslesen und Verändern der Verteilerliste
+---------------------------------------------------------
+
+
+    o CLGET_BoardBoxList(<brettname>, <varname>)
+
+       Liefert die Anzahl der Systeme zurück, die das Brett <brettname> be-
+       stellt haben. Die Namen der Systeme werden in der STEM-Variablen
+       <varname> abgelegt. Das erste System ist in der Variablen <varname>.0
+       zu finden.
+
+        Beispiel:
+
+         options prompt "Gewünschtes Brett:"
+         pull brett
+         anzahl=CLGet_BoardBoxList(brett,system)
+         say anzahl' Systeme im Verteiler von 'brett':'
+         do x=0 to anzahl-1
+            say ' 'system.x
+            end
+
+
+     o CLGET_BoardNetCount(<brettname>)
+
+        Liefert die Anzahl der im Verteiler des Brettes <brettname> eingetragenen
+        Systeme.
+
+        Hinweis: Wenn Sie nicht nur an der Zahl der Systeme im Verteiler interes-
+        siert sind, sondern den Verteilerstring mittels CLGET_BoardBoxList() so-
+        wieso auslesen, erhalten sie die Anzahl über die interne ARexx-Funktion
+        words() auf einem schnelleren Weg.
+
+
+     o CLSET_BoardAddBox(<brettname>,<system>)
+
+        Fügt ein neues System in die Verteilerliste des Brettes ein. Es
+        wird nicht überprüft, ob das System in der Systemliste eingetragen
+        ist.
+
+         Parameter:
+
+          brettname  - Name des Brettes
+          system     - Name des Systems/des Points.
+
+
+    o CLSET_BoardDelBox(<brettname>,<system>)
+
+       Löscht ein System aus der Verteilerliste des Brettes. Es wird nicht
+       überprüft. ob das System in der Systemliste eingetragen ist.
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         system     - Name des Systems/des Points.
+
+
+
+
+2.5 Befehle zum Testen der Zugriffsberechtigungen
+-------------------------------------------------
+
+
+    o CLGET_BoardValidateUser(<brettname>,<user>)
+
+       Überprüft, ob und wie der User Zugriff auf das Brett hat. Diese
+       Funktion gibt einen der folgenden Strings zurück:
+
+        NONE        User hat keinerlei Zugriff.
+        ACCESS      User hat Zugriff.
+        CENSORED    User hat Zugriff und wird zensiert.
+        ISADMIN     User hat Zugriff und ist Brettverwalter.
+        ISCENSOR    User hat Zugriff und ist Zensor.
+
+
+    o CLGET_BoardValidateBox(<brettname>,<system>)
+
+       Überprüft, ob das System Zugriff auf das Brett hat.
+
+        Beispiel:
+
+         if (CLGET_BoardValidateBox(brett,system)
+             say upper(system)' hat Zugriff auf 'brett'!'
+         else
+             say upper(system)' hat *keinen* Zugriff auf 'brett'!'
+
+
+
+
+2.6 Befehle zum Abfragen von Brettflags
+---------------------------------------
+
+    Ist das jeweilige Flag gesetzt, liefern die Funktionen '1' zurück,
+    ist es nicht gesetzt, eine '0'.
+
+
+    o CLIS_BoardBin(<brettname>)
+
+       Abfrage, ob Binärnachrichten im Brett erlaubt sind.
+
+
+    o CLIS_BoardText(<brettname>)
+
+       Abfrage, ob Textnachrichten im Brett erlaubt sind.
+
+
+    o CLIS_BoardMapsAllowed(<brettname>)
+
+       Abfrage, ob per Maps auf das Brett zugegriffen werden kann.
+
+
+    o CLIS_BoardAutoEntry(<brettname>)
+
+       Abfrage, ob das Brett automatisch eingetragen wurde.
+
+
+    o CLIS_BoardRealname(<brettname>)
+
+       Abfrage, ob im Brett ein Realnamenzwang besteht.
+
+
+    o CLIS_BoardDLRatio(<brettname>)
+
+       Abfrage, ob im Brett eine Up-/Downloadratio aktiv ist.
+
+
+    o CLIS_BoardAutoRemove(<brettname>)
+
+       Abfrage, ob das Brett automatisch ausgetragen wird.
+
+
+    o CLIS_BoardExternal(<brettname>)
+
+       Abfrage, ob es sich um ein extern ausgelagertes Brett handelt.
+
+
+    o CLIS_BoardRouteOnly(<brettname>)
+
+       Abfrage, ob das Brett nur durchgeroutet wird.
+
+
+    o CLIS_BoardNoScan(<brettname>)
+
+       Abfrage, ob bei dem Brett das Datum konstant ist (z.B. CD-ROM's).
+
+
+
+
+2.7 Befehle zum Setzen von Brettflags
+-------------------------------------
+
+    Bei den Funktionen dieses Abschnittes sind die zu übergebenden Parameter
+    von Funktion zu Funktion identisch und haben folgenden Inhalt:
+
+        Parameter:
+
+         brettname  - Name des Brettes
+         flag       - '0' bedeutet, das Flag wird gelöscht (FALSE)
+                      '1' bedeutet, das Flag wird gesetzt (TRUE)
+
+
+    o CLSET_BoardBin(<brettname>,<flag>)
+
+       Flag, ob Binärnachrichten im Brett erlaubt sind.
+
+
+    o CLSET_BoardText(<brettname>,<flag>)
+
+       Flag, ob Textnachrichten im Brett erlaubt sind.
+
+
+    o CLSET_BoardAutoEntry(<brettname>,<flag>)
+
+       Flag, ob das Brett wie ein automatisch eingetragenes Brett be-
+       handelt werden soll.
+
+
+    o CLSET_BoardRealname(<brettname>,<flag>)
+
+       Flag, ob im Brett ein Realnamenzwang existieren soll.
+
+
+    o CLSET_BoardDLRatio(<brettname>,<flag>)
+
+       Flag, ob im Brett eine Up-/Downloadratio gelten soll.
+
+
+    o CLSET_BoardAutoRemove(<brettname>,<flag>)
+
+       Flag, ob das Brett automatisch ausgetragen werden soll.
+
+
+    o CLSET_BoardExternal(<brettname>,<flag>)
+
+       Setzt je nach Flag, ob das Brett extern ausgelagert ist.
+
+
+    o CLSET_BoardRouteOnly(<brettname>,<flag>)
+
+       Flag, ob das Brett nur geroutet wird.
+
+
+    o CLSET_BoardNoScan(<brettname>,<flag>)
+
+       Flag, ob bei dem Brett ein konstantes Datum herrschen soll.
+
+
+
+
+3. Befehle für Zugriff auf Userdaten
+------------------------------------
+
+    Allgemeine Anmerkungen:
+    -----------------------
+
+    Wenn versucht wird, auf einen nicht existenten User zuzugreifen, wird beim
+    Lesen generell ein Leerstring zurückgegeben, beim Schreiben FALSE ('0').
+
+    Es ist zwar möglich, auf User zuzugreifen, die sich gerade online im Sys-
+    tem aufhalten, aber es wird davon abgeraten. Dies liegt darin begründet,
+    daß beim Logoff des Users seine Userdaten wieder aus dem RAM gespeichert
+    werden und Änderungen mittels cl_rexx hierdurch hinfällig werden.
+
+
+
+
+3.1 Allgemeine Befehle
+----------------------
+
+
+    o CLIS_UserExists(<username>)
+
+       Diese Funktion liefert als Rückgabewert TRUE, wenn <username>
+       eingetragener User ist, FALSE, wenn dies nicht der Fall ist.
+
+
+    o CLIS_UserPoint(<username>)
+
+       Liefert TRUE wenn der User einen Point in Ihrem System hat, ist
+       dies nicht der Fall, wird FALSE zurückgegeben.
+
+
+    o CL_UserNew(<username>,<passwort>)
+
+       Es wird ein neuer User unter <username> mit dem Passwort <passwort>
+       eingetragen. Bei Erfolg wird '0' zurückgegeben, ansonsten '1'. Da-
+       nach sollten mit den CLSET_UserX()-Befehlen (siehe Abschnitt 3.3)
+       alle weiteren Daten ergänzt werden.
+
+
+    o CLGET_UserNumberOf()
+
+       Diese Funktion gibt die Anzahl aller eingetragenen User zurück.
+
+
+    o CLGET_Username(<index>)
+
+       Diese Funktion liefert den Usernamen des Users <index> zurück.
+
+        Beispiel:
+
+         /* Erstellen einer Liste aller User */
+
+         anz=CLGET_UserNumberOf()
+         do x=1 to anz
+            user.x=CLGET_Username(x)
+         end
+
+
+
+
+3.2 Befehle zum Auslesen der Userdaten
+--------------------------------------
+
+    o CLGET_UserPriority(<username>)
+
+       Liefert die Priorität des Users zurück.
+
+
+    o CLGET_UserPath(<username>)
+
+       Liefert den Pfad des Users zurück.
+
+
+    o CLIS_UserGroup(<username>,<gruppennr>)
+
+       Liefert '1', wenn der User in der Gruppe <gruppennr> ist, sonst '0'.
+
+
+    o CLGET_UserRealname(<username>)
+
+       Liefert den Realnamen des Users zurück.
+
+
+    o CLGET_UserAddress(<username>)
+
+       Liefert die Adresse des Users zurück.
+
+
+    o CLGET_UserTelephone(<username>)
+
+       Liefert die Telefonnummer des Users zurück.
+
+
+    o CLGET_UserSysopInfo(<username>)
+
+       Liefert die Sysopinfo des Users zurück.
+
+
+    o CLGET_UserMessage(<username>)
+
+       Liefert Userinfo des Users zurück.
+
+
+    o CLGET_UserCopyTo(<username>)
+
+       Liefert den Vertreter des Users zurück.
+
+    o CLGET_UserTerminal(<username>)
+
+       Liefert entweder "ANSI", "VT100" oder "TTY" zurück, je nach Ter-
+       minaleinstellung des Users.
+
+
+    o CLGET_UserLanguage(<username>)
+
+       Liefert Spracheinstellung des Users zurück.
+
+
+    o CLGET_UserKeyboard(<username>)
+
+       Liefert den eingestellten Zeichensatz zurück ("IBM" oder "ISO").
+
+
+    o CLGET_UserNumberOfCalls(<username>)
+
+       Gibt die Gesamtzahl aller Anrufe des Users zurück.
+
+
+    o CLGET_UserTimeout(<username>)
+
+       Liefert den Zeitlimit des Users zurück (Minuten).
+
+
+    o CLGET_UserCredit(<username>)
+
+       Liefert den erlaubten Kredit für den User zurück.
+
+
+    o CLGET_UserLines(<username>)
+
+       Liefert die eingestellte Zeilenzahl des Users zurück.
+
+
+    o CLGET_UserProtocol(<username>)
+
+       Liefert das eingestellte Übertragungsprotokoll zurück.
+
+
+    o CLGET_UserMaxKB(<username>)
+
+       Liefert das maximale Haltevolumen in KB des Postfaches des Users für
+       den Cruncher zurück.
+
+
+    o CLGET_UserMaxDays(<username>)
+
+       Liefert die maximale Haltezeit in Tagen des Postfaches des Users für
+       den Cruncher zurück.
+
+
+    o CLGET_UserLastCall(<username>)
+
+       Liefert den Zeitpunkt des letzten Anrufes des Users zurück. Es wird
+       ein String mit 2 Worten zurückgegeben; das erste Wort beinhaltet das
+       Datum im Format DD.MM.YYYY, das zweite die Uhrzeit im Format HH:MM:SS.
+
+
+    o CLGET_UserUploads(<username>)
+
+       Liefert die Uploads des Users in Kilobyte zurück.
+
+
+    o CLGET_UserDownloads(<username>)
+
+       Liefert Downloads des Users in Kilobyte zurück.
+
+
+    o CLGET_UserFreeFiles(<username>)
+
+       Liefert die freien Files des Users zurück.
+
+    o CLGET_UserFreeKByte(<username>)
+
+       Liefert den Downoladfreiraum des Users zurück.
+
+    o CLGET_UserRate(<username>)
+
+       Liefert die Up-/Downloadratio des Users zurück.
+
+
+    o CLGET_UserPointname(<username>)
+
+       Liefert den Pointnamen des Users zurück.
+
+
+
+
+3.3 Befehle zum Setzen der Userdaten
+------------------------------------
+
+    Bei Erfolg wird generell '1' zurückgeliefert, bei Mißerfolg '0'.
+
+
+    o CLSET_UserPassword(<username>,<passwort>)
+
+       Setzt für einen User das Passwort.
+
+       Parameter:
+
+        username - Username des Users
+        passwort - Passwort des Users
+
+
+    o CLSET_UserPriority(<username>,<priorität>)
+
+       Setzt die Priorität eines Users.
+
+       Parameter:
+
+        username - Username des Users
+        priorität- Priorität (0<=x<=99)
+
+
+    o CLSET_UserPath(<username>,<pfad>)
+
+       Setzt den Pfad des Users.
+
+       Parameter:
+
+        username - Username des Users
+        pfad     - gültiger DOS-Pfad des Userverzeichnisses
+
+
+    o CLSET_UserGroup(<username>,<gruppennr> [,<flag>])
+
+       Trägt den User in eine Gruppe ein bzw. aus.
+
+       Parameter:
+
+        username - Username des Users
+        gruppennr- Nummer der Gruppe
+        flag     - optionales Flag; ist es '0', wird der User aus dieser
+                   Gruppe ausgetragen. Ist es '1' oder fehlt es gänzlich,
+                   wird ein Eintragen in die angegebene Gruppe versucht.
+
+
+    o CLSET_UserRealname(<username>,<realname>)
+
+       Setzt den Realnamen des Users.
+
+       Parameter:
+
+        username - Username des Users
+        realname - Realname des Users
+
+
+    o CLSET_UserAddress(<username>,<adresse>)
+
+       Setzt die Adresse des Users.
+
+       Parameter:
+
+        username - Username des Users
+        adresse  - Adresse des Users
+
+
+    o CLSET_UserTelephone(<username>,<telefon>)
+
+       Setzt die Telefonnummer des Users.
+
+       Parameter:
+
+        username - Username des Users
+        telefon  - Telefonnummer des Users (String)
+
+
+    o CLSET_UserSysopInfo(<username>,<sysopinfo>)
+
+       Setzt die Sysopinfo des Users.
+
+       Parameter:
+
+        username - Username des Users
+        sysopinfo- Informationstext
+
+
+    o CLSET_UserMessage(<username>,<message>)
+
+       Setzt die Userinfo des Users.
+
+       Parameter:
+
+        username - Username des Users
+        unserinfo- Informationstext
+
+
+    o CLSET_UserCopyTo(<username>,<vertreter>)
+
+       Setzt den Vertreter des Users.
+
+       Parameter:
+
+        username - Username des Users
+        vertreter- Vertreter des Users
+
+
+    o CLSET_UserTerminal(<username>,<terminal>)
+
+       Setzt Terminaleinstellung des Users.
+
+        Parameter:
+
+         username - Username des Users
+         terminal - Entweder 'ANSI', 'VT100' oder 'TTY'
+
+
+    o CLSET_UserLanguage(<username>,<sprache>)
+
+       Setzt die Spracheinstellung des Users.
+
+       Parameter:
+
+        username - Username des Users
+        sprache  - Sprache des Users (Default: 'DEUTSCH')
+
+
+    o CLSET_UserKeyboard(<username>,<zeichensatz>)
+
+       Setzt den Zeichensatz des Users.
+
+        Parameter:
+
+         username    - Username des Users
+         zeichensatz - Entweder "IBM" oder "ISO"
+
+
+    o CLSET_UserTimeout(<username>,<timeout>)
+
+       Setzt den Zeitlimit des Users.
+
+        Parameter:
+
+         username - Username des Users
+         timeout  - Zeitlimit des Users in Minuten
+
+
+    o CLSET_UserAccount(<username>,<konto>)
+
+       Setzt den Kontostand des Users.
+
+        Parameter:
+
+         username - Username des Users
+         konto    - Kontostand des Users
+
+
+    o CLSET_UserCredit(<username>,<kredit>)
+
+       Setzt den erlaubten Kredit des Users.
+
+        Parameter:
+
+         username - Username des Users
+         kredit   - Kredit
+
+
+    o CLSET_UserLines(<username>,<zeilenzahl>)
+
+       Setzt die Zeilenzahl-Einstellung des Users.
+
+        Parameter:
+
+         username   - Username des Users
+         zeilenzahl - Zeilenzahl des Users
+
+
+    o CLSET_UserProtocol(<username>,<protokoll>)
+
+       Setzt das Übertragungsprotokoll.
+
+        Parameter:
+
+         username - Username des Users
+         protokoll- Übertragungsprotokoll (Default: "ZMODEM")
+
+
+    o CLSET_UserMaxKB(<username>,<maxkb>)
+
+       Setzt das maximale Haltevolumen in Kilobyte für den Cruncher im
+       Postfach des Users.
+
+        Parameter:
+
+         username - Username des Users
+         maxkb    - Maximalvolumen
+
+
+    o CLSET_UserMaxDays(<username>,<maxdays>)
+
+       Setzt die maximale Haltezeit in Tagen für den Cruncher im Postfach
+       des Users.
+
+        Parameter:
+
+         username - Username des Users
+         maxdays  - maximale Haltezeit
+
+
+    o CLSET_UserUploads(<username>,<uploads>)
+
+       Setzt die Uploads des Users in Kilobyte.
+
+        Parameter:
+
+         username - Username des Users
+         uploads  - Uploads
+
+
+    o CLSET_UserDownloads(<username>,<downloads>)
+
+       Setzt die Downloads des Users in Kilobyte.
+
+        Parameter:
+
+         username - Username des Users
+         downloads- Downloads
+
+
+    o CLSET_UserFreeFiles(<username>,<freefiles>)
+
+       Setzt die freien Files des Users.
+
+        Parameter:
+
+         username - Username des Users
+         freefiles- Anzahl der freien Files.
+
+
+    o CLSET_UserFreeKByte(<username>,<freekbyte>)
+
+       Setzt den Downloadfreiraum des Users.
+
+        Parameter:
+
+         username - Username des Users
+         freekbyte- Downloadfreiraum
+
+
+    o CLSET_UserRate(<username>,<ratio>)
+
+       Setzt die Up-/Downloadratio des Users.
+
+        Parameter:
+
+         username - Username des Users
+         ratio    - Up-/Downloadratio (1:x)
+
+
+
+
+3.4 Befehle zum Lesen der Userflags
+-----------------------------------
+
+    Ist das jeweilige Flag gesetzt, liefern die Funktionen '1' zurück,
+    ansonsten '0'.
+
+
+    o CLIS_UserInvisible(<username>)
+
+       Abfrage, ob der User unsichtbar ist.
+
+
+    o CLIS_UserNetworkEnabled(<username>)
+
+       Abfrage, ob der User netzberechtigt ist.
+
+
+    o CLIS_UserAutoEntry(<username>)
+
+       Abfrage, ob der User automatisch eingetragen wurde (unbearbeiteter
+       Userantrag).
+
+
+    o CLIS_UserAutoRemove(<username>)
+
+       Abfrage, ob der User automatisch entfernt werden soll.
+
+
+
+
+3.5 Befehle zum Setzen der Userflags
+------------------------------------
+
+    Bei den Funktionen dieses Abschnittes sind die zu übergebenden Parameter
+    von Funktion zu Funktion identisch und haben folgenden Inhalt:
+
+        Parameter:
+
+         username  - Name des Users
+         flag       - '0' bedeutet, das Flag wird gelöscht (FALSE)
+                      '1' bedeutet, das Flag wird gesetzt (TRUE)
+
+
+    o CLSET_UserInvisible(<username>,<flag>)
+
+       Flag, ob der User unsichtbar ist.
+
+
+    o CLSET_UserNetworkEnabled(<username>,<flag>)
+
+       Flag, ob der User Netzberechtigung hat.
+
+
+    o CLSET_UserAutoEntry(<username>,<flag>)
+
+       Flag, ob der User automatisch eingetragen wurde.
+
+
+    o CLSET_UserAutoRemove(<username>,<flag>)
+
+       Flag, ob der User automatisch gelöscht wird.
+
+
+
+
+4. Befehle für Zugriff auf Systemdaten
+--------------------------------------
+
+    Allgemeine Anmerkungen:
+    -----------------------
+
+    Wenn versucht wird, auf ein nicht existentes System zuzugreifen, wird
+    beim Lesen generell ein Leerstring zurückgegeben, beim Schreiben '0'.
+
+
+
+
+4.1 Allgemeine Befehle
+----------------------
+
+    o CL_SystemSavelist()
+
+       Wurde die Systemliste verändert, wird sie bei Aufruf dieser Funktion
+       gespeichert.
+
+
+    o CL_SystemNew(<systemname>)
+
+       Erzeugt ein neues System mit dem Namen <systemname>. Danach sollten
+       mit den CLSET_SystemX()-Befehlen (siehe Abschnitt 5.3) alle Daten
+       ergänzt werden.
+
+
+    o CL_SystemDelete(<systemname>)
+
+        Das System <systemname> wird aus der Systemliste gelöscht.
+
+
+    o CLGET_SystemNumberOf()
+
+        Diese Funktion gibt die Anzahl aller eingetragenen Systeme zurück.
+
+
+    o CLGET_SystemName(<index>)
+
+        Nach Aufruf gibt die Funktion den Namen des Systems mit der Nummer
+        <index> zurück.
+
+        Beispiel:
+
+         anzahl=CLGET_SystemNumberOf()   /* Anzahl der Systeme ermitteln */
+
+         do x=1 to anzahl
+            system.x=CLGET_SystemName(x)
+            end
+
+
+    o  CLIS_SystemExists(<systemname>)
+
+        Liefert '1', wenn das System <systemname> in der Systemliste einge-
+        tragen ist, ansonsten '0'.
+
+
+
+
+4.2 Befehle zum Auslesen der Systemdaten
+----------------------------------------
+
+
+    o CLGET_SystemDomain(<systemname>)
+
+        Diese Funktion gibt die Domain eines eingetragenen Systems zurück.
+
+
+    o CLGET_SystemRoute(<systemname>)
+
+        Diese Funktion liefert das Routesystem von <systemname>. Bei nicht
+        existentem System <systemname> oder bei aktiviertem PathAlias-/Do-
+        mainrouting wird ein Leerstring zurückgeliefert.
+
+         Beispiel:
+
+          route=CLGET_SystemRoute(systemname)
+          if route='' then do
+              if ~CLIS_SystemExists(systemname) then
+                  say 'Dieses System ist nicht eingetragen!'
+              else
+                  say 'Mail wird per PathAlias/Domainrouting geroutet!'
+              end
+
+
+    o CLGET_SystemNet(<systemname>)
+
+       Liefert den Netznamen vom System <systemname> im Klartext (JANUS,
+       ZERBERUS, UUCP oder FIDO).
+
+
+    o CLGET_SystemProtocol(<systemname>)
+
+       Liefert den Namen des für <systemname> eingestellten Transferproto-
+       kolls im Klartext.
+
+
+    o CLGET_SystemPackerIn(<systemname>)
+
+       Liefert den Packer der von <systemname> eingehenden Puffer im Klar-
+       text.
+
+
+    o CLGET_SystemPackerOut(<systemname>)
+
+       Liefert den Packer der an <systemname> ausgehenden Puffer im Klar-
+       text.
+
+
+    o CLGET_SystemGroup(<systemname>,<gruppennr>)
+
+       Liefert '1', wenn das System <systemname> in die Gruppe mit der Num-
+       mer <gruppennr> eingetragen ist, ansonsten '0'.
+
+
+    o CLGET_SystemPointuser(<systemname>)
+
+       Falls es sich bei dem System um einen Point handelt, wird der Name
+       des Pointusers zurückgegeben, ansonsten ein Leerstring.
+
+
+    o CLGET_SystemTelephone(<systemname>)
+
+       Diese Funktion gibt die Telefonnummer des Systems <systemname> zu-
+       rück.
+
+        Beispiel:
+
+         /* Einlesen der einzelnen Telefonnummern eines Systems in eine
+            STEM-Variable                                                */
+
+         string=translate(CLGET_SystemTelephone(system),' ','|')
+         if string~='' then do
+             do x=1 to words(string)
+                 telefon.x=word(string,x)
+                 end
+             end
+
+
+    o CLGET_SystemPriority(<systemname>)
+
+       Diese Funktion gibt die Priorität des Systems <systemname> zurück.
+
+
+    o CLGET_SystemLastCall(<systemname>)
+
+       Liefert das Datum des letzten Anrufs vom System <systemname> im For-
+       mat 'DD.MM.YYYY HH:MM:SS'.
+
+
+    o CLIS_SystemAutoEntry(<systemname>)
+
+        Liefert den Rückgabewert '1', wenn das System die Berechtigung zum
+        Autoeintrag neuer Brett hat, ansonsten '0'.
+
+
+    o CLIS_SystemMapsAccess(<systemname>)
+
+        Liefert den Rückgabewert '1', wenn das System Zugriff auf Maps
+        hat, ansonsten '0'.
+
+
+
+
+4.3 Befehle zum Setzen der Systemdaten
+--------------------------------------
+
+    Bei Erfolg wird generell '1' zurückgegeben, bei Mißerfolg '0'.
+
+
+    o CLSET_SystemPassword(<systemname>,<passwort>)
+
+       Trägt für das System das Passwort <passwort> ein.
+
+
+    o CLSET_SystemDomain(<systemname>,<domain>)
+
+       Trägt für das System die Domain <domain> ein.
+
+
+    o CLSET_SystemRoute(<systemname>,<routesystem>)
+
+       Trägt für das System das Routesystem <routesystem> ein und schaltet
+       ein evt. eingeschaltetes PathAlias/Domainrouting ab.
+
+
+    o CLSET_SystemNet(<systemname>,<netzname>)
+
+       Setzt den Netznamen des Systems (Default "JANUS").
+
+
+    o CLSET_SystemProtocol(<systemname>,<protokoll>)
+
+       Setzt das Transferprotokoll des Systems (Default "ZMODEM").
+
+
+    o CLSET_SystemPackerIn(<systemname>,<packer>)
+
+       Setzt den Packer für eingehende Puffer vom System (Default "LHA").
+
+
+    o CLSET_SystemPackerOut(<systemname>,<packer>)
+
+       Setzt den Packer für ausgehende Puffer an das System (Default "LHA").
+
+
+    o CLSET_SystemGroup(<systemname>,<gruppennr> [,<flag>])
+
+       Trägt das System in eine Gruppe ein.
+
+        Parameter:
+
+         systemname  - Name des Systems
+         gruppennr   - Nummer der Gruppe
+         flag        - Optionaler Parameter; ist es "0", wird das System
+                       aus der Gruppe ausgetragen, ist es "1" oder wird
+                       weggelassen, wird das System in die Gruppe einge-
+                       tragen.
+
+
+    o CLSET_SystemPointuser(<systemname>,<username>)
+
+       Setzt einen Pointuser für das System.
+
+        Parameter:
+
+         systemname  - Name des Systems
+         username    - Pointuser. Wird hier ein Leerstring übergeben,
+                       wird die Verknüpfung gelöscht und das System
+                       nicht weiter als Point betrachtet.
+
+
+    o CLSET_SystemTelephone(<systemname>,<telefon>)
+
+       Setzt die Telefonnummer des Systems.
+
+        Parameter:
+
+         systemname  - Name des Systems
+         telefon     - String mit einer oder mehreren Telefonnummern,
+                       bei mehreren durch '|' getrennt
+
+        Beispiel:
+
+         if zaehler>1 then do
+             do x=1 to zaehler-1     /* Mehrere Nummern aneinanderhängen */
+                 telefon=nummer.x'|'
+                 end
+             end
+         telefon=telefon||nummer.zaehler /* Nur ein Port bzw. der letzte */
+         call CLSET_SystemTelephone(system,telefon)
+
+
+    o CLSET_SystemPriority(<systemname>,<priorität>)
+
+       Setzt die Priorität des Systems.
+
+        Parameter:
+
+         systemname  - Name des Systems
+         priorität   - Priorität des Systems (0<=x<=99)
+
+
+    o CLSET_SystemAutoEntry(<systemname>,<flag>)
+
+       Setzt die Berechtigung zum Autoeintrag von Brettern.
+
+        Parameter:
+
+         systemname  - Name des Systems
+         flag        - '1' erlaubt Autoeintrag
+                       '0' verweigert Autoeintrag
+
+
+    o CLSET_SystemMapsAccess(<systemname>,<flag>)
+
+       Setzt die Berechtigung zum Zugriff auf Maps.
+
+        Parameter:
+
+         systemname  - Name des Systems
+         flag        - '1' erlaubt Mapszugriff
+                       '0' verweigert Mapszugriff
+
+
+
+
+5. Funktionen für Onlinebefehle
+-------------------------------
+
+    Allgemeine Anmerkungen:
+    -----------------------
+
+    Alle CLONL_X()-Befehle liefern bei Erfolg '1' und bei Mißerfolg '0' zu-
+    rück. Es sollte zumindest bei ersten Aufruf überprüft werden, ob eine
+    '1' zurückgegeben wurde, damit man weiß, ob das ANSI-System korrekt ini-
+    tialisiert wurde.
+
+     Beispiel:
+
+      if ~CLONL_ClearScreen() then do
+          say "Can't init ANSI-System!"
+          exit 10
+          end
+
+
+    o CL_Edit(<filename> [,<flag>])
+
+       Ruft den Editor auf.
+
+        Parameter:
+
+         filename    - Pfad und Name der Datei <filename>
+         online      - Optionaler Parameter; ist er angegeben, wird
+                       der Online-Editor anstelle des Offline-Editors
+                       benutzt.
+
+        Beispiel:
+
+         call CL_Edit('T:test',) /* Online-Editor benutzen */
+
+
+    o CLONL_GotoXY(<x>,<y>)
+
+        Setzt den Cursor auf die Position x,y.
+
+        Parameter:
+
+         x - Nummer der Spalte
+         y - Nummer der Zeile
+
+        Beispiel:
+
+         call CLONL_GotoXY(1,1)  /* Cursor in die linke obere Ecke */
+
+
+    o CLONL_Normal()
+
+       Schaltet die Textausgabe auf ANSI-Style "Normal" zurück. Das Resultat
+       ist von Terminal zu Terminal verschieden; üblicherweise ist es Schrift-
+       farbe weiß, Hintergrundfarbe Schwarz, kein Style.
+
+    o CLONL_DeleteEOL()
+
+       Per ANSI-Steuersequenz wird von der aktuellen Cursorposition bis zum
+       Ende der Zeile alles gelöscht.
+
+
+    o CLONL_DeleteLine()
+
+       Per ANSI-Steuersequenz wird die aktuelle Zeile vollständig gelöscht,
+       nachfolgende Zeilen rücken auf.
+
+
+    o CLONL_InsertLine()
+
+       Per ANSI-Steuersequenz wird an der aktuellen Position des Cursors eine
+       Zeile eingefügt und die nachfolgende Zeilen um eine Zeile nach unten
+       verschoben.
+
+
+    o CLONL_BlueMode()
+
+       Es wird auf den 'Blue'-Mode umgestellt. Hierbei handelt es sich um einen
+       besonders markanten Eingabe- und Titelmodus.
+
+
+    o CLONL_Color(<color>,<bcolor>,<style>)
+
+       Die Cursorfarbe wird zur weiteren Ausgabe umgestellt, ein Schriftstil
+       wird benutzt.
+
+        Parameter:
+
+          color - Schriftfarbe (BLACK, RED, GREEN, YELLOW, BLUE, PINK, CYAN
+                                oder WHITE)
+          bcolor- Hintergrundfarbe (BLACK, RED, GREEN, YELLOW, BLUE, PINK,
+                                    CYAN oder WHITE)
+          style - Schriftstil (NORMAL, BOLD, KURSIV, UNDERLINE oder INVERSE)
+
+
+    o CLONL_BlueRead(<länge> [,<vorgabe>]
+
+       Über eine blaue Eingabezeile wird ein String-Gadget simuliert. Exis-
+       tiert eine Vorgabe, so steht diese bereits im Feld. Nach einer Bestä-
+       tigung der Eingabe der 'Return'-Taste wird der Inhalt des Feldes zu-
+       rückgegeben.
+
+        Parameter:
+
+         länge   - Länge der Eingabezeile in Zeichen
+         vorgabe - Text, der als Default in der Eingabezeile stehen soll
+
+
+    o CLONL_Wait()
+
+       Es wird eine Meldung "<Bitte Taste drücken>" ausgegeben und auf einen
+       Tastendruck gewartet. Wird eine '1' zurückgegeben, wurde eine Taste
+       gedrückt. Bei einem Rückgabewert '0' sollte sich das Programm auf jeden
+       Fall vollständig beenden, da der User dann CTRL-C/Q/X gedrückt hat oder
+       der Carrier verloren wurde.
+
+
+    o CLONL_DoCommand(<befehl> [,<parameter>])
+
+       Ruft einen in den Shellprefs eingetragenen Onlinebefehl auf, so, als
+       würde der User den Befehl selbst aufrufen.
+
+        Parameter:
+
+         befehl      - Onlinebefehl
+         parameter   - Optionaler Parameter; beinhaltet einen String, der an
+                       den Befehl als Parameter übergeben wird.
+
+    o CLONL_SendMail(<absender>,<empfänger>,<betreff>,<filename>)
+
+        Verschickt eine Textnachricht. Siehe auch CL_SendMailFull().
+
+         Parameter:
+
+          absender   - Absender der Nachricht, System- und Domainangabe
+                       werden ersetzt.
+          empfänger  - Empfänger der Nachricht
+          betreff    - Betreff der Nachricht
+          filename   - Pfad und Name des zu verschickenden Files.
+
+
+    o CLGET_Key()
+
+       Wartet auf einen Tastendruck und gibt sie zurück. Ein String '-1'
+       bedeutet, daß ein Abbruch stattgefunden hat oder der Carrier verloren
+       wurde; in beiden Fällen sollte sich das ARexx-Skript umgehend selbst
+       beenden.
+
+       Bei gedrückten Cursortasten werden folgende Werte zurückgegeben:
+
+        Cursor nach oben  : "-UP"
+        Cursor nach unten : "-DOWN"
+        Cursor nach links : "-LEFT"
+        Cursor nach rechts: "-RIGHT"
+
+        Beispiel:
+
+          menu:
+             say '[1] Nachricht editieren'
+             say '[2] Nachricht verschicken'
+             say '[E] Programm verlassen'
+             say ''
+          loop:
+             taste=CLGET_Key()
+             select
+                 when taste='1' then call edit
+                 when taste='2' then call send
+                 when (taste='E')|(taste='-1') then exit
+                 otherwise call loop
+                 end
+             call menu
+
+
+    o CLONL_Transfer(<filename> [,<sendfilename>]
+
+       Verschickt ein File an den User. Bei dieser Funktion kann es Probleme
+       geben, wenn sie in ihrem System XPR-Treiber-Protokolle anstelle der
+       Connectline Built-in-Übertragungsprotokolle verwenden.
+
+        Parameter:
+
+         filename    - Name des zu übertragenden Files
+         sendfilename- Optionaler Parameter; ist er angegeben, wird das File
+                       mit diesem Namen verschickt.
+
+        Beispiel:
+
+        if ~CLONL_Transfer('JANUS:'||point||'/'||point||'.PRE') then
+            say 'Transfer fehlgeschlagen!'
+        else
+            say 'Transfer erfolgreich!'
+
+
+    o CLONL_Receive(<port>)
+
+       Empfängt ein File auf Port <port> und gibt den kompletten Pfad zurück,
+       bzw. einen Leerstring bei fehlgeschlagener Übertragung. Werden mehrere
+       Files empfangen, so werden die Filenamen durch Leerzeichen getrennt in
+       einem String zurückgegeben. Die empfangenen Files sollten auf jeden
+       Fall entsorgt werden, da sie sonst vom Onlinebefehl SENDEN als
+       Bimodem-Übertragungsfiles behandelt werden.
+
+        Beispiel:
+
+         string=CLONL_Receive(port)
+         if string~='' then do
+             do x=1 to words(string)
+                 rename(word(string,x),'T:'||word(string,words(translate(string,' ','/'))))
+                 end
+             end
+         else say 'Übertragung fehlgeschlagen!'
+
+
+    o CLIS_KeyPressed()
+
+       Liefert '1', wenn eine Taste gedrückt wurde, ansonsten '0'.
+
+
+    o CLONL_ShortMenu(<eintrag> {,<einträge>})
+
+       Es wird ein kleines einzeiliges Menü aus den Einträgen aufgebaut.
+       Die maximale Anzahl der Parameter liegt bei 20. Der erste Buch-
+       stabe eines jeden Eintrages wird als Hotkey verwendet. Der Hot-
+       key des ausgewählten Eintrages wird zurückgegeben.
+
+
+    o CLONL_ShortMenuVertical(<eintrag> {,<einträge>})
+
+       Es wird ein kleines vertikales Menü aus den Einträgen aufgebaut.
+       Die maximale Anzahl der Parameter liegt bei 20. Der erste Buch-
+       stabe eines jeden Eintrages wird als Hotkey verwendet. Der Hot-
+       key des ausgewählten Eintrages wird zurückgegeben.
+
+
+    o CLONL_SetObscure(<flag>)
+
+       Setzt den Obscure-Modus. Ist das Flag gesetzt, ist ein Mitlesen
+       auf der Console nicht mehr möglich.
+
+
+    o CLONL_ClearScreen()
+
+       Per ANSI-Steuersequenz wird der Bildschirm gelöscht.
+
+
+    o CLONL_PrintFile(<filename>)
+
+       Gibt das File <filename> als Text aus.
+
+
+
+
+6. Befehle für Zugriffe auf Nachrichten
+---------------------------------------
+
+
+6.1 Befehle zum Lesen von Nachrichtendaten
+------------------------------------------
+
+
+    o CLGET_MsgNumberOf(<brettname>)
+
+       Liefert die Anzahl der Nachrichten im Brett <brettname> zurück.
+       Existiert das Brett nicht oder konnte der Index nicht gelockt wer-
+       den, wird eine '-1' zurückgegeben.
+
+
+    o CLGET_MsgSubject(<brettname>,<nr>)
+
+       Liefert den Betreff von Nachricht Nr. <nr> im Brett <brettname>.
+
+
+    o CLGET_MsgFilename(<brettname>,<nr>)
+
+       Liefert den Filenamen von Nachricht Nr. <nr> im Brett <brettname>.
+
+
+    o CLGET_MsgShortComment(<brettname>,<nr>)
+
+       Liefert den Kurzkommentar von Nachricht Nr. <nr> im Brett <brettname>.
+
+
+    o CLGET_MsgFrom(<brettname>,<nr>)
+
+       Liefert den Absender von Nachricht Nr. <nr> im Brett <brettname>.
+
+
+    o CLGET_MsgMsgID(<brettname>,<nr>)
+
+       Liefert die MsgID von Nachricht Nr. <nr> im Brett <brettname>.
+
+
+    o CLGET_MsgReadcount(<brettname>,<nr>)
+
+       Liefert den Zugriffszähler von Nachricht Nr. <nr> im Brett <brettname>.
+
+
+    o CLGET_MsgIncomeDate(<brettname>,<nr>)
+
+       Liefert das Einsortierdatum von Nachricht Nr. <nr> im Brett <brett-
+       name>.
+
+
+    o CLGET_MsgSendDate(<brettname>,<nr>)
+
+       Liefert das Absendedatum von Nachricht Nr. <nr> im Brett <brettname>.
+
+
+    o CLIS_MsgBinary(<brettname>,<nr>)
+
+       Liefert '1', wenn die Nachricht Nr. <nr> im Brett <brettname> ein File
+       ist, ansonsten '0'.
+
+
+    o CLGET_MsgBody(<brettname>,<nr>,<filename>)
+
+       Diese Funktion lagert den Body der Nachricht Nr. <nr> im Brett <brett-
+       name> mit dem Filenamen <filename> aus.
+
+
+    o CLGET_MsgBodyLength(<brettname>,<nr>)
+
+       Diese Funktion gibt die Länge des Mailbodies der Nachricht Nr. <nr>
+       im Brett <brettname> zurück.
+
+
+    o CLGET_MsgComment(<brettname>,<nr>,<filename>)
+
+       Diese Funktion dient dem Auslagern des langen Kommentars (KOM:) der
+       Nachricht Nr. <nr> des Brettes <brettname> unter dem Filename <file-
+       name>.
+
+
+    o CLGET_MsgCommentLength(<brettname>,<nr>)
+
+       Diese Funktion gibt die Länge des langen Kommentars (KOM:) der Nach-
+       richt Nr. <nr> des Brettes <brettname> zurück.
+
+
+
+
+6.2 Befehle zum Setzen von Nachrichtendaten
+-------------------------------------------
+
+
+    o CLSET_MsgSubject(<brettname>,<nr>,<betreff>)
+
+       Setzt den Betreff von Nachricht Nr. <nr> im Brett <brettname> auf
+       <betreff>.
+
+
+    o CLSET_MsgShortComment(<brettname>,<nr>,<kommentar>)
+
+       Setzt den Kurzkommentar von Nachricht Nr. <nr> im Brett <brettname>
+       auf <kommentar>.
+
+
+    o CLSET_MsgDelete(<brettname>,<nr>)
+
+       Setzt das Löschflag von Nachricht Nr. <nr> im Brett <brettname>. Die
+       Nachricht wird beim nächsten Crunchen des Brettes vollständig ent-
+       fernt.
+
+
+
+
+7. Befehle für Zugriffe auf die Ports
+-------------------------------------
+
+    Allgemeine Anmerkungen:
+    -----------------------
+
+    Diese Funktionen benötigen als Übergabeparameter die Nummer des Ports,
+    von welchem aus das Skript gestartet wurde. Diese erhalten sie entweder
+    beim Aufruf als Parameter oder über den ARexx-Port des CL-PORTx.
+
+    Ist niemand eingeloggt, geben die Funktionen - solange nicht anders ver-
+    merkt - einen Leerstring zurück.
+
+
+    o CLGET_PortUsername(<port>)
+
+       Liefert den Usernamen des eingeloggten Users.
+
+
+    o CLGET_PortCurrentboard(<port>)
+
+       Liefert den Namen des Brettes, in welchem sich der User gerade aufhält.
+
+
+    o CLGET_PortTerminal(<port>)
+
+       Liefert die aktuelle Terminaleinstellung des Users im Klartext ("ANSI",
+       "VT100" oder "TTY").
+
+
+    o CLGET_PortLines(<port>)
+
+       Liefert die aktuelle maximale Zeilenzahl des Users. Ist niemand ein-
+       geloggt, wird eine '-1' zurückgegeben.
+
+
+
+
+8. Befehle zum Auslesen von Defaultpfaden
+------------------------------------------
+
+    o CLGET_PathJANUS()
+
+       Liefert den in den JANUS-Prefs eingestellten Pfad des JANUS-Verzeich-
+       nisses zurück. Beim Aufruf dieser Funktion muß Connectline laufen.
+
+        Beispiel:
+
+         /* Abfragen, ob Connectline zur Zeit läuft */
+
+         if ~show('P','CL-SERVER') then do
+             say 'Bitte erst Connectline 5.0 starten!'
+             exit
+             end
+         JANUS=CLGET_PathJANUS()
+
+
+    o CLGET_PathZERBERUS()
+
+       Liefert den in den Z38-Prefs eingestellten Pfad des ZERBERUS-Ver-
+       zeichnisses zurück. Beim Aufruf dieser Funktion muß Connectline laufen.
+
+        Beispiel:
+
+         /* Abfragen, ob Connectline zur Zeit läuft */
+
+         if ~show('P','CL-SERVER') then do
+             say 'Bitte erst Connectline 5.0 starten!'
+             exit
+             end
+         ZERBERUS=CLGET_PathZERBERUS()
+
+
+    o CLGET_PathSpool()
+
+       Liefert den Pfad des JANUS-Spoolverzeichnisses zurück.
+
+
+    o CLGET_PathTrash()
+
+       Liefert den Pfad des JANUS-Trashverzeichnisses zurück.
+
+
+    o CLGET_PathBoard()
+
+       Liefert den in der Hauptkonfiguration eingestellten Defaultpfad der
+       Bretter zurück.
+
+
+    o CLGET_PathUser()
+
+       Liefert den in der Hauptkonfiguration eingestellten Defaultpfad der
+       Userverzeichnisse zurück.
+
+
+Bugreports und Vorschläge bitte ins Brett /CLC/BETA oder per Mail an
+merlin@sixpack.pfalz.de.
+
+--
+Changes:
+
+1.0  - Entwicklung (bis 1.2) (7.11.1995)
+1.3  - Erste Veröffentlichung im Connectline Supportnetz.
+1.4  - CLSET_/GET_BoardHoldKB/HoldDays() neu dazu. (8.11.1995)
+     - CLGET_BoardLastWrite() neu dazu.
+     - CL_BoardNew() neu dazu.
+     - CL_BoardDelete() neu dazu.
+     - CLGET/SET__BoardMaxNet() neu dazu.
+     - CLIS/SET__BoardNoScan() neu dazu.
+     - CLGET_BoardExists() heißt nun CLIS_BoardExits().
+     - alle Libraries werden sauber geschlossen.
+     - CLIS/SET_BoardGroup() neu dazu.
+1.5  - Userfunktionen (9.11.95)
+1.6  - CLIS/SET_User-Flags() neu dazu (Kap. 3.3/3.4).
+     - CLGET_SystemName()/SystemAddress()/GroupName() neu dazu.
+     - CL_Edit() neu dazu.
+     - CLGET_BoardPrefix() viel toleranter.
+1.7  - Systemfunktionen (10.11.95)
+     - CLIS_UserPoint() neu dazu.
+     - Unberechtigte Zugriffe führen nicht mehr zu Error 100.
+1.8  - Online Befehle integriert (10.11.95)
+1.9  - CLGET_BoardNext()/Previous() hatte jeweils ein Brett zertrashed.
+       (Und zwar immer das letzte, das zur Terminierung gedacht war).
+1.10 - CL_SendMailFull() neu dazu. (11.11.95)
+     - Schreibkorrektur Protocoll->Protocol.
+     - CLGET/IS/SET_Msg...() Befehle neu dazu.
+     - CLGET_Port...() Befehle neu dazu.
+     - Schreibkorrektur Telefon->Telephone.
+1.11 - Schreibfehler in Doku, jetzt CLGET_BoardBoxList() (war CLGET_BoxList())
+     - Schreibfehler in Doku, jetzt CLGET/SET_BoardHoldKB/Days().
+1.12 - Returncodes der CLSET/IS_User...() Befehle korrekt.(15.11.95)
+     - CLGET_BoardNext() lieferte bei "" Trash.
+     - CLONL_...() Befehle ein wenig optimiert.
+     - CLONL_Continue() ist rausgeflogen. Ist bei Con Ausgaben unnötig.
+1.13 - CLGET_UserPointname() neu dazu. (16.11.95)
+     - CLGET_BoardPrefix() liefert immer gültige Bretter. (17.11.95)
+     - CLONL_Receive() neu dazu.
+1.14 - CL_AddLog() neu dazu. (19.11.95)
+1.15 - CL_GetText() neu dazu. (20.11.95)
+     - CLGET_BoardList() neu dazu.
+     - CLGET_BoardBoxList() nun Ergebnis in Array. (21.11.95)
+     - CLGET_Path...() neu dazu.
+1.16 - CLONL_Transfer() liefert bei fehlgeschlagenem Transfer nun auch
+       rexxFalse zurück.
+     - CL_PutStr() gibt Text aus, ohne LF am Ende.
+1.17 - CLGET/IS_SystemMapsAccess() neu dazu. (26.11.95)
+     - CLGET/IS_SystemAutoentry() neu dazu.
+1.18 - CLGET_Msg...Length() neu dazu.
+1.19 - Bugfixes. (27.11.95)
+1.20 - CL_LogDelete()/CL_LogRename() neu dazu. (3.12.95)
+     - CL_AddLog() in CL_LogAdd() umbennant (Saubere Struktur)
+     - CLGET_FileRequest() neu dazu.
+1.21 - CLGET_FrontScreenName() neu hinzu. (4.12.95)
+1.22 - CLGET_PathSpool() neu dazu. (14.12.95)
+     - CLGET_PathTrash() neu dazu.
+     - CLGET_TransferList( <STEM> ) neu dazu.
+     - CLGET_PackerList( <STEM> ) neu dazu.
+     - Kleiner Bug bei __UserLibInit() beseitigt.
+1.23 - Carriercheck bei CLONL_ShortMenu[Vertical]() korrigiert. (28.12.95)
+1.24 - CLGET_UserFreeKByte() neu dazu. (13.01.96)
+       CLSET_UserFreeKByte() neu dazu.
+1.25 - CLONL_x()-Funktionen brachten u.U. die Shell zum Hängen. (04.02.96)

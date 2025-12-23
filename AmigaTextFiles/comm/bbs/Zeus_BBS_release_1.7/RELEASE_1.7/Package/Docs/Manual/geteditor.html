@@ -1,0 +1,106 @@
+<html>
+<head>
+  <title></title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="msg.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="getarchiver.html"><img src="prev.gif" alt="PREV" border=0></a><a href="getmsgaccess.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+<PRE>
+   NAME
+                GetEditor -- Returns information about an editor.
+
+   SYNOPSIS
+                GetEditor [Editor Number] [NAME|LOW|HIGH|TYPE|TAG]
+
+   FUNCTION
+                This function returns information from the editors
+                configuration as defined in Prefs/Editors.
+
+                Editors are referenced by their ordinal position
+                in the configuration, starting from one.
+
+   INPUTS
+                Editor Number  - Return data for the editor at
+                                 position &#060;Editor Number&#062; in the
+                                 editors configuration.
+
+                NAME           - Return Editor name.
+                LOW            - Return lowest access level required to
+                                 access this editor.
+                HIGH           - Return highest access level required to
+                                 access this editor.
+                TYPE           - Return line type required to access
+                                 this editor. Return values are:
+
+                                 &quot;REMOTE&quot;, &quot;LOCAL&quot;, &quot;BOTH&quot;
+
+                TAG &#060;TAG&#062;      - Return ARexx script segment used to load
+                                 editor in &quot;TAG&quot; mode. The &quot;Msg/WriteMsg&quot;
+                                 script uses the &quot;MSG&quot; tag to edit message
+                                 texts.
+
+   RESULT
+                Data Requested.
+
+   RC
+                 0 -- Data requested returned
+                 5 -- Bad arguments
+                10 -- Editor does not exist
+
+   EXAMPLE
+                /*
+                ** List Editors
+                */
+
+                ClrScr
+
+                Write '&quot;n&#027;[32mAvailable editors:nn&quot;'
+                i = 1
+                GetUserData 'Access'
+                Access = RESULT
+
+                ExpandCC '&quot;%154|&quot;'
+                if RESULT = '0' then         Local = 1
+                else                        Local = 0
+
+                do forever
+                        GetEditor i 'TYPE'
+                        if RC ~= 0 then do
+                                /** No more editors, exit loop **/
+                                break
+                                end
+
+                                /** Check user uses correct line type, LOCAL or REMOTE **/
+
+                                if RESULT ~= 'LOCAL' | ( RESULT = 'LOCAL' &amp; Local = 1 ) then do
+                                        GetEditor i 'LOW'
+                                        Low = RESULT
+
+                                        GetEditor i 'HIGH'
+                                        High = RESULT
+
+                                        /** Check user has required access level **/
+
+                                        if Access &#062;= Low &amp; Access &#060;= High then do
+                                                GetEditor i 'NAME'
+                                                Write '&quot;   User may access: &#027;[32m[&#027;[37m'i'&#027;[32m] &#027;[37m'RESULT'n&quot;'
+                                                end
+                                        end
+                                i = i + 1
+                                end
+                        end
+
+                /*
+                ** Run Editor
+                */
+
+                GetEditor 'TAG' 'MSG'
+                if RC = 0 then Interpret RESULT
+
+   SEE ALSO
+                rexxMsgCommands/ChangeEditor
+
+</PRE><br></body>
+</html>

@@ -1,0 +1,287 @@
+
+Transamiga BBS and the new millenium     Revision 4.1  Jan 1999
+======================================
+by John Marchant ("Gnome") sysop of Moonlight BBS, Bedford UK.
+
+All programs mentioned below, which have been adapted for the millenium,
+are available on request by email or from my BBS. See signature lines
+at foot of this article.
+
+Contents
+==========
+1.0 Introduction
+2.0 The problems: serious and trivial
+3.0 The solutions explained in general, with examples
+4.0 Specific program solutions
+5.0 Other support programs, that display century
+6.0 The actions you must take, step by step
+
+              -------------------------------------
+
+1.0 Introduction
+==================
+As all TA sysops surely know, Transamiga cannot properly handle dates
+past 1999.  This article explains the problems, and how they have been
+overcome, ready for Jan 1st 2000.
+
+Sami Radwan has for some 2 years or more been writing a new BBS system
+which he proposes to call "TransComm BBS". Unfortunately his university
+work has - understandably - taken up so much of his time that it begins
+to look as if TransComm BBS may not be published in time for sysops to
+become familiar with it before 2000.
+
+
+2.0 The problems
+================
+
+  2.1 (serious)
+  -------------
+  Transamiga holds the date of a user's last call in line 9 of the user
+  record as 6 digits: e.g. 990125.
+
+  When a caller logs in, this date is available to the BBS system with
+  the command "Userinfo 'f'", and this returns the last call date in the
+  form "25 Jan 99".
+
+  When the caller logs off - when TA obeys "hangup", TA rewrites the
+  user record.  If the date is in fact 16 Jan 2000, we would expect the
+  last call date to be written as 000116.  But it isn't.  TA discards
+  leading zeros, and writes "116" into the lastcall field!  Next time this
+  caller logs on and a program asks for date of last call, Transamiga
+  tries to interpret this "116" and crashes.
+
+  This problem has been cracked. See below.
+
+
+  2.2 (trivial)
+  --------------
+  File dates are written into Files.BBS in each files area as 6 digits.
+
+  This is only a problem if you use the built-in files lister. So the
+  remedy is to use an external lister that can add the right century to
+  each file date in the list. I have two such listers available:- see below.
+
+
+  2.3 (very trivial)
+  -------------------
+  Caller's date of birth is held as 6 digits.
+
+  I'm doing nothing about this unless anyone demands action. This field
+  on the user record is documentary only - not used by Transamiga. If
+  anyone calls who was born in or after 2000, then by that time I'd expect
+  nobody to be using Transamiga anyway!
+
+
+  2.4 Sundries
+  --------------
+  Sysops may have custom listers for various purposes, such as searching
+  for a file. If they want to doctor a program to include century then
+  there's a simple algorithm they can use.
+
+  If the 2-digit year is after '80', make it 1900+. Otherwise make it
+  2000+. Just tack the 2 digits onto the front of the year.
+
+
+  Log file entries: Sami has issued a new TA library which fixes
+  these entries (but does not include century digits). The new
+  library is included in this 'millenium' package.
+
+
+3.0 The Solutions
+==================
+  Before you start altering anything on your BBS system, read this
+  section and the next.
+
+  3.1 In principle
+  ----------------
+  I've written an Arexx utility that reads or writes line 9 of the user
+  record. It can be called as:
+
+      rx BBS:utils/Userlast.rexx <r|w> <user name>
+
+  This script is distributed with this "Millenium package".
+
+
+  3.2 Examples: (see also Logon.trans example below for actual call)
+  --------------
+  This section shows principles only. In fact the BBS 'node' (line
+  number) is appended to the Env: filename to allow for multiple lines.
+
+  a)    rx BBS:utils/Userlast.rexx r Brian Pennywhistle
+
+    This command needs to be early in Logon.trans.
+
+    This will read line 9 of Brian Pennywhistle's record, and write
+    the date of last call into ENV:UserLast.
+
+    The format on the user record might be "991225", which would be
+    written to ENV:Userlast as "25 Dec 1999". This is the same format
+    returned by Transamiga when asked for "Userinfo 'f'".
+
+   *  Programs wanting to know the date of Brian's last call will read
+   * it from ENV:Userlast and handle it exactly as they did before after
+   * the usual Userinfo 'f'.
+
+
+  b)    rx BBS:utils/Userlast.rexx w Brian Pennywhistle
+
+    This needs to be in Logoff.trans. Why? Because when a caller logs
+    out, Transamiga is told to "hangup" and this starts various
+    housekeeping jobs in TA. One of these is to rewrite the user record.
+
+    So after that we can do our own bit of rewriting to line 9. The 'w'
+    argument for Userlast.rexx tells it to write the current date into
+    the user record, line 9, as 6 digits. e.g. 000116 (for 16 Jan
+    2000). NOTE: it must be _six_ digits, as if the century is
+    included, TA gets confused and messes with caller's 'time left'.
+
+    If you don't currently use Logoff.trans, then you will have to do so
+    if using my methods. It's one of those "automagic" scripts that are
+    called if present.
+
+
+4.0  Specifics
+===============
+  The new utility "Userlast.rexx" is included with this document.
+
+  4.1 Logon.trans
+  -----------------
+  a) You must run BBS:utils/Userlast.rexx somewhere early in the script,
+     but AFTER you have got 'username' from Transamiga.
+
+        userinfo 'a'; username=result
+        systeminfo '8'; bbsline=result
+        string='rx BBS:utils/userlast.rexx '||bbsline||':r:'||username
+        address command string
+
+     Note: You may be using a different variable for "username". Change
+           the above to what you use.
+     Notice the user of ':' as argument separator. This is done because
+           the user name will usually include a space.
+
+  b) (This only applies if you show or use the date of user's last call.)
+
+    You need to disable "userinfo 'f'" and the result.
+    Replace it with the following lines somewhere soon after that line.
+
+        ufile='env:userlast.'||bbsline
+        call open('last',ufile,'r')
+        lastcall = readln('last')
+        call close('last')
+
+    You may need to change the name "lastcall" to whatever you used
+    before as the 'result' of Userinfo 'f'.
+
+    The above change will NOT work (and will crash) if you didn't run
+    Userlast.rexx as described in part (a) above.
+
+
+  4.2 Logoff.trans
+  -------------------
+    You MUST have a Logoff.trans script. Somewhere in this, you need the
+    following lines:
+
+        userinfo 'a'   ; username=result
+        systeminfo '8'; bbsline=result
+        string='rx BBS:utils/userlast.rexx '||bbsline||':w:'||username
+        address command string   /* rewrite user file line 9 */
+
+    Note that 'username' is as supplied by Transamiga. It must not be
+    'compressed' (space removed).
+
+  4.3  -- IMPORTANT --
+  -------------------------
+   All TA support programs that need the date of user's last call
+   MUST DISABLE  Userinfo 'f' (which will probably crash) and use
+   instead the following lines, which will produce exactly the same
+   result format but including century. e.g. "21 Feb 2000"
+
+   Adjust the actual variable names to what you are using.
+
+      systeminfo '8'; bbsline=result
+      ufile='env:userlast.'||bbsline
+      call open('last',ufile,'r')
+      lastcall = readln('last')  /* 'lastcall' is the wanted date */
+      call close('last')
+
+
+  4.4  If you have any problem with writing an arexx script, email me
+       and I will do my best to help you. I can supply the original
+       Transamiga Logon.trans with the new millenium adjustment included.
+
+
+5.0 Other support programs
+===========================
+    I have the following Transamiga support utilities which all handle
+    the millenium ok. Email me with your requirements.
+
+    Gnew.trans (with binary Gnewfiles) - Included in this package.
+         Displays new files since chosen date. Offers user the date of
+         his last call as default.
+
+    Filescroller.trans - AVAILABLE ON REQUEST
+         Scrolling file area lister with many options including mark files
+
+    GniceEd  - AVAILABLE ON REQUEST
+         Easy Graphic Interface for editing of user record.
+
+    QuickList.trans  - AVAILABLE ON REQUEST
+         A replacement for the built-in file area lister ('L' command)
+         Displays dates with century. Allows file marking.
+
+    Gsearch.trans (with binary Gsearch)   AVAILABLE ON REQUEST
+         Allows searching all BBS for a file or description string. Shows
+         file dates with century.
+
+
+
+6.0 Actions to take when you update for the millenium
+===================
+The actions described may be taken at any time from now on. They are
+fully compatible with ongoing use of Transamiga before 2000.
+
+  Steps 1 to 5 are essential and must all be done as one job. Do one and
+  you must do them all.
+
+  1. Make a backup of each file you change. What I do is "clone" the
+     file with DirOpus, calling the copy xxxxx.bak
+
+  2. Copy Userlast.rexx into your BBS:utils drawer
+
+  3. Study your own Logon.trans. Disable any line that says "Userinfo 'f'"
+      and stores the 'result'.  See para 4.1 above.
+
+      Put into Logon.trans, near the begining but after you've got
+      'username' from TA, the coding in para 4.1 above.
+
+     If you did use "Userinfo 'f'", then you must add instead the
+     coding that fetches 'lastcall' (or whatever name you use).
+     See para 4.1 (b) above for the lines to add.
+
+  4. If you use Logoff.trans, you must add to it the lines in
+     Para 4.2 above.
+
+    If you don't currently use Logoff.trans, then you must do so.
+    use the example script included with these notes.
+
+  5. Find out which of your support scripts use "Date of last call".
+     These will be any program that offers to "List new files".
+
+     Disable "Userinfo 'f'" and the result. Replace this with the
+     coding lines in Para 4.3 above.
+
+
+  6. The rest of the altered programs mentioned above are optional
+     extras. Use them or not, as you like. They can be added any time
+     later.
+
+
+Send your wants or millenium problems to me at......
+ -------------------------------------------------------------------
+ John Marchant ('Gnome'). Bedford UK.         gnome@putnoe.u-net.com
+ Amiga 4000/40, A3000/30, A500                  Fidonet 2:257/137.16
+ Moonlight (Amiga) BBS. 6pm-8am (24hrs weekends)  +44 (0)1234 212752
+ Fido freq, Fido netmail accepted during open hours.
+ -------------------------------------------------------------------
+29 September 1999
+

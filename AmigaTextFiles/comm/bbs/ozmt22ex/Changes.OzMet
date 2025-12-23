@@ -1,0 +1,948 @@
+                          --------------------
+                          OzMetro Changes File
+                          --------------------
+
+Changes made after the V2.0 release are listed here in REVERSE
+CHRONOLOGICAL ORDER (ie most recent changes first).
+
+ -----------------------------------------------
+ Version 2.22  (30 Apr 95) & Muddles Version 4.5
+ -----------------------------------------------
+
+* Added the SCREEN0-SCREEN7 keywords for setting the screen colours.
+The Plutonic docs will suffice, they work exactly the same.
+
+Also included in this archive is a re-vamped Muddles program, reading in
+and using the SCREEN0-SCREEN7 keywords.
+
+        -----------------
+        SCREEN0 - SCREEN7
+        -----------------
+
+These 8 keywords are similar to the COLOURS command in TrapDoor, with a
+few extensions.  Also, since COLO(U)R was already being used as a
+Plutonic keyword I had to choose a different name.  The important
+distinction between SCREENx and COLOURx is that COLOURx actually changes
+the display that the REMOTE caller sees, by altering the ANSI code that
+is sent to the modem (and local screen).  SCREENx only affects the
+display at YOUR end.  If ANSI colour 2 is sent to the remote, then the
+remote caller will see green (unless he's remapped HIS colour registers
+in the comms program, of course).  However you can remap your local
+display so that this screen colour on the local console is anything at
+all.
+
+Plutonic uses an 8 colour console window for its display.  By default it
+is mapped almost to ANSI standards, with a very dark brown background
+and the seven colours nearly matching the ANSI settings.
+
+The ANSI standard colour maps are:
+
+        0 - black
+        1 - red
+        2 - green
+        3 - yellow
+        4 - blue
+        5 - magenta (purple)
+        6 - cyan (aqua)
+        7 - white
+
+Using the SCREENx commands, you can select exactly what colours the
+screen uses if you get sick of the ANSI mapping.  For each SCREENx
+keyword you need to specify a three-digit hexadecimal value indicating
+how much Red, Green and Blue that register should get.
+
+Take as an example the SCREEN0 command.  This is black.  To get a jet
+black colour from the keyword you'll need to specify no red, no green
+and no blue.  In the config this would appear as SCREEN0 000.
+
+The first digit of the argument is the amount of red, the second digit,
+blue, the third the amount of green.  The values have 16 posible
+settings, from 0 to F.  Let's take a look at a few more examples:
+
+To get a bright white (say for SCREEN7) then you need to use as much red
+green and blue as possible.  And in Hex, the highest value you can use
+is "F" (decimal 15).  So you'd need to use SCREEN7 FFF.
+
+If you want a really bright red colour, you simply have to use a high
+value for red, no blue and no green.  So you might use SCREEN1 B00.
+
+To get purple, you need a lot of red, a lot of blue, and not much green
+at all.  So you might use SCREEN5 C2B.
+
+If you experiment with these settings and come up with a colour
+combination that looks really good, please let me know what it was.  I
+haven't had enough time to experiment much myself, and I'm looking for a
+change after using an ANSI mapping for three years.
+
+        Default:
+
+        Screen0 000
+        Screen1 F11
+        Screen2 1F1
+        Screen3 FF1
+        Screen4 55F
+        Screen5 F1F
+        Screen6 1FF
+        Screen7 FEF
+
+        Example: (these are the pure ANSI standards settings)
+
+        SCREEN0 141
+        SCREEN1 D62
+        SCREEN2 2D2
+        SCREEN3 CB2
+        SCREEN4 56C
+        SCREEN5 B6B
+        SCREEN6 5DC
+        SCREEN7 FEF
+
+ -------------------------
+ Version 2.21  (08 Apr 95)
+ -------------------------
+
+* Bugfix in crash recovery code.  Will actually work now (had no hope of
+working in 2.20)
+
+ -------------------------
+ Version 2.20  (26 Mar 95)
+ -------------------------
+
+* Changed opening position of snoop window back to top right-hand corner
+rather than top left.  You're right, Pete, it does cover up less
+important stuff if it's up at the top right.  NB:  you can drag this
+window around if it's in the way.
+
+* Leading and trailing spaces (if any) around user names entered when
+logging in stripped.
+
+* New keyword (NO)ONENAMEOKAY
+
+If you want your users to give you both first and last names, and don't
+allow aliases you can turn off this option.  With NOONENAMEOKAY, if a
+user enters a name that does not contain at least one space (eg
+"CYBERDUDE") the name will be rejected and they're asked to enter both
+their first and last names.  It defaults to ONENAMEOKAY (to be
+consistent with the current actions).
+
+NB: if you use the NOONENAMEOKAY option, then you should edit your
+BBS:BBSFILES/Prompts file.  The SEVENTH line of this file is sent should
+a user login giving only one name.  My seventh line of the prompts file
+reads:
+
+Couldn't you afford two names?  Please enter your FULL name, first & last!
+
+        Default: ON (ie ONENAMEOKAY)
+
+        Example: NOONENAMEOKAY
+
+* A little more code restructuring, but since this will be a full
+release I didn't want to go overboard and introduce too many bugs!
+
+ ------------
+ Version 2.19
+ ------------
+
+* Version number skipped.
+
+ -------------------------
+ Version 2.18  (25 Mar 95)
+ -------------------------
+
+* Endless loop (of re-running itself) bug fixed where a user dropped
+carrier before completing login sequence.  This was caused by accessing
+the utime file before actually knowing who the online user was!  A user
+would have to drop carrier before completing the login to trigger this
+bug off, BTW.
+
+* New keyword (NO)RERUNONERROR
+
+Enables or disables the "re-run program on error" function.  Re-running
+on error can be a two-edged sword (as we saw in V2.17) whereby if the
+error IS fatal, re-running the program still causes the error again, and
+the BBS keeps launching itself ad infinitum!  I envisage this would
+mainly be due to config errors (although in the case of 2.17 was caused
+by a bug in the code).  So you can now turn the function off if you
+prefer the system to have an error and lockup instead of re-running
+itself.  Because it's easier to debug the program this way (ie you see
+what the error is rather than just know there was an error) I have this
+turned off at Inquestor.  However, for most purposes I think it would be
+wiser turning this on, and so the default is for it to be turned on.
+
+        Default: On
+
+        Example NORERUNONERROR
+
+* Found two undefined GOTOs in the code, fixed.  If the BBS couldn't
+find a textfile you had configured (eg Command number 510 was setup, but
+Text_510 didn't exist), the program would have guru'd.  Never saw this
+happen here, but once I'd discovered the missing label it was easy to
+reproduce by renaming the odd textfile :-)
+
+* More internal code re-structuring.  Nothing for you to worry about
+because functionality hasn't been changed.  However less lines of code
+may be used to perform certain functions now.  Severe GOTO reduction
+strategy now in place :-)
+
+
+ -------------------------
+ Version 2.17  (24 Mar 95)
+ -------------------------
+
+* LZX support added (what the hell!). .LZX archives have an archive
+signature of "LZX" as the first three characters of the file.  This was
+relatively easy to add given the re-working of this code in V 2.14.  You
+get a new pair of keywords:  LISTLZX - the command to use for listing .LZX
+archives, and EXTRACTLZX to get the File_ID.diz out of LZX archive
+uploads.
+
+        Defaults: List: lzx v
+                  Extract: lzx -m -X0 x
+
+        Examples: LISTLZX lzx l
+                  EXTRACTLZX lzx x
+
+NB:  IMHO, Lzx in its current version (1.0 EC) is extremely buggy.  The
+"e" command does not work at all, and neither does the "-m" command.
+That's about as far as I've looked.  I would NOT go for a wholesale
+archive conversion to this method until several more revisions of the
+program have been made, and some of these somewhat serious bugs have
+been removed.
+
+* Now logs that the re-login function was been used.
+
+* serial device and unit when calling XPRdoor was using the hard-coded
+"serial.device", unit 0.  These are now taken from the config settings.
+BEWARE: virtually all doors have a hardcoded serial.device unit 0 in
+place for remote operation.  If you change these from the defaults, be
+aware that virtually all doors in existence (that don't have these
+keywords in THEIR configs) will fall over in remote mode.
+
+* Bugfix: The Time Off: line wasn't being logged unless the user dropped
+carrier.  These lines have now been placed on the correct side of the
+ENDIF :-)
+
+* Bugfix: With the snoop window open on the screen, if a user loaded a
+door or did some other action that closed the screen, the window flag
+was not being toggled.  Now the snoop window is closed automatically and
+the flag set correctly each time the main BBS screen is closed.
+
+ -------------------------
+ Version 2.16  (23 Mar 95)
+ -------------------------
+
+* New Keyword PROGNAME
+
+Because the BBS now runs itself in two situations, it needs to know the
+name of itself.  Add here the name and path of the Metro executable.  If
+you call the program "Metro" and store it in a directory which is
+included in the search path, you don't need to specify this.
+
+        Default: Metro
+
+        Example: PROGNAME Mail:Bin/OzMetro
+
+* New Command - Number 16 Re-login
+
+This allows the user to login again.  The daily time used file is
+written out, the DoorData.crash file is deleted, and the program is run
+again (at the requisite modem speed).  This is quite a useful function,
+but you may not wish to give it to un-verified users.
+
+* If a program error that would have lead to a GFABasic Error Alert
+occurs, the program refreshes the DoorData.crash file, and runs itself
+again.  This should ensure even greater stability!
+
+* Extra time given to/taken from the user by the sysop, by pressing F4
+and F5 now isn't included in their DAILY time used file.  Users whose
+time you've extended will now appreciate being able to call back if they
+have extra time per DAY remaining.
+
+* Brand new "Snoop On User" function.
+
+Pressing F2 brings up a window (top left hand corner) with the user
+information.  Password, phone number, time left and a host of other
+parameters are displayed.
+
+This can be used to check their time remaining, as a result of pressing
+the F4 and F5 keys.  In fact, it's now possible to change the user's
+time, and KNOW HOW MUCH HE'S GOT LEFT without the user knowing you're
+doing it.
+
+Pressing F2 brings up the window, pressing F2 again closes it.  Since
+it's a snapshot of the things that happened WHEN F2 was pressed, if you
+alter a user's time limit, you'll need to close and re-open the window
+before the time remaining figures are re-displayed.
+
+The window can also be dragged around the screen.  I think we'll find
+this VERY handy.  The user DOES NOT KNOW the window exists, and can keep
+using the BBS uninterrupted.  Use the F-keys with absolute confidence
+now!
+
+* Bugfix:  2.15 wasn't adding users who dropped carrier to the dropped
+carriers file.
+
+ -------------------------
+ Version 2.15  (21 Mar 95)
+ -------------------------
+
+* Internal GFA serial routines no longer used.  New custom routines
+installed.  Many thanks to a patient Peter Nicolas who sat by at the
+other end of the modem while I got all the little quirks out of this
+changeover (more than I had thought).  Accordingly, there seems to be no
+limit to the baudrate the program will run at (the serial routines now
+in the BBS have been succesfully tested at 115,200 - mind you on a stock
+68000 Amiga, greater than 38,400 is simply not practical, my poor old
+A500 errored out substantially downloading when locked at 57,600).  But
+anyone with a V34/VFC modem will be pleased to know you can specify a
+higher locked rate than 19,200 at last!  The new serial routines also
+open the serial port in shared rather than exclusive mode.
+
+* NB:  Approximately two dozen existing Metro doors WILL NOT RUN at
+greater than 19,200.  Any door run through P2M (Paragon type) or PlutCLI
+(Shell type) is 100%, in addition, the Yowzie, BBBase, PlutDoor, SayHi,
+Galaxy Miner, Wall and Super Chat doors all run fine at higher than
+19,200 locked rate.  All other AC-BASIC or HiSoft BASIC doors are really
+bad news (Guru) and the GFA doors using the old serial routines (Prize
+Door, Time Bank, Stats Door, Polling Door and Luck of the Draw), will
+have to be modified to work at greater than 19,200.
+
+* As you can see, using a locked baud rate of 38,400 or higher is a
+two-edged sword, and two dozen existing doors won't run at that speed.
+However, it's your choice what you DO set the baud rate to, and I've
+chosen to leave mine at 19,200 for the moment, but if fast transfers is
+your desire, losing a few old doors won't be much of a catastrophe.  The
+GFA doors will get upgraded at some time in the future, but the AC-Basic
+and HiSoft doors are fairly unlikely to be upgraded.
+
+* Altered a couple of file search prompts to be more clear to the novice
+user.  EG "Check in MAIN file areas (Y/n)?" now becomes "Check in ONE
+file area (y/N)?".
+
+* F4 and F5 now add/subtract TEN minutes from user's time limit for that
+call.  (Was previously 15).  The lower multiple gives you a little more
+resolution in altering their time limits.
+
+* F4, F5 (see above) F6, F7 (increase/decrease security level) and F9
+(toggle remote output) can now all be used not only from within chat,
+but at ANY time the user is online.  You can thus change a user's time
+limit, or alter their security without having to break into chat.
+
+* Final logoff message ("If you were calling Discovery this call would
+have cost XXX") removed.  (There WAS a valid reason for this due to the
+reworked serial code).
+
+* New configuration keyword DEVICE
+
+Allows you to specify the name of the serial device to use for remote
+callers.  NB: this is case sensitive.
+
+        DEFAULT: serial.device
+
+        EXAMPLE: DEVICE modem0.device
+
+* New configuration keyword UNIT
+
+To define the unit number when the serial device is opened.
+
+        DEFAULT: 0
+
+        EXAMPLE: UNIT 1
+
+* Due to all the additions to the config in recent revisions, I'll put a
+copy of my Metro.cfg in the archive.
+
+
+ -------------------------
+ Version 2.14  (15 Feb 95)
+ -------------------------
+
+* Entirely re-wrote about 500 lines of upload code, virtually none of
+Percy's upload code remains.  The BBS now supports batch uploads, has
+File_ID.diz support, will RENAME files if receiving an upload already in
+the directory, and (naturally) now uses Oli Wagner's XPRDoor to receive
+the files.  It also adds the file description to the filenote fields of
+new uploads as they are received.  Archiving list and extract commands
+are now also configurable from the Metro.cfg file, rather than being
+hard-coded, plus several new keywords have been added as a consequence
+of re-writing the upload code.
+
+* Nothing to do with the upload code (but springing from a new
+subroutine for the File_ID.diz support) is the ability to automatically
+determine an archive type not from the filename extension (eg .LZH,
+.ZIP, etc) but actually from an inspection of the first half-dozen or so
+bytes for an archive signature.  Accordingly, the BBS can now list (say)
+an ARJ file, even if the final three characters are not .ARJ.  The BBS
+can internally recognise these major archive types:  ARC, ZOO, LHA/LZH
+(treated the same way), ZIP and ARJ
+
+* Removed use of Free program to determine uploading.  Now - if you want
+a directory to be uploadable-to - you must CREATE a directory in that
+Upload directory called "Uploads".
+
+EG As listed in the File.areas file, a file area has a directory named
+"Dh5:IBM/".  In order to permit uploads to that file area, you must create
+a subdirectory called "Dh5:IBM/Uploads".
+
+* Batch uploads now all work as expected - file descriptions are
+obtained AFTER the user performs the upload, and will be done for every
+file received.
+
+* Added UPLOADFREE keyword (defaults to 200,000 bytes ie current
+behaviour).  Use this keyword to specify just how much free space has to
+be on an upload drive before the system will allow users to put files
+there.  To turn uploads off completely, use a HUGE value for this
+keyword.  Usage is UPLOADFREE <bytes> where <bytes> is the amount of
+free space remaining on a partition.  (Limit of value you can give this
+keyword is 2,100,000,000 (IE two and a bit Gigabytes)
+
+        Default:  200000 bytes
+
+        Examples:  UPLOADFREE 400000
+                   UPLOADFREE 1000000
+
+* Added UPLOADTIME keyword.  When a user performed an upload under prior
+OzMetro versions, the upload time was reimbursed to the user's time
+limit (for that call).  Now you can give back any percentage of the time
+they spend uploading defined by YOUR OWN keyword.  To not give any
+reward for uploading at all (!) set this to zero.  Using 100% will give
+the current behaviour.  Setting it to 200% rewards an uploader with
+double upload time.  (But half of that reward time will have elapsed,
+don't forget).  You can specify any percentage from 0% to 2,100,000,000%
+for this value, but I'd envisage that rewarding a user with ten times
+the upload time (ie 1000%) would be more than sufficient for most
+purposes.  Don't forget you can also use (say) 33%, 75% 150%, etc...
+
+        Default: 100% of upload time is added to time limit
+
+        Examples: UPLOADTIME 200
+                  UPLOADTIME 50
+                  UPLOADTIME 700
+
+* BugFix:  upload time now not charged against user's DAILY time limit
+when they log off.  (Note:  If a user spends the majority of their call
+uploading, and you have a high value for the UPLOADTIME percentage, it's
+quite conceivable that NEGATIVE connect times will arise :-) It
+shouldn't be a problem, except cosmetically)
+
+* If a file area directory specified in the BBS:Udfiles/File.areas
+config file doesn't exist, the BBS will now automatically create it.
+
+* File_ID.diz support.  A File_ID.DIZ file is a short textfile included
+in an archive describing the program included.  Its increasing
+popularity is due to entire CDs being constructed with the descriptions
+in all archive files, and it's caught on as the standard filename for
+short description files.  OzMetro now has the ability to retrieve these
+files from the archive, and use them as the default description for
+uploads.
+
+This saves the user a lot of time uploading - they can make a short
+File_ID.diz textfile up, include it in the archive, and then upload it
+to a heap of BBSs without having to type the same description to half a
+dozen BBSs.
+
+FILE_ID.DIZ files can be extracted from ARC, ZOO, LHA, LZH, ZIP and ARJ
+files currently
+
+NB: Only characters of the ASCII range 32-127 will be input from the
+File_ID.diz files, and only 76 characters are allowed in OzMetro file
+descriptions, so that's the limit that can be snapped from the
+File_ID.diz.  Avoiding use of hi-ascii characters means files with IBM
+graphics character borders/frames won't use up valuable space in this
+76 character allocation.
+
+* Keywords for list archive commands (View an Archive from the Files
+List Sub-menu).  Previously they were hard-coded - now they're in
+Metro.cfg, so you can define your own, if you like.
+
+The keywords, with their defaults, are:
+
+ LISTARC pkax -v
+ LISTZOO booz l
+ LISTLHA lha vv
+ LISTZIP unzip -v
+ LISTARJ unarj l
+
+An example config (mine) might read:
+
+ LISTARC pkax -v
+ LISTZOO booz l
+ LISTLHA lha vv
+ LISTZIP unzip -v
+ LISTARJ unarj l
+
+Hmm, these ARE the defaults :-)
+
+* New EXTRACTxxx keywords added, defining the command to be run in order
+to find the FILE_ID.DIZ files.  This keyword WILL be used for other
+archive extractions in future versions of the BBS, BTW.  (EG to extract
+docs from archives).
+
+The keywords, with their defaults are:
+
+ EXTRACTARC pkax -r-x
+ EXTRACTZOO booz x
+ EXTRACTLHA Lha -m -x0 e
+ EXTRACTZIP unzip -j -o -x
+ EXTRACTARJ unarj e
+
+And currently, I'm using this (a little different):
+
+ EXTRACTARC pkxarc -r-x
+ EXTRACTZOO zoo xO
+ EXTRACTLHA Lha -m -x0 e
+ EXTRACTZIP unzip -j -o -x
+ EXTRACTARJ unarj e
+
+* Added a few more IntroX.ans/IntroX.asc files
+
+ Intro7.ans/Intro7.asc is abortable
+ Intro8.ans/Intro8.asc is NOT abortable
+ Intro9.ans/Intro9.asc is abortable
+
+In summary Intro4, Intro6 and Intro8 cannot be aborted while being sent.
+
+ -------------------------
+ Version 2.13  (04 Feb 95)
+ -------------------------
+
+* Displays [M]ark and [S]tart Batch Send options in Browse mode for all
+appropriate batch protocols (ie all but the Xmodem and Jmodem proto's)
+
+* Prevented marking of files in Browse mode for Batch download with
+Xmodem and Jmodem :-)
+
+ -------------------------
+ Version 2.12  (03 Feb 95)
+ -------------------------
+
+* NB:  This version is experimental on several counts.  Don't delete
+your 2.10 executable for a while yet - just in case.
+
+* Fixed bug in Dropped Carriers File appends if the file contained more
+than the number of entries specified in the config file (by changing a >
+sign into a >= )  Grrrrr!  Bug was harmless, the last line of the file
+kept getting replaced by the last carrier dropper - the top line wasn't
+rolling off to make way for it.
+
+* 0 byte FileList_X files (that Muddles sometimes leaves behind) no
+longer cause the BBS to crash (it's simply reported that there are no
+files in the area).
+
+* Added extra Menu commands - numbers 19 and 20.  Use these commands if
+you want to run the logoff doors from main BBS menus as well as just the
+logoff menu itself.  Cmd #19 runs BBS:Doorfiles1/Door999 and Cmd #20
+runs BBS:Doorfiles1/Door1000.
+
+* File transfer protocol ALWAYS written to userlog now upon change
+(rather than doing it when the user logged off).  This will ensure if a
+user changes protocols and drops carrier, the change will be saved to
+the userlog.
+
+* Replaced XPRGate as the file SENDER program in favour of Oli Wagner's
+XprDoor.  XPRGate is still used to RECEIVE files at the moment, but will
+be changed shortly (some serious re-writing to be done on receive, and
+when I do change it I'll add batch uploads in the process).  Copy the
+file called XPRD to somewhere in the BBS search path (eg c:).  XPRDoor
+seems to be quite faster on file transfers
+
+* Added new xpr file transfer protocol:  SZmodem.  SZModem is great and
+allows for up to 8k blocks under the Zmodem algorithm.  This is the
+fastest protocol the BBS has.  DO NOT USE NORMAL ZMODEM to receive files
+if sent SZmodem.  It will work, but as soon as the block size increases
+above 1k, the receiver will NAK the block causing the sender to reduce
+the block size back down to 1k.  Quite an inefficient way of doing it,
+although it will work eventually.  You might like to put the SZmodem xpr
+library in a prominent place on your BBS so your users can take
+advantage of this if they're using a terminal program which supports xpr
+protocols.  An IBM SZmodem protocol exists, too (I think I've got it
+online mysef, not that I know much about it).
+
+* Added new xpr file transfer protocol:  Kermit.  Currently untested and
+there might be problems with the library options.  Use at your own risk,
+although the only problem will be failed transfers...
+
+* Hard coded SYS:c/ path for the XprGate program removed.  XPRD can be
+in any directory which has a path, BTW.
+
+ -------------------------
+ Version 2.11  (17 Jan 95)
+ -------------------------
+
+* removed some (like about 40) redundant lines of code in the serial
+receive routine.  This didn't actually change anything, so was never
+released.
+
+ -------------------------
+ Version 2.10  (08 Jan 95)
+ -------------------------
+
+* The carrier droppers file is now printed in plain white text.
+
+* Didn't want to add anything much more, as this one goes on to AmiNet,
+so a nice stable bug-free version is required.  The docs have had a few
+revisions, though!
+
+ -------------------------
+ Version 2.09  (Never)
+ -------------------------
+
+* Skipped this version number completely :-)
+
+ -------------------------
+ Version 2.08  (15 Dec 94)
+ -------------------------
+
+* New commands added - ie the 6th door directory:
+
+ Cmd numbers 451-500  Run door numbers 451-500 in BBS:Doorfiles6/
+
+ -------------------------
+ Version 2.07  (15 Dec 94)
+ -------------------------
+
+* Screen title now doesn't disappear when the user returns from a Door.
+
+* The AmiNet release will be 2.10 to be released in a few DAYS time....
+
+* Percy's code is terrible.  You change one line of code, and it affects
+something else a couple a thousand lines away!  It's really going to
+have to go, which will involve a fairly hefty effort for a week or so on
+my part getting a userlog and file areas setup designed.  But I think
+the time is ripe....
+
+ -------------------------
+ Version 2.06  (14 Dec 94)
+ -------------------------
+
+* Gee, just caught it in time before the file got out too far.  Fixed a
+bug in the midnight event code where the program was trying to take the
+modem offhook AFTER the modem had been closed, resulting in a program
+requester... 
+
+* Changed the execution of the BBS:BBSFiles/Script file.  The file is
+now NOT read in a line at a time and "run", the AmigaDOS Execute
+command is called to execute the whole thing.  As a result you CAN have
+IF/ENDIF constructions in the SCRIPT file now.
+
+
+ -------------------------
+ Version 2.05  (14 Dec 94)
+ -------------------------
+
+* Warning to EXISTING OzMetro users:  Before you set this version up you
+must create a directory under the BBS: assignment called MenuCmds.  Go
+into your BBS:BBSFiles/ directory and move every file commencing with
+the letters "MenuCmds" (IE MenuCmds#?) into this new BBS:MenuCmds/
+directory.  From now on, all MENUS live in this new directory, not the
+BBSFiles directory.  If you're setting up 2.05 for the first time, the
+Setup program (V1.2) will make the correct directory and create the
+sample menus for you there.
+
+* New function - ANSI texts for users with ANSI turned on.  This is an
+extension to the Textfiles functions (and is backwards compatible, you
+don't HAVE to use it).  Previously I've had a couple of textfiles on
+called ANSI <something> and ASCII <something>.  Now OzMetro itself can
+choose which text to display to users with ansi turned on or not.
+
+When a user with ansi turned on selects to view a text file, a file
+called Text_XXX.ans is first looked for (where XXX is the text/command
+number).  If found, then that's the file the user will be shown.  If
+it's not found (or the user has ansi turned off) a file called Text_XXX
+is looked for and displayed instead.
+
+So to add ANSI versions of your textfiles, just have a corresponding
+Text_XXX.ans file in the textfile directory along with the usual
+Text_XXX file.  Non-ANSI users will always get vanilla Text_XXX files,
+and vanilla Text_XXX files will be used if the system can't find a
+corresponding file Text_XXX.ans (like the current action).
+
+This has meant I can now take off the ANSI versions of several of my
+textfiles, incidentally.  It certainly makes it more flexible for ANSI
+users.  Also, we could argue that OzMetro supports up to 1,000 online
+textfiles now (500 ASCII ones, and 500 ANSI ones).
+
+* BugFix:  Stats file now always up to date on screen (status window) as
+well as on disk.
+
+* Stats file now saved to disk EVERY time one of the stats change.
+
+* New OzMetro_Setup program done with the changes all in place to this
+version.
+
+ -------------------------
+ NEWS UPDATE   (05 Dec 94)
+ -------------------------
+
+I'm pretty sure ALL the bugs have been ironed out in PlutCLI, (and an
+extra command has been added to boot).  It's now non-beta and is
+shareware ($10 donation).  If you want the file (you WILL) the filename
+to Freq is PLTCLI09.lha
+
+
+ -------------------------
+ Version 2.04  (03 Dec 94)
+ -------------------------
+
+* New command - #15
+
+This command prints the Last XX Dropped Carriers file.  This is a file
+(BBS:BBSFILES/Dropped) that will be created as users drop carrier.  To
+test this out, Press F1 to log yourself off.  Pressing F1 sets the
+dropped carrier flag, incidentally, and makes it easy to kick a user off
+the BBS for other reasons the sysop deems to be equivalent to dropping
+carrier :-)
+
+The size of this file is controlled by a new keyword:
+
+        NUMDROPPERS
+
+It defaults to 20 - ie a record of the last 20 carrier droppers on your
+BBS.  You can easily change it to whatever you like by adding a
+
+        NUMDROPPERS 50
+
+or maybe something like
+
+        NUMDROPPERS 10
+        NUMDROPPERS 100
+        NUMDROPPERS 1000
+
+or some other value to your Metro.cfg file.
+
+If you change the size value the file will be automatically adjusted to
+suit the new size.  You can change the size at any time.
+
+Make sure to put the new command on a menu somewhere so everyone can see
+this information :-) A sample carrier-droppers text looks like so
+
+These users have recently dropped carrier:
+
+01:14:05 PM  03-Dec-94  ID: 6    PETER BECKWITH        Lev: 6  Baud: 9600
+03:12:06 PM  03-Dec-94  ID: 267  MICHAEL CADDIES       Lev: 1  Baud: 14400
+03:47:20 PM  03-Dec-94  ID: 76   RICK EYRE             Lev: 1  Baud: 14400
+09:25:10 PM  03-Dec-94  ID: 268  PETER GLAUSER         Lev: 1  Baud: 14400
+01:13:13 AM  04-Dec-94  ID: 11   GARRY SIMMONDS        Lev: 5  Baud: 9600
+
+
+* Only asks you if you want to delete the safety file, if the safety
+file exists, now.  (Previously it didn't matter, if it wasn't there it
+didn't delete it anyway).  This applies while the user is in the
+logging-on section - the crash file doesn't exist then, so if you quit
+before the user completes login there's no point asking you if you want
+to delete the crash file - it doesn't exist!
+
+* Added version details in the IntroStatus routine - cleaned it up a
+little, too
+
+* Password change tidied up again.
+
+* BugFix: no more NULL strings in the log!
+
+* BugFix: Now prints last line of chat to chat capture.
+
+* BugFix: Now prints correct date/time at end of chat capture.
+
+* Logging uses same text as chat capture file when exiting chat.
+
+
+ -------------------------
+ NEWS UPDATE   (29 Nov 94) 
+ -------------------------
+
+ CLI DOOR INTERPRETER
+ --------------------
+I have been working on a remote CLI door interpreter for OzMetro all
+week, and have enjoyed success!  This not only gives you a full remote
+DOS shell for OzMetro, it means we'll also be able to run all generic
+CLI doors (as you'll hear all the DLG/E!/TransAmiga/etc sysops talk
+about).  This will mean OzMetro can run Metro, Paragon/Starnet AND CLI
+doors, probably making it the most flexible BBS when it comes to running
+doors.  Any CLI program that runs fully in the shell can be setup this
+way, provided it doesn't access BBS-specific structures, such as the
+Excelsior!  file lists, or the DLG userlog, etc.  Fortunately most
+writers of such doors DO keep them generic, and we'll be able to use
+them all.  This also includes Arexx doors, because you can call them
+with a simple Rx filename.rexx and run them in the shell.
+
+The implementation I have worked out is VERY flexible, and makes it
+pretty easy for you to set the doors up.  The implementation uses Matt
+Dillon's fifo.library and fifo-handler and I must confess to having
+looked at a lot of the TRShell.c source from the TransAmiga program to
+get this running (Thanks to Timothy J Aston for releasing this).  Mind
+you, me no speaky C (well not much), so translation to GFABasic was a
+bit of a hard slog, taking most of this week.
+
+It WILL be a very nice Christmas present for OzMetro sysops.
+
+ -------------------------
+ Version 2.03  (30 Nov 94)
+ -------------------------
+
+* The SYSTEMPATH keyword is no longer valid - "BBS:" will be used ALL
+THE TIME, regardless of whether you have this line in Metro.cfg or not.
+(as promised in the docs).
+
+* New config keyword:  TAGLINEFILE
+
+OzMetro can now use the same tagline file as Plutonic if you like.  It
+works exactly the same way as in Plutonic, and you should see the Pluto
+docs for full details on the format of the file.
+
+It defaults to the original BBS:Textfiles1/Fortunes file (so if you have
+setup the Fortunes file as per the original release, that will still
+keep working).  One thing you can do is delete the top line of the old
+Fortunes file - OzMetro no longer needs to know the number of lines in
+the file, it will find out for itself.  (However, there's not much
+chance of it selecting the top line anyway, and that's harmless the
+fortune would just read "1256" or something, which is as meaningful as
+42, and probably some of the other fortunes already there.
+
+If OzMetro cannot locate the file, this option is disabled.  It is a
+menu command option, and is also generated before the users are shown
+the "Goodbye" menu.
+
+        Default:
+
+        BBS:TextFiles1/Fortunes
+
+        Example:
+
+        TAGLINEFILE MAIL:Plutonic.tags
+
+* Tagline generation implementation from Plutonic stolen and included in
+OzMetro.  This will now generate the fortunes file, at least 5 times
+more quickly.  However, since three tags are chosen, there is a very
+small chance you'll get duplicates.  (This couldn't happen with the old
+code).  If you ever strike the jackpot and get THREE fortunes the same,
+congratulations!!  (Or you might just have a very small tagline/fortunes
+file).
+
+* When using a double-mouse-button to quit the BBS (and you answer yes),
+a further requester will come up and ask you if you want to delete the
+safety crash file as well.  This will help prevent false recovers when
+you quit the BBS in this manner and forget to delete this file.  Mind
+you, if you are quitting to play a modem game with the user and he may
+want to login again, it might be a good idea NOT to delete the crash
+file, unless he was short of time (in which case you should delete it
+and let him login again).
+
+
+ -------------------------
+ Version 2.02  (29 Nov 94)
+ -------------------------
+
+* Recovery after crash substantially sped up due to the program no
+longer running itself again in such a situation.  The code has been
+reworked to do it from a single invocation.  Users will also get the
+text that they have been recovered (previously was only on the local
+console).
+
+* As a result of the above, the program no longer REQUIRES to be called
+Metro, it can be renamed to anything you like.  (If you DO rename it,
+please remember to change the BBSCOMMAND line in TrapDoor.cfg, okay?)
+
+* If a user attempts to logon as "NEW", "NEW USER", "VISITOR", "SYSOP"
+or "GUEST", they will be told to tell us WHO they are, not WHAT they are
+and we ask for another username.
+
+* Adam Mooney discovered a quirk not covered in the documentation:  you
+could not have a straight assignment or volume name as the default
+directory of an upload area.  It had to include a full DIRECTORY
+specification (see the two pages in the OzMetro docs under "Adding
+Upload Areas").  Well that's fixed now, you CAN use an assignment or
+volume name there.  (Previously the program was only looking for a slash
+in the full path/filename to determine the uploaded filenames - now it
+looks for a colon if there's no slash there, so will find uploaded files
+all the time now).  (Grrr Percy!!) Please see the docs if this is not
+clear - when we check for the free space on upload drives, the DEVICE
+name is checked against the free list, not the FULL path specifications
+(this is given on the fifth lines of your File.areas file).
+
+EG:  if you use "BBS:Uploads/" in file.areas, only the string "BBS:" is
+checked for in the FREE list.  Please note!
+
+* Total screen format has been revamped to use the same screen
+arrangement as Plutonic.  As a result, you get either 1 or 2 more lines
+displayed on the local console. This looks MUCH nicer, and you can set
+your Screen Height (from the alter parameters function) to 28 lines for
+local logins. (It may be 29, I forget now...)
+
+* OPENDELAY keyword added to Metro.cfg.  This is to prevent something
+that has NEVER happened here, but on accelerated Amigas, OzMetro loads
+so fast that it's sometimes ready even before TrapDoor has closed the
+serial port.  As a result, OzMetro would die with an "Object in Use"
+error because TrapDoor still had the serial.device open after spawning
+it!  This is a result of cleaning up the initialisation code, I imagine,
+and on my A500, it just doesn't load fast enough to be up before
+TrapDoor has quit.
+
+OPENDELAY takes an argument in seconds - OzMetro opens up, parses its
+config file, and before doing anything else, it will pause for the
+number of seconds you specify in OPENDELAY.  Only after this delay will
+it proceed to open the serial port (and do other work).
+
+The default for OPENDELAY is (naturally) zero - the current action, so
+if you're not having this problem, do nothing.  If you are, you might
+like to add a line like:
+
+        OPENDELAY 6
+
+into Metro.cfg.  You may need to experiment a little with this, perhaps
+you can get away with shorter than 6, but that should give TrapDoor
+ample time to quit and close the serial device when OzMetro is being
+spawned.
+
+* New Menu command added to the MenuCmds_xx files.  (NO)SHORTPROMPT
+
+Since the prompt OzMetro prints generally extends all the way across the
+bottom of the screen, using thin menus only down the left hand half of
+the screen look weird.  The default operation is NOSHORTPROMPT (same as
+it was before), but if you want to only use the left-hand side of your
+screen for menus, then you should add the word SHORTPROMPT into your
+menu file ANYWHERE (on its own line, of course, like the others).
+
+NOSHORTPROMPT looks like this:
+
+        11:58:39 PM  29-Nov-94   Time Left: 95   Your choice? 
+
+SHORTPROMPT looks like:
+
+ 11:58:39 PM  29-Nov-94
+ (95mins) Your choice? 
+
+Don't forget the text in "Your Choice? " can be altered by you - it's
+the tenth line of the BBS:BBSFiles/Prompts file.  You should add a space
+at the end of it in your prompts file, incidentally for display purposes
+(and also spaces in FRONT of it if need be...).
+
+Each MENU can have either NOSHORTPROMPT or SHORTPROMPT in it - eg your
+Files and a Doors menu might use SHORTPROMPT, whereas you can have
+NOSHORTPROMPT on the Main and Texts menu.  It only applies for each
+MENU, not globally.
+
+* When receiving 0-byte file uploads, an [Any_Key] is used - screen was
+clearing straight away, and you couldn't read the error message except
+via the scrollback buffer.
+
+
+ -------------------------
+ Version 2.01  (29 Nov 94)
+ -------------------------
+
+* Full chat capture implemented.  At the moment this is on for ALL chat
+sessions.  I intend to add an F-key later for opening and closing the
+capture buffer, but for now, if you don't want to keep chat records
+you'll have to edit or delete the chat capture file.  You may like to
+add a delete command in your midnight script to clear it off, if you
+need the drivespace (wouldn't be much saving, really).
+
+When you enter chat, a file called "BBS:BBSFiles/Chat.txt" is opened (or
+created), and the chat lines are added in automatically.  The deletes
+from wordwrap and typo's are automatically removed, and you get a very
+nice clean capture file.  The time and date you started chat along with
+the username is added at the head, and the time you finish added to the
+end.  Jump into chat with yourself, and take a look at the file!
+
+* Change Password option display tidied up.
+
+

@@ -1,0 +1,167 @@
+
+/*
+
+Callers can type "HowTo" at any CNet-BBS prompt and see a list of
+commonly used HOW-TO files.
+
+>       Commonly Used How-To Files
+>
+> [A] How to gain higher "paid" access.
+> [B] How to gain higher "non-paid" access.
+> [C] How to access Merit/Michnet.
+> [D] How to put your files into the ADS/SKY Fidonet File Echo.
+> [E] How to put your files into the Internet AmiNet file site (and CD-ROM).
+> [F] How to put your files into the Fred Fish collection (floppy or CD-ROM).
+> [G] How to order Fred Fish CD-ROMs.
+> [H] How to get Amiga files via the Internet with "Anonymous FTP".
+> [I] How to "Telnet" to any site on the Internet.
+> [J] How to access Internet FTP/WWW/GOPHER/NEWS/ETC via email.
+> [K] How to access the Internet for free (via 100s of freenet.org sites).
+> [L] How to send Fidonet email to/from the Internet.
+> [M] How to become a Fidonet Echo moderator.
+> [N] How to create a new Internet NewsGroup.
+> [O] How to get the full text of classic books via email.
+> [P] How to write code correctly.
+> [Q] How to upgrade a USRobotics 28.8k modem to 33.6k.
+>
+> Selection:
+
+Installation:
+1) Copy HowTo.rexx TO pfiles:HowTo.rexx
+   Copy HowTo.dat  TO SysData:HowTo.dat
+
+2) Add the following line onto the END of the CNet:BBSmenu list
+   marked as "2; Available everywhere:"
+   > HOWtodo | {#0 pfiles:HowTo.rexx  SysData:HowTo.dat}
+
+   You can have as many different sets of How-To menus as you like.
+   Just give each one a different config filename.
+   > HOWNOW | {#0  pfiles:HowTo.rexx  SysData:HowNow.dat}
+   > WHAT   | {#0  pfiles:HowTo.rexx  SysData:What.dat}
+   > WHERE  | {#0  pfiles:HowTo.rexx  SysData:Where.dat}
+   > WHEN   | {#0  pfiles:HowTo.rexx  SysData:When.dat}
+
+3) Create/edit the config file called "SysData:HowTo.dat".
+   The format is alternate lines of:
+      > Text to show the user in menu.
+      > DOS cmd to execute.
+      > --- [blank line] ---
+      > Text to show the user in menu.
+      > DOS cmd to execute.
+      > --- [blank line] ---
+      > Text to show the user in menu.
+      > DOS cmd to execute.
+      > ---- [blank line] ---
+      > Unlimited # of lines.
+      > Unlimited # of lines.
+      > --- [blank line] ---
+
+$VER: HowTo.rexx v1.0 Sat 22-Jul-95 22:35:11
+   Hitting "?" will show filename, version #, and config file.
+   Written/tested with CNet v3.05c
+
+Author Info:
+   Bill Beogelein
+   Box 530441
+   Livonia, MI 48153
+   SysOp of The Amiga ShareWare HeadQuarters BBS 1-810-473-2020
+   Fido: 1:2410/207,  UUCP: ag775@detroit.freenet.org
+
+Future Plans:
+   Write to CNet log.
+   Please report all bugs, and make suggestions for new features.
+
+Ignore:
+   lz u CNet3:HowTo.LHA pfiles:rexx/HowTo.rexx a:zzzBBS Help:BB_CMDS SysData:HowTo.dat
+
+********************** End of docs *******************************/
+
+LF  ='0a'x
+BELL='07'x
+
+options results
+parse arg cfgFile
+
+'ChangeWhere' "HowTo.rexx"
+'getUser' 23; port= RESULT
+tmpFile= "t:HowTo." || port || ".tmp"
+
+parse SOURCE arexxFile
+arexxFile= word(arexxFile, 3)
+call LoadCfg()
+
+do forever
+   'transmit' LF LF ">6 Commonly Used 'How-To' Files" LF
+   do i=1 to count
+      'transmit' " [" || d2c(i+64) || "]" menuTxt.i
+   end
+
+   'sendString' LF || " Selection: "
+   'getChar'
+   ans= RESULT
+
+   if(ans=='?') then
+   do
+      'sendString' LF LF || arexxFile "by Bill Beogelein 1-810-473-2020"
+      call dos("Version FULL FILE" arexxFile)
+      'sendString' LF || "---" cfgFile "CUT HERE ---"
+      'sendFile' cfgFile
+      'transmit' "---" cfgFile "CUT HERE ---"
+      iterate
+   end
+
+   if(ans<'A' | ans>'Z') then
+   do
+      'transmit' "n2 Returning to the BBS."
+      exit
+   end
+
+   'sendString' ans
+   ans= c2d(ans)-64
+   if(ans>count) then      /* User pick is out of range */
+   do
+      'transmit' "n2 *** Choice not available.n1"
+      iterate
+   end
+   else
+   do
+      call dos(dosCmd.ans)
+      'sendString' LF "Hit any key to continue: "
+      'getChar'
+   end
+end
+exit        /****** End of main ******/
+
+DOS:  PROCEDURE EXPOSE tmpFile
+   parse arg cmd
+   address command cmd ">" || tmpFile
+   'sendFile' tmpFile
+   address command "Delete >nil: <nil:" tmpFile
+return
+
+LoadCfg:
+   if( cfgFile=="" ) then
+   do
+      'transmit' LF "***" arexxFile "can't open config file." BELL
+      exit
+   end
+
+   count=0
+   if( open(fp, cfgFile, 'READ') ) then
+   do
+      do while(~eof(fp))
+         count= count+1
+         MenuTxt.count = readLN(fp)
+         dosCmd.count  = readLN(fp)
+         dummy         = readLN(fp)
+      end
+      count= count-1
+   end
+   else
+   do
+      'transmit' LF "***" arexxFile "can't open" cfgFile "for reading." BELL
+      exit
+   end
+return
+
+/*** EOF HowTo.rexx 810-473-2020 ***/

@@ -1,0 +1,58 @@
+/*************************************************************************/
+/*              PagE!r v1.0 for Excelsior! BBS  by Morpheus              */
+/*************************************************************************/
+/* path     : PagE!r-path, don't forget the '/' or ':' at the end !!!    */
+/* rxpath   : path where 'rx' is located                                 */
+/*************************************************************************/
+path='Doors:PagE!r/'
+rxpath='SYS:Rexxc/'
+/********************************* Script ********************************/
+options results
+if ~show(l,'rexxsupport.library') then;do
+if ~addlib("rexxsupport.library",0,-30,0) then;do
+say "Can't open rexxsupport.library"
+exit
+end
+end
+sendstring '\@6\n1\c4     ษออออออออออออออออออต\c3 PagE!r v1.0  by Morpheus \c4ฦอออออออออออออออออออป\n1'
+sendstring '     บ                                                                 บ\n1'
+sendstring '     บ \c7Enter a reason to chat:                                         \c4บ\n1'
+sendstring '     บ                                                                 บ\n1'
+sendstring '     ศอออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผ\^2\<z\<6\c3'
+prompt 39
+reason=result
+if reason='' then;do
+sendstring '\n3\c7       Abort...\c0\g0\q1'
+exit
+end
+if getclip('SysopAvail')='FALSE' then;do
+sendfile path||'NotAvail.ansi'
+feedback
+exit
+end
+getuser 1
+alias=result
+getuser 23
+node=result
+port='PAGERPORT'||node
+do 10 while show('P',port)
+address VALUE port
+'5'
+address
+call delay(50)
+end
+if show('P',port) then;do
+sendstring '\c1Error: could not close previous PagE!r-port !!!\n1'
+sendstring 'Please report this error to the sysop.\n2\q1'
+exit
+end
+call setclip('PagE!r'||node||'_alias',alias)
+call setclip('PagE!r'||node||'_reason',reason)
+logentry 'SysOp Chat Request: '||reason
+changewhat reason
+changewhere 'PagE!r'
+poort=address()
+address command 'run' rxpath||'rx' path||'PagE!r_Sysop' node poort
+address command 'run' rxpath||'rx' path||'PagE!r_player' node
+sendfile path||'PagE!r.ansi'
+exit

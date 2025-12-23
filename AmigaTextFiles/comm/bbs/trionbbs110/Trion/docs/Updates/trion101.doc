@@ -1,0 +1,205 @@
+
+
+        _____     _                  _     _              _    ___
+       |_   _|_ _(_) ___  _ __      | |__ | |__  ___     / |  / _ \
+         | | | '_| |/ _ \| '_ \     | '_ \| '_ \/ __|    | | | | | |
+         | | | | | | (_) | | | |    | |_) | |_) \__ \    | |_| |_| |
+         |_| |_| |_|\___/|_| |_|    |____/|____/|___/    |_(_)\___/
+
+                        © 1994/97 by Paul Spijkerman
+                             All Rights Reserved
+
+
+
+     Well here is the first Update since the Version V1.0 archive.
+
+     I have not done much because of the vacation and the
+     tropical temperature in my work room ... but made an
+     update anyway because of some usefull things and a
+     couple of bug fixes.
+
+
+
+
+     Utils:   BBS, TrionRM
+     Docs:    Trion-Net.doc, rexxlist
+     Doors:   ReadNla.rexx
+
+
+
+   -All the commands typed in the remote shell are logged.
+
+   -Fixed a little bug in TrionRM, when some one with a really
+    really REALLY long city name logged in TrionRM hanged
+    when the monitor was DeIconized.
+    Now all the fields of active nodes are truncated so if a
+    field is to long all fields remain visible.
+
+   -Fixed a problem in TrionRM, when some one logged in
+    some things from the previous user could pop up in the
+    active nodes window until all new data was known.
+
+
+
+   -Started to rewrite the RipScrip BBS graphics code.
+
+    Made the clipboards faster.
+
+    In RIPScrip you have clipboards.
+    There are commands to get a piece of the screen in a clipboard
+    or to draw a clipboard on the screen (with a mode parameter
+    so you can do operations on the picture like invert it)
+    Also you can save the clipboard to disk as an icon or load
+    it from disk.
+
+    In the last version of Trion the clipboards where very slow.
+    The clipboard itself was 'chuncky' (a byte per pixel with
+    the color) but the screen bitmap isn't .. so the code
+    used ReadPixel and PutPixel to get the whole clipboard.
+    Which is really inefficient because for every pixel you have
+    too read 1 bit from all 4 bitplanes. And you have already read
+    the bits for the next 15 pixels.
+    I made some code that could directly read from the bitmap but
+    that is 'illegal' it won't work on video cards and future
+    machines.
+
+    So I made some code wich made a 'bitmap' (4 bitplanes) with
+    the size of the clipboard that is in use.
+    With the blitter you can copy a piece of the screen really fast
+    to this bitmap .. and even faster copy it back to the screen
+    with operations like invert.
+    Also I made some code that can convert the bitmap to the
+    'chuncky' clipboard and vice versa. Wich accelarated the
+    clipboard enormously. You only see a very little pause when
+    the bitmap is converted but the blitting is immediatly.
+
+    Well there are 2 different ways this can be developed furter.
+    the first is to keep the chuncky clipboard .. because that
+    will be faster if the system has a (CyberGraphX) video card,
+    because CyberGraphX has a 'blit' command that accepts
+    chunky arrays. 
+    
+
+    Or to make a clipboard with 4 bitplanes which is faster on
+    an OCS/ECS/AGA machine .. but slower in the future :)
+
+
+
+   -Fixed some problems in Rexxdoors.
+    When you tried to print something with a arexx command with
+    leading spaces the spaces where stripped.
+    When you used ANSI codes with a ; in it the line was changed.
+
+    The problems where causes by the DOS ReadArgs() function I
+    used to check and translate the incoming arguments.
+    This was used in an example so I copied it, but it was meant
+    for doscommands that want the argument lines checked and
+    split up in commands, flags and numbers.
+    I used the "\F" template which means 'rest of the line',
+    that didn't work very well.
+    I only want a line of text or nothing so i wrote my own
+    simple code that checked if there was a string after the
+    command or not and then check if a string is needed.
+
+
+
+   -I played a little with Arexx.
+
+    It can be Usefull to have the Menu commands availble in Arexx
+    Doors. I gues they are available in Xenolink arexx doors, and
+    i heard that in Xenolink V2.0 the menus will be written in Arexx
+    but that can be changed because since then Xenolink changed hands.
+    I know that in the Zeus package menus are written in Arexx.
+
+    Well .. Trion menus are still written in trion menu language,
+    because it is simple .. you don't have to know Arexx.
+    But I started to add a few of the Menu commands to the
+    Arexx door interface (some on request) so you can make
+    menus a little more like a programm.
+
+    As an example I made an Arexx door that reads the messages
+    in a group of areas .. which isn't possible with the current
+    menu compiler (yet .. because adding ranges is in the ToDo list
+    but maybe arexx is the answer to everything ;)
+
+
+
+    Added 3 Arexx door commands (same as the menu commands)
+
+     ChangeFileArea     <area>
+     ChangeMessageArea  <area>
+     ReadNew
+
+    Note that the ChangeXXX commands don't print a text when the
+    area can't be accessed but returns a "0".
+    (they return a "1" on succes)
+
+
+    I have made a demo arexx door that shows all new message in
+    a group of areas instead of all areas or 1 area.
+
+
+
+
+
+    Add this to a menu to start the Arexx Door:
+
+Cmd "A" , 0-255
+   RexxDoor  "doors:rexxtest/ReadNLA.rexx"
+EndCmd
+
+
+
+
+
+    This is the ArexxDoor:
+    (Note that it assumes that NLA areas are numbered within
+     the range of 100 till 150)
+
+
+
+
+
+/* RexxDoor "doors:rexxtest/ReadNLA.rexx"      */
+/* start with    RexxDoor  "doors:rexxtest/ReadNLA.rexx"         */
+
+
+Arg node_number                         /* node we were run from */
+Host = 'TRONREXX.'node_number           /* the Trion Arexx port */
+/* Host = 'TRONREXX.'node_number'1' */  /* the Trion Arexx port */
+/* Host = 'TRONREXX.01'  */             /* the Trion Arexx port */
+Options results                         /* this is how Trion answers */
+Address value host
+options failat 15
+
+ESCSEQ   = '1b'x||'['
+YELLOW   = ESCSEQ'1;33m'
+
+
+quit = 0
+
+do n = 100 to 150 by 1
+   Carrier
+   if result = "1" & quit = 0 then do     /* if carrier present and not stopt */
+      ChangeMessageArea n
+      if result = "1" then do
+         ReadNew
+         quit = result                    /* is 1 when User quits reading */
+
+         if quit = 1 then do
+            /* print YELLOW"User terminated" */
+         end
+
+      end
+      else do
+         /* print YELLOW"There is no msg area "n" !" */
+      end
+   end
+end
+
+
+exit 0                         /* einde programma */
+
+
+
+

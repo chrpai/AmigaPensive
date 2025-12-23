@@ -1,0 +1,76 @@
+/* Diese Elemente sollten UNBEDINGT im Logoff.trans vorhanden sein */
+
+options results
+
+userpath='USER:'
+
+usersdir='BBS:Users/'
+
+userinfo a ; uname=result
+
+bbsidentify term
+bbsline=strip(word(result,4))
+
+i=0
+if open(userfile,usersdir||uname,'R') then do
+  i=1
+  do while ~eof(userfile)
+    user.i=readln(userfile)
+    i=i+1
+  end
+  call close(userfile)
+end
+
+if open(logondate,userpath||'logon-'||uname,'R') then do
+  logondatum=readln(logondate)
+  call close(logondate)
+  user.9=logondatum
+  address command 'delete >NIL: "'||userpath||'logon-'||uname||'"'
+end
+
+if i~=0 then do
+  if open('download',userpath||'down-'||uname,'R') then do
+    gesamt=readln('download')
+    anzahl=readln('download')
+    neudown=value('user.11')+(value('gesamt')%1024)
+    user.11=insert(' ',neudown)
+    neudown=value('user.12')+value('anzahl')
+    user.12=insert(' ',neudown)
+    call close('download')
+    address command 'DELETE >NIL: "'||userpath||'down-'||uname'"'
+  end
+
+  /* fuer spaetere Erweiterungen MIT Upload */
+  if open('upload',userpath||'up-'||uname,'R') then do
+    gesamt=readln('upload')
+    anzahl=readln('upload')
+    neuup=value('user.13')+(value('gesamt')%1024)
+    user.13=insert(' ',neuup)
+    neuup=value('user.14')+value('anzahl')
+    user.14=insert(' ',neuup)
+    call close('upload')
+    address command 'DELETE >NIL: "'||userpath||'up-'||uname'"'
+  end
+
+end
+
+if i>1 then
+  if open(userfile,usersdir||uname,'W') then do
+    do j=1 to i-2
+    call writeln(userfile,user.j)
+    end
+    call close(userfile)
+  end
+
+befehl="host=show('P','FILELISTER."||bbsline||"')"
+interpret befehl
+
+/* Filelister rescannen, falls Port verfuegbar                     */
+if host then do
+  befehl="address 'FILELISTER."||bbsline||"' 'RESCAN'"
+  interpret befehl
+end
+
+call "BBS:Rexx/CheckMem.rexx"
+
+exit 0

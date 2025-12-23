@@ -1,0 +1,133 @@
+.KEY filename/A,filenoext/A,extension/A,VERBOSE/S
+.BRA {
+.KET }
+
+If {VERBOSE}
+	Echo "Filename : {filename}"
+	Echo "w/o ext  : {filenoext}"
+	Echo "Extension: {extension}"
+EndIf
+
+;
+; You should not overwrite an already existing "Readme" file.
+; Either complete an existing "Readme" file, or just abort this script.
+;
+
+If EXISTS "{filenoext}.readme"
+	If {VERBOSE}
+		Echo "{filenoext}.readme already exists."
+	EndIf
+	Quit 5
+EndIf
+
+;
+; The extension is converted to upper-case by EazyBBS.
+;
+
+If "{extension}" EQ "README"
+	;Sed -e "s/^Type:.**mus\/play$/Area: Amiga\/Audio/g"
+	;Sed -e "s/\\/\\\\/g" < "{filename}" > "TMP_{filename}"
+	;Copy "TMP_{filename}" "{filename}" QUIET
+	;Delete "TMP_{filename}" QUIET
+Else
+If "{extension}" EQ "LHA"
+	LhA x "{filename}" FILE_ID.DIZ >NIL:
+	If EXISTS FILE_ID.DIZ
+		Skip BuildReadme1
+	EndIf
+	; place for other description files
+Else
+If "{extension}" EQ "ZIP"
+	UnZip "{filename}" FILE_ID.DIZ >NIL:
+	If EXISTS FILE_ID.DIZ
+		Skip BuildReadme1
+	EndIf
+	; place for other description files
+Else
+If "{extension}" EQ "DMS"
+	DMS VIEWDIZ "{filename}" >FILE_ID.DIZ
+	If EXISTS FILE_ID.DIZ
+		Skip BuildReadme1
+	EndIf
+	; place for other description files
+Else
+If "{extension}" EQ "LZX"
+	LZX x "{filename}" FILE_ID.DIZ >NIL:
+	If EXISTS FILE_ID.DIZ
+		Skip BuildReadme1
+	EndIf
+	; place for other description files
+Else
+If "{extension}" EQ "LZH"
+	LhA x "{filename}" FILE_ID.DIZ >NIL:
+	If EXISTS FILE_ID.DIZ
+		Skip BuildReadme1
+	EndIf
+	; place for other description files
+Else
+If "{extension}" EQ "ZOO"
+	Zoo x "{filename}" FILE_ID.DIZ >NIL:
+	If EXISTS FILE_ID.DIZ
+		Skip BuildReadme1
+	EndIf
+	; place for other description files
+Else
+If "{extension}" EQ "ARC"
+	Arc x "{filename}" FILE_ID.DIZ >NIL:
+	If EXISTS FILE_ID.DIZ
+		Skip BuildReadme1
+	EndIf
+	; place for other description files
+Else
+	If {VERBOSE}
+		Echo "Unknown extension: {extension}"
+	EndIf
+; Same number of "EndIf"s required as "If" statements above.
+; If not sure, test script on file with known extension but
+; containing no description file.
+EndIf
+EndIf
+EndIf
+EndIf
+EndIf
+EndIf
+EndIf
+EndIf
+
+;
+; Nothing done. Bye bye.
+;
+
+Quit 5
+
+Lab BuildReadme1
+	;
+	; Build "Readme" from FILE_ID.DIZ file.
+	;
+	;Echo "Short: [comment extracted from FILE_ID.DIZ]" > "{filenoext}.readme"
+	Echo "Short: [the uploader is a PC loser]" > "{filenoext}.readme"
+	;
+	; If everything else is okay, EazyBBS accepts files with Readme
+	; for the current file-area. But you may insert something like
+	;  Echo "Area: non-existing/file-area" >> "{filenoext}.readme"
+	; that lets EazyBBS pop up the file-editor to correct the erro
+	; Alternatively, just do
+	;  Echo "Short:" > "{filenoext}.readme"
+	; (but then the nice short-comment will be lost ;-)
+	;
+	Echo "" >> "{filenoext}.readme"
+	;
+	; Don't do:
+	;  Type FILE_ID.DIZ >> "{filenoext}.readme"
+	; You should replace \ by \\. (special escape character)
+	;
+	Sed -e "s/\\/\\\\/g" < FILE_ID.DIZ >> "{filenoext}.readme"
+	Delete FORCE QUIET FILE_ID.DIZ
+	Quit 0
+
+Lab BuildReadme2
+	;
+	; Build "Readme" from another description file in archive.
+	;
+	Quit 0
+

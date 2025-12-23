@@ -1,0 +1,71 @@
+/*    __
+     (_             \/            Written By The Brazilian Of The Back Burner
+   ____)uggestion Bo/\___         BBS In Colorado! - 303/697-1225 - 3/12/2400
+
+   This program will allow users to give you suggestions on the BBS, or what-
+   ever other use you put it to.  It saves them to "SYSTEM:log.sugg" and then
+   SuggBox.M reads them.     :To Use:  Put both SuggBox and SuggBox.M in your
+   Pfiles: directory, and both  "cmd.comm." in your SYSTEM: directory.  Then,
+   modify your BBSMENU as follows:  Add a ",SB" at the end of line 3, (Global
+   Commands)  and "LS" at the end of line 2, (Sysop Commands).   When someone 
+   makes a suggestion,  it will notify you in the log,  and you can use LS to
+   read/delete them.  Thats all there is too it.. nifty, huh?? Heheheh....
+
+   This file is free to distribute to LEGAL C-NET AMIGA SYSOPS ONLY and to be
+   distributed with this text intact...  you may delete all this for the copy 
+   you are using on the BBS to save room, but if you spread this around, make
+   sure this is in it..  Thats all I ask!  If you like it, find it useful, or
+   whatever, LET ME KNOW!  Write a letter.. call my 24 hour BBS.. Let me know
+   you are out there!
+                               The Brazilian
+                               4013 Vine ST.
+                               Morrison, CO  80465
+
+              Enough Comments, Already..               --Bob                 */
+
+options results
+
+sendstring '\c1: \c3Do You Wish To Make A Suggestion? \c1: \c6'
+getchar
+yesno = upper(result)
+if yesno ~= 'Y' then do
+ sendstring 'No'
+ exit
+end
+
+transmit 'Yes'
+bufferflush
+getuser 28
+urk=result
+if urk = 0 then call ask:
+sendstring '\^2'
+
+ASK:
+
+transmit '\n1\c1: \c5Enter Up To \c710\c5 Lines.  Press \c1RETURN\c5 On A Blank'
+transmit '\c1: \c5Line To Save (\c3Incase You Do Not Fill Up All 10 Lines\c5)\n1'
+
+GETUSER 1;Uname=result;GETUSER 12;Date=result
+logentry'Suggestion By 'uname
+
+do i = 1 to 10
+ query"\c1: \c3"
+ text.i = result
+ if text.i = "" then call done
+end
+
+DONE:  /* Save Their Suggestion */
+
+call open file, ('system:log.sugg'), 'A'
+call writeln file, '\c5Suggestion By:\cd 'uname'\c5 On \cd'date'\c1...\n1\c3'
+
+do f = 1 to i - 1
+ call writeln file, text.f
+end
+
+call writeln file, '\c1\n1Key->\g1\h5'
+call close file
+
+transmit "\n1\c1: \c2Thankyou For Your Suggestion! \c3The Sysops Will Get Back"
+sendstring "\c1: \c3To You In The Next Couple Of Days."
+exit

@@ -1,0 +1,125 @@
+(SET #default-dest "DayDream:")
+(SET #startMsg ("\nWelcome to 'MAD VIRGIN BW MAIL DOOR'\n\nThis script installs 'MVMail v1.32' on your HD.\n") )
+(SET #destPrompt "Please choose the daydream directory.\nAll necessery drawers will be created.")
+(SET #exitMsg ("Mad Virgin MAIL door V1.32 free for DayDream BBS!\n(30.10.1997)\n\nINSTALATION OK !\n\nPLEASE READ THE DOCS before install this door on your BBS !!\n"))
+(SET #copyfiles-help (cat "\n"
+                      "  This option will copy all needed  \n"
+                      "  files from MVMail archive to      \n"
+                      "  choosen drawer on your Hard Drive.\n") )
+(SET #askdir-help (cat "\n"
+                      "  You must choose default path for    \n"
+                      "  DayDream. Eg.                       \n"
+                      "      DayDream:                       \n"
+                      "                or similar.           \n"
+                      "  All necessery drawers will be       \n"
+                      "  created if not exists.              \n") )
+
+(SET #update-help  (cat "\n"
+                      "  Some data will be added to your's  \n"
+                      "  existing data files so you don't   \n"
+                      " have to enter it manualy.  \n"
+                      " If you've already do this update \n"
+                      " don't do it again!!!  \n"))
+
+(SET #copying "Copying ")
+
+;
+;-------------------------------FILENAMES
+;
+(SET #udir      "DayDream/Utils/")
+(SET #userver   "MVM-Server")
+(SET #uoptim    "MVMsgBaseOpt_OS")
+(SET #uoperator "OperatorConfig")
+(SET #glrpdir   "DayDream/Doors/MV/LRP/")
+(SET #maildir   "DayDream/Doors/MV/MAIL/")
+;
+;-------------------------------PROCEDURE
+;
+(procedure COPYFILE #srcname #dstdir
+(copyfiles
+	(prompt #copying #srcname "...")
+	(help #copyfiles-help)
+	(source #srcname)
+	(dest #dstdir)
+	(optional "force" "askuser")
+	(confirm "expert")
+;	(infos)
+))
+(procedure COPYDIR #srcname #dstdir
+(copyfiles
+	(prompt #copying #srcname "...")
+	(help #copyfiles-help)
+	(source #srcname)
+	(dest #dstdir)
+	(optional "force" "askuser")
+	(confirm "expert")
+;	(infos)
+        (ALL)
+))
+
+;
+;-------------------------------POCNI INSTALACIJU
+;
+(MESSAGE #startMsg)
+
+(SET #default-dest
+    (ASKDIR (PROMPT  #destPrompt)
+            (HELP    #askdir-help)
+            (DEFAULT #default-dest )))
+
+(SET #ddudir (tackon #default-dest "Utils"))
+(SET #dddoorsdir (tackon #default-dest "Doors"))
+(SET #ddmvdir (tackon #default-dest "Doors/MV"))
+(SET #ddmaildir (tackon #default-dest "Doors/MV/MAIL"))
+(SET #ddlrpdir (tackon #default-dest "Doors/MV/LRP"))
+(SET #ddlrpdatadir (tackon #default-dest "Doors/MV/LRP/DATAs"))
+
+(if (= (exists #ddudir) 0) ( (makedir #ddudir (help @makedir-help)) ))
+(if (= (exists #dddoorsdir) 0) ( (makedir #dddoorsdir (help @makedir-help)) ))
+(if (= (exists #ddmvdir) 0) ( (makedir #ddmvdir (help @makedir-help)) ))
+(if (= (exists #ddmaildir) 0) ( (makedir #ddmaildir (help @makedir-help)) ))
+(if (= (exists #ddlrpdir) 0) ( (makedir #ddlrpdir (help @makedir-help)) ))
+(if (= (exists #ddlrpdatadir) 0) ( (makedir #ddlrpdatadir (help @makedir-help)) ))
+
+(complete 10)(COPYDIR #udir #ddudir)
+(complete 20)(COPYFILE "DayDream/Doors/MV.Info" #dddoorsdir)
+(complete 25)(COPYDIR #glrpdir #ddlrpdir)
+(complete 40)(COPYDIR #maildir #ddmaildir)
+
+;--------Update DayDream configs?
+(complete 85)
+(SET choice
+     (ASKOPTIONS (PROMPT "Select files to be updated ...")
+                 (HELP  #update-help)
+                 (CHOICES "Update&Compile DayDream.CFG" "Update LogOnDoors.DAT")
+                 (DEFAULT 3)))
+
+(SET #fname "DayDream.CFG")
+(SET #up "UpdateStructures ")
+(SET #uplod "UpdateLOD ")
+(SET #comp "DayDream:Utils/DreamConfig ")
+(SET #lod (tackon #default-dest "Data/LogOnDoors.DAT"))
+
+(if (BITAND choice 1)
+(
+    (message "\nUpdating&Compiling DayDream.CFG")
+    (SET #file
+    (askfile
+            (PROMPT "Select DayDream.CFG file")
+            (HELP "  Simply select a one DayDream.Dat file.\n  Backup file will be created\n")
+            (DEFAULT (tackon #default-dest #fname))
+    ))
+    (run (cat #up #file)) 
+    (run (cat #comp #file))
+)
+)              
+(complete 98)   
+(if (BITAND choice 2)
+(
+    (message "\nUpdating LogOnDoors.DAT")
+    (run (cat #uplod #lod)) 
+)
+)                 
+
+(complete 100)
+(Exit #exitMsg)

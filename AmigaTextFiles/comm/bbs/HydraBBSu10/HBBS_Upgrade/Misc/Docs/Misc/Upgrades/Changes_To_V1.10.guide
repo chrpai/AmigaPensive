@@ -1,0 +1,518 @@
+@Database Changes_To_V1.10.guide
+
+@Node Main "Changes to HydraBBS between V1.08 and V1.10"
+
+  Changes to HydraBBS between V1.08 and V1.10
+  ===========================================
+
+  Please read *ALL* of this file, or you won't know about some of the great
+  new features of this release.
+
+  Go on, it'll only take you a couple of minutes.
+
+  This document is stored as HBBS:Docs/Misc/Upgrades/Changes_To_V1.10.Guide
+
+  Details
+  =======
+
+  Sysop Information     - @{"More..." link SysopInformation}
+
+  Developer Information - @{"More..." link HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.10.guide/MAIN}
+
+  Files Changed         - @{"More..." link FilesChanged}
+
+@EndNode
+
+@Node SysopInformation "Sysop Information"
+
+  This section is rather large for the V1.10 release as there have been
+  numerous changes, all of which are important.
+
+  Sysop Information
+  =================
+
+  * Docs
+
+    Please see the updated @{"BugReport" link HBBS:HBBS.Guide/BugReport} section before sending me
+    bug reports.
+
+  * KeyFiles
+
+    Due to the fact that no-one's registered HydraBBS I have implemented
+    simple keyfile protection to HydraBBS (and no, I'm not telling you
+    exactly which files have had the protection added)
+
+    Hopefully, this will force people to register HydraBBS.
+
+    I'm giving people a final warning now, register, or I stop development
+    of HydraBBS.
+
+  * @{"Weektop" link HBBS:Docs/Doors/Weektop.guide/MAIN}
+
+    Created this door, see the docs for installation details.
+
+    Features auto Mail Posting, and Last Week position
+    (kinda like music chars, i.e. last week user X was at
+    position Y in the week top uploaders chart!)
+
+  * BulletinViewer
+
+    Oops!  I forgot to change a function call, so the changes I
+    made last time I updated the door didn't make any different.
+    Fixed!  (if you select a bulletin from the menu, you don't get
+    a scrneen prompt before the menu is displayed, as the menu
+    prompt is, in itself, a pause prompt!)
+
+  * HBBSKeyCreator
+
+    Wrote this (rather nice) database program to generate all the key
+    files.
+
+    Let's just hope I actually have to use it eh ?  It's up to you....
+
+  * ExampleProgram
+
+    The ExampleProgram (not example door) has been updated to show
+    beginners how to access data in the BBS system.
+
+    Take a look at HBBS:Developer/ExampleProgram/Main.C
+
+  * Mail_Read (not Mail_ReadUSER)
+
+    When a message in the list of messages that it had been passed had been
+    deleted before the message could be displayed no message was shown and
+    the message would stay in the list, now a message is displayed and the
+    message is removed from the list.
+
+    This could occur if a user skipped a mail message from a mailscan, the
+    list of messages that the user still has to read is then saved.
+
+    Then if the message was deleted (for any reason) and the user did a
+    mailscan again, the message would still be in the list.  The only
+    way to remove it from the list would have been to mark it as read, but
+    this probably wouldn't have worked for messages with the MustRead flag
+    set.
+
+    This behaviour is now fixed.
+
+  * Mail_Write
+
+    Now uses the colours defined in your BBSColours.CFG file for its
+    prompts.
+
+    Updated example usage ("E ?" at bbs prompt)
+
+  * Mail_Reply
+
+    A change I made to PostNewMail() that was meant to cure bugs actually
+    caused one because in MailReply() I forgot to Msg->Data=NULL before
+    I called PostNewMail(), so it tried to save random areas of memory
+    to the message file instead of the output from the editor.
+
+    OOOOps!
+
+  * Control
+
+    Now loads the new ConfConfig/User#?Allowed_XX settings.
+
+    If you started control more than once, you'd get an error message
+    saying so, but you'd not be able to continue using the
+    running version of HydraBBS, and it'd most likey crash or overwrite
+    other memory, randomly (because BBSGlobal was being set to NULL!)
+
+    When you attempt to close Control when there are visitor windows
+    on the screen that don't belong to a node or control, you were
+    prompted to close them, but you couldn't cancel the request to
+    close control.  Now you can cancel the request to stop control
+    from shutting down.
+
+    Fixed a load of minor memory leaks
+
+  * MailScan
+
+    Because of the fudged up defines.h in V1.07/V1.08, this door had to be
+    re-compiled.  The default to read the messages changed to NO instead of
+    YES as a result of the fudge.  (and there were probably other changes
+    which I never noticed..)
+
+  * Node
+
+    Removed extra ansi-reset's that were done when a screen was supposed
+    to be displayed, even though it didn't exist.  This fixes the
+    flashing cursor in term when changing conferences etc..
+
+    Now uses the MenuPromptANSI BBSColours.CFG when displaying prompts
+
+    It would be a good idea to use the default MenuPromptANSI string
+    from the example configs
+    (HBBS:Storage/Example_Configs/System/Data/BBSStrings.CFG) or you might
+    get some weird effects. You should include an ansi-reset
+    "<esc>[0;37m" at the end of the MenuPromptANSI string or the colour
+    of the text that the user types in will be un-defined and may look
+    odd.
+
+    Note:  It *is* possible to remove (or change) the []'s around options
+    just by removing or changing them in the corresponding BBSColours.CFG
+    options.
+
+    Also, if there was a problem with the logout door
+    or the command prompt, the system now calls the SYSTEM door
+    LOGOUT, instead of the USER door "G".
+
+    (The example configs prior to V1.10 had the required setting in them
+    already, but please check your HBBS:Commands/System file to see if
+    you have got a LOGOUT system door defined)
+
+    Now displays an error message and closes the node if there was
+    a problem initialising the modem (rather than sitting there, just
+    getting confused, like it used to)
+
+    When Get_Line() is called, any data waiting at the console
+    is aborted.  This should cure any problems you may have had when
+    the node appeared frozen to the sysop, but the node console panel
+    still responded when you clicked on it's gadgets.
+
+    Doors that call DOOR_HangUp() will cause the node to display
+    the message "Hanging Up" in the watch window (only the sysop will
+    see the message).
+
+    When the door log was enabled and no-one was logged in it would
+    log "Handle: ,...".  Now it prints out "Handle: Not logged on yet,...."
+
+    When the watch window/screen is brought to the front, the window is now
+    activated as well.  (For those people that don't run a program that
+    activates a window on the frontmost screen when you switch to a new
+    screen)
+
+    The node now calls "MailScan" *before* "Checktags" during the login
+    process.
+
+    The node now calls the new SHOWPARTUPLOADS system door after "CheckTags"
+    during the login process.
+
+    The node now checks the user's carrier status before running
+    mailscan, checktags, showpartuploads and command prompt.
+    (If the user looses carrier during login the bbs will now reset quicker)
+
+    The first person to page the sysop after the node had started would
+    have caused an enforcer hit (byte read from $0) Fixed!
+
+  * CheckFiles
+
+    Changed the colours of the ansi, where it displays the conference
+    being used for the file.
+
+  * NewUser
+
+    Now calls a system door called "Questionnaire" (if it exists)
+
+    Now does not display the user's password on the screen and
+    asks for verification.
+
+  * Wall
+
+    For some reason the wall has started displaying the wallitems
+    in reverse order, I don't know when this happened, but it's
+    fixed now.. :-)
+
+    Added history to the wall input prompt
+
+  * FrontEnd
+
+    Removed the "Calling new user door" message.
+
+    Changed some of the ansi
+
+  * CmdPrompt
+
+    User doors with names that end with a '!' character can no-longer
+    be started by the user from the command prompt.  This is so that
+    you can create doors that are not system doors that you wouldn't
+    normally want a user to be able to run but that you would want
+    them to run from other parts of the bbs, like a special screen.
+
+
+    You can still define a new system door name, and call that from
+    a screen file.
+
+    So to re-cap, you can do either this:
+
+    Commands/System
+
+    MySysDoor_Type_1=HBBS
+    MySysDoor_Door_1=HBBS:Doors/System/MySysDoor/MySysDoor.HBBS
+
+    then in a screen file:
+
+    @^SYSDOOR^MySysDoor myoptions@
+
+    OR:
+
+    Commands/Level_#?
+
+    MyUserDoor!_Type_1=HBBS
+    MyUserDoor!_Door_1=HBBS:Doors/User/MyUserDoor/MyUserDoor.HBBS
+
+    then in a screen file:
+
+    @^USERDOOR^MyUserDoor! myoptions@
+
+    But, in both examples, the user wouldn't be able to type in
+    either "MySysDoor" or "MyUserDoor!" at the command prompt.
+
+    There are no *real* differences between a system door and a user
+    door, in terms of coding.  But using the correct location for
+    a door is useful.
+
+    It's easier to define a door in a Commands/Level_#? file
+    then a Commands/System file if you want  different doors for
+    different access levels.  (as system doors are run by the
+    system for ALL users, regardless of access level, but the
+    user's access level is checked before a user door can even be
+    started)
+
+    You can still check the user's access level from a door and then
+    do different things depending on it though...
+
+  * XPR and Hydra
+
+    These doors no longer update NodeData->User->#?Uploaded.
+
+    (So that corrupt uploads and other files DON'T count towards
+    the weektop)
+
+  * AddCreds
+
+    This door now updates NodeData->User->#?Uploaded.
+
+    (So that uploads by the sysop are counted by the weektop)
+
+    This door now logs the amount of credits that was given for an
+    uploaded file.
+
+  * AwaitConnect
+
+    Does not display blank lines anymore.
+
+  * Logout
+
+    Now does not allow other Logout doors to run if the user cancels
+    the logout request if they still had flagged files.
+
+    (so stuff like the weektop doesn't get run twice)
+
+  * Control and Node
+
+    Both programs now check for the correct version of the HBBSCommon.library
+    and HBBSNode.library using the defines in includes/hbbs/release.h
+
+  * HBBSCommon.library
+
+    Set libversion to 1 and librevision to 10.
+
+    HBBS_AddCfgItem() always returned FALSE, fixed, it now returns
+    TRUE or FALSE.
+
+    Added HBBS_AddCfgList() which is used to add a linked list to
+    a config file (so you can read in a stringlist or pathlist
+    from a config file, update it and write it back again)
+
+  * HBBSNode.library
+
+    Set libversion to 1 and librevision to 10.
+
+    Now reads in another BBSColours.CFG config option MenuDefaultOptTextANSI
+    (see HBBS:Storage/Example_Configs/System/Data/BBSColours.CFG for an
+    example)
+
+    The defaults for BBSColours.CFG have changed,  the example config actually
+    just sets the defaults again!
+
+    HBBS_SetCols() now loads the BBSColours.CFG with the LCFG_NOSTRIPSPACES
+    loadconfig flag.  THis means that end of line blanks will not
+    be removed (normally you'll want an extra space on the end of the
+    MenuPromptANSI option.)  Make sure your text editor does not strip the
+    spaces when you save the file!
+
+    Implemented checking of ConfData->UserAllowed and ConfData->UserNotAllowed,
+    so now you can use the respecitive @{"ConfConfig" link HBBS:Docs/Configuration/ConfConfig.guide/MAIN} options,
+    @{"ConfConfig/UserAllowed_XX" link HBBS:Docs/Configuration/ConfConfig.guide/UserAllowed_XX} and @{"ConfConfig/UserNotAllowed_XX" link HBBS:Docs/Configuration/ConfConfig.guide/UserNotAllowed_XX}
+
+    Note: because JoinConference uses HBBS_AllowConfAccess() function, no update
+    is required to that door! (don't you just love HBBS ?)
+
+    Fixed some minor memory leaks
+
+    Wow!  I'm so glad I found this bug...
+
+    I was doing this:
+
+    FreeVec(NewIOMsg)
+    Return(NewIOMsg->ReturnValue)
+
+    Oops!
+
+    I'm suprised HydraBBS even ran at all, as this was in the main
+    door <-> node comminication passing routine!  Blimey.
+
+    I only found this cos I was playing around with the mungwall tool
+    searching for memory leaks..
+
+    As a result, if you've ever experiances random problems with
+    HydraBBS this may have been the cause, especially on
+    multi-node systems where two users were on-line or heavily
+    multitasking when a user was on-line.  (due to the free'd memory
+    being allocated by another task before the door could use the data)
+
+    I'm glad I've fixed that one..
+
+  * Upload
+
+    Calls the system door SHOWPARTUPLOADS.
+
+  * Download
+
+    Calls the system door SHOWPARTUPLOADS if the selected protocol
+    is bi-directional.
+
+    When doing a sysop download, the question:
+    "Clear tags after copy ?"
+    Always cleared the tags, regardless of the sysop's answer.  (due to me
+    not finishing the routine!) This is now fixed and works fine.
+
+  * @{"ShowPartUploads" link HBBS:Docs/Doors/ShowPartUploads.Guide/MAIN}
+
+    Created this system door, it shows the users their partuploads, if any,
+    with an option to delete them.  See the docs for installation
+    details!
+
+  * MoveFile
+
+    This door now writes an exact filename and path to the callers log
+    for each file that was moved.
+
+  * CheckFiles
+
+    This door now writes extra information to the callers log, relating to
+    where the file was moved to.
+
+  * Editor
+
+    Does an ansi-reset at each line and has slightly better colours now.
+    It also used the colours defined in the BBSColours.CFG file more.
+
+  * Fixed all the version numbers in the @{"Changes_To_V1.08.guide" link HBBS:Docs/Misc/Upgrades/Changes_To_V1.08.guide/MAIN} file
+    Updated changes file for V1.08 has been included in this release.
+
+  * The Changes_To_V1.08.guide was installed in HBBS:Docs/Upgrades instead of
+    HBBS:Docs/Misc/Upgrades, the installer script should have fixed this.
+    If not, then delete the HBBS:Docs/Upgrades drawer completely.
+
+    Also, see the @{"FilesChanged" link FilesChanged} section for a list
+    of obsoleted files which are safe to delete (the installer script
+    should do this for you)
+
+@EndNode
+
+@Node FilesChanged "Files Changed"
+
+  Files Changed for V1.10
+  =======================
+
+  Core Files
+  ----------
+  HBBS:Control
+  HBBS:Doors/System/Node
+  HBBS:System/Amiga/Libs/HBBSCommon.library
+  HBBS:System/Amiga/Libs/HBBSNode.library
+  HBBS:Doors/System/ErrorMessage/ErrorMessage.TXT
+  HBBS:Doors/System/NewUser/NewUser.HBBS
+  HBBS:Doors/System/CmdPrompt/CmdPrompt.HBBS
+  HBBS:Doors/System/WeekTop/WeekTop.HBBS
+  HBBS:Doors/System/CheckFiles/CheckFiles.HBBS
+  HBBS:Doors/System/MoveFile/MoveFile.HBBS
+  HBBS:Doors/System/Editor/Editor.HBBS
+  HBBS:Doors/System/XPR/XPR.HBBS
+  HBBS:Doors/System/AwaitConnect/AwaitConnect.HBBS
+  HBBS:Doors/System/FrontEnd/FrontEnd.HBBS
+  HBBS:Doors/System/Hydra/Hydra.HBBS
+  HBBS:Doors/System/AddCreds/AddCreds.HBBS
+  HBBS:Doors/System/ShowPartUploads/ShowPartUploads.HBBS
+  HBBS:Doors/User/Download/Download.HBBS
+  HBBS:Doors/User/Upload/Upload.HBBS
+  HBBS:Doors/User/Wall/Wall.HBBS
+  HBBS:Doors/User/Logout/Logout.HBBS
+  HBBS:Doors/User/BulletinViewer/BulletinViewer.HBBS
+  HBBS:Doors/Mail/Mail_Scan.HBBS
+  HBBS:Doors/Mail/Mail_Write.HBBS
+  HBBS:Doors/Mail/Mail_Reply.HBBS
+  HBBS:Doors/Mail/Mail_Read.HBBS
+
+  Misc Files
+  ----------
+  HBBS:Docs/Misc/Upgrades/UpgradeIndex.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.08.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.08.guide.info
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.10.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.10.guide.info
+  HBBS:HBBS.Guide
+  HBBS:Docs/Doors/DoorIndex.Guide
+  HBBS:Docs/Doors/WeekTop.Guide
+  HBBS:Docs/Doors/ShowPartUploads.Guide
+  HBBS:Docs/Configuration/ConfConfig.Guide
+  HBBS:Storage/Example_Configs/Commands/System
+  HBBS:Storage/Example_Configs/Commands/All_Levels
+  HBBS:Storage/Example_Configs/Commands/Level_50
+  HBBS:Storage/Example_Configs/System/Data/BBSColours.CFG
+  HBBS:Storage/Example_Configs/System/Data/ConfAcs/Group.CFG
+  HBBS:Storage/Example_Configs/System/Data/ConfAcs/Normal.CFG
+  HBBS:Storage/Example_Configs/Conferences/Group/ConfConfig
+  HBBS:Storage/Example_Screens/Utopia/Special/ConfJoined_DEF.TXT
+  HBBS:Storage/Example_Screens/Special/Bulletins_LIST.TXT
+  HBBS:Storage/Example_Screens/Special/Paged.TXT
+  HBBS:Storage/Example_Screens/Special/PageCancel.TXT
+  HBBS:Storage/Example_Screens/Special/PageAnswered.TXT
+
+  Developer Files
+  ---------------
+  HBBS:Developer/Include/HBBS/release.h
+  HBBS:Developer/Include/HBBS/errors.h
+  HBBS:Developer/Include/HBBS/defines.h
+  HBBS:Developer/Include/HBBS/structures.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_protos.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas_sas.h
+  HBBS:Developer/Include/HBBS/HBBSNode_protos.h
+  HBBS:Developer/Include/HBBS/HBBSNode_pragmas.h
+  HBBS:Developer/Include/HBBS/HBBSNode_pragmas_sas.h
+  HBBS:Developer/FD/HBBSCommon_lib.fd
+  HBBS:Developer/Autodocs/hbbscommon.library.doc
+  HBBS:Developer/Autodocs/hbbsnode.library.doc
+  HBBS:Developer/Autodocs/hbbscommon.library.doc.info
+  HBBS:Developer/Autodocs/hbbsnode.library.doc.info
+  HBBS:Developer/Developer.Guide
+  HBBS:Developer/ExampleProgram/Main.C
+  HBBS:Developer/ExampleProgram/Main
+  HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.10.guide
+  HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.10.guide.info
+  HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.02.guide.info
+  HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.07.guide.info
+
+
+  OBSOLETED FILES
+  ---------------
+
+  HBBS:Developer/Docs/hbbscommon.library.doc (path changed)
+  HBBS:Developer/Docs/hbbscommon.library.doc.info
+  HBBS:Developer/Docs/hbbsnode.library.doc (path changed)
+  HBBS:Developer/Docs/hbbsnode.library.doc.info
+  HBBS:Developer/Includes#? (installed into wrong path, "includes" != "include")
+  HBBS:Developer/CodingTips.TXT (incoporated into Developer.Guide)
+  HBBS:Developer/CodingTips.TXT.info
+  HBBS:Developer/Developer.readme (incoporated into Developer.Guide)
+  HBBS:Developer/Developer.readme.info
+  HBBS:Docs/Misc/Upgrades#? (installed into wrong path)
+  HBBS:Include#? (installed into wrong path)
+  HBBS:ChangedFiles.lst (incorporated into the upgrade docs!)
+
+@EndNode

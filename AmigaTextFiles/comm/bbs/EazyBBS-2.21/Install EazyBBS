@@ -1,0 +1,154 @@
+.key dest1
+.bra {
+.ket }
+
+FailAt 20
+Echo "*N Welcome to *E[1mEazyBBS Mailbox *E[0m!*N"
+
+Echo "EazyBBS is very eazy to install.  You just need some assigns,"
+Echo "some pathes...  that's it. Okay, it's recommended to read the"
+Echo "manual, cause before running a public Mailbox you should configure"
+Echo "EazyBBS properly to fit your needs."
+Echo ""
+Echo "EazyBBS needs write access to the storage medium it was started"
+Echo "from. So, if this archive is on a CD-ROM, you must first copy it"
+Echo "to a writable area on your harddisk. This installation script will"
+Echo "ask you where you want EazyBBS installed. You need ca. 2 MB of free"
+Echo "disk space."
+Echo ""
+Echo "If this unpacked archive of EazyBBS is located on a writable"
+Echo "partition of your harddisk, then just click on the *"Ok*" button"
+Echo "without selecting any directory."
+Echo ""
+Echo "If this unpacked archive of EazyBBS is located on a read-only"
+Echo "storage medium (eg, CD-ROM), then select a directory on a writable"
+Echo "partition of your harddisk. This script will create a sub-directory"
+Echo "named *"EazyBBS*" in that directory to install EazyBBS into it."
+Echo ""
+Echo "To abort the installation process, click on the *"Cancel*" button."
+Echo ""
+
+Set currdir "`CD`"
+Echo "Current directory is: *"$currdir*""
+
+RequestFile >T:EazyBBS-Install.${process} TITLE="Choose directory for EazyBBS" POSITIVE="Ok" NEGATIVE="Cancel" DRAWERSONLY
+If WARN
+	Echo ""
+	Echo "Installation of EazyBBS aborted by user."
+	Echo "Bye, bye."
+	Quit
+EndIf
+
+Echo "*N---------------------------------------------------------------------*N"
+
+CD `Type T:EazyBBS-Install.${process}`
+Set destdir "`CD`"
+Echo "User selected directory: *"$destdir*""
+
+CD "$currdir"
+
+If NOT "$currdir" EQ "$destdir"
+	;Echo "New directory !!"
+	CD "$destdir"
+	MakeDir >NIL: EazyBBS
+	CD EazyBBS
+	Set destdir "`CD`"
+	CD "$currdir"
+	Echo ""
+	Echo "Copying EazyBBS from: *"$currdir*""
+	Echo "                  to: *"$destdir*""
+	Echo ""
+	;Copy "$currdir" "$destdir" ALL CLONE QUIET
+	If WARN
+		;Delete "$destdir" ALL FORCE QUIET
+		Assign "$destdir" REMOVE
+		Echo ""
+		Echo "Installation (copy) of EazyBBS failed."
+		Echo "Bye, bye."
+		Quit
+	EndIf
+Else
+	;Echo "Selected directory is home directory."
+EndIf
+
+Echo "Doing assigns ..."
+
+Echo "And now the eazy part, the assigns.*N"
+Echo "Put them into your s:User-Startup or write a small startup-script."
+Echo "This installation script will not modify your s:User-Startup file!"
+Echo "It's totally on yours.  Okay, here's what you need:"
+Echo ""
+Echo "        Assign MB:      *"$destdir*""
+Echo "        Assign MB_TMP:   MB:TMP"
+Echo "        Assign MB_DATA:  MB:Data"
+Echo "        Assign MB_USER:  MB:User"
+Echo "        Assign MB_BOARD: MB:Board"
+Echo "        Assign MB_FILES: MB:Files"
+
+Assign MB:      "$destdir"
+
+MakeDir MB:TMP MB:Board MB:Files MB:User MB:Intern >NIL:
+Assign MB_TMP:   MB:TMP
+Assign MB_DATA:  MB:Data
+Assign MB_USER:  MB:User
+Assign MB_BOARD: MB:Board
+Assign MB_FILES: MB:Files
+
+Ask "*NPress [RETURN] for more!"
+
+Echo "*NAnd even more assigns. Some add-ons ...*N"
+Echo "        Assign LIBS: MB:Libs ADD"
+
+Assign LIBS: MB:Libs ADD
+
+Echo "*NNo big deal, eh?   You need the EazyBBS binaries in your DOS"
+Echo "search path.  If you want to launch EazyBBS binaries from other"
+Echo "programs (Cron, ToolManager etc.) be sure that you add the new"
+Echo "path early in your s:User-Startup before any other programs are"
+Echo "started.  That's important, believe me ...*N"
+Echo "        Path MB:C ADD"
+
+Path MB:C ADD
+
+Echo "*NYou'll need a large stack.  Sorry for that, but I love to"
+Echo "make use of the stack in my programs.  50000 bytes are enough.*N"
+Echo "        Stack 50000"
+
+Stack 50000
+
+Ask "*NPress [RETURN] for more!"
+
+If NOT EXISTS libs:xprzmodem.library
+	Echo "*NOh shit, there's no xprzmodem.library in your libs: directory."
+	Echo "EazyBBS needs xprzmodem.library 2.0+ (e.g. from Fred Fish #236)"
+	Echo "Get it... or you will run into problems!"
+	;Quit
+EndIf
+
+Echo "*NBefore you start EazyBBS you should edit the configuration files"
+Echo "in the directory *"MB_DATA:Configuration*". The file names represent"
+Echo "the numbers of the BBS ports. Port 1 is pre-installed for usage with"
+Echo "a modem, port 2 is pre-installed for local usage.*N"
+
+Echo "*NNow, we're finished with the installation."
+Echo "Thank you. Bye, bye.*N"
+
+Quit
+
+; comment
+
+echo "*e[33mEazyBBS*e[0m needs some public domain programs in"
+echo "your c: directory to give you best results:"
+echo " - Arc 0.23"
+echo " - TArc                   (Turbo-Arc)"
+echo " - Zoo"
+echo " - LZ/LhArc"
+echo " - UnZip 3.0              (special version)"
+echo " - DMS/TestDMS/ViewDMS"
+echo " - GIFhdr"
+echo " - IFFhdr"
+echo " - WarpCheck"
+echo " - ZoomCheck"
+echo " - Crc                    (from SKsh)"
+echo " - Run                    (Commodore's Original Version)"
+

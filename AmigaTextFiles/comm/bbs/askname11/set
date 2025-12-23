@@ -1,0 +1,56 @@
+/* Set Name */
+
+options results
+signal on ioerr
+signal on error
+signal on syntax
+signal on halt
+
+transmit "\n1\c7Please enter the information asked for by this program"
+transmit "to reserve your BBS to a user."
+
+sendstring "\n1\c3Name       : "
+bufferflush
+receive
+if upper(result)="###PANIC" then signal QUIT
+ans1=result
+sendstring "\c3account#   : "
+bufferflush
+receive
+if upper(result)="###PANIC" then signal QUIT
+if datatype(result,w)=1 then ans2=result
+else signal STOP
+sendstring "\c3Port#      : "
+bufferflush
+receive
+if upper(result)="###PANIC" then signal QUIT
+if datatype(result,w)=1 then ans3=result
+else signal STOP
+tr "\n1The Start time is between 1 and 12 and do not respect AM or PM! \n1Be Carefull ... Because the Start Time must BE smaller than the End Time! or the program will crash!"
+sendstring "\c3Start Time : "
+bufferflush
+receive
+if upper(result)="###PANIC" then signal QUIT
+if datatype(result,w)=1 then ans4=result
+else signal STOP
+sendstring "\c3End Time   : "
+bufferflush
+receive
+if upper(result)="###PANIC" then signal QUIT
+if datatype(result,w)=1 then ans5=result
+else signal STOP
+
+call open(file,"pfiles:restricted","W")
+call writeln(file,ans1)
+call writeln(file,ans2)
+call writeln(file,ans3)
+call writeln(file,ans4)
+call writeln(file,ans5)
+call close(file)
+
+transmit "\n1Ok... That's it!"
+QUIT:
+exit
+STOP:
+transmit "ABORTED!?"
+exit

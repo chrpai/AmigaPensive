@@ -1,0 +1,39 @@
+/*
+** Validate a user and boost his access to 'Level'.
+*/
+
+Options Results
+Address 'ZEUS'
+
+Parse Arg Level
+
+UEDThere
+if RC = 0 then do
+	UEDGetCurrentUserName
+	if RC = 0 then do
+		UserName = RESULT
+		LoadUser '"'UserName'"'
+		User = RESULT
+		if RC = 0 then do
+			SetUserData 'Access' Level User
+			CopyTemplateLimits User
+			SaveUser User
+			if RC = 0 then do
+				UEDDisplayUser '"'UserName' upgraded to level 'Level'!"'
+				UEDReloadUser
+				UEDReloadList
+				end
+			else do
+				UEDDisplayUser '"Could not save user!"'
+				end
+			UnloadUser User
+			end
+		else do
+			UEDDisplayUser '"Could not load 'UserName'!"'
+			end
+		end
+	else do
+		UEDDisplayUser '"No User Selected!"'
+		end
+	end
+exit

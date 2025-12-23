@@ -1,0 +1,110 @@
+/*************************************************************************/
+/*                    PagE!r_Sysop v1.0  by Morpheus                     */
+/*************************************************************************/
+/* busymsg: message that will be sent to the user when you activate the  */
+/*          busy gadget                                                  */
+/* chatmsg: message that will be sent to the user when you activate the  */
+/*          chat gadget                                                  */
+/*************************************************************************/
+busymsg="Sorry, I'm too busy to chat with you right now!"
+chatmsg="The sysop is coming!"
+/********************************* Script ********************************/
+options results
+parse arg node poort .
+alias=getclip('PagE!r'||node||'_alias')
+reason=getclip('PagE!r'||node||'_reason')
+host='PAGERHOST'||node
+port='PAGERPORT'||node
+if ~show(l,'rexxarplib.library') then;do
+if ~addlib("rexxarplib.library",0,-30,0) then;do
+say "Can't open rexxarplib.library"
+exit
+end
+end
+address VALUE poort
+bbsidentify SYSOP
+sysop=result
+address
+address AREXX "'call CreateHost("host","port")'"
+do 50 while ~show('P',host)
+call delay(10)
+end
+if ~show('P',host) then;do
+call Request(112,100,'Error: Could not create controlport for PagE!r',,' OKAY ',,)
+exit
+end
+idcmp='GADGETUP'
+flags='WINDOWDRAG+WINDOWDEPTH+ACTIVATE'
+call OpenWindow(host,112,100,416,75,idcmp,flags,"PagE!r v1.0  by Morpheus")
+call AreaMove(host,4,11)
+call AreaDraw(host,411,11)
+call AreaDraw(host,411,73)
+call AreaDraw(host,4,73)
+call AreaEnd(host,562)
+call SetAPen(host,0)
+call RectFill(host,10,14,405,54)
+call RectFill(host,10,59,61,68)
+call RectFill(host,82,59,125,68)
+call RectFill(host,146,59,197,68)
+call RectFill(host,218,59,325,68)
+call RectFill(host,346,59,405,68)
+call SetAPen(host,1)
+call RectFill(host,8,13,9,54)
+call SetAPen(host,2)
+call Move(host,9,54)
+call Draw(host,407,54)
+call RectFill(host,406,13,407,54)
+call SetAPen(host,1)
+call Move(host,8,13)
+call Draw(host,406,13)
+call AddGadget(host,10,59,1,' Chat ',1)
+call AddGadget(host,82,59,2,' IUM ',2)
+call AddGadget(host,146,59,3,' Busy ',3)
+call AddGadget(host,218,59,4,' Unavailable ',4)
+call AddGadget(host,346,59,5,' Abort ',5)
+call WindowText(host,'User  : '||alias||'\Node  : '||node||'\Reason: '||reason)
+call ScreenToFront()
+quitflag=0
+call openport(port)
+do until quitflag=1
+call waitpkt(port)
+packet=getpkt(port)
+if packet ~=null() then;do
+cmd=getarg(packet)
+if index("12345",cmd)~=0 then quitflag=1
+call reply(packet,0)
+end
+end
+call CloseWindow(host)
+call ClosePort(port)
+select
+when cmd='1' then;do
+address VALUE poort
+openscreen
+address
+call sendmsg(chatmsg)
+end
+when cmd='2' then;do
+call request(20,100,' Enter the message that you would like to sent to the user (max. 70) : ','',,,)
+msg=result
+if msg~='' then call sendmsg(msg)
+end
+when cmd='3' then call sendmsg(busymsg)
+when cmd='4' then;do
+if show('P',AVAILPORT) then
+address AVAILPORT '2'
+else call setclip('SysopAvail','FALSE')
+end
+otherwise nop
+end
+exit
+sendmsg:
+line=arg(1)
+address VALUE poort
+transmit '\@6\n2\z4\c3Message from the sysop\n1'
+transmit '\c7From   :\z0\c6 '||sysop
+if length(line)>70 then line=left(line,70)
+transmit '\z4\c7Message:\z0\c6 '||line
+if cmd~='1' then feedback
+transmit '\n1\q1Press [ENTER] to continue!'
+return

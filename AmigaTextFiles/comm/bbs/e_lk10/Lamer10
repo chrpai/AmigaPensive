@@ -1,0 +1,90 @@
+/* L.A.M.E.R.K.I.L.L.E.R v1.0 by Lordie^Reboot (Lord Adrenaline)
+ * $VER: LamerKiller v1.0 Public release !!
+ * This door is emailware :) Mail to jkg@dsv.nl if you use this door!
+ */
+
+OPTIONS RESULTS
+
+Port=ADDRESS()
+TR=TRANSMIT
+GU=GETUSER
+datafile="doors:LK/Lamer10.dat"
+ansifile="doors:LK/Lamer10.ansi"
+wacht='\w1'
+CALL init
+CALL special
+EXIT
+
+
+Init:
+ Esc='1b'x
+ Ps=ESC'['
+ IF ~exists(datafile) THEN CALL noexist
+ IF ~exists(ansifile) THEN CALL noansi
+ gu 1 ; Ualias=RESULT
+ gu 15 ;xs=RESULT
+ 
+RETURN
+
+
+special:
+ CLS
+ zoek=UPPER(Ualias) 
+ CALL OPEN(file,'Doors:LK/Lamer10.dat','r')
+ test=UPPER(READCH(file,65535))
+ hit=POS(zoek,test)
+ IF hit=0 THEN CALL Friend
+ ELSE CALL Lamer
+ IF xs=1 then know="Nopes!"
+ ELSE know="Yep!"
+ IF hit=0 THEN dumb="Friend"
+ ELSE dumb="Lamer"
+ENDIF
+ GET ansi
+ CALL CLOSE(file)
+
+ANSI:
+ CLS
+ TR '\*0'ansifile
+ TR '\@4'
+ CALL Inserts
+RETURN
+
+Inserts:
+ TR '\@4\w1'
+ TR PLACE(58,9)'\c5'know
+ TR wacht
+ TR PLACE(58,14)'\c5'trust
+ TR wacht
+ TR PLACE(58,19)'\c5'hang
+ TR '\@4'wacht
+ TR wacht
+ TR '\n2\c4 Press a key to continue\G0'
+EXIT
+
+PLACE: PROCEDURE EXPOSE Ps
+  PARSE ARG x,y
+  Plaats=PS||y||';'||x||'H'
+Return(Plaats)
+
+Noexist:
+ CLS
+ TR '\c3Couldn''t find the \c7LamerKiller\c3 datafile !! Please notify SysOp !!\w2'
+ EXIT
+END
+
+Noansi:
+ CLS
+ TR '\c3Couldn''t find the \c7LamerKiller\c3 ansifile !! Please notify SysOp !\w2'
+ EXIT
+END
+
+Lamer:
+ trust="No way!"
+ hang="Yepz!"
+RETURN
+
+Friend:
+ trust="Yep!"
+ hang="No way!"
+RETURN

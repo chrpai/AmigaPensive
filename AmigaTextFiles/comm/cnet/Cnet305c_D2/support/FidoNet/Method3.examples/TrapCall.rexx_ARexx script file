@@ -1,0 +1,92 @@
+/* TrapCall v1.06 2-7-94
+
+   This version takes the CNet port OFFLINE without killing it, then runs
+   TrapDoor and attempts to call the host system.
+*/
+
+ Options Results
+ addlib('rexxsupport.library',0,-30,0)
+
+ Address CNetREXX1
+ 'MODEM 0'
+
+ Address command 'CNet:Toss'
+
+ Address command 'run TrapDoor'
+ Address command 'wait 5'
+
+ Address "TrapDoor"
+
+ tries=0
+ say ''
+ say 'Attempting to call Fido HOST...'
+ say ''
+
+ CLEARLOOP:
+   tries=tries+1
+   if tries=10 then do
+     say ''
+     say 'ABORTING.  Unable to command TrapDoor at this time.'
+     say ''
+     CALL DORETURN
+     Exit
+   End
+
+   call Delay(250)
+
+   '@Status S'
+   If Result~='IDLE' Then do
+     say 'STATUS:' result||'; Trapdoor busy, trying again...'
+     call CLEARLOOP
+   End
+
+ say ''
+
+ HOST='1:2410/215.0'
+ tries=0
+
+CALLHOST:
+  tries=tries+1
+  if tries=99 then do
+    say ''
+    say 'Host connection FAILED!'
+    say ''
+    CALL DORETURN
+    exit
+  End
+  call DOIT
+  call CALLHOST
+
+DOIT:
+  Say 'Clearing Line...'
+  'sclear'
+  Say 'Line Cleared, Calling...'
+  'CALL '||HOST
+  'STATUS D'
+  if Result='RESULT'Then do
+    Say 'Break or FQFA error'
+    CALL DORETURN
+    Exit
+  End
+  if Left(Result,7)='CONNECT' Then Do
+    say ''
+    say 'Host session successful!'
+    say ''
+    X=RC
+    CALL DORETURN
+    Exit X
+  end  
+  Say Result
+  'reset'
+  CALL DORETURN
+  Exit
+
+ DORETURN:
+
+ 'QUIT'
+ address command 'wait 5'
+
+ Address CNetREXX1
+ 'MODEM 1'
+ 
+; return

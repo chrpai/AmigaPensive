@@ -1,0 +1,413 @@
+
+                   DayDream BBS: Door Control Structure
+                   ------------------------------------
+
+OFFSET  TYPE     LENGTH  DESCRIPTIO.N                                     FLAGS
+==============================================================================
+ 0000   WORD       02    DOOR COMMAND ID / RETURN CODE                     (-)
+ 0002   LONG WORD  04    COMMAND DATA FIELD #1                             (-)
+ 0006   LONG WORD  04    COMMAND DATA FIELD #2                             (-)
+ 0010   LONG WORD  04    COMMAND DATA FIELD #3                             (-)
+ 0014   STRING     86    ROOM FOR MISCELLANEOUS VARIABLES                  (-)
+ 0100   -- END --  00    END OF DOOR CONTROL STRUCTURE                     (-)
+==============================================================================
+
+
+                        DayDream BBS: Door Commands
+                        ---------------------------
+
+===( ID: 00000 - Exit Door Handler )==========================================
+
+Function  : This  command  reports DayDream  BBS that the door  is about to
+            terminate. DayDream will ReplyMsg() to this request, which will
+            be the last activity between the door program and DayDream BBS.
+            DD_DoorHandler will be closed and user returned  to the system.
+
+Parameters: None
+
+Returns   : Return code of zero to indicate exit
+
+===( ID: 00001 - Type String )================================================
+
+Function  : Prints specified string of characters to remote user's display,
+            local screen or both. Possible ANSI codes will be automatically
+            stripped, if user has chosen an ASCII display mode. When in need
+            of changing line, string only needs to contain a linefeed, carriage
+            return (ASCII 13) will be inserted automatically.
+
+Parameters: Data 1 <> Pointer to the string
+
+Note      : You can include carriage returns in the text to use several lines,
+            but remember not to type anything longer than 200 lines at once.
+
+Returns   : NULL in case of a fatal error or 1L when succesful
+
+===( ID: 00002 - Prompt For User Input )======================================
+
+Function  : Prompts user to enter a string. Length will  be restricted as
+            requested by the door. Full support for ANSI cursor sequences
+            is given, so that user can easily move through the string and
+            modify as required.
+
+Parameters: Data 1 <> Pointer to the buffer, where the final string will be
+                      inserted. To  define a default  string, put  it here,
+                      otherwise you MUST specify a NULL-string.
+            Data 2 <> Specify maximum length in upper word and a few control
+                      bits in the lower one.
+
+                      BIT  WHAT WILL HAPPEN IF BIT IS SET
+                      ======================================================
+                       0   Hidden mode, print *s instead of real characters
+                       1   Don't print CR+LF after receiving return code
+                       2   Don't allow any characters illegal in filenames
+
+Returns   : NULL in case of a fatal error or 1L when succesful
+
+===( ID: 00003 - Inquire Structure Pointers )=================================
+
+Function  : This command will return with pointers to several significant
+            system structures, such as user structure etc.
+
+Parameters: None
+
+Returns   : Data 1 <> Various bits concerning system settings:
+
+                      BIT  MEANING WHEN SET
+                      ======================================================
+                       0   Remote connection, otherwise local only
+
+            Data 2 <> User's actual last call date and time
+
+            Misc 1 <> Array of long word pointers as follows:
+
+                      OFFSET  POINTER
+                      ==================================================
+                       0000   Dos-Library Base Address
+                       0004   Intuition-Library Base Address
+                       0008   Graphics-Library Base Address
+                       0012   ReqTools-Library Base Address
+                       0016   DiskFont-Library Base Address
+                       0020   Timer-Device Base
+                       0024   DayDream BBS Server Unit Message Port
+                       0028   Archivers.DAT Pointer
+                       0032   DayDream.DAT Pointer
+                       0036   Display.DAT Pointer
+                       0040   Pointer To Current Display Mode Structure
+                       0044   Conferences.DAT Pointer
+                       0048   Pointer To Current Conference Structure
+                       0052   Pointer To Current Conference's Message Bases
+                       0056   Pointer To Current Message Base Structure
+                       0060   Protocols.DAT Pointer
+                       0064   DayDream BBS Screen Pointer
+                       0068   Pointer To Current User's Structure
+                       0072   ExternalCommands.DAT Pointer
+                       0076   Schedule.DAT Pointer
+                       0080   Pointer to a string containing door parameters
+
+Note      : These pointers  are provided to save  you from some  typing. For
+            example, you could just pick the library bases from here without
+            having to open them yourself.
+
+CAUTION!  : _NEVER_ USE THESE POINTERS AFTER DAYDREAM HAS CLOSED IT'S DOORPORT
+
+===( ID: 00004 - Type ASCII/ANSI File )=======================================
+
+Function  : This command outputs an ASCII or ANSI file into remote terminal,
+            local screen or both.
+
+Parameters: Data 1 <> Pointer to the filename
+            Data 2 <> Nothing
+            Data 3 <> Control bits as follows:
+
+                      BIT  WHAT WILL HAPPEN IF SET
+                      ==================================================
+                      000  Add correct path and file extension according
+                           to the current display mode settings. If this
+                           bit is set, you only need to specify the file
+                           name itself. Final name could look like, say,
+                           DayDream:Display/ISO/<filename>.GFX.Otherwise
+                           DayDream  will attempt  to directly open  the
+                           file, without any modifications on it's name.
+                      001  In case file couldn't be found,show a visible
+                           error message instead of quiting quietly.
+
+===( ID: 00005 - Prompt User For Simple Yes Or No  )==========================
+
+Function  : This function asks user to answer a simple yes or no question.
+            Door program must type the question by itself, since  all this
+            function outputs is an ASCII string "Yes" or "No" based on the
+            user's answer.
+
+Parameters: Data 1 <> Default answer: 0 = No and 1 = Yes
+
+Returns   : Data 1 <> User's answer using the values stated above
+            R-Code <> NULL in case of a fatal error or 1L when succesful
+
+===( ID: 00006 - Scan UserBase For Specified User Account )===================
+
+Function  : This function scans user database (UserBase.DAT) in order to find
+            the specified  account. Match can be made in real name or handle.
+            Operation is fully non-case-sensitive.
+
+Parameters: Data 1 <> Pointer to the search string, wildcards are NOT supported
+            Data 2 <> In case one account, for a reason or an another, has to
+                      be skipped, it's offset must be provided here. Supply -1L
+                      to disable this feature.
+
+Returns   : Data 1 <> An offset to the matching account if one was found in the
+                      first place. Check >R-Code< first.
+            Data 2 <> NULL if match was in user's real name or 1L if it was in
+                      the handle.
+            R-Code <> NULL if an error occurred, 1W if no match was found or
+                      2W when a match was found. If this value is <> 2W, fields
+                      Data 1 and Data 2 may contain just about any value.
+
+===( ID: 00007 - UpDate DayDream Data Structures )============================
+
+Function  : This function must be called after any DayDream structure has
+            been modified. Please remember to observe extreme cautiousness,
+            since careless modifications will lead to a system crash.
+
+Parameters: Data 1 <> Pass NULL for compability with future revisions
+            Data 2 <> Pass NULL for compability with future revisions
+            Data 3 <> Pass NULL for compability with future revisions
+
+Returns   : R-Code <> NULL if an error occurred and 1L when successful
+
+===( ID: 00008 - Convert an UNiX Style Date To An ASCII String )================
+
+Function  : This function will convert an UNiX style date and time values to
+            plain ASCII strings. Time can be read from system clock if asked to.
+
+Parameters: Data 1 <> Pointer to a work area of twenty bytes  in which DayDream
+                      will store the output string 'DD.MM.YYYY',0,'HH:MM:SS',0.
+                      DO NOT count on  DayDream setting '.' and ':'  characters
+                      between numerical  values; you have to set them yourself!
+                      Note that entries will be provided as in Europe.
+            Data 2 <> Amount of seconds since 1.1.1978 to  be converted, or -1L
+                      to read value from the system clock.
+Returns   : Data 1 <> Amount of seconds converted into a string
+            R-Code <> NULL if an error occurred and 1L when successful
+
+===( ID: 00009 - Perform File Transfer With A XPR-Protocol )====================
+
+Function  : Purpose of this function is to provide an easy way to handle file
+            transfers. It is possible to perform  both send and  receive with
+            this function. Operation will be fully automatic and independent.
+
+Parameters: Data 1 <> Pointer to a data block, consisting of NULL-terminated
+                      strings including paths and actual file names of files
+                      to be transferred. End  of the block will be  signaled
+                      with a $FF (Byte). When receiving, simply pass address
+                      of a block containing NULL + termination character.
+            Data 2 <> When up, lowest bit will  indicate  send. Otherwise,
+                      receive mode will be executed. Leave other bits down
+                      for future compability.
+            Misc 1 <> Table of miscellaneous variables as follows:
+
+                      OFFSET   TYPE     MEANING
+                      =======================================================
+                       0000    LONG     Pointer to a valid AmigaDOS pathname.
+                                        When sending, files with no path spec
+                                        will be  looked for in this path, and
+                                        when receiving, files will be  placed
+                                        in this directory.
+
+Returns:    R-Code <> NULL if an error occurred and 1L when successful
+
+===( ID: 00010 - GET OR SET LASTREAD AND AUTOSCAN MAIL POINTERS )===============
+
+Function  : This function makes it easy to read and set last read and auto scan
+            pointers of any user. Please  be extremely  careful when  modifying
+            these values,since failed modifications may lead to a unrecoverably
+            corrupted message base.
+
+Parameters: Data 1 <> This fields actually consist of three separate values:
+
+                      Lower  Word (Bits 00-15) /
+
+                      Lower  Byte (Bits 00-07) = Conference number
+                      Higher Byte (Bits 08-15) = Message Base Number
+
+                      Higher Word (Bits 16-31) = Account Number or NULL
+
+                      By passing a value of NULL  in the higher word, actions
+                      will be made on the  current user. In case of any other
+                      value, changes  will be made to the <n>th  account. So,
+                      a value of 1 would make this function to operate on the
+                      very first structure found from the MsgBase.LRP file.
+
+            Data 2 <> Pass NULL when only READing AutoScan  and LastRead values.
+                      If you want to  write new  values, specify  new  value for
+                      AutoScan in the lower word, and LastRead in the upper one.
+
+            Data 3 <> Pass NULL for compability with future revisions
+
+Returns   : Data 1 <> Lower  Word (Bits 00-15) = Auto Scan Pointer
+                      Higher Word (Bits 15-31) = Last Read Pointer
+
+                      Note: When setting new values, old pointers will be
+                            returned.
+
+            R-Code <> NULL if an error occurred and 1L when successful
+
+===( ID: 00011 - WAIT FOR A HOTKEY )============================================
+
+Function  : This function simply waits for a single keypress from either the
+            local console or remote  terminal. After receiving a  character,
+            this function will immediately return with no further activity.
+
+Parameters: Data 1 <> Parameters: BiT  WHAT WILL HAPPEN IF SET
+                                  ==========================================
+                                  000  Received character will be printed to
+                                       the local and remote screens.
+                                  001  Carriage Return  (CR=$0D) & Line Feed
+                                       (LF=$0A) will be included and printed
+                                       after the actual character. Note that
+                                       this won't do a thing unless BiT 0 is
+                                       also set.
+
+            Data 2 <> Pass NULL for compability with future revisions
+            Data 3 <> Pass NULL for compability with future revisions
+
+Returns   : R-Code <> Received character or NULL if failed
+
+Note      : The character is located in the upper byte of the word.
+            Therefore you should read it as a byte from offset 0.
+
+===( ID: 00012 - SCAN FILE DIRECTORIES )========================================
+
+Function  : This function will scan all the file directories in the specified
+            conference and see if any of the files matches with given string;
+            wildcards allowed, of course. When a match is found, this routine
+            will  call a hook  routine with path, name  and size of  the file 
+            as it's  parameters allowing it to process the file in any wanted
+            way. After  the hook has  returned, scanning will or will  not be
+            continued depending on  whether  the search  string contained any
+            wildcards (if it didn't, no more than one match is possible).
+
+Parameters: Data 1 <> Conference number in the lowest byte. Leave bits from
+                      eight (8) to thirtyone (31) down for compability with
+                      future revisions.
+            Data 2 <> Pointer to the search string, wildcards allowed.
+            Data 3 <> Pointer to the hook routine to call:
+
+                      Hook(Path, Filename, Size, UserData);
+                           A0    A1        D0    D1
+
+                      >WARNING< HOOK ROUTINE MAY ABSOLUTELY NOT
+                      MODIFY ANY SYSTEM   REGISTERS  UNLESS THE
+                      ORIGINAL VALUES ARE RETURNED BEFORE EXIT!
+
+                      If this is NULL, use File tagging-routines of DayDream.
+
+            Misc 1 <> Table of miscellaneous variables as follows:
+
+                      OFFSET   TYPE     MEANING
+                      =======================================================
+                       0000    LONG     User  data  variable - will be  given
+                                        to Hook() routine  as provided  here.
+                                        This  will just pass  through DD  and
+                                        doesn't   have  any effect   on  DD's
+                                        operation. With  this  field you  can
+                                        easily pass some data to your hook.
+
+Returns   : R-Code <> One of the following:
+
+                      0 - Operation successful
+                      1 - Not enough memory (only 2048 bytes needed)
+                      2 - Specified conference not found
+                      3 - Specified conference doesn't have any file directories
+
+===( ID: 00013 - ADD FILE TO A DOWNLOAD REQUEST )===============================
+
+Function  : This function will add a file to the download request. Current dload
+            request will be checked first to avoid  possible duplicate  entries.
+            If no duplicate entry or other  errors occurred, file will  be added
+            to the filechain.
+
+Parameters: Data 1 <> Pointer  to the  path  where the file  to be added  can be
+                      found. PATH MUST END WITH A SLASH ('/') OR COLON (':')!
+            Data 2 <> Pointer to the actual filename (format: FILENAME.EXT)
+            Data 3 <> Some parameters as follows:
+
+                      BIT    MEANING IF SET
+                      =====================================================
+                      000    FREE DOWNLOAD
+                             - File will be flagged even though ratios
+                               wouldn't normally allow it.
+                             - Downloading  this file  won't  increase 
+                               downloaded files / bytes counters.
+
+            Misc 1 <> Table of miscellaneous variables as follows:
+
+                      OFFSET   TYPE     MEANING
+                      =======================================================
+                       0000    LONG     SIZE OF THE FILE IN BYTES
+
+Returns   : R-Code <> One of the following:
+
+                      0 - Operation successful
+                      1 - Duplicate entry found
+                      2 - File ratio problems
+                      3 - Byte ratio problems
+                      4 - Not enough memory
+
+===( ID: 00014 - Disconnect user )===========================================
+
+Function  : This function will disconnect user from BBS.
+
+Parameters: None
+
+Returns   : Nothing
+
+===( ID: 00015 - Run DayDream Command )======================================
+
+Function  : Allows use of DayDream's internal commands.
+
+Parameters: Data 1 <> Pointer to the string to be executed (Eg. "N S A")
+
+Returns   : Nothing
+
+===( ID: 00016 - Reset idle counter )========================================
+
+Function  : This function will reset the idle-counter. Useful for doors
+	    having own serial/console routines, before and after archiving
+	    something etc. Note that hotkey, prompt etc. routines reset
+	    the idle counter automatically.
+
+Parameters: None
+
+Returns   : Nothing
+
+===( ID: 00017 - Relogin )===================================================
+
+Function  : Same as exit door handler, except this will relogin user to the
+            system.
+
+Parameters: None
+
+Returns   : Nothing
+
+===( ID: 00018 - Inquire Structure Pointers 2 )==============================
+
+Function  : This command will return with pointers to several significant
+            system structures, such as selected areas etc..
+
+Parameters: None
+
+Returns   : Data 1 <> Bps rate of current call
+
+            Misc 1 <> Array of long word pointers as follows:
+
+                      OFFSET  POINTER
+                      ==================================================
+                       0000   Node Structure
+		       0004   Node Structure of current node
+                       0008   Pointer to incoming conversion table or null
+		       0012   Pointer to outgoing conversion table or null
+		       0016   Pointer to Security data of current user
+                       0020   Pointer to current Selected.DAT
+
+CAUTION!  : _NEVER_ USE THESE POINTERS AFTER DAYDREAM HAS CLOSED IT'S DOORPORT
+

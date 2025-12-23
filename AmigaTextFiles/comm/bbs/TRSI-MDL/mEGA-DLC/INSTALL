@@ -1,0 +1,319 @@
+; $VER: mEGA-dLC Install V1.0 (25.01.98) - written by Sascha "SieGeL" Pfalz
+; Installer and Installer project icon
+; (c) Copyright 1985-98 Amiga International Inc.  All Rights Reserved.
+;
+; For best view set TAB to 2
+;
+; This script follows the rules for the Installer V43.3, all text vars have 
+; a t_ preceeding the var name, all other vars have the # in front of the
+; names and all sub procedures (if any) will start with P_ .
+;
+; V1.0 (25.1.98)   - Initial Version, Script is able to install all required
+;                    files for mEGA-dLC
+
+
+;===================
+;= Check-Variables =
+;===================
+
+(set @user-level 2)
+(set #FAME_MAINPART	"FAME:Modules/MainPart")
+(set #FAME_VER	0)
+(set #FAME_REV	0)
+(set #GUIDE			"mEGA-dLC.guide")
+(set #HIST			"mEGA-dLC.history")
+(set #CONFIG		"FAME:ExternEnv/Doors/mEGA-dLC.cfg")
+(complete 0)
+
+;=================================
+;= All texts used in this script =
+;=================================
+
+;=================
+;= ENGLISH TEXTS =
+;=================
+
+(if (= @language "english")
+	(
+	(set default_lang 4)
+
+	(set	t_bad-kick			(cat	"\nmEGA-dLC requires Kickstart V3.0 or higher\n\n"
+															"to run, please upgrade your machine !!!"))
+	(set	t_no_fame				(cat	"\nInstaller was not able to find FAME Assign !\n\n"
+															"\nThis Program runs only under FAME,\n\n"
+															"so please install FAME first !!!"))
+	(set	t_AskForDest					"Please specify Destination directory for mEGA-dLC.FIM")
+	(set	t_copyfile						"Now copying file %s...")
+	(set	t_madebackup		(cat	"\n\nInstaller has found an already installed config file !\n\n"
+															"Do you wish to make a backup of your installed config\n\n"
+															"file before proceeding with the installation ?"))
+	(set	t_bak_help			(cat	"Installer has found an already installed config file. If "
+															"you wish, Installer can make a backup of your original "
+															"configfile before installing the supplied sample config "
+															"file. If you select YES, Installer will rename your existing "
+															"file to mEGA-dLC.cfg.bak in the same directory, then install "
+															"the supplied version.\n\n"
+															"If you select NO, Installer will simply overwrite your existing "
+															"version with the one supplied with this archive."))
+	(set 	t_askfordocs					"\n\nDo you wish to install/update the documentation ?")
+	(set 	t_selectdocs					"Please choose which parts of the documentation should be installed/updated:")
+	(set 	t_askforddest					"Select Destination directory for the documentation:")
+	(set	t_askforconfig	(cat	"\n\nDo you wish to have the sample configfile installed ?\n\n"
+															"(Will be installed to FAME:ExternEnv/Doors/mEGA-dLC.cfg)"))
+	(set	t_config-help		(cat	"If you select YES, Installer will copy the supplied sample "
+															"config file to FAME:ExternEnv/Doors/mEGA-dLC.cfg\n\n"
+															"It's strongly recommended to install it, as this file contains "
+															"a detailed description of all available options.\n\n"
+															"If you have already installed mEGA-dLC, you may skip the "
+															"installation of the sample file and enhance manually your "
+															"existing prefs file from within the manual description."))
+	(set	t_askbool-help	(cat	"If you wish to have the documentation installed, answer "
+															"YES, else answer NO to skip this part of the installation"))
+	(set	t_AskDoorDef		(cat	"\n\nDo you wish to configure and install the required FAME "
+															"Datafile allowing you to use the door right after this "
+															"Installation procedure ?"))
+	(set	t_DoorDef-help	(cat	"Choose YES to let the Installer create and install the "
+															"required Datafile to let mEGA-dLC working. Select NO if "
+															"you wish to install mEGA-dLC manually."))
+	(set  t_doorlevel						"\n\nEnter Accesslevel for mEGA-dLC:")
+	(set  t_doorlevelhlp	(cat	"\nOnly users with this or a higher accesslevel are able "
+															"to start mEGA-dLC. Should be set to NewUser Accesslevel to "
+															"allow the countings of ALL user downloads."))
+))
+
+;================
+;= GERMAN TEXTS =
+;================
+
+(if (= @language "deutsch")
+	(
+	(set default_lang 2)
+
+	(set 	t_bad-kick			(cat	"\nmEGA-dLC benötigt mindestens Kickstart V3.0 oder\n\n"
+															"höher zum Betrieb, bitte Erneuern Sie Ihr Betriebssystem!"))
+	(set 	t_no_fame				(cat	"\nInstaller war nicht in der Lage die FAME Zuweisung auf\n"
+															"Ihrem System zu finden !! Dieses Programm läuft nur unter\n"
+															"FAME, bitte zuerst diese installieren, bevor mEGA-dLC\n"
+															"installiert werden kann !"))
+	(set	t_AskForDest					"Bitte Zielverzeichnis für mEGA-dLC angeben:")
+	(set	t_copyfile						"Kopiere jetzt Datei %s...")
+	(set	t_madebackup		(cat	"\n\nInstaller hat eine bereits vorhandene Config Datei gefunden!\n\n"
+															"Möchten Sie ein Backup dieser Datei machen bevor mit der\n"
+															"Installation fortgefahren wird ?"))
+	(set	t_bak_help			(cat	"Installer hat eine bereits vorhandene Config Datei gefunden. Wenn Sie "
+															"es möchten, dann nennt der Installer Ihre Originaldatei unter "
+															"den neuen Namen mEGA-dLC.cfg.bak um bevor mit der Installation "
+															"fortgefahren wird.\n\nAntworten Sie mit Nein, dann überschreibt "
+															"der Installer die vorhandene Datei mit der im Archiv mitgelieferten "
+															"Beispielkonfigurationsdatei."))
+	(set	t_askfordocs					"\n\nMöchten Sie die Dokumentation installieren/erneuern ?")
+	(set	t_selectdocs					"Wählen Sie die Teile der Dokumentation aus,\ndie Sie installieren möchten:")
+	(set	t_askforddest					"Zielverzeichnis für die Dokumentation auswählen:")
+	(set	t_askforconfig	(cat	"\n\nMöchten Sie die Beispielkonfiguration installieren ?\n\n"
+															"(Wird unter FAME:ExternEnv/Doors/mEGA-dLC.cfg installiert)"))
+	(set	t_config-help		(cat	"Wählen Sie JA, dann kopiert der Installer die beigefügte Configdatei "
+															"nach FAME:ExternEnv/Doors/mEGA-dLC.cfg\n\n"
+															"Es wird empfohlen, diese zu installieren, da in dieser Datei alle "
+															"verfügbaren Optionen von mEGA-dLC nochmal genauestens erklärt sind.\n\n"
+															"Sollte bereits mEGA-dLC auf Ihrem Rechner installiert sein, dann "
+															"antworten Sie mit NEIN und fügen eventuelle neuere Optionen mit "
+															"Hilfe der beigefügten Dokumentation selbst in Ihre Config-Datei ein."))
+	(set	t_askbool-help	(cat	"Wenn Sie die Dokumentation installiert haben möchten, dann antworten "
+															"Sie bitte mit JA, andernfalls mit NEIN um die Installation der "
+															"Dokumentation zu überspringen."))
+	(set	t_AskDoorDef		(cat	"Möchten Sie mEGA-dLC so konfigurieren, daß es sofort nach\n"
+															"dieser Installation benutzbar ist ?"))
+	(set	t_DoorDef-help	(cat	"Wählen Sie JA, damit der Installer alle notwendigen Dateien zum "
+															"sofortigen Betrieb von mEGA-dLC in Ihrer FAME erzeugt.\n\n"
+															"Möchten Sie jedoch lieber die Installation im SystemEditor "
+															"selbst erledigen, dann antworten Sie bitte mit NEIN."))
+	(set	t_doorlevel						"\n\nBitte Zugriffs-Level für mEGA-dLC angeben:")
+		
+	(set	t_doorlevelhlp	(cat	"\nNur Benutzer mit diesem oder einem höheren Zugriffslevel "
+															"können mEGA-dLC starten. Sollte normalerweise auf NewUser "
+                              "Level stehen, damit bei ALLEN Benutzern die Downloads gezählt "
+															"werden können."))  
+
+))
+
+;****************************************************************************
+;***                  MAIN INSTALLATION SCRIPT STARTS HERE !              ***
+;****************************************************************************
+
+;======================================================================
+;= FIRST SYSTEM-CHECKS TO DETERMINE USED AMIGA AND INSTALLED SOFTWARE =
+;======================================================================
+
+(set #osver (/ (getversion) 65536))				; Determine OS Version...
+(if (< #osver 39) ( (ABORT t_bad-kick)))	; ...and stop if OS < 39
+(complete 1)
+
+(set #FAME_ASSIGN (getassign "FAME"))
+
+(if (= #FAME_ASSIGN "")
+	(
+	(abort t_no_fame)
+	))
+
+(welcome)
+
+;=====================================================================
+;=       PROMPT FOR THE DESTINATION DIRECTORY & COPY MAIN FILE       =
+;=====================================================================
+
+(complete 10)
+
+(set #mypath "")
+
+(until (<> #mypath "")
+	(
+	(set #mypath
+		(askdir (prompt t_AskForDest)
+						(default "FAME:Doors")
+						(help @askdir-help)))
+		))
+
+(complete 12)
+
+(set @default-dest #mypath)
+
+(copylib 	(prompt (t_copyfile "mEGA-DLC.FIM"))
+					(source "mEGA-dLC.FIM")
+					(dest		@default-dest)
+					(confirm)
+					(help	@copylib-help)
+					(infos))
+
+;======================================================================
+;=                ASK TO INSTALL SAMPLE CONFIG-FILE                   =
+;======================================================================
+
+(complete 25)
+
+(if (= 1 (AskBool (prompt t_askforconfig) (help t_config-help)))
+	(
+	(if (= 1 (exists #CONFIG))
+		(
+		(if (= 1 (AskBool (prompt t_madebackup) (help t_bak_help)))
+			(
+			(rename #CONFIG "FAME:ExternEnv/Doors/mEGA-dLC.cfg.bak")
+		))
+	))
+	(copyfiles 	(prompt (t_copyfile "mEGA-dLC.cfg"))
+							(source	"FAME/ExternEnv/Doors/mEGA-dLC.cfg")
+							(dest	"FAME:ExternEnv/Doors/")
+							(help	@copyfiles-help)
+							(confirm))
+))
+
+;======================================================================
+;=        INSTALL AMIGA-GUIDE DOCUMENTATION & HISTORY FILE            =
+;======================================================================
+
+(complete 50)
+
+(set #myguide (exists #GUIDE))
+(set #myhist (exists #HIST))
+
+(set #docdef 0)
+
+(if (OR (<> 0 #myguide) (<> 0 #myhist))
+	(
+	(if (= 1 (AskBool	(prompt t_askfordocs)	(help		t_askbool-help)))
+		(
+
+		(if (<> 0 #myguide) 
+			(
+			(set #selguide "AmigaGuide Manual   (13kb)")
+			(set #docdef (+ #docdef 1))
+			)
+			(
+			(set #selguide "")
+			)
+		)
+
+		(if (<> 0 #myhist) 	
+			(
+			(set #selhis   "Program History      (6kb)")
+			(set #docdef (+ #docdef 2))
+			)
+			(
+			(set #selhis "")
+			)
+		)
+
+		(complete 60)
+
+		(set #docparts
+			(askoptions (prompt		t_selectdocs)
+									(help			@askoptions-help)
+									(choices #selguide
+												   #selhis)
+									(default #docdef)))
+		(complete 70)
+
+		(if (<> 0 #docparts)
+			(
+			(set #docdest
+				(askdir (prompt 	t_askforddest)
+								(help			@askdir-help)
+								(default	"FAME:Documentation")))
+
+			(complete 75)
+
+			(if (<> "" #docdest)
+				(
+				(if (IN #docparts 0)
+					(
+					(copyfiles 	(prompt (t_copyfile "mEGA-dLC.guide"))
+											(help		@copyfiles-help)
+											(source	#GUIDE)
+											(dest		#docdest)
+											(infos))
+
+					(complete 85)
+
+					))
+				(if (IN #docparts 1)
+					(
+					(copyfiles 	(prompt (t_copyfile "mEGA-dLC.history"))
+											(help		@copyfiles-help)
+											(source	#HIST)
+											(dest		#docdest)
+											(infos))
+
+					(complete 95)
+
+					))
+				))
+			))
+		))
+	))
+
+;======================================================================
+;=      INSTALLATION OF THE DOORDATA DEFINITION VIA DOORHEADER        =
+;======================================================================
+
+(complete 98)
+
+(if (= 1 (AskBool 	(prompt t_AskDoorDef) (help t_doordef-help)))
+	(
+
+	(set #level																	; Ask for User-Level
+		(AskNumber	(prompt		t_doorlevel)
+								(help			t_doorlevelhlp)
+                (default	10)))
+
+	(set #destpath	@default-dest)
+	(set #destpath (tackon #destpath "mEGA-dLC.FIM"))
+	(set #cmdline	("c/DoorHeader NAME=DLSTAT PATH=%s TYPE=S LEVEL=%ld NR SR AR RD MULTINODE INTERFACE=FIM" #destpath #level))
+	(run #cmdline (prompt "Creating Datafile...")
+								(help		"DoorDefinition will be created..."))
+	))
+
+;======================================================================
+;=                       END OF INSTALLATION                          =
+;======================================================================
+
+(complete 100)
+(exit)

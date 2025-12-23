@@ -1,0 +1,132 @@
+/* Logon macro for TransAmiga
+
+   Asks user if he/she wishes to view the new message list.  Then prompt
+   him/her to do a mail check, and allows the user to read and messages to
+   him/her.  Also prompts for a new files listing.
+*/
+
+/* This is the original Logon.trans issued with Transamiga Vn2.5 
+   It has been upgraded to handle date of user's last call as
+   8 digits for the year 2000+. It requires that you have the new
+   utility UserLast.rexx in your BBS:utils/ drawer. See documentation
+   with UserLast.rexx.
+
+   To make use of this new date handling, you must also have the Arexx
+   script logoff.trans in BBS:Rexx and Logpoff.trans must carry a
+   call to Userlast.rexx.
+
+   A simple Logoff.trans to do this is supplied with this logon.trans.
+   Or you can add the lines at the tail of this Logon.trans to your own
+   Logoff.trans if you already use it.
+*/
+
+options results
+options failat 10
+
+CSI		= '1b'x||'['
+CRLF	= '0d'x||'0a'x
+FF		= '0c'x
+
+userinfo 'x' ; ansi=result
+
+/*----------- New lines for millenium. First 4 are essential --------*/
+
+userinfo 'a' ; username = result
+systeminfo '8'; bbsline=result
+string='rx BBS:utils/userlast.rexx '||bbsline||':r:'||username
+address command string    /* Write date of last call to ENV:UserLast */
+
+/*-------- Next 4 lines fetch date of last call, if you want this ----*/
+
+ufile='env:userlast.'||bbsline
+call open('last',ufile,'r')
+lastcall = readln('last')             /* Format '12 Jan 2000' */
+call close('last')
+
+/*-------------- End of millenium lines ----------*/
+
+/* Initialize ANSI variables - useful code section for your ARexx macros. */
+if ansi='ON' then do
+	OFF = CSI'0m' ; BO = CSI'1m' ; UL = CSI'4m' ; IT = CSI'3m'
+	CL1 = CSI'31m' ; CL2 = CSI'32m' ; CL3 = CSI'33m' ; CL4 = CSI'34m'
+	CL5 = CSI'35m' ; CL6 = CSI'36m' ; CL7 = CSI'37m'
+end
+else do
+	OFF = '' ; BO = '' ; UL = '' ; IT = ''
+	CL1 = '' ; CL2 = '' ; CL3 = '' ; CL4 = ''
+	CL5 = '' ; CL6 = '' ; CL7 = ''
+end	
+
+if ~show('L',"rexxsupport.library") then 
+	call addlib "rexxsupport.library",0,-30
+
+/* check if the user has a transfer protocol choosen */
+PRINT FF
+USERINFO i              /* get user's transfer protocol */
+IF RESULT='0' THEN DO
+  USERINFO H            /* get the language (in this case English is default and German the second one available) */
+  IF RESULT='DEFAULT' THEN DO
+    PRINT 'TransAmiga now offers a new feature: Transferprotocol is selected one'
+    PRINT 'time and then used for every transfer without the need to ask you'
+    PRINT 'again.'
+    LISTPROTOCOLS
+    QUERY 'Please enter the numer of the protocol you wish to use:'
+  END
+  ELSE DO
+    PRINT 'TransAmiga bietet nun die Moeglichkeit das Transferprotokoll einmalig'
+    PRINT 'einzustellen und es dann ohne weitere Neuanwahl bei jedem Transfer zu'
+    PRINT 'benutzen.'
+    LISTPROTOCOLS
+    QUERY 'Bitte Nummer des Transferprotokolls angeben, das sie benutzen wollen:'
+  END
+  SETPROTOCOL RESULT
+END
+
+/* Ask to see new message list */
+queryy FF||CRLF||CL7||'View new message list'
+answ = upper(result)
+if ~carrier then exit 10
+
+if answ ~= 'N' then newmsgs
+
+/* Check for messages to the user.  If any are found, ask if he/she wants */
+/* to read them now, and if so, read all marked messages (since all found */
+/* messages get automatically marked). */
+
+queryn CRLF||CL7||'Check for messages to you'
+answ = upper(result)
+if ~carrier then exit 10
+
+if answ = 'Y' then do
+	checkmsgs
+	if ~carrier then exit 10
+	
+	if result=1 then do
+		queryy CL7||'Read these messages now'
+		answ = upper(result)
+		if ~carrier then exit 10
+
+		if answ ~= 'N' then readmarkedmsgs
+	end
+end
+
+queryn CRLF||CL7||'View new files'
+answ = upper(result)
+if ~carrier then exit 10
+
+if answ = 'Y' then newfiles
+
+print
+
+exit
+
+/*===================== End of Logon.trans ==================*/
+
+/*------ Lines below must be included in a 'Logoff.trans' script -----*/
+
+userinfo 'a'   ; username=result
+
+/*--- Write current date to user file line 9 (date of last call) ---*/
+string='rx BBS:utils/userlast.rexx w:'||username
+address command string
+

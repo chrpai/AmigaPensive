@@ -1,0 +1,1158 @@
++----------------------------------------------------------------------+
+|                                                                      |
+|                  D I S C L A I M E R   N O T I C E                   |
+|                                                                      |
+|  This document and/or  portions of the material and  data furnished  |
+|  herewith,  was developed under sponsorship of the U.S. Government.  |
+|  Neither the U.S.  nor  the U.S.D.O.E.,  nor  the  Leland  Stanford  |
+|  Junior University, nor their employees,  nor their respective con-  |
+|  tractors, subcontractors, or their employees, makes  any warranty,  |
+|  express or implied, or assumes any liability or responsibility for  |
+|  accuracy,  completeness or  usefulness of any information, appara-  |
+|  tus, product or process disclosed, or represents that its use will  |
+|  not infringe privately-owned rights.  Mention of any product,  its  |
+|  manufacturer, or suppliers shall not, nor is it intended to, imply  |
+|  approval, disapproval, or fitness for any particular use. The U.S.  |
+|  and  the University at all times  retain the right to use and dis-  |
+|  seminate same for any purpose whatsoever.                           |
+|                                                                      |
++----------------------------------------------------------------------+
+
+
+                    RexxArpLib.Library Version 3.3
+                    ==============================
+
+                                by
+
+                          W.G.J. Langeveld
+                 Stanford Linear Accelerrator Center
+
+             Copyright (C) 1988, 1989, 1990, 1992, 1993, 1994
+           The Trustees of the Leland Stanford Junior University
+
+                        All Rights Reserved
+
+Version 3.3:
+------------
+
+	This version of rexxarplib is released mainly because there is no
+reason not to. It doesn't add much beyond version 3.0.
+	The major new thing is a moderately useful List requester
+(see RequestList).
+	Also, a few small bugs were fixed. Under 2.0x and up,
+screenshare.library is now truely no longer needed - before, it would mess
+up some of the 3-D look if screenshare.library was not present even under
+2.0.
+	Another function that always was present is now documented:
+SendParsed, which is sometimes useful.
+	This may be the last version of rexxarplib to be released.
+
+        20 April 1994, WGL
+
+Version 3.0:
+------------
+
+	This version of rexxarplib makes use of a lot of AmigaDOS 2.0
+features and has various bugs fixed and a few other enhancements. Yet, it is
+smaller than previous versions because it is now completely compiled using
+SAS/C version 5.10a.
+	Under AmigaDOS 2.0, rexxarplib will now use the ASL file requester
+rather than the ARP one. The GetFile() function acquired some new arguments
+in order to allow you to use most of the features of the ASL requester (such
+as specifying its size and adding pattern gadgets or setting it up as a
+directory requester or using multiple select). *NOTE*. Various features of
+the ASL file requester only work correctly under versions of AmigaDOS
+*after* 2.02. Some features may not appear to work at all in early versions
+of 2.0, one of them is the "NOFILES" option. If you definitely *want* to use
+the ARP file requester, you can, by specifying a flag.
+	There is a new function called GetFont() which brings up the new
+ASL font requester. It too has lots of options and arguments. The SetFont()
+function never worked correctly but should now be fixed. It has also acquired
+a few more arguments, to go with the font requester.
+	Furthermore, under AmigaDOS 2.0, you should no longer need
+screenshare.library (at least not for rexxarplib.library - other programs may
+still require it!). It uses 2.0 public screens everywhere. This also means
+that you can use rexxarplib functions to operate on other applications'
+screens (if they are AmigaDOS 2.0 public ones). Applications that still open
+screenshare shared screens are still supported: if screenshare.library is
+available and a requested public screen does not exist as a 2.0 public
+screen, rexxarplib will try to find a screenshare-style screen of that name.
+Under AmigaDOS 1.3, rexxarplib of course uses screenshare.library exclusively.
+Support was also added for the long missing BACKDROP flag to OpenWindow.
+	Rexxarplib.library uses as much as possible the 2.0 3-D look, though
+there are cases where it decides (based on the colors for example) to use a
+slightly different rendering. In order to support more of the new 2.0
+features, the number of arguments to OpenScreen has been increased. You can
+now specify the width and height, as well as the coordinates of the top-left
+corner, and you can give it AutoScroll and Overscan flags. You can make
+as large a screen as AmigaDOS 2.0 allows and scroll around for example. Also,
+a MoveScreen() function was added to allow moving screens around from ARexx.
+	Under 2.0 you can now specify "Workbench" as a Public Screen Name.
+This means that some functions (such as ScreenColor()) will now also work for
+the Workbench. For some reason, ShowTitle() does not which is just as well
+anyway.	The number of arguments to ScreenColor() was increased so you can set
+the colors of a screen without having to open a window on it and you can also
+determine the colors of the screen using this function.
+	This version has new Getenv() and Setenv() functions. These functions
+are now compatible with the 2.0 environment variable system and use the
+GetVar, SetVar and DeleteVar routines. If GetVar fails, it will fall back
+to the ARP Getenv function. Under 1.3, the behavior is the same as before.
+	There is a new flag argument with AddGadget() for string gadgets.
+One possible flag is RIDGEBORDER. This causes string gadgets to have the
+"standard" 2.0 three-dimensional border. This is not the default, because
+this type of border requires a little more space and might break ARexx
+programs that assume the size is as before. Another flag was added to
+allow the gadget to be defined as a NUMERIC gadget.
+	Other than that, gadgets on two-color screens should now have visible
+gadget borders (by default - it is still possible to change them) and the
+colors should default to the proper values for the screen the window opens
+up on. Note that under 2.0 the colors your application comes up with may
+be a little different from what you would have expected. You can adjust the
+colors by using the SetReqColor() function.
+	Bugs fixed: the Flood() routine ran *very* slowly because it didn't
+have a TmpRas. Now, a TmpRas is allocated before the Flood operation is
+actually done, and the function is orders of magnitude faster. This actually
+used to work correctly in an earlier version of rexxarplib but broke in one
+of the more recent ones. Under AmigaDOS 1.3 the colors that some requesters
+used could be random in certain conditions. The createhost function didn't
+check correctly whether there were any messages it had sent out that were not
+yet replied to before closing down. The FileList function used a construct
+that was not reentrant. A minor problem in PostMsg() was also fixed. A little
+bug in AddGadget was fixed which could potentially cause enforcer hits if
+certain arguments were left unspecified. All these should be fixed.
+	Many thanks to the various beta testers - you know who you are!
+
+	25 April 1991, WGL
+
+
+Version 2.52:
+-------------
+
+	This release was necessary to fix problems with AmigaDOS 2.0
+shared screens. As of version 1.45, screenshare.library supports 2.0-style
+shared screens, but the previous versions of rexxarplib contained code that
+would prevent some functions to work with such screens because they have
+slightly different properties. Do not forget to install the new
+screenshare.library in libs:.
+
+	16 October 1990, WGL
+
+
+Version 2.5:
+------------
+
+	Minor update. Two bugs in the FileList function were fixed: the third
+argument wouldn't work right if there was a fourth, and the Noexpand option was
+broken in the previous version. A problem in the documentation of some of the
+screen functions (ScreenRows/Cols/Lace/Color/ToBack/ToFront) was corrected. A
+ShowTitle function was added. The CreateHost function was modified, such that if
+the named public screen does not exist, the window will open on the WorkBench.
+Under 2.0, rexxarplib's screens now get the "3D" look. Some other esthetical
+problems with 2.0 were also fixed.
+
+	22 August 1990, WGL
+
+
+Version 2.42 (internal release):
+-------------------------------
+
+	Another minor update. The PostMsg() code was fixed for two little bugs:
+(1) when calling PostMsg() in rapid sequence from different ARexx programs, it
+was possible to wind up with an orphaned PostMsg window that would never go
+away; (2) after updating an existing PostMsg() window on a shared custom screen,
+it was impossible to ever close that screen.
+	The Area... functions have been completely rewritten. While they used to
+be simple interfaces to the AmigaDOS equivalents, they are no longer, although
+they still use the AmigaDOS functions down below. Advantages: areafills are now
+clipped against the window borders, there are 16 specific pattern fills and 125
+dithering patterns, the fills no longer take up as much memory as they used to,
+and the probability of a system crash with these functions is considerably
+reduced. "Problems": AreaEnd() now has an optional argument and SetOPen is now
+obsolete (See AreaEnd()), and fills involving areacircles and areaellipses that
+don't fit inside the window may now fail and only produce the outline of the
+fill.
+	Other minor changes: ScreenToFront/Back now return 0 when the screen
+doesn't exist, rather than signalling an error. Windows no longer have their
+minimum size set to their original size, so you can use sizing gadgets to
+make windows smaller too. Boolean gadgets now also have their GADGIMMEDIATE
+flag set, so that GADGETDOWN messages are actually possible now. Note, that
+when you request to receive both GADGETUP and GADGETDOWN messages, each
+gadget will report to you its message string *twice*. They can be distinguished
+by including %l in the message string, so that you can parse on UP vs. DOWN.
+The OpenScreen() function acquired another flag, TRUNCATE. See the description
+of OpenScreen(). A few little bugs were fixed in IFFImage. Note: iff.library
+apparently still has some bugs. It may still cause crashes of the machine when
+used with DPaint brushes. When in doubt, use full IFF pictures. Send mail to
+Chris Weber to have it fixed...
+	And finally, the entire code was carefully checked and improved to avoid
+crashes under low-memory situations.
+
+	21 January 1990, WGL
+
+
+Version 2.3:
+-------------
+
+	Minor update. A new option was added to FileList to inhibit expansion of
+file names where not wanted. DrawCircle apparently never worked, can't believe
+noone noticed: it is fixed now. A small bug in the simple requester code was
+found and fixed, as well as a few similar ones in the file requester interface
+code. Finally: the 'version' command will now properly display the version
+number of rexxarplib and rexxmathlib.
+
+	20 May 1989, WGL
+
+
+Version 2.2a:
+-------------
+
+	A small bug fix in IffImage().
+
+	5 April 1989, WGL
+
+
+Version 2.2:
+------------
+
+	New in version 2.2 is an extension to the FileList() function. It can
+now expand the file names to include the full path, by supplying another
+argument. It will now also return the number of files in the .0 field of the
+stem variable, to make it more similar to ExecIO. A bug was fixed...
+	Also, version 2.2 now uses ARP's Getenv and Setenv calls, so that with
+ARP 1.3 you can use environment variables in the ENV: directory.
+	Another addition is a new option for IFFImage() allowing one to load
+images without changing the screen's colors.
+	Missing from the documentation so far has been that rexxarplib.library
+*requires* the presence of screenshare.library and diskfont.library in your
+current libs: directory. Several reports about library functions only returning
+error 12 have been due to these libraries not being present.
+	There was also a mistake in the documentation. The function that used
+to be listed as FreeMenu() is really called RemoveMenu().
+	The behavior of GetEnv() was changed by popular request. It will no
+longer generate an error when the argument is not an existing env variable.
+Instead it will return an empty string.
+
+	20 February 1989, 8 March 1989, WGL
+
+Version 2.1:
+------------
+
+	New in version 2.1 are the general function ScreenColor, and the
+CreateHost-related functions ReadHost, SetGadget and IFFImage. The allowed
+flag for AddItem and AddSubItem is now a specific one (this is an "incompatible"
+change). CloseWindow now allows the host to stay around through a second
+argument. The window flag DELTAMOVE was added for OpenWindow, and the window
+location is now available in reports (%e and %f).
+	The function IFFImage needs some explanation. It allows you to display
+(a portion of) an IFF image in your CreateHost window. For the time being, this
+function makes use of the iff.library written by Christian Weber. However, there
+is a suspicion that this library may cause the occasional system crash, and it is
+known that DPaint-style brushes are not supported. Only straight IFF picture
+files are known to work more or less reliably. At some point I intend to use
+something else.
+
+Version 2.0:
+------------
+
+	Originally, this library was supposed to be an ARexx interface to the
+ARP library. However, although it indeed interfaces to some of the ARP
+functions, it has become much more of an interface to various Intuition
+functions. I have considered renaming the library to something else, but by now
+everyone refers to it by this name, so I'll leave it like it is.
+	Version 2.0 is pretty much the final version. The library has grown
+considerably since the first release, and it is about as big as a library should
+ever get. If I find the need for a lot of other functions, they'll have to go
+into a different library.
+	The library contains over 50 functions now. One is Charlie's famous ARP
+file requester, another is a simple combination string/boolean requester that
+does auto-everything. All you have to do is specify the strings you want it to
+display. Then there are environment variable things, and a simple message window
+you can keep hanging around. On popular request, there is now a wildcard
+expander (not to be confused with a 'directory' function!) that uses the new Rexx
+Variables Interface (RVI).
+	The major new things though, are the interface routines to Intuition.
+You can now open screens and windows, add boolean and string gadgets to them as
+well as menus, draw lines and areas and circles and whatever. You can make your
+gadgets, menus, and windows send messages to wherever you like and you can
+format those messages, though they have to ARexx messages, in any way you like,
+using any information that's currently available. All this is rather hard to
+explain. You'll really have to play with it and look at some examples.
+	As usual, this stuff is NOT public domain, but freely distributable.
+
+	So have fun!
+
+	Willy.
+
+
+
+The functions are listed below.
+--------------------------------------------------------------------------------
+
+GetFile
+=======
+
+	Calling sequence:
+
+	result = GetFile(x, y, pathname, filename, hailstring, publicscreen,
+                         options, stemname, width, height, pattern)
+
+	x            = x coordinate of top-left corner of requester.
+	y            = y coordinate of top-left corner of requester.
+	pathname     = Default path name, first path name to be searched.
+        filename     = Default file name.
+        hailstring   = User instruction string.
+        publicscreen = Name of a public screen (optional).
+
+	Under 2.0, we use ASL and the following arguments are recognized:
+        options      = One or more of:
+                       NOFILES        Directory requester
+                       PATGAD         Add a pattern gadget
+                       SAVE           "Save" requester (different color)
+                       MULTISELECT    Enable multiple selections. This
+                                      option requires the presence of the
+                                      name of a stem variable (see next)
+                                      or else this option is ignored.
+                       MATCHDIRS      Pattern in filename applies to dirs too.
+                       DOARP          Use the ARP requester instead.
+        stemname     = Name of a stem variable to receive the result.
+        width        = Preferred width of the requester
+        height       = Preferred height of the requester
+        pattern      = Default pattern.
+
+        result       = See below.
+
+	All arguments are optional, but the order is fixed. Therefore if only
+the second or third argument is specified, it needs to be prefixed by
+sufficient commas.
+	The selected path concatenated with the selected file name are
+returned as 'result' unless the stemname is specified. If the stemname is
+specified, the result will always be given in the form of a stem variable:
+stemname.0 will contain the number of returned file names, and stemname.i
+with i = 1 through stemname.0 will contain the file names. The 'result'
+will be set to the number of files returned. In addition, stemname.Width,
+stemname.Height, stemname.TopEdge and stemname.LeftEdge will contain the
+last used size and position of the file requester. If PATGAD is specified
+among the options, stemname.Pattern will contain the (possibly modified)
+pattern.
+	About patterns: there are two ways to make the file requester
+only list files that match a certain pattern. The pattern may be specified
+as part of default directory argument or as the default pattern argument
+if PATGAD is specified as an option. The pattern present in the default
+directory specification will not be displayed anywhere, even if the PATGAD
+option is used and a pattern gadget is provided. Yet, only files matching
+the pattern will be shown. If PATGAD is used together with a pattern
+in the default pattern argument, the requester will show only the files
+that match that pattern, and that pattern itself will be shown in the
+pattern gadget. If there is both a pattern in the default directory and
+the default pattern arguments, then all files must match both patterns.
+However, this last restriction is only present as neither the directory
+nor the pattern gadget contents are modified.
+	The result is not necessarily an existing file. It is up to the user
+to ascertain that the result is suitable for his purposes. If the user hits
+"CANCEL", the result is an empty string and/or stemname.0 = 0. It is also
+possible for the user to enter a pattern in the File gadget. Such a pattern
+is not expanded, and returned as a file name.
+	Notice that another way the result comes out to be empty is when the
+user leaves the requester hitting "OKAY" when both the path and file string
+gadgets are empty.
+	If 'publicscreen' is specified, the function will try to find the screen
+of that name. If it is set up properly, the requester will open on that
+screen. If not, the requester will appear on the Workbench. Under AmigaDOS
+1.3, screenshare.library is used for this purpose. Under AmigaDOS 2.0
+a "public" screen of that name will be looked for and if this fails,
+screenshare.library is used, if it is in libs:.
+
+GetFont
+=======
+
+	This function is AmigaDOS 2.0-only.
+
+	Calling sequence:
+
+	result = GetFont(x, y, fontname, fontsize, hailstring, publicscreen,
+                         options, stemname, minheight, maxheight,
+                         fontstyle, fontflags, frontpen, backpen)
+
+	x            = x coordinate of top-left corner of requester.
+	y            = y coordinate of top-left corner of requester.
+	fontname     = Default font name, first font to be displayed.
+        fontsize     = Default font size.
+        hailstring   = User instruction string.
+        publicscreen = Name of a public screen (optional).
+        options      = One or more of:
+                       BACKPEN       Allow selection of background pen
+                       DRAWMODE      Allow selection of drawing mode
+                       FIXEDWIDTH    Only allow fixed-width fonts
+                       FRONTPEN      Allow selection of foreground pen
+                       STYLE         Allow selection of style attributes
+        stemname     = Name of a stem variable to receive the result.
+        minheight    = Minimum allowable font height.
+        maxheight    = Maximum allowable font height.
+        fontstyle    = Initial font style
+        fontflags    = Initial font flags
+        frontpen     = Initial front pen
+        backpen      = Initial back pen
+
+	result       = See below.
+
+	All arguments are optional, but the order is fixed. Therefore if only
+the second or third argument is specified, it needs to be prefixed by
+sufficient commas.
+	The selected font, concatenated with a "/" and the selected size is
+returned as 'result' unless the stemname is specified. If the stemname is
+specified, the result will always be given in the form of a stem variable:
+        stemname.Name     = font name
+        stemname.YSize    = vertical size of font
+        stemname.Style    = style flags for font (see SetFont())
+        stemname.Flags    = font flags           (see SetFont())
+        stemname.FrontPen = foreground pen
+        stemname.BackPen  = background pen
+        stemname.DrawMode = drawing mode (JAM1, JAM2, COMPLEMENT)
+In this case, 'result' will be just the font name if a selection was made.
+	Notice, that the result is not necessarily an existing font. It is
+up to the user to ascertain that the result is suitable for his purposes. If
+the user hits "CANCEL", the 'result' is an empty string.
+	Notice that another way the result comes out to be empty is when the
+user leaves the requester hitting "OKAY" when both the font and size string
+gadgets are empty. In this case, though, the stem variable may still contain
+the last selected or default values for items other than the name and size.
+	If 'publicscreen' is specified, the function will try to find the screen
+of that name. If it is set up properly, the requester will open on that screen.
+If not, the requester will appear on the Workbench. Under AmigaDOS 2.0 (this
+function only works under AmigaDOS 2.0) a "public" screen of that name will be
+looked for and if this fails, screenshare.library is used, if it is in libs:.
+	This function requires the presence of diskfont.library in libs:.
+
+Request
+=======
+
+	Calling sequence:
+
+	result = Request(x, y, prompts, string, okaytext, canceltext, publicscreen)
+
+	x             = x coordinate of top-left corner of requester.
+	y             = y coordinate of top-left corner of requester.
+        prompts       = A string which will be displayed above any gadgets.
+                        Any embedded '\' characters will be treated as a line
+                        break.
+        string        = The default string to be displayed in a string gadget.
+                        If omitted, no string gadget will be provided.
+	okaytext      = The text to be used for an Okay gadget.
+	                If omitted, no okay gadget will be provided.
+	canceltext    = The text to be used for a Cancel gadget.
+	                If omitted, no cancel gadget will be provided.
+        publicscreen  = Name of a public screen (optional).
+
+	All arguments are optional, but the order is fixed. Therefore if
+only the second or third argument is specified, it needs to be prefixed by
+sufficient commas.
+	If a string gadget is present, but no okay gadget, the string
+will be returned after modification by the user in result when the user
+hits <return>.
+	If both a string gadget and an okay gadget are present, the string
+will be returned in result only when the user clicks on the okay gadget.
+	If no string gadget is present, clicking of the okay gadget (if
+present) will cause the return in result of the string "OKAY".
+	In any case, if the user clicks either the cancel gadget or the
+close gadget, an empty string will be returned. Notice that another way the
+result comes out to be empty is when the user leaves the requester hitting
+"OKAY" when the string gadget is empty.
+	If 'publicscreen' is specified, the function will try to find the screen
+of that name. If it is set up properly, the requester will open on that
+screen. If not, the requester will appear on the Workbench. Under AmigaDOS
+1.3, screenshare.library is used for this purpose. Under AmigaDOS 2.0
+a "public" screen of that name will be looked for and if this fails,
+screenshare.library is used, if it is in libs:.
+
+
+RequestList
+===========
+
+	Calling sequence:
+
+	result = RequestList(start, end, list, x, y, w, h, publicscreen, flags)
+
+        start         = member number of list where display starts
+        end           = member number of list where display ends
+        list          = stem variable that holds the members to be displayed
+	x             = x coordinate of top-left corner of requester.
+	y             = y coordinate of top-left corner of requester.
+        w             = width of requester
+        h             = Height of requester
+        publicscreen  = Name of a public screen (optional).
+        flags         = flags.
+
+	The first three arguments are required. All others are optional, but
+the order is fixed.
+	The stem variable is assumed to be of the form variable.i with i
+an integer number. It is usual that variable.0 contains the size of the
+list, and the members are variable.1, variable.2 etc. The list requester will
+display all the members starting with variable.start and ending with variable.end.
+	The only flag recognized is "SORT". If specified, the list will be
+sorted before display.
+	If 'publicscreen' is specified, the function will try to find the screen
+of that name. If it is set up properly, the requester will open on that
+screen. If not, the requester will appear on the Workbench.
+	This function works only under AmigaDOS 2.0x and up.
+
+PostMsg
+=======
+
+	This function sets up a window with text. It returns immediately to
+the caller. Subsequent calls will erase lines and fill them with new text.
+If a line has zero length, the line will NOT be erased. This has the advantage
+that you can change the text in a line without redisplaying text in another
+line. It has the disadvantage that in order to erase lines, you have to
+specify at least a single space for each line you want to erase.
+The window will remain open, until a call is made with too few arguments.
+This is NOT a reentrant function: there is only one window pointer, and
+subsequent calls by ANY REXX process will affect the window.
+
+	Calling sequence:
+
+	result = PostMsg(x, y, strings, publicscreen)
+
+	x             = x coordinate of top-left corner of requester.
+	y             = y coordinate of top-left corner of requester.
+        string        = A string which will be displayed above any gadgets.
+                        Any embedded '\' characters will be treated as a line
+                        break.
+	result        = 1 for success, 0 otherwise.
+        publicscreen  = Name of a public screen (optional).
+
+	All arguments are optional, but the order is fixed. Therefore if
+only the second or third argument is specified, it needs to be prefixed by
+sufficient commas.
+	Examples:
+	   Postmsg(50, 50, "This is line 1\This is line 2")
+will cause a window to appear with two lines of text. A subsequent call
+	   Postmsg(50, 50, "\This is a new line 2")
+will cause the second line of the window to be replaced by the new text. The
+construct:
+	   PostMsg(50, 50, " \")
+will erase the first line but leave the second one alone (notice the space).
+	If too few arguments are specified, this function will cause the
+window to be closed.
+	If 'publicscreen' is specified, the function will try to find the
+screen of that name. If it is set up properly, the requester will open on
+that screen. If not, the requester will appear on the Workbench. Under
+AmigaDOS 1.3, screenshare.library is used for this purpose. Under AmigaDOS
+2.0 a "public" screen of that name will be looked for and if this fails,
+screenshare.library is used, if it is in libs:.
+
+Getenv
+======
+
+	Calling sequence:
+
+	result = Getenv(variable)
+
+	variable   = Environment variable.
+        result     = The value of the environment variable.
+
+	This function gets the value of an environment variable. If the
+variable does not exist, an empty string will be returned.
+
+Setenv
+======
+
+	Calling sequence:
+
+	result = Setenv(variable, valuestring)
+
+	variable    = Environment variable.
+	valuestring = The new value for the environment variable.
+        result      = Always 1.
+
+	This function (creates and) sets the environment variable to a
+a (new) value. If 'valuestring' is missing, the function will remove the
+environment variable.
+
+ScreenToBack, ScreenToFront
+===========================
+
+	These functions depth arrange screens. If no argument is specified,
+the screen operated on is the Workbench screen. If the name of a public screen
+is specified, it will be affected.
+
+	Calling sequence:
+
+	result = screentoback(publicscreen)
+	result = screentofront(publicscreen)
+
+        publicscreen  = Name of a public screen (optional).
+
+	The argument is optional. If 'publicscreen' is specified, the
+function will try to find the screen of that name. If it is set up properly,
+the function will operate on that screen. If not, the function will operate on
+the Workbench. Under AmigaDOS 1.3, screenshare.library is used for this
+purpose. Under AmigaDOS 2.0 a "public" screen of that name will be looked for
+and if this fails, screenshare.library is used, if it is in libs:.
+
+ScreenRows, ScreenCols, ScreenLace
+==================================
+
+	These functions retrieve info about screens. If no argument is
+specified, the screen operated on is the Workbench screen. If the name of
+a public screen is specified, it will be used.
+
+	Calling sequences:
+
+	result = ScreenRows(publicscreen)     /* return number of rows */
+	result = ScreenCols(publicscreen)     /* return number of columns */
+	result = ScreenLace(publicscreen)     /* return interlace */
+
+        publicscreen  = Name of a public screen (optional)
+
+	ScreenRows and ScreenCols retrieve the number of rows and columns in
+pixels. The function ScreenLace() returns 0 if the screen is not interlaced, and
+1 if it is. The functions return -1 if the information could not be found, as is
+the case if the named public screen does not exist. Notice, that
+ScreenRows/Cols/Lace can be used to determine whether a public screen of a
+particular name exists.
+	The argument is optional. If 'publicscreen' is specified, the
+function will try to find the screen of that name. If it is set up properly,
+the function will operate on that screen. If not, the function will operate on
+the Workbench. Under AmigaDOS 1.3, screenshare.library is used for this
+purpose. Under AmigaDOS 2.0 a "public" screen of that name will be looked for
+and if this fails, screenshare.library is used, if it is in libs:.
+
+ScreenColor
+===========
+
+	result = ScreenColor(publicscreen, n)          /* get color n     */
+
+           or
+
+        result = ScreenColor(publicscreen, n, R, G, B) /* get/set color n */
+
+        publicscreen  = Name of a public screen.
+        n             = Number of color to retrieve/modify
+        R             = The amount of red in the new color   (0 - 15)
+        G             = The amount of green in the new color (0 - 15)
+        B             = The amount of blue in the new color  (0 - 15)
+
+	ScreenColor retrieves the RGB values of the selected color in the
+format: <red><space><green><space><blue>, e.g:   15 0 0  for an all red
+screen. When the R G and B arguments are also given, the indicated color of
+the screen is modified to the new values. The *old* color values will be
+returned in result. ScreenColor only operates on public screens. The function
+will try to find the screen of that name. If it is set up properly, the
+function will operate on that screen. Under AmigaDOS 1.3, screenshare.library
+is used for this purpose. Under AmigaDOS 2.0 a "public" screen of that name
+will be looked for and if this fails, screenshare.library is used, if it is
+in libs:.
+
+MoveScreen
+==========
+
+	result = MoveScreen(publicscreen, dx, dy)
+
+        publicscreen  = Name of a public screen.
+        dx            = Amount to move it in X
+        dy            = Amount to move it in Y
+
+        result        = 0 on failure. <xy> on success.
+
+        MoveScreen moves an existing public screen by the specified amounts
+in x and y. Arguments that are left out are interpreted as 0. This function
+is of rather limited use in AmigaDOS 1.3: only movement in the y direction
+is supported, and negative values beyond the top of the screen are not allowed.
+If the function failed, 0 is returned, otherwise a string is returned with the
+actual position of the screen in the form <x> <space> <y>. Note that by leaving
+out both arguments, you will find the current position of the screen.
+	The function will try to find the screen of that name. If it is set
+up properly, the function will operate on that screen. Under AmigaDOS 1.3,
+screenshare.library is used for this purpose. Under AmigaDOS 2.0 a "public"
+screen of that name will be looked for and if this fails, screenshare.library
+is used, if it is in libs:.
+
+OpenScreen, CloseScreen
+=======================
+
+	These functions allow you to open public custom screens.
+
+	Calling sequence:
+
+	result = OpenScreen(topedge, depth, modes, defaulttitle, publicscreen,
+                            penlist, width, height, leftedge)
+	result = CloseScreen(publicscreen)
+
+	topedge       = Y coordinate of top edge of the screen.
+	depth         = Number of bitplanes.
+	modes         = Viewmodes and type of screen. The currently supported
+                        viewmodes are "HIRES", "LACE", and "HAM". Currently
+                        supported types are "SCREENBEHIND", "TRUNCATE",
+                        "AUTOSCROLL" and "OVERSCAN".
+	defaulttitle  = Default title for the screen title bar.
+        publicscreen  = Name of the public screen
+        penlist       = String of the form <pen1><pen2>...<pen9>. Example:
+                        "121213102"   where:
+			 |||||||||
+			 ||||||||+-> HIGHLIGHTTEXTPEN special color text
+			 |||||||+--> BACKGROUNDPEN    always color 0
+			 ||||||+---> FILLTEXTPEN      text over FILLPEN
+			 |||||+----> FILLPEN          active-window/selected-gadget fill
+			 ||||+-----> SHADOWPEN        dark edge on 3D objects
+			 |||+------> SHINEPEN         bright edge on 3D objects
+			 ||+-------> TEXTPEN          text on background
+			 |+--------> BLOCKPEN         Intuition block pen
+			 +---------> DETAILPEN        Intuition detail pen
+        width         = Width of the screen
+        height        = Height of the screen
+        leftedge      = X-coordinate of left edge of the screen
+
+	result        = 0 on failure, 1 on success.
+
+	The screen name is required, therefore you must supply sufficient
+commas and a name for the public screen to be created/closed. With openscreen,
+leaving out any of the other arguments will cause defaults to be used. They are
+topedge = 0, depth = 2, modes = 0 (meaning LORES, no LACE), no default title,
+leftedge = 0, width and height the same as of the Workbench. This is equivalent
+to specifying 0 for all arguments (a depth of 0 is illegal and will be changed
+to 2). All created screens are CUSTOM screens under AmigaDOS 1.3 using
+"screenshare.library" and PUBLIC screens under AmigaDOS 2.0.
+The "TRUNCATE" screen type is not really an Intuition construct. It is only
+useful when "topedge" is non-zero: the screen will have the size of its visible
+portion at the time it is opened. Otherwise a full sized screen is opened,
+which is just displaced by "topedge". With rexxarplib version 2.8 and later,
+this option is really obsolete, since one can now specify the height of the
+screen.
+	***NOTE: It is perfectly possible to apply closescreen() to another
+application's custom screen (if it is public, using the same conventions as
+used here). If you attempt this under AmigaDOS 1.3, a software failure is
+almost guaranteed. Only use closescreen() on screens you created using
+openscreen()!
+
+ShowTitle
+=========
+
+	This function shows or hides the title bar of a named public
+screen.
+
+	Calling sequence:
+
+	result = ShowTitle(publicscreen, yesno)
+
+	publicscreen  = name of a publicscreen
+	yesno         = 0 or 1.
+
+	If yesno is set to 1, the screen title of the named public screen
+will be shown, if set to 0, it will be hidden. The function will try to find
+the screen of that name. If it is set up properly, the function will operate
+on that screen. If not, the function will operate on the Workbench. Under
+AmigaDOS 1.3, screenshare.library is used for this purpose. Under AmigaDOS
+2.0 a "public" screen of that name will be looked for and if this fails,
+screenshare.library is used, if it is in libs:. This function does not
+operate on the Workbench.
+
+
+FileList
+========
+
+	This function does ARP pattern matching. Given a pattern, it will
+return all files and/or directories matching the pattern.
+
+	Calling sequence:
+
+	number = FileList(pattern, stem, type, expand)
+
+	pattern       = a search pattern using ARP wildcards.
+        stem          = the NAME of a stem variable to be created.
+        type          = D - directories only. F - files only.
+        expand        = E - expand full path name. N - remove path name
+	                not specified: don't expand, but don't remove either.
+
+	number        = the number of files matching the pattern.
+
+	When files with names matching the  pattern are found, a stem variable
+with the name given by 'stem' is created in the current Rexx context. It has
+fields 1, 2, ... , <number> containing the names of the files. The return value
+and also the stem variable's field 0 are equal to the number of files. The last
+two arguments are optional: with 'type', when an F is specified, only files are
+listed. When a D is specified only directories are listed. With 'expand', if an
+E is specified, the full path name is expanded. If an N is specified, any
+pathname part of the pattern will be removed. Example: a simple directory
+program looks like
+
+	/* Directory program, list everything, with full path */
+	arg pattern
+	if pattern = "" then pattern = "*"
+	numfils = FileList(pattern, myfilelist, , E)
+	do i = 1 to numfils; say myfilelist.i; end
+	exit
+
+
+SendParsed
+==========
+
+	This function sends a filled in ARexx message to a port.
+
+	Calling sequence:
+
+	result = SendParsed(port, arg0, arg1, arg2, arg3, ..., arg13)
+
+	port          = Portname to send ARexx message to.
+        argn          = Arguments of the message.
+
+This function takes the 14 arguments, puts them in an ARexx message and sends
+it to the 'port'. Only the first argument (port) is required, though it is
+usually advisable to send at least an arg0. Note that ARexx messages can have
+16 arguments, but the last two are unavailable because of how library calls
+like these are implemented.
+
+
+CreateHost
+==========
+
+	This function allows you to create a single window with gadgets, menus,
+text, graphics, etc. Of course, multiple copies of the function may be started
+up to create more windows, but each must have a unique 'controlport'. This
+function should be started up asynchronously, using runwsh, and one should wait
+for the 'controlport' to appear using e.g. WaitForPort.
+
+	Calling sequence:
+
+	runwsh 'call CreateHost(controlport, notifyport, publicscreen)'
+
+	controlport   = Name of the message port this window should listen to.
+	notifyport    = Name of the message port that should be notified when
+                        an IDCMP event occurs.
+        publicscreen  = Name of a public screen (optional).
+
+	When the function is first called, it will open a message port with the
+name given by "controlport". The function will then wait for commands coming in
+through this port. This may be accomplished using one of many intuition
+functions, as explained later. One of the first commands should be to open the
+associated window by calling OpenWindow (see later). It will then open a window
+as specified in the OpenWindow call. If any message arrives through the IDCMP of
+this window, a REXX message will be sent to the port specified as "notifyport"
+which either you should set up in your rexx macro for this purpose, or should be
+an otherwise existing rexx message port belonging to another process. In the
+case you set up your own port, make sure the message is replied to after having
+been  retrieved and examined. If the  notifyport does not exist, no message will
+be sent. The window can be closed by the rexx macro by calling the function
+CloseWindow (see later). On startup, the notify port is the same for all classes
+of messages. This can be changed using the SetNotify() function, see later.
+	The last argument is optional. If 'publicscreen' is specified, the
+function will try to find the screen of that name. If it is set up properly,
+the window will open on that screen. If not, the window will open on
+the Workbench. Under AmigaDOS 1.3, screenshare.library is used for this
+purpose. Under AmigaDOS 2.0 a "public" screen of that name will be looked for
+and if this fails, screenshare.library is used, if it is in libs:.
+
+Supported Intuition (and other) functions with createhost
+=========================================================
+
+	The following functions are implemented as CreateHost functions. The
+first argument is always the name of the control port of the host that is
+supposed to execute the command. A little secret: you can send commands
+*directly* to the controlport also by constructs like "Address controlport
+commandname". However, this only works for commands without further arguments.
+For example, from WShell, "address controlport CloseWindow" is equivalent to
+"call CloseWindow(controlport)". This can come in incredibly handy at times.
+For example, when you want command hosts to send message to themselves: you
+can tell a host to send IDCMP events of class CLOSEWINDOW to itself...
+Boggles the mind yet? Read on...
+
+   call ActivateGadget(controlport, gadgetid)
+        Tries to activate a string gadget with id 'gadgetid'.
+
+   call ActivateWindow(controlport)
+
+   call AreaCircle(controlport, xcenter, ycenter, radius)
+
+   call AreaDraw(controlport, x, y)
+
+   call AreaEllipse(controlport, xcenter, ycenter, radius1, radius2)
+
+   call AreaEnd(controlport, pen)
+        The "pen" argument is optional, and overrides the default, which is
+        that the area fill should be done using the current A pen (set with
+        SetAPen()). Pen values less than 256 have the usual meaning. Pen
+        values of 256 + i, where i = 0 through 15, cause the fill to be
+        performed using one of 16 standard fill patterns. Pen values of
+	512 + i, where i = 0 through 124, cause the fill to be performed
+	using one of 125 dithering patterns. The dithering patterns use pens
+	0 through 7. If these pens are set to black, white, red, green, blue,
+	cyan, magenta and yellow respectively, then the dithering patterns
+	form 125 different colors. To calculate a particular color index for
+        use as "pen", take the color's R G and B values, where R, G and B
+        are 0, 1, 2, 3 or 4,  and use:
+
+		pen = R * 25 + G * 5 + B
+
+        For example, full white would be (R = 4, G = 4, B = 4) and pen = 124.
+	A bluish grey would be (2, 2, 3), pen = 63.
+	Adding 1024 to the pen number causes AreaEnd to have no effect at all.
+	Adding 2048 to the pen number will cause the fill to have an outline
+	with the outline pen being the current A pen.
+	The SetOPen function no longer affects Area draws as of this revision.
+        Bug: For some reason, area circles and ellipses don't seem to get
+        outlines when requested.
+
+   call AreaMove(controlport, x, y)
+
+   call AddGadget(controlport, x, y, gadgetid, gadgettext, messagetext,
+                  hsize, flags)
+        If hsize is specified, this call creates a string gadget of that
+        horizontal size and gadgettext is the default string. If hsize is
+        not specified, this call creates an autosizing boolean gadget, where
+        the text in gadgettext is displayed. In both cases, the string in
+        messagetext is sent to controlport (see also under OpenWindow). As
+        usual, the gadgettext for boolean gadgets may contain \ characters
+        to cause multiple lines of text (See e.g. PostMsg()). Under 2.0,
+        a flag can be specified for string gadgets: RIDGEBORDER. This will
+        cause the gadget to be displayed in the "2.0" style. Since this style
+        of gadget is a little different in size and location than non-ridge
+        border gadgets, the default is the usual gadget border under 1.3 and
+        a "recessed" gagdet under 2.0.
+
+   call AddItem(controlport, itemname, message, commandchar, mutualexclude, flag)
+        Add a new item with name 'itemname'. Optionally, you may specify a
+        command key abbreviation (right-Amiga 'commandchar') and a mutual exclude
+        mask. See Intuition manual. A special value of the mutual exclude mask
+        is -1: this means that the item will be toggle selectable. If the flag
+        argument is "SAMELINE", the item will be on the same line as the previous
+        item, otherwise, or if the argument is not present, it will be on the
+        next line.
+        See also AddMenu(), AddSubItem(), RemoveMenu(), SetItem().
+
+   call AddMenu(controlport, menuname)
+        Add a new menu with name 'menuname'. See also AddItem(), AddSubItem(),
+        RemoveMenu(), SetItem().
+
+   call AddSubItem(controlport,itemname,message,commandchar,mutualexclude,flag)
+        Add a new subitem with name 'itemname'. Optionally, you may specify a
+        command key abbreviation (right-Amiga 'commandchar') and a mutual exclude
+        mask. See Intuition manual. A special value of the mutual exclude mask
+        is -1: this means that the item will be toggle selectable. If the flag
+        argument is "SAMELINE", the item will be on the same line as the previous
+        item, otherwise, or if the argument is not present, it will be on the
+        next line.
+        See also AddMenu(), AddItem(), RemoveMenu(), SetItem().
+
+   call BackFill(controlport)
+        This is not an intuition function. See OpenWindow().
+
+   call CloseWindow(controlport, flag)
+        This function closes the window and deallocates all resources. The 'flag'
+        argument is optional. If present, and if the flag is equal to "CONTINUE",
+        the host will remain active. Otherwise, the host will exit.
+
+   call Draw(controlport, x, y)
+
+   call DrawCircle(controlport, xcenter, ycenter, radius)
+
+   call DrawEllipse(controlport, xcenter, ycenter, radius1, radius2)
+
+   call Exit(controlport)
+        This function closes the window, deallocates all resources and causes
+        the host to exit. Exit(), Quit() and Stop() are identical.
+
+   call Flood(controlport, mode, x, y)
+        If mode is 0, the flood continues until pixels of the outline pen
+        color are found. If the mode is 1, the flood continues until pixels
+        of a different color than the pixel at x, y are found.
+
+   call RemoveMenu(controlport)
+        Gets rid of any attached menu.
+
+   call IFFImage(controlport, filename, x, y, width, height, flag)
+        Displays a chunk of size 'width', 'height' of an IFF ILBM file named
+        'filename' at x, y in the window. If x, y, width, and/or height are
+        omitted, suitable defaults are chosen. The colormap of the IFF file,
+        if any, is NOT used on the Workbench, but IS used on custom screens.
+        The 'flag' option can be set to 'NOCOLOR' (N is sufficient) to prevent
+        modifying the custom screen's colors.
+
+   call ModifyHost(controlport, IDCMPclass, messagestring)
+        This function allows you to set the message string that is sent to
+        the notifyport for a particular class of IDCMP events. See OpenWindow.
+
+   call Move(controlport, x, y)
+
+   call OpenWindow(controlport, leftedge, topedge, width, height,
+                                idcmp, flags, title)
+        width and height may be set to 0 to get the maximum size of the window.
+        idcmp is a string that specifies the IDCMP for the window. Supported are:
+
+           IDCMP message    |  default arg[0]
+        --------------------+-------------------
+          "CLOSEWINDOW"     |  "%l"
+          "MOUSEBUTTONS"    |  "%l"
+          "GADGETUP"        |  <its string>
+          "GADGETDOWN"      |  <its string>
+          "MENUPICK"        |  "%l"
+          "NEWSIZE"         |  "%l"
+          "VANILLAKEY"      |  "%l"
+          "RAWKEY"          |  "%l"
+          "NEWPREFS"        |  "%l"
+          "DISKINSERTED"    |  "%l"
+          "DISKREMOVED"     |  "%l"
+          "ACTIVEWINDOW"    |  "%l"
+          "INACTIVEWINDOW"  |  "%l"
+          "REFRESHWINDOW"   |  "%l"
+          "MOUSEMOVE"       |  "%l"
+          "DELTAMOVE"       |  "%l"
+
+        Any number of these may be specified in the OpenWindow call, by conca-
+        tenation. When any of these messages arrives at the IDCMP, a REXX
+        message is created with a particular string in Arg[0]. This string is
+        by default the one given in the table above, after substitution has
+        taken place for any two-character sequence starting with '%'.
+        The following substitutions will be made:
+
+        Sequence: | Typical Use: |     Meaning:
+        ----------+--------------+---------------
+            %%    |              | A single % sign
+            %a    | Vanillakeys  | 'Code' is interpreted as an ASCII character.
+            %b    | Buttons      | SELECTDOWN, SELECTUP, MENUDOWN, MENUUP.
+            %c    |              | 'Code' is given as an integer.
+            %d    | Gadgets      | the gadget id.
+            %e    | Window       | the TopEdge of the window
+            %f    | Window       | the LeftEdge of the window
+            %g    | Gadgets      | the string inside a string gadget goes here.
+            %h    | Newsize      | the window height.
+            %i    | Menus        | the item number.
+            %l    | Any          | the name of the IDCMP class.
+            %m    | Menus        | the menu number.
+            %q    |              | 'Qualifier' is given as an integer.
+            %s    | Menus        | the sub-item number.
+            %t    | Time         | the number of seconds since January 1 1980.
+            %w    | Newsize      | the window width.
+            %x    | Mouse        | the X position of the mouse pointer.
+            %y    | Mouse        | the Y position of the mouse pointer.
+          %0-%15  |              | which Arg to use.
+
+        For example, if the message string of some gadget is
+
+            "Mouse is %x, %y%3gadget string is %g"
+
+        the following might be sent to the notifyport in Arg[0] when someone
+        hits return in that gadget, after typing "This is a test":
+
+            Mouse is 320, 200
+
+        while Arg[3] of the Rexx message would contain the string:
+
+            gadget string is This is a test
+
+        The default string for non-gadgets/menus is "%l", which means that they
+        only report their name. For example, if one would click in the window,
+        one would only receive a message with "MOUSEBUTTONS" in Arg[0]. However,
+        all arguments of the message that will be sent to the notifyport may be
+        changed using the ModifyHost() call, see there. Any of the escape
+        sequences above may be used in any string. Obviously, sometimes
+        particular sequences may not be very appropriate for certain uses.
+
+        'flags' specifies the various window flags. Currently supported are:
+        "WINDOWCLOSE", "WINDOWSIZING" (and "SIZEBRIGHT", "SIZEBBOTTOM"),
+        "WINDOWDEPTH", "WINDOWDRAG", "BORDERLESS", "ACTIVATE", "BACKDROP" and
+        "NOCAREREFRESH".   A special flag can be set: "BACKFILL". It implies
+        a call to BackFill() after opening the window. It sets the window's
+        background to the current requester-style background color.
+
+   call Quit(controlport)
+        This function closes the window, deallocates all resources and causes
+        the host to exit. Exit(), Quit() and Stop() are identical.
+
+   call ReadGadget(controlport, gadgetid)
+        This function will cause the gadget 'gadgetid' to send its message
+        text (after substitutions, of course).
+
+   call ReadHost(controlport, notifyport, messagetext)
+        This function will cause the message text (after substitutions, of
+        course) to be sent to the notifyport.
+
+   call RectFill(controlport, xmin, ymin, xmax, ymax)
+
+   call RefreshGadgets(controlport)
+
+   call RemoveGadget(controlport, gadgetid)
+
+   call SetAPen(controlport, pennumber)
+
+   call SetBPen(controlport, pennumber)
+
+   call SetDrMd(controlport, mode)
+        mode can be any of JAM1, JAM2, INVERSVID or COMPLEMENT.
+
+   call SetDrPt(controlport, pattern)
+        pattern is interpreted as a long integer of which the bits form the
+        pattern.
+
+   call SetFont(controlport, FontName, FontSize, FontStyle, FontFlags, XSize)
+        Change the font to the one specified. If the font doesn't exist or
+        doesn't exist in the specified FontSize, the function does
+        nothing. If the font does exist, the closest match FontStyle and
+        FontFlags font is returned that is currently in memory or if it is
+        not in memory, that is currently in fonts:. If XSize is specified,
+        the font will be rejected also if the horizontal size doesn't match.
+        FontStyle bits:
+
+              none = Normal
+              1    = Underlined
+              2    = Bold
+              4    = Italic
+              8    = Extended face (wider than normal)
+              64   = Color font
+
+        Note that the function calls SetSoftStyle() internally to fake any
+        of the attributes if the closest font doesn't match the requirements.
+        FontFlag bits:
+
+              1    = Font is in ROM
+              2    = Font is from diskfont.library
+              4    = Font is reverse path (left to right)
+              8    = designed for hires non-interlaced
+              16   = designed for lores interlaced
+              32   = Font is proportional
+              64   = Font is designed
+
+        This function requires that diskfont.library is present in libs:.
+
+   call SetGadget(controlport, gadgetid, action)
+        Given a gadget id, perform action on the gadget. Supported are ON and
+        OFF, to set or clear the highlighting state of the gadget.
+
+   call SetItem(controlport, menunumber, itemnuber, subitemnumber, action)
+        Given menu, item (and optionally subitem) numbers, perform action on
+        the menu item. Supported are ON and OFF, to set or clear the check mark.
+        Remember that menu, item and subitem numbers start from 0.
+
+   call SetNotify(controlport, IDCMPclass, newnotifyport)
+        This function allows you to change the name of the NotifyPort that
+        message strings are sent to for a particular class of IDCMP events.
+
+   call SetReqColor(controlport, pentype, colornumber)
+        This function allows you to change the color number assigned to
+        one of the various pentypes. Currently the pentypes are: BLOCKPEN,
+        DETAILPEN, BACKGROUNDPEN, PROMPTPEN, BOXPEN, SHADOWPEN, OKAYPEN,
+        and CANCELPEN.
+
+   call SetOPen(controlport, pennumber)
+        SetOpen is mostly obsolete, see AreaEnd().
+
+   call SetRGB4(controlport, pennumber, red, green, blue)
+        red, green and blue are values for the RGB content of the color to be
+        assigned to the pen. The values are taken mod 16.
+
+   call Stop(controlport)
+        This function closes the window, deallocates all resources and causes
+        the host to exit. Exit(), Quit() and Stop() are identical.
+
+   call Text(controlport, string)
+
+   call WindowText(controlport, text)
+        The string in text may contain \'s to indicate multiple lines of text.
+
+   call WindowToBack(controlport)
+
+   call WindowToFront(controlport)
+
+   call WritePixel(controlport, x, y)
+
+
+
+

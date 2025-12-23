@@ -1,0 +1,215 @@
+
+                             c R o n  V 1 . 0 0
+
+                                  8.04.96
+
+Small description:
+~~~~~~~~~~~~~~~~~~
+This a small util I use to schedule my events to run, such as
+polling other systems, making backups and generating stats.
+
+It's a CyberCron clone, without locale support, and some other
+small things left out, to make it as small as possible, after
+all it runs on your amiga all the time in the background.
+
+This version has no special features added, it's just a fresh
+recompile and does its work ok for me.
+
+
+
+cRon Syntax:
+~~~~~~~~~~~~
+These are the arguments cRon understands:
+
+The name of the cRonTab to use, the default is S:cRonTab.
+
+TEMPLATE
+ CRONTAB/K :
+
+EXAMPLE
+ CRONTAB=Zeus:StartUp/cRonTab
+
+
+The logfile to write to.
+
+TEMPLATE
+ LOGFILE/K :
+
+EXAMPLE
+ LOGS:cRon.log
+
+
+The default stack to use for events launched.
+Value must be greater than 2084 bytes.
+If no specified, the value cRon was started with
+is taken.
+
+TEMPLATE
+ STACK/K/N :
+
+
+The default priority to launch events with.
+
+TEMPLATE
+ PRI/K/N
+
+
+The priority to run cRon with.
+
+TEMPLATE
+ CRONPRI/K/N
+
+
+The name of the arexx port to use, if not given
+cRon defaults to 'cRon'.
+
+TEMPLATE
+ PORTNAME/K: 
+
+
+How to create cRonTab's:
+~~~~~~~~~~~~~~~~~~~~~~~~
+Lines in this file must be blank, a comment, or an event.  Comments are
+denoted by lines that start with a "#" symbol.  Events take the form of
+
+	min hour day month dow command <command's args, if any>
+
+in their simplest form.  Each of min, hour, day, month and dow (day of the
+week) are specifications for what range of values this command is to be run
+at.  A * indicates any value is acceptable.  Numeric digits specify
+specific values and can be seperated by a , (seperates distinct entries) or
+a - (used to indicate a range of entries).  For example,
+
+	* * * * * Date
+
+would run the command date every minute of every hour of every day of every
+month regardless of the day of the week.
+
+	0 * * * * Date
+
+is similar, but only runs the date command on the zeroth minute of each
+hour.
+
+	1,5-10,25 * * * * Date
+
+would run the date command on minutes 1, 5, 6, 7, 8, 9, 10 and 25 of each
+hour.
+
+Months range from 1 (January) to 12 (December).  The day of the week ranges
+from 0 (Sunday) to 6 (Saturday).
+
+There are special event option which can be used:
+
+Event Options:
+~~~~~~~~~~~~~
+
+Give a name to an event.
+
+TEMPLATE
+	:NAME/K
+
+EXAMPLE
+	:Name WakeMeUp
+
+
+After the event has been started, remove it from the event list.
+
+TEMPLATE
+	:EXECONCE/S
+
+EXAMPLE
+	:ExecOnce
+
+
+If you specified a the following option then every time an event is
+started or ends a message gets sent to the log file.  This turns off
+logging for the specific event.  Handy for things one runs many, many
+times, in keeping the size of your logfile from exploding.
+
+TEMPLATE
+	:NOLOG/S
+
+EXAMPLE
+	:NoLog
+
+
+Start this command using ARexx rather than trying to run it as a system
+call.  If the first character of the command is "`" then it will be
+started as an ARexx string rather than a command.
+
+TEMPLATE
+	:REXX/S
+
+EXAMPLE
+	:Rexx
+
+
+The stacksize to use when launching the event.
+
+This option is ignored for ARexx events.
+
+If the value specified is less than 2048, or this option is omitted, then
+the default value will be used instead.
+
+TEMPLATE
+	:STACK/K/N
+
+EXAMPLE
+	:Stack 50000
+
+
+The priority to launch the event at.
+This option is ignored for ARexx events.
+
+TEMPLATE
+	:PRI/K/N
+
+EXAMPLE
+	:PRI -5
+
+
+Quick setup description for use with Zeus BBS:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cRon resides in Zeus:Bin/3rdParty/, and cRonTab in my Zeus:StartUp/
+directory.
+
+I launch cRon from Zeus:Prefs/Progs with:
+
+Zeus:Bin/3rdParty/cRon CRONTAB Zeus:StartUp/cRonTab \
+ LOGFILE Zeus:Logs/cRon.log
+
+
+The only thing you need now is to create/edit a 'cRonTab' file,
+this file holds all the time and date and commands to run.
+
+Just look at the example (the original CyberCron example)
+and edit it to suit your needs.
+
+Or just use this small one I use:
+
+------ cut ------
+# AHWBBS cRonTab for Zeus BBS Pro (04.02.96)
+
+00 2 * * *		ZEUS:StartUp/BackUp
+30 2 * * *		ZEUS:StartUp/UpdateStats
+00 3 * * *		ZEUS:Rexx/Mailer/ACall.rexx 3 2:285/32
+45 3 * * *		ZEUS:Rexx/Mailer/ACall.rexx 2 14:100/100
+00 4 * * 0,2,4	ZEUS:Rexx/Mailer/ACall.rexx 1 21:103/1
+#10 8 * * *	ZEUS:Rexx/Mailer/ACall.rexx 1 85:1/1
+00 21 * * *	ZEUS:Rexx/Mailer/ACall.rexx 3 2:285/32
+------ cut ------
+
+
+
+If you see/experience any bugs or things to add, let me know.
+Mail bugs/tips to cpage@ahwbbs.xs4all.nl or post them in ZEUS_UTIL.
+Or try to catch me in the evening on IRC channel #zeus.
+
+
+Greetings, Ron.
+
+
+The life of cRon:
+~~~~~~~~~~~~~~~~~
+8-apr-96
+1.00 - First release.

@@ -1,0 +1,87 @@
+/*    $VER: Answer.baud version 5.3  13 Jul 1992  (13.7.92)
+copyright 1990-91-92 Richard Lee Stockton FREELY DISTRIBUTABLE
+*/
+
+OPTIONS RESULTS
+SIGNAL ON BREAK_C
+CR='0D'x
+
+/* If the QuickSortPort not found then try to run setup.rexx . */
+
+IF ~show('P','QuickSortPort') THEN CALL setup.rexx();
+
+/* If STILL not found then we gotta quit. */
+
+IF ~show('P','QuickSortPort') THEN EXIT
+
+
+Send 'ATA\r'
+Timeout 45
+Wait 'CONNECT,NO CARRIER,RING'      /* wait 45 seconds for connect */
+IF RESULT~='CONNECT' THEN SIGNAL RESET
+CALL DELAY(150)
+Remote ON
+Queue CR
+SAY CR
+Timeout 60
+CALL DELAY(150) /* 3 second pause for error checking modems to get in sync */
+dcd
+IF RC=0 THEN SIGNAL BREAK_C
+SAY CR
+IF GETCLIP('BBS_maint')~='' THEN
+  DO
+    SAY 'The BBS is busy with periodic maintenance.'CR
+    SAY 'Please try again in a few minutes.'CR
+    SAY CR
+    SAY CR
+    SIGNAL BREAK_C
+  END
+CALL SETCLIP('BBS_QUIT')
+SAY '             Loading BBBBS... Thank you for your patience.'CR
+SAY CR
+SAY CR
+CALL BBBBS.baud();
+EXIT;
+
+
+BREAK_C:
+Remote OFF
+
+RESET:
+Send '\d'
+CALL DELAY(100)
+Send '\ah'
+CALL DELAY(150)
+bps=GETCLIP('BBS_baud')
+IF bps='' THEN
+  DO
+    figarg='s:CONFIG.BBS'
+    IF ~EXISTS(figarg) THEN figarg='BBS:BBS_TEXT/CONFIG.BBS'
+    x=OPEN(f,figarg,'R')
+    IF x=0 THEN
+      DO
+        SAY 's:CONFIG.BBS and BBS:BBS/CONFIG.BBS are both missing!'
+        EXIT(20)
+      END
+    DO i=1 TO 15
+      line=READLN(f)
+    END
+    CALL CLOSE(f)
+    bps=WORD(line,1)
+    IF DATATYPE(bps,'N') THEN
+      DO
+        bps=bps%1
+        CALL SETCLIP('BBS_baud',bps)
+      END
+    ELSE
+      DO
+        SAY '*** Bad baud rate in 'figarg'!'
+        bps=2400
+      END
+  END
+baud bps
+Send 'ATZ\r'  /* reset modem */
+EXIT;
+
+
+/* end of Answer.baud */

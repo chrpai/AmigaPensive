@@ -1,0 +1,166 @@
+; Installer-Skript für das ANUBIS Mailbox-System
+; ©1993-95; Olli Graf - T.O.M. Software Wuppertal
+; Dieses Skript ist für ANUBIS Public-Version 0.551
+
+(set instpfad
+	(askdir
+		(prompt "Wo soll das Verzeichnis für ANUBIS\nangelegt werden ?")
+		(help @askdir-help)
+		(default "Work:")
+	)
+)
+
+(makedir (tackon instpfad "Anubis")(infos))
+(set instpfad (tackon instpfad "Anubis"))
+(set @default-dest instpfad)
+
+(makedir (tackon instpfad "Statistik"))
+(makedir (tackon instpfad "Guides")(infos))
+(makedir (tackon instpfad "AnubisTools")(infos))
+(makedir (tackon instpfad "Config"))
+(makedir (tackon instpfad "Config/Mailer"))
+(makedir (tackon instpfad "Config/MIDs"))
+(makedir (tackon instpfad "UserDirs"))
+(makedir (tackon instpfad "UserDirs/GAST"))
+(makedir (tackon instpfad "UserDirs/SYSOP"))
+(makedir (tackon instpfad "Batchs"))
+(makedir (tackon instpfad "libs"))
+(makedir (tackon instpfad "OnlinePrg")(infos))
+
+(copyfiles
+	(prompt "installiere Hauptprogramm")
+	(help @copyfile-help)
+	(source "ANUBIS")
+	(infos)
+	(dest instpfad)
+)
+
+(complete 10)
+
+(set config
+	(askbool
+		(prompt "Beispiel-Config installieren ?\nAchtung : Bestehende Daten gehen verloren !")
+		(help @askbool-help)
+		(choices "Ja" "Nein")
+		(default 0)
+	)
+)
+
+(if (= config 1)
+	(
+	 (copyfiles
+		(help @copyfiles-help)
+		(source "Daten")
+		(dest	(tackon instpfad "Daten"))
+		(pattern "#?")
+		(files)
+	 )
+	 (copyfiles
+		(help @copyfiles-help)
+		(source "Config")
+		(dest	(tackon instpfad "Config"))
+		(all)
+	 )
+	)
+)
+
+(copyfiles
+	(prompt	"kopiere Textfiles")
+	(help @copyfiles-help)
+	(source	"Texte")
+	(dest	(tackon instpfad "Texte"))
+	(pattern "#?")
+	(files)
+)
+
+(copyfiles
+	(prompt	"kopiere hilfstexte")
+	(help @copyfiles-help)
+	(source	"hilfstexte")
+	(dest	(tackon instpfad "hilfstexte"))
+	(pattern "#?")
+	(files)
+)
+
+(complete 20)
+
+(copyfiles
+	(prompt	"kopiere Libraries")
+	(help @copyfiles-help)
+	(source	"libs")
+	(dest	(tackon instpfad "libs"))
+	(pattern "#?")
+	(files)
+)
+
+(complete 30)
+
+(copyfiles
+	(prompt	"kopiere AnubisTools")
+	(help @copyfiles-help)
+	(source	"AnubisTools")
+	(dest	(tackon instpfad "AnubisTools"))
+	(pattern "#?")
+	(files)
+)
+
+(complete 40)
+
+(copyfiles
+	(prompt "installiere OnlineProgramme")
+	(help @copyfiles-help)
+	(source	"OnlinePrg")
+	(dest	(tackon instpfad "OnlinePrg"))
+	(pattern "#?")
+	(files)
+)
+
+(complete 50)
+
+(copyfiles
+	(prompt "installiere Anleitungen")
+	(help @copyfile-help)
+	(source "Guides")
+	(dest	(tackon instpfad "Guides"))
+	(pattern "#?")
+	(infos)
+	(files)
+)
+
+(complete 60)
+
+(copyfiles
+	(prompt "installiere Batchs")
+	(help @copyfile-help)
+	(source "Batchs")
+	(dest	(tackon instpfad "Batchs"))
+	(pattern "#?")
+	(files)
+)
+
+(complete 70)
+
+(copyfiles
+	(prompt "installiere MUI CustomClasses")
+	(help @copyfile-help)
+	(source "libs/mui")
+	(dest	"MUI:libs/mui")
+	(pattern "#?")
+	(files)
+)
+
+(complete 80)
+
+(startup "Anubis"
+	(prompt "ANUBIS Kommandos in \"s:user-startup\" aufnehmen ?")
+	(help @startup-help)
+	(command "Assign Anubis: "instpfad" DEFER\n")
+	(command "Path Anubis: Anubis:AnubisTools ADD\n")
+	(command "Assign libs: Anubis:libs ADD\n")
+)
+
+(complete 90)
+
+(message "Bitte denken Sie daran,\ndie Systempasswörter zu ändern !")
+
+(complete 100)

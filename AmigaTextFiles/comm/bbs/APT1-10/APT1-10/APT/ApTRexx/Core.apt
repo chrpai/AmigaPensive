@@ -1,0 +1,193 @@
+/* Core.apt
+**
+** $VER: Core.apt 0.0.3 (22.5.93)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright © 1993 ApT-Design All Rights Reserved,AG
+**
+** Thus script is a example of how the Core.apt file would be used
+** in the calling of "another" MAIN core file that would do all the
+** work. Depending on how much time and effort you put into your BBS
+** you can have various checks and then branch off to various other
+** scripts, maybe depending on the 'MENUSET_VAR' etc.
+**
+** Also you can use a combination of 'return codes' from your core_xxx
+** files, then depending on the value you could 're-load' a different
+** script. This would be used for things such as 'toggling of scripts'
+** (changing of menu styles..)
+**
+** Too much power exists here, so you are going to have to learn :)
+**
+*/
+
+/* ######################################################################### */
+
+
+/* ######################################################################### */
+
+/*
+** TABLE LIST AND DEFINES:
+**
+** Version 0.0.2
+**
+** The following block of code should remain untouched by 3rd party
+** programmers. The block will be updated at times and all that will
+** be required from you is to paste the new block in. You may
+** alter code only when told specified.
+*/
+
+		/* Used within the CALLFUNCTION calls */
+
+COMPUTERTYPE_CALL	= 0
+COUNTRY_CALL		= 1
+BIRTHDAY_CALL		= 2
+PROTOCOL_CALL		= 3
+ARCHIVER_CALL		= 4
+SHOW_PASSWORD_AND_NAME_CALL = 5
+
+
+		/* This block is used in the SET GFX FLAG  function ONLY */
+
+ANSI_COL_FLG = 0 	/* Ansi Colour Flag	*/
+ANSI_POS_FLG = 1	/* Ansi Positioning 	*/
+ANSI_FLG_FLG = 2	/* ANSI at all!?		*/
+ANSI_SCR_FLG = 3	/* Ansi Scrolling		*/
+ANSI_CUR_FLG = 4	/* Ansi Cursor			*/
+SCRN_CLR_FLG = 7	/* Screen Clears		*/
+
+	/* This block is used in the GET VAR and  SET VAR ONLY */
+
+ACCESSLEVEL_VAR 	= 0
+VALID_VAR			= 1
+CALLSMADE_VAR		= 2
+MSGSLEFT_VAR		= 3
+MSGSREC_VAR			= 4
+UPLOADS_VAR			= 5
+DNLOADS_VAR			= 6
+BYTESUP_VAR			= 7
+BYTESDN_VAR			= 8
+BYTESLEFT_VAR		= 9
+FILERATIO_VAR		= 10
+BONUSRATIO_VAR		= 11
+HOTKEY_VAR			= 12
+EDITOR_VAR			= 13
+COMPTYPE_VAR		= 14
+SCRLENGTH_VAR		= 15
+SCRWIDTH_VAR		= 16
+GENDER_VAR			= 17
+MORE_VAR				= 18
+PROTOCOL_VAR		= 19
+ARCHIVER_VAR		= 20
+/* MENUSET_VAR			= 21 */
+
+
+	/* This block is used in the GET STR and SET STR functions ONLY */
+
+USERNAME_STR 		= 0
+ADDR1_STR			= 1
+ADDR2_STR			= 2
+ADDR3_STR			= 3
+POSTCODE_STR		= 4
+COUNTRY_STR			= 5
+VOICENO_STR			= 6
+DATANO_STR			= 7
+PASSWORD_STR		= 8
+HANDLE_STR			= 9
+
+FIRELEN_OPT 		= 0
+FIRECASE_OPT		= 1
+FIREFILT_OPT		= 2
+
+LETTER_FLT			= 1
+NUMBER_FLT			= 2
+ASCII_FLT			= 4
+UPFIRST_FLT			= 8
+PUNCT_FLT			= 16
+
+FILE 					= 0
+STRING 				= 1
+
+USER_MEMBER			= 0	/* For the MOVEUSER function */
+USER_NEW				= 1
+USER_REVIEW			= 2
+
+DAYS2REVIEW_STVAR		= 0
+DAYSLASTCALL_STVAR	= 1
+DOB_DAY_STVAR = 5
+DOB_MONTH_STVAR = 4
+DOB_YEAR_STVAR = 6
+
+LASTDATECALL_STSTR		= 0
+LASTTIMECALL_STSTR		= 1
+
+
+
+parse arg lineno
+
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+	'UPDCALLHIST'
+
+	'GETSTATICVAR' DOB_DAY_STVAR	; bday = result
+	'GETSTATICVAR' DOB_MONTH_STVAR	; bmonth = result
+	'GETSTATICVAR' DOB_YEAR_STVAR	; byear = result
+
+	if (bday = 0 | bmonth = 0 | byear = 0) then do
+	'CALLFUNCTION' BIRTHDAY_CALL
+	'GETSTATICVAR' DOB_DAY_STVAR	; bday = result
+	'GETSTATICVAR' DOB_MONTH_STVAR	; bmonth = result
+	'GETSTATICVAR' DOB_YEAR_STVAR	; byear = result
+	END
+
+	'DAVE_CMD' "BIRTHDATES DAY="bday" MONTH="bmonth" YEAR="byear
+
+	'TEST_GFX_FLAG' ANSI_CUR_FLG; ansicur=result
+	'TEST_GFX_FLAG' ANSI_POS_FLG; ansipos=result
+	'TEST_GFX_FLAG' ANSI_FLG_FLG; ansiflg=result
+/*
+** If the user is accessing here on 'default menu' syle, then we
+** might as well remember which the real number of the menu and
+** set it.
+**/
+
+	var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result
+	if(menuset=0) | (menuset=3) then ;
+
+	DO FOREVER
+	'SHOWFILE' "pref/prf_menus"
+	'HOTKEY' "  Choose an option: " ; key=upper(result)
+	'ISDROP' ; if(result=1) then break
+
+	select
+		when key="B" then do
+		 var=getclip(MENUSET_VAR) ; 'SETVAR' var 1 ;
+		 'INFORM' "Button menus selected." ; leave ; end
+
+		when key="C" then do
+		 var=getclip(MENUSET_VAR) ; 'SETVAR' var 3 ;
+		 'INFORM' "Command menus selected." ; leave ; end
+
+		when key="H" then do
+		 var=getclip(MENUSET_VAR) ; 'SETVAR' var 2 ;
+		 'INFORM' "Hotkey menus selected." ; leave ; end
+
+		otherwise
+		end
+	end
+
+
+do forever
+	'ISDROP'	; if(result=1) then break
+	var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result
+	if(menuset=1) then DO; ansi=1; 'CHAINAPT' "Core_Button" ; core_res=result ; end
+	if(menuset=3) then DO; ansi=1;
+	'msg' "%CLS.%CURSOR=1." ;
+	'SMALLCMD' "ACDRIVER" ; end
+	else do; ansi=0; 'CHAINAPT' "Core_hotkey" ; core_res=result ; end
+end
+
+EXIT

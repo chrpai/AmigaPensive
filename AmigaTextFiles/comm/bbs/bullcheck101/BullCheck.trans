@@ -1,0 +1,142 @@
+/* This procedure checks to see if any of the bulletins have been updated
+   since the user last called */
+
+BullCheck: Procedure
+cls
+/* directory to the bulletins */
+bulletindir =   'bbs:bulletin/'
+NoofBulls = 5                       /* Here, put the total number of bulletins you have */
+/* now fill in the actual file names of the bulletins you want checked */
+bull.1 = 'policies'
+bull.2 = 'bbs_listing'
+bull.3 = 'user_poll'
+bull.4 = 'sewinners'
+bull.5 = 'regbbs.txt'
+/* Here put the names of those bulletins in the way they're listed in your
+   bulletin.cmds file */
+bullname.1 = '1. Rules'
+bullname.2 = '2. Moose Jaw BBS Listing'
+bullname.3 = '3. User Poll'
+bullname.4 = 'L. Lords of the Galaxy'
+bullname.5 = 'B. Regina BBS List'
+
+BCversion = 1.01
+
+
+/* check when the user was last on */
+userinfo 'f'
+userday = LEFT(result,2)
+usermonth = CENTRE(result,3)
+if usermonth='Jan' then usermonth=01
+if usermonth='Feb' then usermonth=02
+if usermonth='Mar' then usermonth=03
+if usermonth='Apr' then usermonth=04
+if usermonth='May' then usermonth=05
+if usermonth='Jun' then usermonth=06
+if usermonth='Jul' then usermonth=07
+if usermonth='Aug' then usermonth=08
+if usermonth='Sep' then usermonth=09
+if usermonth='Oct' then usermonth=10
+if usermonth='Nov' then usermonth=11
+if usermonth='Dec' then usermonth=12
+
+
+StartMonth = 5112   /* This is the # of days from 1978 to Dec.31, 1991 */
+                    /* i.e. Dec. 31, 1991 is 5113 days since sometime in 1978 */
+
+transmit 'Bulletin Check, written by Todd Courtnage'
+transmit 'Version' BCversion'.  Released on Mar. 30, 1992'
+transmit
+transmit 'The following bulletins have been updated/added since your last'
+transmit 'call to the BBS.  Please read these bulletins, as they may'
+transmit 'contain very important, life and death material!!!!'
+transmit
+
+/* The variables in the following mean:
+    d - the number of days that have elapsed since 1978 (sometime in 1978)
+        and when the bulletin has been changed.
+    Totalday - the total number of days that have elapsed since Jan. 1, 1992
+               and when the bulletin has been changed
+    Startmonth - this (as defined above) is the number of days between sometime
+                 in 1978 and Dec. 31, 1991 (note that this program will
+                 only work for this year ... I'm slowly learning ARexx, so
+                 a new version will come out that will make it work anytime)
+    bullmonth - the month that the bulletin was last changed
+    bullday - the date (i.e. the day number) that the bulletin was last changed
+    usermonth - the month the user last logged on
+    userday - the date the user last logged on
+    temp - just a counter */
+
+DO temp = 1 TO noofbulls
+    PARSE VALUE STATEF(bulletindir||bull.temp) WITH . . . . d . . .
+    Totalday = d-startmonth
+    call DAYTOMONTH
+
+    IF bullmonth > usermonth THEN
+        transmit bullname.temp
+    ELSE IF bullmonth = usermonth THEN
+        IF bullday => userday THEN
+            transmit bullname.temp
+END
+
+
+CONTINUE
+RETURN
+
+/* this procedure will take any number of days from Jan. 1 and calculate
+   which month it is in and the date of the month (very crude tho) */
+
+DAYTOMONTH: procedure expose Totalday bullday bullmonth
+    IF Totalday<31 THEN DO
+        bullmonth=01
+        bullday=Totalday
+        END
+    ELSE IF Totalday<60 THEN DO
+        bullmonth=02
+        bullday=Totalday-31
+        END
+    ELSE IF Totalday<91 THEN DO
+        bullmonth=03
+        bullday=Totalday-60
+        END
+    ELSE IF Totalday<121 THEN DO
+        bullmonth=04
+        bullday=Totalday-91
+        END
+    ELSE IF Totalday<152 THEN DO
+        bullmonth=05
+        bullday=Totalday-121
+        END
+    ELSE IF Totalday<182 THEN DO
+        bullmonth=06
+        bullday=Totalday-152
+        END
+    ELSE IF Totalday<213 THEN DO
+        bullmonth=07
+        bullday=Totalday-182
+        END
+    ELSE IF Totalday<244 THEN DO
+        bullmonth=08
+        bullday=Totalday-213
+        END
+    ELSE IF Totalday<274 THEN DO
+        bullmonth=09
+        bullday=Totalday-213
+        END
+    ELSE IF Totalday<305 THEN DO
+        bullmonth=10
+        bullday=Totalday-274
+        END
+    ELSE IF Totalday<335 THEN DO
+        bullmonth=11
+        bullday=Totalday-305
+        END
+    ELSE IF Totalday<366 THEN DO
+        bullmonth=12
+        bullday=Totalday-335
+        END
+
+        return
+
+
+

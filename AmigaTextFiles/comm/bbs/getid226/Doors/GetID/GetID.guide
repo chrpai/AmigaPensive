@@ -1,0 +1,382 @@
+@database GetID.guide
+@$VER: GetID.guide 2.26 (28.05.94)
+@(C) "Public Domain"
+@width 78
+@author Lauri Aalto
+@node main "GetID 2.26 Documentation"
+
+@{b}GetID 2.26@{ub} - The upload checker fot TechnoBBS
+
+@{" Copyright    " link copr   }  · Legal mumbo jumbo
+@{" Introduction " link intro  }  · What is this? What does it require?
+@{" Installation " link instaus}  · How to use it
+@{" History      " link hissa  }  · Changes since last releases
+@{" Future       " link sitten }  · The future of GetID
+@{" Author       " link late   }  · How to reach the author
+@endnode
+@node copr "GetID 2.26 Copyright"
+
+GetID is Public Domain. Do whatever you want with it, but please tell @{"me" link late}
+about it too!
+@endnode
+@node intro "GetID 2.26 Introduction"
+
+GetID is an ARexx script designed to help you to get those descriptions
+(FILE_ID.DIZ files) out of uploaded archives. It has been designed for
+TechnoBBS and because of its ARexx is compatible with nothing, GetID won't
+run with other software without massive modifications.
+
+GetID tests archives, optionally scans their contents for viruses, removes
+unwanted files (LHA/LZX/DMS/ZIP archives only) and extracts and handles the
+possibly included long description.
+
+Unsupported archive types can be configured to pass the tests or fail them.
+See @{"installation" link instaus}.
+
+GetID runs much happier with the following software installed:
+
+ LhA     by Stefan Boberg - every Amigian should have this
+ LZX     by Data Compression Technologies
+ (Un)Zip any working version
+ UnArj   by Harald Schneider - rather old but works
+ MaPuS   by Eniac - checks DMS archives & removes junk
+ DMS     v2.0 or newer (command line version) by ParCon Software
+ gzip    an Amiga port of it... v1.2.4 should suffice
+
+ ARexx	 by William S. Hawes
+ AmigaOS v2.0 or newer
+
+Optional software (these can be configured to not to be used), all these
+are available from my bbs:
+
+ Virus_Checker by John Veldthuis, v6.44 or newer
+ ViewTek       by Thomas Krehbiel, used for determining image dimensions
+ Port	       by Henrik Tikanvaara
+
+And of course TechnoBBS package itself up & running.
+@endnode
+@node instaus "GetID 2.26 Installation"
+
+Just copy all the files to your BBS directory and create a FileCheck config
+entry for every TechnoBBS node you want GetID run on.
+
+The correct configuration entry in BBS:CFG/BBSn.CFG looks like this:
+
+FileCheck SYS:RexxC/RX BBS:Doors/GetID/GetID n %s
+
+Where n stands for node number.
+
+Then you should load in the @{"configuration file" system "ed GetID.config"} and edit it to suit your
+needs. You'll find out about the configuration keywords from the config
+file itself.
+
+The config file parsing slows down the operation a bit, and text
+reformatting isn't fast either. If somone's willing to contribute me an
+ARexx compiler, feel free to contact :-D
+
+@endnode
+@node hissa "GetID 2.26 History"
+
+2.26	28.05.95
+
+	Fixed a minor bug with zip archives and some versions of unzip. Now
+	matches FILE_ID.DIZ files correctly.
+
+	Added RX path to the @{"installation instructions" link instaus}. Some people were
+	having troubles getting GetID to run because there were no command
+	search paths set up for TechnoBBS.
+
+2.25	12.02.95    
+
+	Added support for LZX files, they are processed like LhA files. See
+	@{"config" system "ed GetID.config"} entries "LZX", "LzxDeleteList" and "LzxConv".
+	LZX doesn't set up result codes so we must analyze its output for
+	determining archive test results. I've mailed the authors about
+	this.
+
+	New config option "TouchLocal" for setting whether local uploads
+	will be touched (datestamp set to current) or not.
+
+	Plus some minor improvements not worth mentioning here.
+
+2.24	11.02.95
+
+	When a file was not recognized, GetID just cleaned up and didn't
+	allow the user to enter a long description. Fixed. Thanks to Antti
+	Tuominen for pointing this out.
+
+	Manually entered long descriptions may now have whitespaces in
+	front of them :-D
+
+	Fixed a minor bug in config parsing.
+
+2.23	26.12.94
+
+	Added support for executable files (those demos...), which are now
+	recognized and checked for viruses. You can use the AllowExe @{"config" system "ed GetID.config"}
+	keyword for selecting whether you allow those files on your board.
+
+	Zips kept crashing because stack size was set too low (actually it
+	wasn't even touched, TechnoBBS just launched the checker with the
+	default size of 4000 bytes). GetID now increases the stack size to
+	20000 bytes prior to running Zip or UnZip.
+
+	Zipfile comments (BBS advertisements) are also now removed if
+	ZipDeleteList is specified (it doesn't need to exist however).
+
+	Arj files are now processed faster.
+
+	TempDirs with names like 'TEMP:' would have caused some temporary
+	files to be left to the TempDirs parent directory.
+
+	GetID will now skip empty description lines from the beginning of
+	the file_id.diz instead of discarding the whole description.
+
+	Empty descriptions are now ignored.
+
+	Log entries' layouts have been standardized to match ones which
+	TechnoBBS uses. Also log entries should now be more informative and
+	contain less unnecressary junk.
+
+	getid222.readme on Aminet had a wrong version number in it :-D
+
+2.22	07.12.94
+
+	Due to several requests from several persons I've added a
+	possibility to enter long descriptions while running GetID.
+	The layout is very close to @{"ChgDesc" link BBS:Docs/TechnoBBS.guide/TBChgDesc} running under internal string
+	set, except smarter. There's a @{"config" system "ed GetID.config"} entry for this: AskLongDesc.
+
+	After AskLongDesc the file_id.diz can be appended into the archive
+	if requested via InsertDiz configuration entry.
+
+	There was a bug in long description reformatter causing all
+	reformatted descriptions to become either empty or junked.
+
+	Temporary files are now removed when the file format is unknown.
+
+	ILBM recognition is now more reliable than it used to be.
+
+	Config file parse errors now report the line number which caused
+	the problem.
+
+2.21	28.11.94
+
+	Improved file_id.diz processing. CRs and MSDOG-EOFs are again
+	detected and removed. There's also a new configuration entry
+	TABSIZE for setting the size of tab (0x09) characters.
+
+	As suggested by many people, the archivers now have a config entry
+	for defining their full path. Some people were having problems
+	because they had started RexxMast before setting up all the paths.
+	For now on, every command, who are not parts of the OS, have
+	configuration file entries. If the entries are left empty, the
+	format is not supported. If they're not present or commented out,
+	defaults will be used.
+
+	The behaviour of ViewTek config entry changed a bit, to match with
+	the other external proggie entries. GetID won't notify the user
+	when an argument after the ViewTek keyword is missing, it just
+	drops VT support then.
+
+	@{"MaxDescLines" link BBS:Docs/TechnoBBS.guide/TBMaxDescLines} is now also allowed in GetID.config.
+
+	Added (No)GetDiz configuration entry for those guys who for some
+	reason do not want to automatically use file_id.diz files but just
+	check the archives. This doesn't affect faking picture dimensions
+	as file_id.diz, use ViewTek config entry for that.
+
+	Uploaded files are now only touched (datestamp adjusted) when
+	they're local (ie. line number equals zero).
+
+	After finding out broken files GetID now cleans up, previously it
+	just quit leaving temporary files all around the system ;-D
+
+	Pictures are now pseudo checked - if ViewTek burps the image, it'll
+	be discarded. ViewTek config entry must however be set.
+
+	And yes, there are some optimizations again...
+
+2.20	20.11.94
+
+	GetID now has a @{"configuration file" system "ed GetID.config"}. No need to re-edit the script
+	after new releases :-D
+
+	The text reformatter is a bit faster now.
+
+	Those descriptions considered "short" could have "long" lines
+	before, not anymore.
+
+2.15	18.11.94
+
+	The reformatter now reformats the whole file by once and not line
+	by line. It has also been made smarter, shouldn't loop forever
+	anymore (found a possibility for such behaviour which fortunately
+	never occured).
+
+	BBS:Cfg/BBSn.Cfg @{"MaxDescLines" link BBS:Docs/TechnoBBS.guide/TBMaxDescLines} entry will be scanned, and if it was
+	not found or equals zero, GetID will drop to an internal default
+	value of 20 lines.
+
+	Added support for ViewTek 2.x by just leaving one VT header line
+	unread when string '1.0' was not found from the first line.
+
+2.14	15.11.94
+
+	Antti Tuominen suggested support for including image dimensions in
+	descriptions, just after adding GIF/JPEG/MPEG support. He couldn't
+	think of a way of implementation, but I implemented it with
+	ViewTek. So, if DON'T want to have image dimensions to be stored in
+	file descriptions, just set ViewTek in the script config to "".
+	This thingie works at least with VT 1.05, I'm not sure about other
+	versions. NOTE! ViewTek (at least v1.05) seems to be leaving locked
+	files behind thus making it impossible to delete 'em until the
+	computer has been rebooted.
+
+	The output when uploading pictures looks somewhat paradoxal, thanks
+	to TechnoBBS which asks the user for short description after the
+	user has entered a long description for the picture file...
+
+	There is also now support for IFF ILBM pictures. If you don't want
+	them to be uploaded, just match #?.IFF and #?.ILBM to the blacklist
+	in your filearea.dats.
+
+2.13	13.11.94
+
+	Text reformatting! Now description lines longer than 45 chars
+	(file_id.diz format limit) are reflowed to 45 chars. If a word
+	contains more than 45 chars, it will just be cut and then wrapped.
+	Try it out, it's cool :-D
+
+	Added recognition for jpeg, mpeg and gif files. Thanks to Antti
+	Tuominen for suggesting these!
+
+	Antti also noticed that files on devices with spaces in their names
+	didn't work quite well... Fixed by adding quotes around file names
+	for dos commands.
+
+	A last minute addition in 2.12 had trahsed the output a bit...
+	Fixed!
+
+2.12	01.11.94
+
+	I requested some features to Virus Checker from John Veldthuis and
+	now when the new version (6.44) has been released and better ARexx
+	file checking implemented, I went out and rewrote the whole virus
+	checking part in the script. Note that I haven't been able to test
+	it in real action 'cause I haven't seen viruses in my Amiga for
+	years...
+
+	I had forgotten to change the version number from the script ;-D
+
+2.11	28.10.94
+
+	Support for self-extracting LhA archives has been added. They will
+	be handled as normal LhA files.
+
+	Files that are uploaded will get touched to get appropriate date
+	stamps in a case of local upload when date stamps would not be
+	refreshed. If you don't like this, just comment out the setdate
+	line at the beginning of the script.
+
+	GetID will now only accept the first 45 characters of each of the
+	file_id.diz lines. This is the standard for dizes and an archive
+	having more lines in its description is probably total junk.
+
+	I also added a support for gzip archive testing. Due to the nature
+	of gzipped files, there's no file_id.diz extraction... GetID only
+	recognizes the files and tests 'em. BTW, gzip can also handle *ix
+	compress files (.Z). NOTE: gzip, at least the version I have,
+	writes its output to the stderr thus making it impossible to
+	redirect to eg. TECHIO: so there's no output available while
+	testing gzipped files.
+
+	A support for deleting files from Zip archives has been added. The
+	same delete list as used with LhA can be used - I added a
+	ZipDeleteList entry to the config section. A Zip compressor utility
+	is obviously required (UnZip can't delete files), I use Info-Zip
+	myself. You can find it from my BBS if you don't already have it.
+	NOTE: InfoZip doesn't seem to be using standard AmigaDOS functions
+	for pattern matching but some C compiler dependant instead. Some
+	patterns like #?.displayme won't work, but *.displayme will. That's
+	why there's no default ZipDeleteList...
+
+	Zipfiles can now be checked again! I found out that Info-Zip will
+	use the result codes so it's possible to decide whether the archive
+	is okay or not.
+
+	If an unsupported archive format situation occurs, GetID will now
+	list all supported formats.
+
+2.1	19.10.94
+
+	Well... When I was uploading the 2.04 version to Overscan
+	(ex-TechnoBBS Development Center), I discovered that the 0.93
+	version had been released. So here it is with interactive action...
+
+	A said, the asynchronous checking introduced in TechnoBBS 0.93 made
+	it able to call TechnoBBS ARexx commands while checking. The last
+	bits of support for other softs are gone now.
+
+	When a FILE_ID.DIZ is found GetID will ask the user whether (s)he
+	wants to either use or discard it. I've been planning of adding a
+	support for editing diz files in GetID itself and then adding them
+	back to the archive, but because of the TechnoBBS author has
+	ignored my requests concerning about adding an ARexx command for
+	calling the TechnoBBS message editor from scripts, this has not
+	been implemented yet.
+
+	GetID now informs the user about what it's doing. The command
+	output in archive testing phase has been redirected to TECHIO, so
+	it must be running or you may end up with those f'ing requesters
+	popping up when running GetID without NoReq or similar.
+
+	Because of the script now addresses its commands to the TechnoBBS
+	node instead of Dos per default (and I'm too lazy to add address
+	switching via single address commands), there are lots of "address
+	command"s added.
+
+	GetID doesn't use its own logging routines anymore, but instead it
+	will use TechnoBBS's log file and logging routines.
+
+Entries for versions below 2.1 have been deleted to save some space.
+@endnode
+@node sitten "GetID 2.26 Future"
+
+I'm willing to continue the development of GetID and currently have some plans
+for its future:
+
+· More supported archive formats.
+· Bug fixes.
+
+The following things will certainly @{b}not@{ub} be added:
+
+· Archive format conversion because TechnoBBS doesn't support it. At least
+  it would be horrible to have LhA packets called pc_sucks.zip... (the
+  extension, not the base name :P )
+· BBS advertisement adding. I @{b}hate@{ub} archives whose sizes are tripled by adding
+  stupid files named '#?' or something else "intelligent" (BTW, GetID is able
+  to remove those files!).
+
+Bug reports, suggestions etc. are welcome. See @{"Author" link late} for contact addresses.
+@endnode
+@node late "GetID 2.26 Author"
+
+Feel free to contact me for any reason:
+
+snail:	Lauri Aalto
+	Pronssitie 10
+	FIN-90250 Oulu
+	Finland, Europe
+
+email:	lauri.aalto@fipnet.fi
+
+bbs:	The Spit BBS
+	+358-81-330434
+	Open 22-10 GMT+2
+	FidoNet 2:228/507
+	Internet spit.fipnet.fi
+
+        Newest version freqqable with magic name GETID.
+
+@endnode

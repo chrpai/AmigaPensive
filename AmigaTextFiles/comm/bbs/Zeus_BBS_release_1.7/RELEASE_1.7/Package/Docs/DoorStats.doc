@@ -1,0 +1,93 @@
+
+                   How to use the Door Statistics Script
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Introduction:
+
+   I like stats!  I didn't think I had enough going on so I wrote this
+script to give information about the online game usage.  For each game it
+stores the access count, last time accessed, time spent playing and who
+used it last.  The DoorStats.rexx creates a nice bulletin out of the stats
+information to add to your stat list...
+
+Installation:
+
+ - Copy DoorStats.rexx to Zeus:Rexx/
+
+ - MakeDir Doors:Stats
+
+ - Edit the Zeus:Rexx/DoorStats.rexx values to suit your system
+
+ - Stick the following bit of code at the beginning of your door menu(s),
+   just after the 'Parse Arg Line' bit:
+
+stats.name = ''
+stats.last = ''
+stats.cont = 0
+stats.secs = 0
+stats.who  = ''
+
+ - Append the following to the end of your door menu(s):
+
+doori:
+	parse arg name
+
+	stats.name = name
+
+	if open( 'file', 'Doors:Stats/'name, 'r' ) then do
+		stats.last = readln( 'file' )
+		stats.cont = readln( 'file' )
+		stats.secs = readln( 'file' )
+		stats.who  = readln( 'file' )
+		call close( 'file' )
+		end
+
+	stats.last = date( 's' ) || ' ' || time( 'n' )
+	stats.cont = stats.cont + 1
+
+	GetUserData 'NAME'
+	stats.who = RESULT
+
+	return
+
+dooro:
+	if stats.name = '' then return
+
+	say time( 'e' )
+
+	stats.secs = stats.secs + trunc( time( 'e' ) )
+
+	if open( 'file', 'Doors:Stats/'stats.name, 'w' ) then do
+		call writeln( 'file', stats.last )
+		call writeln( 'file', stats.cont )
+		call writeln( 'file', stats.secs )
+		call writeln( 'file', stats.who  )
+		call close( 'file' )
+		end
+
+	stats.name = ''
+	stats.last = ''
+	stats.cont = 0
+	stats.secs = 0
+	stats.who  = ''
+
+	return
+
+ - For each door you want to create stats on, you need to add a couple of
+   lines of code.  Here is an example for 'Hack & Slash':
+
+Option_1:
+	call doori( "Hack & Slash" ); call time( 'r' )
+	CLIDoor '"Hack&Slash2/HSclient %50|"'
+	call dooro()
+	Signal MenuLoop
+
+ - The 'call doori( ...' line stores the door name, which will appear in
+   the bulletin, and resets the ARexx timer for calculating the time spent
+   in the door.  The 'call dooro()' line writes the stats to disk in the
+   Doors:Stats/ directory.
+
+ - Run Zeus:Rexx/DoorStats.rexx once a day or add it to your StartUpx.zeus
+   scripts...
+
+Chars, al.

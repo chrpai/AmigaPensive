@@ -1,0 +1,184 @@
+
+Here are some very very very, but very, brief docs on the ACDriver portion
+(built in) of ApT-BBS!
+
+A dir called tplates:acd/ is used to locate one or two of the menus in my
+examples.  Be sure to change this if you wish for them to go to a different
+directory.
+
+aptBBSMenu, acdBBSMenu, BBSText and Comments (at present) should be placed
+within:
+
+APT:Config/
+
+---------
+
+xxxBBSText:
+
+These files contains all of the text (or will do!) that is used within the
+BBS.  They can be changed if required but be careful.
+
+ApT allows you the ability to customize your BBS by modifying the text and
+menus of the system, including adding your own commands.
+
+Using your text editor to edit BBSTEXT, you will see before you everything
+that the BBS displays.  You may alter this file as you wish, with these
+restrictions:
+
+1.  You must not insert or delete lines.  ApT knows what to print based on
+its line number in the file.  Lines length can be, however, increased
+within reason.  Colour codes of AML or ESCAPE nature can be inserted if
+required.
+
+2.  The "%s"'s and "%d"'s that you see throughout the file represent
+"formatting" commands for the BBS-where to place text strings and numbers.
+On any line which conatains these commands you must not alter the ORDER of
+these commands.
+
+3.  At no time may you remove or alter copyright a notice.
+
+----------
+
+BBSMenu:
+
+1.  ApT matches command names to functions by their position in the list.
+The order of the menu items must NOT change.  If you want to completely
+REMOVE a command's function from a menu, you must CHANGE it to something
+Un-typeable from a command prompt, such as inserting a ^T () before the
+word you wish to "filter out".  DO NOT REMOVE THE LINE.
+
+2.  In order to match a command, the user needs only to enter the UPPERCASE
+portion of the command as it appears in the BBSMENU.
+
+3.  When at a command prompt, ApT first searches menu numbers 1 (for
+commands available everywhere) before any other menu.  This means that if
+you add a command "C" to the Main menu, it will never execute, as it will
+first match the "Chat" command from menu number #1
+
+4.  If you add your own command, you must do so at the END of the given
+list of commands.  In order to be functional, your command will have to
+make use of the special character "|" as described below.
+
+   |     This command tells ApT that it is a USER command and that it is
+         to use the AML system to act out a task, be it purely of a display
+         purpose or the calling of a DOS, REXX, or ApT-MODULE, even the
+         SHOWFILE'ing of a file.
+
+   Once the token is located everything that is displayed AFTER it is
+   then displayed to the screen (normally that is..) - However, after
+   the "|" token (at some stage in the line) there are various AML codes
+   that can be used to do various tasks.
+
+   *ALL* AML codes are available here - The *ONE* difference is that the
+   REXX. command must have $$ following, and $$ at the end of the rexx
+   string to be used. As an example:
+
+   REXX.$$'msg' getclip(_something)$$\n\n
+
+   Would display what is inside the _something clip variable, and then
+   go on to display display two returns.
+
+   By using the REXX command  is accessed by pressing ^X, it is possible
+   to do almost anything from loading doors/modules/scripts.. to showing
+   files, making decisions etc.
+
+   Just remember that everything that comes after REXX can be the same
+   as the normal .apt standards of programming apt via it's rexx system. 
+
+   to load in a module:
+
+   REXX.$$'lockdoor' "apt:modules/nodereader"$$
+
+   would load in the ApT Module "nodereader"
+
+   REXX.$$'showglobalfile' "ram:test.txt"$$
+
+   would show the ram:test.txt file to the screen
+
+   REXX.$$'chainapt' "fish"$$
+
+   MANY arexx commands can be put together by using the ; token
+   (as per standard rexx style of programming) to continue a new
+   command on the same line.
+
+   REXX.$$'msg' "line 1\n";'msg' "line 2\n";'msg' "line 3\n"$$
+
+   line 1
+   line 2
+   line 3
+  
+   would load in the aptrexx:fish.apt file as normal.
+
+   ®     CTRL+R - Following this token is a menu-number followed by
+         a closing ® (^R) which tells ApT that it is to jump to a
+         user-defined menu. *CURRENTLY UNDER-DEVELOPMENT*
+
+         Example,
+
+         Going to a new menu ®25® BACK from from the menu
+
+
+List, | Loading Door!! REXX.$$'lockdoor' "apt:modules/nodereader$$\n
+      ^ ^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |   |            |      |      |                            |   
+      |   |            |      |      |                            |
+      |   |            |      |      |                            `- end rexx
+      |   |            |      |      `- Function(s)       
+      |   `- Text      |      |
+      |                |      `-- rexx code follows this.
+      |                |                        
+      |                `-- AML Power function call (non-power if %)
+      |
+      `-- Special command (PIPE)
+
+
+Every menu starts with a { which has, directly following it, the menu
+number.
+
+as an example
+
+; comment here if required
+{1<return>
+<tab>Help<return>
+<tab>CHat, PAge<return>
+etc.
+}
+
+Is the actual formula that should be used if possible.
+
+NOTE:  Some of the fixed menus do not use the above method "always" but may
+be a little different.
+
+MENUS:
+
+menu number #1 - is the EVERYWHERE command list.  Commands here can be
+executed at any command prompt.  They are always scanned first before all
+others.
+
+menu number #2 - is the MAIN menu from where the user starts off
+
+menu number #3 - is the FILE menu from where the file options exist.
+
+BBSMenu FORMAT
+--------------
+
+The format of the BBSMenu numbers 2 onwards are all the same. They start
+off with,
+
+line #0 = COMMENT (if required..)
+line #1 = the INITIATER character "{" followed by the MENU NUMBER
+line #2 = FULL FILENAME of the file to be displayed when ? is pressed
+line #3 = Command template line, giving a small command list
+line #4 = The command line PROMPT text (line input is entered on)
+line #5+ (commands)
+}
+
+
+COMMENTS
+--------
+
+This file contains lines of comments that are read in and then displayed
+at the main menu, all of which are selected at random.  If the file can
+not be found you simply get no comment displayed, but ACDriver continues
+normally.
+

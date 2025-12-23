@@ -1,0 +1,249 @@
+                              MetalScan v1.03
+                              ===============
+                 Written by Ray A. Akey (AKA Heavy Metal)
+                 Using the SAS/C Development System v6.55
+
+                                    ---
+
+changes v1.03
+-------------
+1. It has never been noted as so in these docs but MetalScan has been and is
+   PURE and can be made resident using the following command:
+
+      resident Pfiles:MetalScan Pfiles:MetalScan
+
+2. Implemented the [R]ead option during browse.
+3. New SLTokens added.  See the included text "token_format.readme"
+4. Be sure to note the new MODCHECK program argument.  For the included
+   MetalScanText.DUAL optional language text to be displayed properly, the
+   DUAL argument must be used in your SCAN command if the DATES argument is
+   used:
+
+      ie.  S LANG dual MODCHECK DATES
+
+   The .dual text prints two items per line in a "file list" sort-of look.
+   The MODCHECK argument is required to insert a CR/LF just before the date
+   header when single items are displayed.  For instance:
+
+        ##  Item                             ##  Item
+         2  mystuff.lha                       3  hisstuff.lha
+         4  someotherstuff.lha
+
+        ----------------------- 03-Jun-2001 ----------------------
+
+         5  anewbatch.lha                     6. MoreNewStuff.lha
+         7. evenmore.lha                      8. AndTheLast.lha
+
+        ----------------------- 04-Jun-1994 ----------------------
+
+
+   If you did not use the MODCHECK argument, the above would appear as:
+
+
+        ##  Item                             ##  Item
+         2  mystuff.lha                       3  hisstuff.lha
+         4  someotherstuff.lha
+        ----------------------- 03-Jun-2001 ----------------------
+
+         5  anewbatch.lha                     6. MoreNewStuff.lha
+         7. evenmore.lha                      8. AndTheLast.lha
+
+        ----------------------- 04-Jun-1994 ----------------------
+
+
+   NOTE the missing linefeed just before the DATE header in the above text.
+        MODCHECK inserts it strategically.  Note how in the above "wrong"
+        display, the linefeed is NOT needed after the 8th item and before the
+        date string..
+
+known bug: Due to the way CNet stores message authors/handles/names, if you
+           use the tokens POSTERHANDLE or TOHANDLE, the message display will
+           be somewhat slowed.  It is advisable to use these tokens only in
+           the [R]ead message headers and text.  They will be inserted
+           where YOU decide so they CAN be used in the regular scan text.
+           This is only to warn you of the potential slow-down until I can
+           find a way to speed it up.  Play with it and have some fun.
+
+
+changes v1.02
+-------------
+1. Added support for alternate "MetalScanText.<string>" text.  EVERY line in
+   the MetalScanText must exist in the alternate text file but does not
+   have to be exactly alike.  You may use different languages, different
+   SLTokens, etc,..  Your imagination is the limit.
+
+   For example:
+   If the user enters "s LANG French", then MetalScan will not attempt
+   to open SYSTEXT:METALSCANTEXT.  It will attempt to use
+   SYSTEXT:METALSCANTEXT.FRENCH for it's display text.
+
+   If the user enters "s LANG 2", MetalScan will attempt to use the text
+   file SYSTEXT:METALSCANTEXT.2 as it's display text.
+
+   If the user enters "s LANG" with no other arguments, he/she is given a list
+   of available alternative text files with a prompt of choice.
+
+   You can take advantage of this for multiple language systems or to create
+   what "looks" like alternate/different scan commands.
+
+2. Fixed "Direct Access" bug where MetalScan would always display "No matching
+   items".
+3. Added "SAVE" argument where the user's MetalScan preferences can be saved
+   as his/her default.  Currently, MetalScan saves the following argument
+   preferences to mail:users/<user_ID>/MSC.PREFS
+
+      NEW
+      VERS
+      DATES
+      GLOBAL
+      BROWSE
+      LANG <alternate language/text name>
+
+      REMEMBER: <alternate text name> refers ONLY to the extension that
+                you use on the base filename METALSCANTEXT.  See changes v1.02
+                item (1.) for more info.
+
+      ie.  "s NEW TOTAL DATES SAVE" would cause MetalScan to save so that
+           when the user enters "S", the arguments "NEW TOTAL DATES" will
+           be automagically assumed.
+
+           "S NOSAVE" removes the user's previously saved preferences.
+
+changes v1.01
+-------------
+1. Added DATES option that, when given as an MSC argument, displays the
+   DATE of the next batch of files ONCE at the beginning of the batch.
+   "Batch" refers to a set of files with the same YEAR, MONTH and DATE.
+   Since this change, METALSCANTEXT has now been moved from your CNET
+   directory to SYSTEXT: and another line has been added to METALSCANTEXT.
+   The new line is the editable text that represents the DATE displayed
+   when the DATES option/argument is given by the user.
+
+   Scan can be replaced with MetalScan in CNET:BBSMENU by replacing the text:
+
+      Scan
+
+   with:
+
+      !Scan
+
+   and adding at the end of the section where "Scan" was found:
+
+      MSC        |{#2Pfiles:MetalScan}
+      Scan~MSC DATES
+
+   Also, SN can be aliased by simply replacing occurances of:
+
+      SN~Scan NEW
+
+   with:
+
+      SN~MSC NEW DATES
+
+
+   Also, MSC now has included a STOCK cnet:bbsmenu that has ONLY the MSC
+   aliases installed for your convenience.  Search for "MSC" and "SCAN"
+   to find the changes in the included bbsmenu.
+== end of changes =====
+
+
+
+
+
+                             ABOUT THE PROGRAM
+                             =================
+MetalScan is a VERY powerful replacement/companion for CNet's SCAN function
+because of it's excellent configurability!
+
+MetalScan is more powerful than CNet's built-in SCAN command in many ways.
+
+Features: all current CNet scan options, plus the following additional
+          options:
+
+          - display/list TOTALLY configurable using Metalsoft's SLToken(tm)
+            system.
+          - Filesize smaller or larger than x (smaller and larger
+            can be used in combination to list files in a given range of
+            sizes.
+          - missing items
+          - total size of listed files.
+
+
+
+                               INSTALLATION
+                               ------------
+   The one and only way to properly install MetalScan (hereafter called MSC)
+is to add it to your BBSMENU as follows:
+
+1. Copy MetalScan to your P-Files directory or another appropriate location.
+2. Copy MetalScanText to your SYSTEXT: directory.
+3. Find the end of the section in BBSMENU labeled "4; ud/base"
+4. Insert a blank line right after the LAST command in that section.
+5. Insert the following text on the newly inserted line:
+
+   MSC          |#2pfiles:MetalScan}
+
+6. Save your changes
+7. Select the menuitem TEXT/MENU RELOAD in your CNet control panel.
+8. Login and go into a UD/Base and enter MSC HELP.
+9. Try MSC <option1> <option2> ... <optionx>
+   where <optionx> is one of the options/arguments listed in the MSC HELP
+   text.
+
+
+
+          BELOW IS THE MSC TEXT WITHOUT MCI FOR YOUR CONVENIENCE
+          ======================================================
+Simply enter MSC (or the command that the sysop has configured) to scan items
+in the current subboard.
+For more control over what is listed, MetalScan allows additional command
+line arguments as follows:
+
+   HELP       This help file.
+   NEW        Scan new items only. (ie. "MSC NEW")
+   GLOBAL     Scans items in ALL subboards from the current one forward.
+   RESET      By default, MetalScan will NOT allow you to scan NEW items
+              in the current subboard twice.  Use the RESET argument to
+              over-ride this restriction.
+   DEBUG      For programmer/Sysop debugging.
+   MISSING    Only show MISSING/OFFLINE files.
+   BROWSE     Turn on interactive BROWSE mode.
+   ALL        Scan/Browse all files (add the BROWSE argument for BROWSE mode).
+   SIZE +/-x  List files larger or smaller than x
+              ie.   "MSC SIZE +200000" lists all files larger than 200kB
+                    "MSC SIZE -50000" lists all files amller than 50kB
+              note: SIZE + and SIZE - can be used together to list only a
+                    certain range of files based on size.
+   '<text>    text beginning with a single quote is considered a file
+	           pattern. Filenames and short descriptions are then checked
+	           for text that matches the text.
+   (ADOS)     All AmigaDOS file pattern matching is allowed also.
+              ie.  "MSC sum*" will find all files with titles or comments
+                   that BEGIN with the text "sum"
+                   "MSC sum#?" does the same thing.
+                   note that the IBM style wildcard (*) may not be available
+                   unless the sysop has a commodity running that enables it.
+                   "MSC *stuff*" would list all files that have titles or
+                   comments containing the text "stuff".
+	TOTAL      Sum and display the total size of all files listed.
+	DATES      Display the file date of each new batch of files as a header.
+   VERS       Display MetalScan version information (the same string that is
+              displayed when a "version MetalScan" is executed in an ADos
+              shell).
+   LANG <x>   Use an alternate display, if available.
+              if you enter the LANG argument without any other arguments, 
+              MetalScan will list all available alternative displays.
+              Otherwise, you must enter LANG <alternate language>
+
+Another Freebie from MetalSoft!
+
+
+
+	BUGS/CONVEYANCES/MONEY/LOTTERY WINNINGS/TO:
+
+		Ray Akey
+		411 Bridge Ave.
+		Windsor, ON
+		Canada  N9B 2M3
+
+-Enjoy!

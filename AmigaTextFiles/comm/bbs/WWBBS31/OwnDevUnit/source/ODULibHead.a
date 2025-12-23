@@ -1,0 +1,140 @@
+	SECTION NTRYHUNK,CODE
+
+ NOLIST
+ INCLUDE "exec/types.i"
+ INCLUDE "exec/execbase.i"
+ INCLUDE "exec/libraries.i"
+ INCLUDE "exec/initializers.i"
+ INCLUDE "exec/resident.i"
+ LIST
+
+ INCLUDE "ODUversion.i"
+
+	XREF	_LinkerDB
+	XREF	__BSSBAS
+	XREF	__BSSLEN
+
+	XREF	_LibInit
+	XREF	_LibOpen
+	XREF	_LibClose
+	XREF	_LibExpunge
+	XREF	_LockDevUnit
+	XREF	_AttemptDevUnit
+	XREF	_FreeDevUnit
+	XREF	_NameDevUnit
+	XREF	_AvailDevUnit
+	XREF	_RexxQuery
+
+; macro for calling routines in other libraries
+CALL	MACRO
+	XREF	_LVO\1
+	jsr	_LVO\1(a6)
+	ENDM
+
+; the first executable location sets an error and returns in case someone
+; tries to load the library as a load moudle instead of OpenLibrary()ing it
+	moveq	#-1,d0
+	rts
+
+; the romtag structure for this library
+initDDescrip:
+		;STRUCTURE RT,0
+	dc.w RTC_MATCHWORD	; UWORD RT_MATCHWORD
+	dc.l initDDescrip	; APTR  RT_MATCHTAG
+	dc.l EndCode		; APTR  RT_ENDSKIP
+	dc.b RTF_AUTOINIT	; UBYTE RT_FLAGS
+	dc.b VERSION		; UBYTE RT_VERSION
+	dc.b NT_LIBRARY		; UBYTE RT_TYPE
+	dc.b 0			; BYTE  RT_PRI
+	dc.l ODUName		; APTR  RT_NAME
+	dc.l idString		; APTR  RT_IDSTRING
+	dc.l Init		; APTR  RT_INIT
+
+; the name of the library
+ODUName: dc.b 'OwnDevUnit.library',0
+
+; text identifier tag for the library
+	ds.w 0	; word align info string for programs like XOper...
+idString: dc.b 'OwnDevUnit.library v'
+	  IDSTR
+	  dc.b 13,10,'Copyright ',$a9,' 1991 by Christopher A. Wichura',13,10
+	  dc.b 'All Rights Reserved.',13,10,0
+
+; word align everything
+	ds.w 0
+
+; this is the init structure that our RTF_AUTOINIT told exec to look for
+Init:
+	dc.l LIB_SIZE		; size of library base data space
+	dc.l funcTable		; pointer to the function initializers
+	dc.l dataTable		; pointer to the data initializers
+	dc.l initRoutine	; routine to run
+
+; here we have the function table.  it, of course, starts with the standard
+; library routines like Open, etc.
+funcTable:
+	dc.l _LibOpen
+	dc.l _LibClose
+	dc.l _LibExpunge
+	dc.l Null		; reserved routine
+
+; my library routines
+	dc.l _LockDevUnit
+	dc.l _AttemptDevUnit
+	dc.l _FreeDevUnit
+	dc.l _NameDevUnit
+	dc.l _AvailDevUnit
+	dc.l RexxDispatch		; we call an asm stub to make
+					; returning an argstring easier
+
+; end of library function list
+	dc.l -1
+
+; static data structures initilization table
+dataTable:
+	INITBYTE LN_TYPE,NT_LIBRARY
+	INITLONG LN_NAME,ODUName
+	INITBYTE LIB_FLAGS,LIBF_SUMUSED|LIBF_CHANGED
+	INITWORD LIB_VERSION,VERSION
+	INITWORD LIB_REVISION,REVISION
+	INITLONG LIB_IDSTRING,idString
+	dc.l 0
+
+; after the library has been allocated this next routine gets called.
+; d0 = library's pointer, a0 = segment list
+;
+; returning non-zero means ok to link library into system list
+initRoutine:
+	movem.l	a3/a5,-(sp)
+
+	movem.l	d0/a0,-(sp)		; save pointers
+
+; clear the BSS data area
+	lea	__BSSBAS,a3
+	moveq	#0,d1
+	move.l	#__BSSLEN,d0
+	bra.s	2$
+1$	move.l	d1,(a3)+
+2$	dbf	d0,1$
+
+; now call the init routine in the C code to handle any other stuff
+	movem.l	(sp)+,d0/a0
+	jsr	_LibInit
+
+4$:	movem.l	(sp)+,a3/a5
+	rts
+
+Null:				; Commodore reserved routine.  always
+	moveq	#0,d0		; return NULL for now!
+	rts
+
+RexxDispatch:
+	subq.l   #4,sp			; Create temporary variable
+	move.l   sp,a1			; load return pointer
+	jsr      _RexxQuery		; D0 = error code
+	movea.l  (sp)+,a0		; Result string
+	rts
+
+EndCode:	; maker for end of this code
+
+	END

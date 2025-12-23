@@ -1,0 +1,985 @@
+
+-------------------------------------------------------------------------------
+
+          -----------------------------------------------------------
+          64 BIT values - Ho to use them - How to priogramm with them
+          -----------------------------------------------------------
+
+-------------------------------------------------------------------------------
+
+[1] Intro
+
+[2] Theoretical Basics
+
+[3] Building 64 Bit Variables
+
+[4] Function Description
+
+[5] Function Usage (FAME.library 4.0/5.0/6.0)
+
+  [5. 1] FAMEAdd64()
+  [5. 2] FAMESub64()
+  [5. 3] FAMENum64ToStr()
+  [5. 4] FAMEIsEqual64()
+  [5. 5] FAMEIsLower64()
+  [5. 6] FAMEIsHigher64()
+  [5. 7] FAMENum64Comp()
+  [5. 8] FAMEStrTo64()
+  [5. 9] FAMEMulU64L()
+  [5.10] FAMEDivU64L()
+
+[6] Last Words
+
+[7] Contact
+
+-------------------------------------------------------------------------------
+
+[1] Intro
+---------
+
+FAME from MainPart v1.30 on includes an original for FAME v2.0 made feature
+- 64 bit support.
+
+This documentation explains what 64 bit support in detail means and what
+advantages you will gain from it. You will also learn how to handle and
+how to programm with the new 64 bit variables.
+
+You will get an simple theoretical overview about how 64 bit variables will
+work and how you can use them in your own projects.
+
+It will also explain of what you have to know especially if you programm for
+FAME using 64 bit support.
+
+After reading this document carefully and if you understand it, what i really
+hope, because i gave my best to explain it without being to deep in the theory
+- nevertheless a bit theory is a must - you will be able to programm tools
+and doors supporting 64 bit operations for FAME and also to update old and
+existing tools and doors to be able to handle 64 bit.
+
+HEY - if you are a bit familar with Windowze stuff of MacroCrap Software inc.
+you may get crazy now, because they also having something like 32 bit Software
+and 64 bit Software and so on... which is a big piece of bull shit - because
+you need from every programm two versions or you have both included into one
+program with tones of megabytes in size and also with lots of trouble using
+them.
+
+NO - this is AmigaOS we are talking about and there we need not such a
+crap... no the code will be in 99.9% the same and old one. The 680x0 CPU
+handles High and Low bytes in the right way and not exchanging them like
+80x86 Wintel wanna be CPUs.
+
+What we mean with 64 bit support in FAME is only the fact that the space we
+need for variables holding in our case bytes for uploads and downloads is
+twice as big as the old size was.
+
+This results in nearly endless space, because the new size we have to work 
+with is the 2nd power of the old size:
+
+Size of 32 bit in decimal ^ 2
+
+             =
+
+Size of 32 bit in decimal * size of 32 bit in decimal.
+
+The size of 32 bit is the power of 32 to the base of 2, because our nowaday 
+computers are working with the binäry system which depends on the base of 2 
+what means two possible states 1 or 0, ON or OFF, TRUE or FALSE.
+
+So we have in an ULONG 32 bits each bit with 2 states which means
+2 ^ 32 = 4.294.967.295.
+
+The size of two ULONGs is now as told above 2 * the size of an
+ULONG = 2 * 2 ^ 32 = 2 ^ 32 ^ 2 = 2 ^ 64
+
+= 18.446.744.073.709.551.615 (more than 18 trillion).
+
+[2] Theoretical Basics
+----------------------
+
+To use 64 bit values is easy, because you do not have to write support 
+functions which are claculating 64 bit variables for you.
+
+To know the basics just see how a 64 bit variable works.
+
+A ULONG consits of two WORDS and a WORD of two BYTES means the ULONG consits 
+of four BYTES. One BYTE consits of 8 bits.
+
+So it's logical that 8 bits multiplied with 4 BYTES results in 32 bits 
+(8 * 4 = 32).
+
+Now with the binäry system we can produce a decimal value of
+max. 4.294.967.295.
+
+This is only possible with ULONG and not with a LONG, because U means 
+UNSIGNED. A LONG only has 31 bit for the decimal value and not 32, because 
+one bit will be used to indicate the SIGN means if the actual value in the 
+other 31 bits is positive (+) or negative (-).
+
+So we ALWAYS are using UNSIGNED, but because of this we can't produce and 
+use negative values!
+
+As told above 4.294.967.295 is the maximum of an ULONG.
+If we now try to add 1 to it we will have an overflow and the decimal value 
+restarts at 0.
+
+This is the reson why 32 bit is to small for bytes and not for files,
+because nowadays 4.3 giga bytes is not much for ISDN users!
+In some BBSs people arn't uploading any longer, because if they do their 
+bytes will restart at 0 then!
+
+The solution for this is to use the double size of bits
+32 * 2 = 64 bits!!! To be ready for the future!
+
+64 bits means 64 is the power of 2 and results in 2*2*2*2*... - 64 times
+= 18.446.744.073.709.551.615 !!!
+
+In words: With 64 bit we have a decimal maximum value of more than
+          18 trillion bytes!!!
+
+And this is more we need so it's great for us to use.
+
+One word to the UNSIGNED... byte values doesn't need to be SIGNED,
+because who uploads negative bytes?
+
+On calculating later differences between bytes uploaded and downloaded we
+could have results which are negative, but it's not good to result in 
+negative values, because UNSIGNED doesn't knows them and in real it results 
+in negative overflows. We have to protect this by checking the operand with 
+the operator for example on substractions, but later more about this.
+
+Ok now we want to use 64 bit variables, but there is a problem!
+The 680x0 CPU is internal only 32 bit wide and every assembler instruction
+is only able to handle 32 bits because of this!
+
+What to do? The easiest thig is to define a 64 bit variable, we also could
+define every other size of variables if it's a multiple of 8, but we only
+need 64 bit. This is very easy. Harder is the way how to work with them,
+but later more about this.
+
+How do we build a 64 bit variable?
+
+It's so easy! Just use two ULONGS instead of one.
+
+Two ULONGS are consisting of four WORDS and this means of 8 BYTES which
+results in 64 bits, because we have 8 BYTES each consisting of 8 bits
+(8 * 8 = 64).
+
+A ULONG consists of a higher WORD and a lower WORD.
+
+Our 64 bit variable consits of a higher ULONG and a lower ULONG.
+
+Now each time the lower ULONG get's an overflow we only have to increase
+the higher ULONG with 1 !!! The higher one has been increased then and
+the lower one restarts at 0 -  that's exactly what we need, because this
+fits perfect into the binäry system.
+
+That's all in the theory.
+
+This also means the new 64 bit mechanism is completely compatible to the
+old 32 bit one so no converting has to be done. Just installing the new
+FAME and that's it. Just to be sure there will be a tool which will NULL
+all higher ULONGS in the FAME user datas to be sure that there is no old
+crap value in there.
+
+Also tools using the upload/download byte variables have to be updated,
+because they only will read the lower ULONG and not the higher.
+This may result in wrong decimal displays and in wrong calculations.
+In some cases they also can destroy the origin byte value if they write
+bytes back to the user datas which they have increased and on doing this
+an overflow tooks place. To be save against this i'm writing this text
+for especially for coders to update their tools to be able to handle
+64 bit values too and for new tools of course.
+
+[3] Building 64 Bit Variables
+-----------------------------
+
+Now there are more ways to define a 64 bit variable.
+
+1. Use two seperate ULONGS:
+
+{
+  ULONG HigherUL,
+        LowerUL;
+}
+
+2. Use an ULONG array of 2:
+
+{
+  ULONG Variable64[2];
+}
+
+3. Define a strcuture:
+
+struct Var64
+{
+  ULONG HigherUL,
+        LowerUL;
+};
+
+In the most cases i prefer the 2nd one, because just defining a structure 
+which only consits of 2 variables of the same type makes it not really worse.
+
+Some words to FAME user data strcutures which now are holding the new
+64 bit variables.
+
+The original user data structures (global User.data and local (Conference 
+based) UserCnf.data) are made for 32 bit values only. This means the uploads
+bytes and download bytes are only one ULONG in size and are named in both 
+data structures 'BytesUpload' and 'BytesDownload'.
+
+Now the new higher ULONGS are seperated for the lower (old) ones and are at a
+place where some space was left in the user data structures (reserved fields).
+
+This means now we have to put them together into a 64 bit variable in some 
+cases to work with them and after working with them we have to put them back.
+
+Now we come to the support functions to work with 64 bit variables. 
+Because of the reason with the seperated ULONGS in the user data structures 
+most of the support functions aren't needing the both ULONGS directly
+side by side and can be handled seperately with two arguments.
+Only FAMEAdd64() and FAMESub64() are needing them in a row of 
+HigherULONG + LowerULONG.
+
+You will see what i mean in the example usage of both functions below.
+
+Now you hopefully have understood how the 64 bit thing works in theory.
+
+[4] Function Description
+------------------------
+
+The function description and the usage of them is only missing to be able
+to work with the new 64 bit variables.
+
+So first we have to think about what functions we need.
+
+We need of course some mathematical ones like:
+
+ - 64 bit addition
+
+ - 64 bit subtraction
+
+ - 64 bit multiplication
+
+ - 64 bit division
+
+We also need operators like:
+
+ - equal
+
+ - lower
+
+ - higher
+
+And we need converters:
+
+ - 64 bit variable to string
+
+ - String to 64 bit variable
+
+Most of those functions are already available, because we have coded them.
+Some are already a part of the FAME.library 4.0 and the others are now a
+part of the FAME.library 5.0 too. In FAME.library 6.0 you will also find
+the FAMEDivU64L() function to divide 64 bit values.
+
+Following functions are already a part of FAME.library 4.0:
+
+ - FAMEAdd64() (64 bit addition)
+
+ - FAMESub64() (64 bit subtraction)
+
+ - FAMENum64ToStr() (64 bit variable to string convert)
+
+Following functions are also a part of FAME.library 5.0:
+
+ - FAMEIsEqual64() (equal)
+
+ - FAMEIsLower64() (lower)
+
+ - FAMEIsHigher64() (higher)
+
+ - FAMENum64Comp() (lower/equal/higher function like Stricmp())
+
+ - FAMEStrTo64() (String to 64 bit variable convert)
+
+ - FAMEMulU64L() (64/64 bit multiplication)
+
+Following function is a part of FAME.library 6.0:
+
+ - FAMEDivU64L() (64 bit division)
+
+[5] Function Usage (FAME.library 4.0/5.0/6.0)
+---------------------------------------------
+
+Now you will lern how to work with the functions being a part of
+the existing FAME.library 4.0, 5.0 and 6.0.
+
+I advise you to have a look at the FAME.library AutoDocs for complete
+function reference!
+
+[5.1] FAMEAdd64()
+-----------------
+
+Prototype:
+
+extern VOID FAMEAdd64( ULONG SrcHi, ULONG SrcLo, APTR Destination );
+                              d0           d1             a0
+
+Note:
+
+The prototype in include:clib/FAME_protos.h of FAME.library 4.0 is not ok,
+the SrcHi and ScrLo are exchanged. All in all this makes no difference
+and is no problem at all, but you might get confused a bit.
+This has been corrected in FAME.library (5.0) release.
+
+Using FAMEAdd64():
+
+void UseFAMEAdd64( void )
+{
+  /*
+   * Define two 64 bit variables to work with.
+   */
+
+  ULONG First64[2],
+        Second64[2];
+
+  /*
+   * We now initialize the first 64 bit variable with a value.
+   *
+   * In this case we fill the value: 10000000000 = 10 giga bytes.
+   * 10 GB is more than a 32 bit ULONG can hold.
+   *
+   * First64[ 0 ] will be set to 2, because element 0 is the
+   * higher ULONG. Element 1 which is the lower ULONG will be
+   * set to 1410065408.
+   *
+   * 2 because this indicates twice the size of 32 bit + 1:
+   *
+   * 2 * (2 ^ 32 + 1) = 8589934592
+   *
+   * 1410065408 because 8589934592 + 1410065408 = 10000000000
+   */
+
+  First64[ 0 ] = 2;
+  First64[ 1 ] = 1410065408;
+
+  /*
+   * We now initialize the second 64 bit variable with a value.
+   *
+   * We also initialize it with 10000000000 = 10 giga bytes.
+   */
+
+  Second64[ 0 ] = 2;
+  Second64[ 1 ] = 1410065408;
+
+  /*
+   * Now we add Second64 to First64.
+   */
+
+  FAMEAdd64( First64[ 0 ], First64[ 1 ], &Second64 );
+
+  /*
+   * Now in First64 the new value exists.
+   *
+   * Result:
+   *
+   * 10000000000 + 10000000000 = 20000000000
+   *       10 GB +       10 GB =       20 GB
+   */
+}
+
+You can also add 32 bit values or lower ones:
+
+void UseFAMEAdd64( void )
+{
+  /*
+   * Define two 64 bit variables to work with.
+   */
+
+  ULONG First64[2],
+        Second64[2];
+
+  /*
+   * We now initialize the first 64 bit variable with a value.
+   *
+   * In this case we fill the value: 10000000000 = 10 giga bytes.
+   * 10 GB is more than a 32 bit ULONG can hold.
+   *
+   * First64[ 0 ] will be set to 2, because element 0 is the
+   * higher ULONG. Element 1 which is the lower ULONG will be
+   * set to 1410065408.
+   *
+   * 2 because this indicates twice the size of 32 bit + 1:
+   *
+   * 2 * (2 ^ 32 + 1) = 8589934592
+   *
+   * 1410065408 because 8589934592 + 1410065408 = 10000000000
+   */
+
+  First64[ 0 ] = 2;
+  First64[ 1 ] = 1410065408;
+
+  /*
+   * Now we add a normal 32 bit maximum value.
+   */
+
+  FAMEAdd64( 0UL, 1234567890, &First64 );
+
+  /*
+   * Now in First64 the new value exists.
+   *
+   * As you can see the higher ULONG (SrcHi) will be set to 0UL
+   * and the 32 bit value will be used at SrcLo - that's all.
+   *
+   * Result:
+   *
+   * 10000000000 + 1234567890 = 11234567890
+   */
+}
+
+Especially for FAME user.data:
+
+void UseFAMEUserAdd64( void )
+{
+  /*
+   * Define a 64 bit variable to work with and a user structure.
+   */
+
+  ULONG Temp64[2];
+
+  struct User MyUser;
+
+  /*
+   * Now let's say a user get's loaded into "struct User MyUser".
+   */
+
+  // ...
+
+  /*
+   * Now we fill Temp64 with the download bytes of the user data
+   * structure.
+   */
+
+  Temp64[ 0 ] = MyUser . BytesDownHi;   // <- The new higher ULONG.
+  Temp64[ 1 ] = MyUser . BytesDownload;
+
+  /*
+   * Now we add a 64 bit value (10000000000 bytes).
+   */
+
+  FAMEAdd64( 2, 1410065408, &Temp64 );
+
+  /*
+   * Now the 10000000000 bytes are added to the data, but
+   * we have to fill it back.
+   */
+
+  MyUser . BytesDownHi   = Temp64[ 0 ];
+  MyUser . BytesDownload = Temp64[ 1 ];
+
+  /*
+   * As you can see we have to copy the datas temporärly into
+   * a 64 bit kind of variable and then back, because some
+   * support functions like FAMEAdd64() and FAMESub64() are
+   * needing the destination as a complete 64 bit block.
+   * Other functions and also here the source arguments are
+   * splitted between higher and lower ULUNG variables so if
+   * you add for example the down/upload bytes to a different 
+   * value it's not needed to copy them temporär:
+   *
+   * FAMEAdd64( MyUser . BytesDownHi, MyUser . BytesDownload, &Temp64 );
+   */
+}
+
+[5.2] FAMESub64()
+-----------------
+
+Prototype:
+
+extern VOID FAMESub64( ULONG SrcHi, ULONG SrcLo, APTR Destination );
+                              d0           d1             a0
+
+Note:
+
+The prototype in include:clib/FAME_protos.h of FAME.library 4.0 is not ok,
+the SrcHi and ScrLo are exchanged. All in all this makes no difference
+and is no problem at all, but you might get confused a bit.
+This has been corrected in FAME.library (5.0) release.
+
+Using FAMESub64():
+
+The usage will be the same as for "Using FAMEAdd64():" above, because it's
+just the same, but you also should build in a check if the destination
+is higher than the source, because we work with unsigned variables and
+in the case that the source is higher than the destination we could have
+a negative overflow which results in a very very high value then without
+this check, because of this take a look at the following example.
+
+void UseFAMESub64( void )
+{
+  /*
+   * Define a 64 bit variable to work with and a user structure.
+   */
+
+  ULONG Temp64[2];
+
+  struct User MyUser;
+
+  /*
+   * Now let's say a user get's loaded into "struct User MyUser".
+   */
+
+  // ...
+
+  /*
+   * Now we fill Temp64 with the upload bytes of the user data
+   * structure.
+   */
+
+  Temp64[ 0 ] = MyUser . BytesUpHi;   // <- The new higher ULONG.
+  Temp64[ 1 ] = MyUser . BytesUpload;
+
+  /*
+   * Now we check if the upload bytes are higher than the download bytes,
+   * because we substract the download bytes form the upload bytes.
+   */
+
+  if( FAMEIsHigher64( Temp64[ 0 ], Temp64[ 1 ], MyUser . BytesDownHi, MyUser . BytesDownload ))
+  {
+    FAMESub64( MyUser . BytesDownHi, MyUser . BytesDownload, &Temp64 );
+  }
+  else
+  {
+    Temp64[ 0 ] = 0UL;
+    Temp64[ 1 ] = 0UL;
+  }
+
+  /*
+   * As you can see we only do the substraction if the source is higher
+   * than the destination and we if will be sure to get a positive result.
+   * For the case that the destination is higher than the source we just
+   * set the source to 0UL, because this is the absolute minimum possible
+   * for unsigned variables.
+   */
+}
+
+[5.3] FAMENum64ToStr()
+----------------------
+
+Prototype:
+
+extern LONG FAMENum64ToStr( ULONG ValueHi, ULONG ValueLo, ULONG Flags, ULONG BufSize, STRPTR Buffer );
+                                    d0              d1           d2            d3              a0
+
+Note:
+
+There is a small bug in FAMENum64ToStr() in FAME.library 4.
+If you pass 0 for BufSize to FAMENum64ToStr() it leaves the Buffer unchanged
+and returns directly without converting and it does not like in the AutoDocs
+explained the converting without checking for the buffer size.
+You currently have to handle the size of your buffer - 1 to the function.
+This bug has been fixed in FAME.library 5.
+
+Using FAMENum64ToStr():
+
+void UseFAMENum64ToStr( void )
+{
+  /*
+   * Define one 64 bit variable to work with and a buffer.
+   */
+
+  ULONG Value64[2];
+  char  Buffer[256];
+
+  /*
+   * We now initialize the 64 bit variable with a value.
+   *
+   * In this case we fill the value: 10000000000 = 10 giga bytes.
+   * 10 GB is more than a 32 bit ULONG can hold.
+   *
+   * Value64[ 0 ] will be set to 2, because element 0 is the
+   * higher ULONG. Element 1 which is the lower ULONG will be
+   * set to 1410065408.
+   *
+   * 2 because this indicates twice the size of 32 bit + 1:
+   *
+   * 2 * (2 ^ 32 + 1) = 8589934592
+   *
+   * 1410065408 because 8589934592 + 1410065408 = 10000000000
+   */
+
+  Value64[ 0 ] = 2;
+  Value64[ 1 ] = 1410065408;
+
+  /*
+   * Now call FAMENum64ToStr() to convert the value into the buffer.
+   */
+
+  FAMENum64ToStr( Value64[ 0 ], Value64[ 1 ], FNSF_GROUPING | FNSF_NUMLOCALE, 255, Buffer );
+}
+
+Especially for FAME user.data:
+
+void UseFAMEUserNum64ToStr( void )
+{
+  /*
+   * Define a user structure to work with and a buffer.
+   */
+
+  char  Buffer[256];
+
+  struct User MyUser;
+
+  /*
+   * Now let's say a user get's loaded into "struct User MyUser".
+   */
+
+  // ...
+
+  /*
+   * Now call FAMENum64ToStr() to convert the upload bytes into the buffer.
+   */
+
+  FAMENum64ToStr( MyUser . BytesUpHi, MyUser . BytesUpload, FNSF_GROUPING | FNSF_NUMLOCALE, 255, Buffer );
+}
+
+[5.4] FAMEIsEqual64()
+---------------------
+
+Prototype:
+
+extern long FAMEIsEqual64( ULONG SrcHi, ULONG SrcLo, ULONG DestHi, ULONG DestLo );
+                                  D0           D1            D2            D3
+
+Using FAMEIsEqual64():
+
+void UseFAMEIsEqual64( void )
+{
+  /*
+   * Define a user structure to work with.
+   */
+
+  struct User MyUser;
+
+  /*
+   * Now let's say a user get's loaded into "struct User MyUser".
+   */
+
+  // ...
+
+  /*
+   * Now call FAMEIsEqual64() to check if the upload bytes are
+   * the same as the download bytes.
+   */
+
+  if( FAMEIsEqual64( MyUser . BytesUpHi, MyUser . BytesUpload, MyUser . BytesDownHi, MyUser . BytesDownload ))
+  {
+    Printf( "\nEqual.\n\n" );
+  }
+  else
+  {
+    Printf( "\nNot equal.\n\n" );
+  }
+}
+
+[5.5] FAMEIsLower64()
+---------------------
+
+Prototype:
+
+extern long FAMEIsLower64( ULONG SrcHi, ULONG SrcLo, ULONG DestHi, ULONG DestLo );
+                                  D0           D1            D2            D3
+
+Using FAMEIsLower64():
+
+void UseFAMEIsLower64( void )
+{
+  /*
+   * Define a user structure to work with.
+   */
+
+  struct User MyUser;
+
+  /*
+   * Now let's say a user get's loaded into "struct User MyUser".
+   */
+
+  // ...
+
+  /*
+   * Now call FAMEIsLower64() to check if the upload bytes are
+   * lower than the download bytes.
+   */
+
+  if( FAMEIsLower64( MyUser . BytesUpHi, MyUser . BytesUpload, MyUser . BytesDownHi, MyUser . BytesDownload ))
+  {
+    Printf( "\nLower.\n\n" );
+  }
+  else
+  {
+    Printf( "\nNot lower, possible higher or equal.\n\n" );
+  }
+}
+
+[5.6] FAMEIsHigher64()
+----------------------
+
+Prototype:
+
+extern long FAMEIsHigher64( ULONG SrcHi, ULONG SrcLo, ULONG DestHi, ULONG DestLo );
+                                  D0           D1            D2            D3
+
+Using FAMEIsHigher64():
+
+void UseFAMEIsHigher64( void )
+{
+  /*
+   * Define a user structure to work with.
+   */
+
+  struct User MyUser;
+
+  /*
+   * Now let's say a user get's loaded into "struct User MyUser".
+   */
+
+  // ...
+
+  /*
+   * Now call FAMEIsHigher64() to check if the upload bytes are
+   * higher than the download bytes.
+   */
+
+  if( FAMEIsHigher64( MyUser . BytesUpHi, MyUser . BytesUpload, MyUser . BytesDownHi, MyUser . BytesDownload ))
+  {
+    Printf( "\nHigher.\n\n" );
+  }
+  else
+  {
+    Printf( "\nNot higher, possible lower or equal.\n\n" );
+  }
+}
+
+[5.7] FAMENum64Comp()
+---------------------
+
+Prototype:
+
+extern long FAMENum64Comp( ULONG SrcHi, ULONG SrcLo, ULONG DestHi, ULONG DestLo );
+                                  D0           D1            D2            D3
+
+Using FAMENum64Comp():
+
+void UseFAMENum64Comp( void )
+{
+  /*
+   * Define a user structure to work with.
+   */
+
+  struct User MyUser;
+
+  /*
+   * Now let's say a user get's loaded into "struct User MyUser".
+   */
+
+  // ...
+
+  /*
+   * Now call FAMENum64Comp() to check if the upload bytes are
+   * lower, equla or higher than the download bytes.
+   */
+
+  switch( FAMENum64Comp( MyUser . BytesUpHi, MyUser . BytesUpload, MyUser . BytesDownHi, MyUser . BytesDownload ))
+  {
+    case 1:
+
+      Printf( "\nHigher.\n\n" );
+
+    break;
+    case 0:
+
+      Printf( "\nEqual.\n\n" );
+
+    break;
+    case -1:
+
+      Printf( "\nLower.\n\n" );
+
+    break;
+  }
+}
+
+[5.8] FAMEStrTo64()
+-------------------
+
+Prototype:
+
+extern long FAMEStrTo64( STRPTR String, ULONG * DestHi, ULONG * DestLo );
+                                  A0              A1              A2
+
+Using FAMEStrTo64():
+
+void UseFAMEStrTo64( void )
+{
+  /*
+   * Define one 64 bit variable to work with and a buffer.
+   */
+
+  ULONG Value64[2];
+  char  Buffer[256];
+
+  /*
+   * Let's fill the buffer with a 64 bit number.
+   */
+
+  strcpy( Buffer, "12345678911234567892" );
+
+  /*
+   * Now we convert it into the 64 bit variable.
+   */
+
+  FAMEStrTo64( Buffer, Value64[ 0 ], Value64[ 1 ] );
+}
+
+[5.9] FAMEMulU64L()
+-------------------
+
+Prototype:
+
+extern long FAMEMulU64L( ULONG SrcHi, ULONG SrcLo, ULONG * DestHi, ULONG * DestLo );
+                                D0           D1              A0              A1
+
+Using FAMEMulU64L():
+
+void UseFAMEMulU64L( void )
+{
+  /*
+   * Define a 64 bit variable to work with.
+   */
+
+  ULONG Value64[2];
+
+  /*
+   * We now initialize the 64 bit variable with a value.
+   *
+   * In this case we fill the value: 10000000000 = 10 giga bytes.
+   * 10 GB is more than a 32 bit ULONG can hold.
+   *
+   * Value64[ 0 ] will be set to 2, because element 0 is the
+   * higher ULONG. Element 1 which is the lower ULONG will be
+   * set to 1410065408.
+   *
+   * 2 because this indicates twice the size of 32 bit + 1:
+   *
+   * 2 * (2 ^ 32 + 1) = 8589934592
+   *
+   * 1410065408 because 8589934592 + 1410065408 = 10000000000
+   */
+
+  Value64[ 0 ] = 2;
+  Value64[ 1 ] = 1410065408;
+
+  /*
+   * Now we multiply it with a 32 or 64 bit bit value.
+   * In our case 32 bit - multiply with 10.
+   */
+
+  FAMEMulU64L( 0UL, 10UL, Value64[ 0 ], Value64[ 1 ] );
+}
+
+[5.10] FAMEDivU64L()
+--------------------
+
+Prototype:
+
+extern long FAMEDivU64L( ULONG SrcHi, ULONG SrcLo, ULONG * DestHi, ULONG * DestLo );
+                                D0           D1              A0              A1
+
+Using FAMEDivU64L():
+
+void UseFAMEDivU64L( void )
+{
+  /*
+   * Define a 64 bit variable to work with.
+   */
+
+  ULONG Value64[2];
+
+  /*
+   * We now initialize the 64 bit variable with a value.
+   *
+   * In this case we fill the value: 10000000000 = 10 giga bytes.
+   * 10 GB is more than a 32 bit ULONG can hold.
+   *
+   * Value64[ 0 ] will be set to 2, because element 0 is the
+   * higher ULONG. Element 1 which is the lower ULONG will be
+   * set to 1410065408.
+   *
+   * 2 because this indicates twice the size of 32 bit + 1:
+   *
+   * 2 * (2 ^ 32 + 1) = 8589934592
+   *
+   * 1410065408 because 8589934592 + 1410065408 = 10000000000
+   */
+
+  Value64[ 0 ] = 2;
+  Value64[ 1 ] = 1410065408;
+
+  /*
+   * Now we divide it with a 32 or 64 bit bit value.
+   * In our case 32 bit - divsion by 10.
+   */
+
+  FAMEDivU64L( 0UL, 10UL, Value64[ 0 ], Value64[ 1 ] );
+}
+
+[6] Last Words
+--------------
+
+This is everything you need to know about 64 bit variables and you now will
+be ready to update your existing tools and doors for FAME.
+
+As you can see it's not much work to update existing programs to support
+64 bit and it will be very very important that as many as possible tools will
+be able to handle those 64 bit variables and not only new developed tools,
+because as told above an old tool can in some special cases fake the bytes
+uploaded / downloaded so that they are totally incorrect.
+
+An example for such an tool are NUKER doors, because they are changing
+the bytes of the user and this could cause big trouble.
+
+[7] Contact
+-----------
+
+If you need to know more informations or just to come in contact with us
+you can reach the FAME Development Team at:
+
+   ______ __ __ _____ __ _____ __ __ ________ _____ _____ __
+ _ )  ._ Y_ | _Y     Y__Y_   _Y  | _Y       _Y   __Y    _Y  l_
+  \_  |/  / | \_  |  |   / `-\_    \_  |  | \_  _/\_  | \_  _/_
+   |   __/  |  |  |  |  /--,  |  |  |  |  |  |  l  |  |  |  l  |
+   l__|  l_____l__|  l_/l__   l__|  l__|  |  l__   l__|  l__   |
+       2F         `--'     `--'  `--'  `--l__|  `--'  `--'  `--'
+                            _______
+                            |\  /\__, .
+
+                       A4ooo/o4o aT 4oMHZ
+                         sYSTEM-cHIEFS:
+                    14mB rAM/1.6gB HD-sPACE
+                      SieGeL/tRSi & aRGON
+· (tRSi/F/X/T-iNNOVATiON) WHQ & bETA sITE! · fAME sUPPORT BBS ·
+    ! sUPPORTING pD and sHAREWARE oNLY oN aMIGA aND IBM-PC !
+               cALL #0: +49(0)30 614 25 51 (v.34)
+
+You can also have a look at our WWW pages:
+
+                   www.trsi.de/inno/
+                   www.trsi.de/inno/strider/index.html
+                   www.trsi.de/inno/siegel/index.html
+
+Or contact us under:
+
+                        strider@trsi.de
+                         siegel@trsi.de
+                        beatnik@trsi.de
+
+<EOF>

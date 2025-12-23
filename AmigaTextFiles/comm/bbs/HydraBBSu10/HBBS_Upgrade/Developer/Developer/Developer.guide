@@ -1,0 +1,296 @@
+@DataBase HBBS_SDK
+
+@Node Main "HydraBBS Software Development Kit"
+
+  HydraBBS SDK for HydraBBS V1.10
+  ===============================
+
+
+    For now there's not much in the way of an SDK, just a few example files
+    and some .txt files, all of which you should read.
+
+    All the source code here can be compiled with SAS/C, and, with a little
+    modification, Storm C 3.0.
+
+    If you want to know more about developing doors PLEASE get in contact with
+    me ASAP as I'd *love* to help you out..
+
+    Really!
+
+    No, I mean it.  It'd be great...
+
+    If your work is good I might even include it in the next release
+    of HydraBBS!
+
+    Click @{"here" link HBBS:HBBS.Guide/Author} if you need to contact me!
+
+
+    Please read the following information:
+
+    @{"Door Notes" link HBBS:Docs/Doors/DoorIndex.guide/DoorNotes}
+
+    @{"Getting Started" link GettingStarted} (in door coding, that is..)
+
+    @{"Tips!" link Tips}
+
+    AutoDocs (in HBBS:Developer/Docs)
+
+    @{"Debugging" link Debugging}
+
+@EndNode
+
+@Node GettingStarted "Getting Started"
+
+  Getting Started
+  ===============
+
+    To create any doors for HBBS you really should get hold of the full source
+    code to it, when you have got it you'll be able to see loads of examples
+    and be able to figure out what does what much more easily.
+
+    @{" Creating your first door " link FirstDoor}
+
+@EndNode
+
+@Node FirstDoor "Creating your first door"
+
+  Creating your first door
+  ========================
+
+  To create a door all you have to do is this:
+
+  1) go to wb, find HBBS:Developer/ExampleDoor/
+
+  2) select icon/copy from the menu to create a copy of the directory and
+     all the files that are in it..
+
+  3) Rename it to the name of your door
+
+     Note:
+
+     If your door is called NOT called by a user typing a command
+     at the BBS command prompt then it is a SYSTEM door, and should
+     go in the HBBS:Doors/System/ directory when it is compiled.
+     Otherwise it is a USER door, and should go in HBBS:Doors/User/
+
+  4) Open your new directory, in it you will see several files, the
+     important ones are:  Main.C, Build, !NukeObjects, and !Update.
+
+     !Update and !NukeObjects are just AmigaDOS scripts to move files to
+     HBBS:Doors/[User|System]/<yourdoordir>/<yourdoorname>.HBBS and to
+     delete #?.o respectivly..
+
+  5) Load the file "!Update" into a text editor and edit it so that
+     it copies the file called "Main", that the compiler produces, to the right
+     place.
+
+  6) Now you need to set your door up so that hbbs can run it, to do this you
+     need to edit a file in any Commands directory, there's one in each
+     conference, one in each node directory and one in HBBS:commands.  The file
+     you need to edit depends on a) what type of door it is and b) what the
+     minimum access level a user must have before thay can run it.
+
+     If it is a system door then you'll need to edit the file called "System"
+     in any commands dir.
+
+     If it's a user door then you'll need to edit either "Level_Global"
+     (all users can use it no matter what their access level is) or
+     "Level_<acslevel>" where <acslevel> is the minimum access level the user
+     must have to run your door.  e.g. "Level_50"
+
+     Once you've decided which file you need to edit just load it up into a
+     text editor.
+
+  7) you now need to add a few lines to the file, these are as follows
+
+     <Command>_Type_<num>=NORMAL
+     <Command>_Door_<num>=<door file>
+
+     the following parameters are optional.
+
+     <Command>_Debug_<num>=YES|NO
+     <Command>_Params_<num>=<params>
+
+     <num> above means the order in which the doors are run, you can run as many
+     doors one after the other as you like, if your door fails and another
+     following door relies on your door's output then just call
+     DOOR_Continue(FALSE); and the doors following your one will not get run
+     (see the download door's source for an example..)
+
+     the <params> are passed to your door as N_ND->CurrentDoor->SystemOptions,
+     it's just a string so you can just parse it as you would a normal string.
+
+     Do NOT edit or change the contents of N_ND->CurrentDoor->SystemOptions.
+
+     Here's a fictional example for a joinconf door:
+
+     J_Type_1=NORMAL
+     J_Door_1=HBBS:Doors/User/Download/Download.HBBS {N} {O}
+     J_Debug_1=NO
+     J_Type_2=NORMAL
+     J_Door_2=HBBS:Doors/User/Stats/Stats.HBBS
+     J_Params_2=JOINEDCONF
+
+  8) thats it!..  it sounds complicated but it really is incredibly
+     easy and simple one you've done it once...
+
+     Note: if you want to use a source code debugger, or other tools, on your
+     door then you can set <command>_Debug_<num> to YES or TRUE (or ON :-) and
+     when the door is called a window will open telling you what parameters
+     to run your program with..   so if you are using CPR (line debugger with SAS/C)
+     then call your door as CPR <door> <nodenum> <params> and bob's your uncle..  a
+     bit easier than debugging a door in /x :-)
+
+     If anyone wants me to add a <command>_Debugger_<num> option to the command
+     config files then drop me a line (see the docs for contact info..)
+
+@EndNode
+
+@Node Tips "Door Coding Tips"
+
+  Door Coding Tips
+  ================
+
+  when you write strings to the bbs you can use either DOOR_SysopText(string) or
+  DOOR_WriteText(string), you *MUST* use CR+LF ("\r\n") at the end of a line. not
+  just "\n", (this is due to comms packages and the console.device... and it's
+  not just HBBS that needs this..   Use DOOR_SysopText(string) to display stuff
+  on the sysop's watch window ONLY, or use DOOR_WriteText(string) to write stuff
+  to the serial port *AND* the sysop's watch window.  This way you can implement
+  debugging information for the sysops to see, but the user won't! great huh!
+
+  Check out DOOR_GetLine(), this is the main thing you use to get input from the
+  user.
+
+  To read a line of text, with history, and timeout after 20 secs, max len 80
+  chars and a prompt string of "Banana" do this:
+
+  DOOR_GetLine(GL_DISPLAY|GL_EDIT|GL_HISTORY,'\0',80,20,"Banana");
+
+  getline returns different numbers depending on what happened, check out
+  HBBS:Source/Common/Defines.h and search for IN_#?
+
+  e.g.  a timeout returns IN_TIMEOUT, a normal line would be IN_GOTLINE, or
+  IN_LOSSCARRIER.
+
+  after EVERY call to DOOR_GetLine() you *MUST*, and I mean *MUST*, check the
+  status of N_ND->OnlineStatus, if it is not equal to OS_ONLINE then your door
+  must exit *without* sending *ANY* more data to the serial port..
+
+  Then, if the user is still on-line, the string returned will be placed in
+  N_ND->CurrentLine which is a pointer to a null terminated string.
+
+  I cannot express just HOW important this is, if you don't do the online
+  checking your door will cause the bbs to stop responding and may even cause
+  crashes.
+
+  If you disobey this I will personally come to your house and slap you round
+  the head with a wet haddock :-)
+
+  When you have written your door you should login locally to a node and hangup
+  at every point in your program that your door uses door_getline() to make sure
+  it is exiting correctly.
+
+  Also check out HBBS_LoadConfig(), HBBS_CreateConfig(), HBBS_GetSetting(),
+  HBBS_AddCfgItem(), HBBS_RemoveCfgItem(), HBBS_SaveConfig(), and
+  HBBS_FlushConfig() for some COOOOOL standard configuration file loading
+  and saving routines, check out Node_Main.C for some examples....
+
+  you can't have config item options as follows
+
+  Item_XX
+  Item_XX_Blah
+
+  as HBBS_RemoveCfgItem("Item_#?") would remove ALL the items above..
+
+  instead the door coder must use options like these:
+
+  Item_XX
+  Item_Blah_XX
+
+  oh, and don't use ?'s or #?'s in item names :-)
+
+  Also, take a copy of N_ND->CurrentLine before passing it to another
+  door as a parameter (which might also use Get_Line()
+
+  When creating files for any reason, don't include the user's handle
+  as part of the filename (it may contain invalid AmigaDOS characters)
+  Also, it's not unique.  (two users may swap handles!) Use the
+  User's UserID number instead.
+
+  When dealing with user's handles, remember they *can* contain spaces!!
+
+  to make text output faster, call DOOR_WriteText() as little times as possible
+
+  e.g. say you were writing your help for a door to the screen and you were doing
+  it like this...
+
+  DOOR_WriteText("This is a cool door\r\n");
+  DOOR_WriteText("and here is some \r\n");
+  DOOR_WriteText("rather cool help text\r\n");
+  DOOR_WriteText("hope you like it!\r\n");
+
+  DON'T, do it like THIS instead..
+
+  DOOR_WriteText("This is a cool door\r\n"
+                 "and here is some \r\n"
+                 "rather cool help text\r\n"
+                 "hope you like it!\r\n");
+
+  The above examples BOTH do the same thing, but the second example is better
+  because a) code size is smaller b) execution time is faster and c) screen
+  output is faster!
+
+
+  code routines that are called lots of times in ASM...
+  (but comment it well so you can convert it to PowerPC code later)
+
+
+  Load your doors own private config files from "ProgDir:MyConfig.CFG" rather
+  than specifying an absolute path like "HBBS:Doors/MyDoor/MyConfig.CFG"
+
+  This makes it easier for sysops to move files where they like..
+
+  (you can also get the name of the directory that your program was run from
+  by getting argv[0] and turning the last / into a NULL
+
+  e.g.  argv[0]="MyHD:hbbs/doors/mydirectory/myfile.hbbs"
+                                            ^ change this to a 0....
+
+
+  Have a look at the autodocs for the HBBSCommon.library and HBBSNode.library
+  as there are loads of really handy functions that make your life
+  easier.
+
+  Write docs for your door, see HBBS:Docs/Doors/BlankDoor.guide for a template
+  amiga guide file..
+
+  Test it before you release it.
+
+  Send me a copy of it (http://come.to/hydrabbs)
+
+  If you've got any coding questions, use the message board on the web site
+  or e-email me direct. (see http://come.to/hydrabbs)
+
+@EndNode
+
+@Node Debugging "Debugging"
+
+  Debugging
+  =========
+
+    Get hold of the following tools, read the docs and use them!
+
+    SegTracker
+    Enforcer/Cyberguard
+    MungWall (and MungList)
+    Sushi
+
+    CodeWatcher
+    StackWatcher
+
+    All tools can be found on aminet or the Developers CD (The place that
+    creates and sells the aminet cd's can supply this)
+
+@EndNode
+

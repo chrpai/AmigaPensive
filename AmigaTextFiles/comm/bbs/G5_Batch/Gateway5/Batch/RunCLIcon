@@ -1,0 +1,69 @@
+.key IDENTIFY,AUXIN,AUXOUT,OPT1,OPT2,OPT3,OPT4,OPT5,OPT6,OPT7,OPT8,OPT9,OPT10,OPT11,OPT12,OPT13,OPT14,OPT15,OPT16,OPT17,OPT18,OPT19,OPT20
+.bra {
+.ket }
+
+FailAt 100    ;;; Nur, weil kein User hier rein kommt nutzt
+
+If {IDENTIFY} EQ "_G5PRO"
+	WriteProt Doors:Protokoll ":::.key aus RunCLICON:::" {IDENTIFY} {AUXIN} {AUXOUT} {OPT1} {OPT2} {OPT3} {OPT4} {OPT5} {OPT6} {OPT7} {OPT8} {OPT9} {OPT10} {OPT11} {OPT12} {OPT13} {OPT14} {OPT15} {OPT16} {OPT17} {OPT18} {OPT19} {OPT20}
+EndIf
+
+; $VER: Gateway-5-CLI-CON-Door V1.2 (21.08.1998) / (c) Michaela Prüß
+
+; CON-Start für CLI-Door-Startscript / Gateway-BBS (c) by Michaela Prüß
+; Erstinstallation CLI-Doors 17.8.98
+
+If {IDENTIFY} NOT EQ "_G5PRO"             ; Protokollmodus? NEIN ->2
+	IF {IDENTIFY} NOT EQ "_G5RUN"         ; ->2 Kein Prot, kein Run, NO BOX!
+		Skip NOBOX
+	EndIf
+EndIf
+
+; Wir basteln uns eine gefakte Shell-Startup
+;
+; 1.Zeile: DOOR-Start
+; 2.Zeile: EndShell, um das Hilfsprogramm und die Shell zu beenden.
+
+G5_Bin:Echo "FailAt 100" > Ram:DOOR
+G5_Bin:Echo "{OPT1} {OPT2} {OPT3} {OPT4} {OPT5} {OPT6} {OPT7} {OPT8} {OPT9} {OPT10} {OPT11} {OPT12} {OPT13} {OPT14} {OPT15} {OPT16} {OPT17} {OPT18} {OPT19} {OPT20}\n" >>Ram:DOOR
+G5_Bin:Echo "ENDSHELL" >> Ram:DOOR
+
+If {IDENTIFY} EQ "_G5PRO"
+	WriteProt Doors:Protokoll ":::Optionen in 'Ram:DOOR':::" {OPT1} {OPT2} {OPT3} {OPT4} {OPT5} {OPT6} {OPT7} {OPT8} {OPT9} {OPT10} {OPT11} {OPT12} {OPT13} {OPT14} {OPT15} {OPT16} {OPT17} {OPT18} {OPT19} {OPT20}
+EndIf
+
+;;; NewShell ist im KickStart!
+;;; Die Ansi-Shell ist ein Binärprogramm
+;;; Entweder a.) Kick Patchen (neee, dann lieber garnicht"
+;;;          b.) Ansi-Shell patchen. No Problem, aber macht man nicht
+;;;              Besser: Den Autor kontakten (dauert nur länger)
+;;;          c.) Mit Alias den Aufruf von NewShell durch die Ansi-Shell
+;;;              abfangen, NewShell ersetzen und den Rest des Aufruf's 
+;;;              dann mit dem Semikolon als Kommentar ignorieren.
+;;;              100 % saubere Lösung, und sogar 100% legal, dafür
+;;;              muß man bei Updates aufpassen.
+;;; --------------------------------
+;;; "Gepatchten" Aufruf durchführen.
+;;; --------------------------------
+;;; Nach dem Ende wieder zurücksetzen (UNALIAS).
+;;;
+
+Copy Ram:Door Ram:DoorStart
+Alias "NewShell WINDOW CON" "NewShell WINDOW CON:0/11/640/245//SCREENansishell/NODRAG/NOBORDER/NOSIZE/BACKDROP FROM Ram:DOOR *NUnAlias NewShell*N;"
+G5_Bin:AnsiShell
+UnAlias NewShell
+Delete Ram:DOOR#?
+
+END
+
+
+; BEGIN HIER ############## Kein interner Start der BOX! #################
+
+Lab NOBOX:
+
+if {OPT1} NOT EQ ""
+	{OPT1} {OPT2} {OPT3} {OPT4} {OPT5} {OPT6} {OPT7} {OPT8} {OPT9} {OPT10} {OPT11} {OPT12} {OPT13} {OPT14} {OPT15} {OPT16} {OPT17} {OPT18} {OPT19} {OPT20}
+EndIf
+
+Run G5_Bin:AnsiShell    ; RUN, weils einfach besser ist
+Echo "Die Ansi-Shell wurde gestartet"

@@ -1,0 +1,214 @@
+ 
+-------------------------------------*--------------------------------------
+                     ShadoeQWK v1.10 / ShadoeCRON v1.0
+                            User Documentation
+----------------------------------------------------------------------------
+
+I. Overview:
+
+   ShadoeQWK is a utility for the Shadoegate BBS System which enables
+ the importing and exporting of popular .QWK mail packets .
+ 
+   All configuration is done through a config file, and ShadoeQWK may
+ be set up to operate automatically at set times/events, through
+ ShadoeCRON.
+ 
+   ShadoeQWK currently imports messages at a rate of 8 msgs/sec on an
+ A3000/25 using normal sized mail traffic. For .QWK packets containing
+ USENET traffic, it imports at a rate of 5 msgs/sec. Exporting is
+ LIGHTNING fast, too much so for me to accurately measure (if anyone
+ out there cares to set up a simple test, I would love to know!).
+
+   ShadoeCRON is just that - a CRON-like utility who's sole purpose in
+ life is to sit quietly in the background and wait for certain times of
+ day, at which time it notifies the BBS via ENV: variables, and the BBS
+ then will perform such actions as dictated by the variable.
+
+   ShadoeQWK and ShadoeCRON were designed to work in tandem as an automatic
+ mail pickup/delivery system, but since their inception, I have found a 
+ host of other things they are useful for (mainly ShadoeCRON).
+
+II. Installation
+
+   ShadoeQWK and ShadoeCRON should reside somewhere on your logical path.
+ Shadoegate: is the usual place, but c: should work as well.
+   
+   Both utilities require a configuration file, 'message.areas' and 'qwk.cfg' for
+ ShadoeQWK, and 'event.dat' for ShadoeCRON. 'message.areas' is also
+ the config file for the BBS's message bases, so little or no modification
+ may be necessary for ShadoeQWK installation.
+  
+   'Event.dat' is quite simple to create. Each entry consists of 3 lines
+ of text which tells ShadoeCRON what to do for this event. The first line
+ of the file contains the total number of events that you will have.
+ Each three lines following that represents 1 event of the total,with
+ each line having a special meaning.
+ 
+   The first line of an event entry is the EVENT TYPE. ShadoeCRON currently
+ understands 3 types of events: MIDNIGHT (reset bbs pointers,etc), 
+ MAILRUN (pickup/deliver mail), and DOS (execute a dos command/script).
+ 
+   The second line of the each event entry is the EVENT TIME. Entries are in
+ 24-hour format, and only the hour and minute are used, followed by a trailing
+ colon (:).
+ 
+   The third and last line of each event entry is the EVENT COMMAND. This will
+ tell the BBS what command/action to be taken. Any valid DOS command may be
+ used.
+ 
+   Example 'event.dat' file:
+   -------------------------
+
+4                 --> 4 total events in the file              
+MIDNIGHT          --> the first event is of type MIDNIGHT
+00:00:            --> ShadoeCRON should perform this event at midnight
+flush             --> the command to be executed at this time
+MAILRUN           --> the second event is of type MAILRUN
+02:00:            --> ShadoeCRON executed this event at 2 am each day.
+getmail.bat       --> the command to be executed (script file that gets my mail)
+DOS               --> the third event is of type DOS
+02:30:            --> ShadoeCRON executes this event at 2:30 am each day.
+ShadoeQWK import  --> Command that the BBS will launch at this time.
+MAILRUN           --> and so on....
+03:00
+sendmail.bat
+
+   Now, lets take a look at what we have here:
+First, the BBS resets all message pointers,calls,ul/dl,etc.
+
+Second, at 2:00 am The BBS will execute a script which I have setup that
+calls my local mail feed and downloads my mail.
+
+Third, the BBS calls ShadoeQWK to import my newly aquired mail.
+
+Lastly, the BBS calls up another script at 3:00 am which will deliver
+(export) any new messages found by ShadoeQWK during its import.
+
+   As you can see, this combination can provide some pretty impressive
+ power.
+
+
+III. Setting up message areas for .QWK import/export
+----------------------------------------------------
+
+  Setting up your message areas for .QWK compatability is a little tricky,
+but once set up, it usually will not need to be changed.
+ 
+  ShadoeQWK requires that a logical device mail: be assigned,
+and message bundles are looked for there.
+
+EX: assign mail: dh0:work  (then d/l mail packets to dh0:work)
+
+  For each area that you wish to be .qwk compatable, you must enter
+a message area type of 'QWK' (case sensitive). ShadoeQWK will only
+perform operations on these areas! (See shadoegate.doc for specifics)
+
+  Each area that is set up for QWK mode must have the directory where the
+messages are stored named with the same name of the conference number that
+your host BBS (the one you call to get mail) has for that area. Example:
+I am calling FooBar BBS and I wish to get the following conferences:
+
+Conference #4944: rec.arts.sf.tv.babylon5
+Conference #4158: comp.sys.amiga.marketplace
+Conference #4156: comp.sys.amiga.hardware
+Conference #4161: comp.sys.amiga.programmer
+
+For these conferences, my shadoegate: directory would look like this:
+
+ SHADOEGATE:
+            file/
+            doors/
+            message/
+                   4944/          --> directory for conference #4944
+                   4158/          --> directory for conference #4158
+                   4156/          --> directory for conference #4156
+                   4161/          --> directory for conference #4161
+
+  For each area that is set up as QWK, you also need to enter a netname
+for the area. This is the name that will be displayed to the users when
+listing areas, etc. Each message area in QWK mode must also be named
+the same as the conference number of the BBS you are getting your mail
+from. This sounds VERY confusing, but it was done to avoid dependance on
+other software's *.NDX and control.dat files, normally found in most
+QWK packets. An example entry in message.areas for the above areas would
+look like this:
+ 
+4                          --> total number of message areas
+4944                       --> the name of this area (same as conference)
+1                          --> access level for this area
+shadoegate:message/4944/   --> FULL path to this area (dir name same as conf)
+20                         --> High message for this area
+1                          --> low message for this area
+150                        --> number of msgs to keeep in this area
+15                         --> last message that was exported
+QWK                        --> all-important area-type
+rec.arts.sf.tv.babylon5    --> the net-name for this area.
+4158                       --> the name of this area (same as conference)
+1                          --> access level for this area
+shadoegate:message/4158/   --> FULL path to this area (dir name same as conf)
+20                         --> High message for this area
+1                          --> low message for this area
+150                        --> number of msgs to keeep in this area
+15                         --> last message that was exported
+QWK                        --> all-important area-type
+comp.sys.amiga.marketplace --> the net-name for this area.
+4156                       --> the name of this area (same as conference)
+1                          --> access level for this area
+shadoegate:message/4156/   --> FULL path to this area (dir name same as conf)
+20                         --> High message for this area
+1                          --> low message for this area
+150                        --> number of msgs to keeep in this area
+15                         --> last message that was exported
+QWK                        --> all-important area-type
+comp.sys.amiga.hardware    --> the net-name for this area.
+4161                       --> the name of this area (same as conference)
+1                          --> access level for this area
+shadoegate:message/4161/   --> FULL path to this area (dir name same as conf)
+20                         --> High message for this area
+1                          --> low message for this area
+150                        --> number of msgs to keeep in this area
+15                         --> last message that was exported
+QWK                        --> all-important area-type
+comp.sys.amiga.programmer  --> the net-name for this area.
+
+Here is the directory tree again, with additional notes:
+
+    shadoegate:
+               file/
+               doors/
+               message/
+                      4944/  this is conf #4944 from my host bbs, so this
+                             is really 'rec.arts.sf.tv.babylon5'
+                      4158/  this is conf #4158, so this is really
+                             comp.sys.amiga.marketplace
+                      4156/  this is conf #4156, so this is really
+                             comp.sys.amiga.hardware
+                      4161/  this is conf #4161, so this is really
+                             comp.sys.amiga.programmer
+
+  This system was designed to work directly with PC Board (tm), but
+will also work with any other QWK bbs. For those that do not have
+the conferencing system, just name your area and your directory whatever
+that BBS calls their particular area.
+
+  The config file for ShadoeQWK is called 'qwk.cfg'. It consists of a few
+lines of text and is very simple to set up.
+
+
+  Thats it!.....good luck, and EMAIL me with any questions/comments,etc...
+my EMAIL address: rlw@the-matrix.com
+
+LINE 1: command for .lha QWK packets
+LINE 2: command for .zip packets
+LINE 3: mode command (perently only 'quiet' supported) 
+LINE 4: name of the QWK packet to open , minus the .qwk extension
+LINE 5: name of .REP packets to be uploaded from users (minus the .rep extension!)
+
+Thats it....simple,right?!
+
+  PS: all message areas MUST HAVE a file called 'lastread' in their
+directory! When setting up a new area, just copy the file from any other
+area into the new one. This file holds lastread pointers for the area,
+and the BBS will recognize faulty pointers and fix them automatically.
+
+                                             -Rick

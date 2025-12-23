@@ -1,0 +1,273 @@
+\   /
+ \ /
+  X		  V1.13 / 24.7.1991
+ / \
+/   \PRD  ist  ein  Utility  zum  einfachen Ansteuern der XPR.libraries vom
+CLI bzw.  von anderen Programmen (Points, Boxsoftware usw.).  Sämtliche für
+die XPR.libraries relevanten Parameter können per Kommandozeile eingestellt
+werden,  weiterhin wird Batch-Upload unterstützt (echtes Batch-Upload, kein
+Patternmatching).
+
+Es  existieren zwei Versionen von XPRD:  "XPRD" und "XPRD030".  Während die
+erste  Version  für  jeden  Amiga  geeignet  ist,  benötigt "XPRD030" einen
+Rechner  mit  68020  oder 68030-Prozessor.
+
+Der Aufruf von XPRD sieht folgendermaßen aus:
+
+    XPRD [-optionen] SEND|RECEIVE [File1 [File2...]]
+
+SEND oder RECEIVE (werden nur am ersten Buchstaben unterschieden) bestimmen
+die  auszufuehrende Operation, File1 und folgende bezeichnen die Filenamen.
+Werden  die  Filenamen  weggelassen,  wird automatisch ein Default-Filename
+"NAPFSUELZE"  vergeben;  dies  ist  nur sinnvoll für Protokolle, welche die
+Filenamen  vom  Sender  erhalten  (z.B.  Z-Modem).  Wildcards bei Filenamen
+sind nicht möglich und auch nur wenig sinnvoll.
+
+Die XPR-Libraries melden SUCCESFULL/FAILED; dies wird in den entsprechenden
+AmigaDOS-Returncode  ERROR_OK  (0)  und  ERROR_FAILED  (20) umgesetzt; beim
+Aufruf  von  XPRD  mittels  der  DOS-Funktion "Execute()" besteht keinerlei
+Möglichkeit,  an  diesen Wert zu kommen.  Dafür steht die Funktion "-r" zur
+Verfügung.
+
+Der  Aufruf  von  XPRD  ohne  Parameter  oder mit einem "?" gibt eine kurze
+Optionenübersicht  aus.   Genauere  Infos über die Programmversion sind mit
+"XPRD -i" abzurufen.
+
+Folgende Optionen stehen zur Verfügung:
+
+    -l<libname> 	bestimmt den Namen der XPR-Library. Defaultmäßig
+			wird "xprzmodem.library" verwendet
+
+    -o<string>		bestimmt den Optionsstring für XProtocolSetup().
+			Der Aufbau des Strings ist von der verwendeten
+			Library abhängig
+
+    -d<devname> 	bestimmt das zu benutzende serielle Device. Default
+			ist "serial.device", es ist so aber auch möglich,
+			das Supra-ZI-Device ("modem?.device") oder die
+			Devices der ASDG-IO-Karte ("sxbios.device")
+			einzusetzen. Die Commodore-Karte wird weiterhin
+			über das "serial.device" angesteuert, dabei ist
+			auf die Unit-Nummer zu achten
+
+    -u<unit>		bestimmt die Unitnummer für das serielle Device.
+			Default ist "0"
+
+    -b<num>		bestimmt die Größe des Read-Buffers in k. Fehlt
+			der Parameter (oder ist er 0), wird die
+			voreingestellte Größe aus den Preferences
+			verwendet. ACHTUNG: Hier sollte man nicht sparen,
+			bei Größen unter 16k kommt es recht schnell zu
+			Überläufen (werden von der Library als TIMEOUTs
+			gemeldet), insbesondere bei hohen
+			Geschwindigkeiten. Ein guter Mittelwert ist 64k
+
+    -x[X][S]<baud>	setzt die Baudrate des seriellen Device. Wird
+			dieser Wert nicht gesetzt, öffnet XPRD das
+			Device ohne Änderung des Werts
+			Das optionale X bewirkt RTS/CTS-Handshake, das
+			optionale S bewirkt das Öffnen mit SERF_SHARED
+			(diese Option ersetzt das frühere "-s")
+
+    -p<xpos,ypos>	bestimmt die X- und Y-Position des XPRD-Fensters.
+			Die Werte werden auf gültiges Maß zurechtgestutzt
+
+    -m<logfile>		aktiviert die Logfile-Option; falls kein Logfile
+			angegeben ist, wird "XPRD.log" angenommen.
+			Aufbau des Logfile:
+
+				X Zeit/Datum Text
+
+			wobei X ein einzelnes Zeichen ist:
+
+				! einfache Meldung von XPRD
+				+ Meldung aus der Library
+
+    -r<errorfile>	Gibt den Returnwert von XPRD in die Datei
+			<errorfile> als Klartext aus
+
+    -q			XPRD öffnet KEIN Fenster und gibt keine Informationen
+			aus; im CLI-Fenster erscheint die Meldung "Doing
+			transfer in quiet mode" als Bestätigung, das keine
+			Initialisierungsfehler aufgetreten sind
+
+    -n			unterdrückt die knapp 3 Sekunden lange Pause nach
+			dem Abschluß der Operation, damit erkennbar ist, ob
+			das Up/Download erfolgreich war
+
+    -f<$xxxxxxxx>	Läßt das XPRD-Fenster auf dem vordersten Screen
+			öffnen (Vorsicht, unbedingt nur bei Aufruf aus
+			anderen Programmen verwenden, wenn gewährleistet
+			ist, daß der Screen während der Laufzeit von XPRD
+			geöffnet bleibt!). Hinter "-f" kann, als 8stelliger
+			Hexwert, explizit eine Screenadresse angegeben
+			werden. Der Wert 0 hat dabei dieselbe Wirkung wie
+			"-q"
+
+    [-s			Öffnet das serielle Device im SHARED-Modus]
+			Diese Option bitte nicht mehr benutzen; siehe
+			jetzt unter "-x"
+
+    -c			Aktiviert den Carrier-Detect; bei jedem Aufruf
+			der Funktion xpr_chkabort() wird auch auf
+			fehlenden Carrier geprüft und eventuell als
+			User-Abbruch gemeldet
+
+    -i			Zeigt Copyright-Informationen sowie die
+                        Versionsnummer und Zeit/Datum der Compilierung
+
+XPRD implementiert bisher folgende XPR-Routinen:
+
+  fopen,fclose,fread,fwrite,fseek,finfo,ffirst,fnext
+  sread,swrite,sflush
+  displayupdate,checkabort,unlink,setserial
+
+Die   Ein/Ausgabe-Routinen  von  XPRD  sind  auf  maximale  Geschwindigkeit
+optimiert  worden,  so  daß  der bestmögliche Datendurchsatz erreicht wird.
+Zum  Beispiel  wurde  die  vom  XPR-Standard  geforderte Datenpufferung mit
+blockweisem    Diskzugruff   vollkommen   weggelassen,   da   jede   bisher
+veröffentlichte  XPR-Library ihre eigenen Puffer anlegt und durch zweifache
+Pufferung nur Zeit verloren geht.
+
+Die  serielle  Schnittstelle wird mit ihren letzten Einstellungen geöffnet,
+d.h.   es  werden  die  Einstellungen  vom  aufrufendem  Programm (durchaus
+sinnvoll,  funktioniert  leider nicht mit jedem "serial.device"!) bzw.  aus
+den  Preferences  übernommen.   Die  Größe  des Read-Buffers ist allerdings
+explizit  bestimmbar,  da  es bei Übertragungen bei hohen Geschwindigkeiten
+sehr   schnell   zu   Bufferüberläufen   kommen  kann,  wenn  nur  der  für
+Textübertragung  ausreichende Puffer zur Verfügung steht.  Hier sollte also
+im  Interesse  einer hohen übertragungssicherheit nicht gegeizt werden, ein
+Wert  von  64k ist ein guter Kompromiß.  Bitte beachten, daß GFA-Basic beim
+Schließen   der   seriellen   Schnittstelle   die   Angewohnheit  hat,  die
+Einstellungen aus den Preferences wieder herzustellen.
+
+Die  Funktion  "sread"  wurde,  abweichend vom Standard, so modifizert, daß
+beim  Anklicken  das  Closegadgets  der Lesevorgang sofort mit einem Fehler
+abgebrochen   wird  und  so  ein  schnelleres  Beenden  einer  fehlerhaften
+Übertragung möglich ist.
+
+XPRD  ist in Lattice C V5.1 geschrieben, der Sourcecode ist auf Wunsch beim
+Autor (ich hätte jetzt auch schreiben können:  Bei mir) erhältlich.
+
+XPRD  ist  Freeware,  es  darf, solange unverändert, beliebig weitergegeben
+werden.  Soll XPRD mit einem kommerziellen Projekt vertrieben werden, bitte
+vorher  anfragen!
+
+DIE  BENUTZUNG  VON  XPRD  IN ANLAGEN, DIE DER HERSTELLUNG ODER PLANUNG VON
+WAFFEN  ALLER  ART  DIENEN, IST UNTERSAGT.  EBENFALLS IST DIE BENUTZUNG VON
+XPRD  DURCH PERSONEN, DIE IN IRGENDEINER FORM MITGLIED EINER MILITAERISCHEN
+ODER  GEHEIMDIENSTLICHEN ORGANISATION SIND, VERBOTEN.  Dies gilt NICHT fuer
+Wehr- und Zivildienstleistende.
+
+Eine Sharegebühr wird nicht erhoben und wäre auch unberechtigt, die XPRD ja
+ohne  den  XPR-Standard und die Libraries nutzlos wäre.  Wer also unbedingt
+Geld  loswerden  will,  sende  es  lieber  an  den  Erfinder  des  genialen
+XPR-Standards    (W.G.J.Langeveld)    oder    den    Programmierer   seiner
+Lieblings-XPR-Library  (in  der  Regel  dürfte  das  wohl Z-Modem sein :-).
+Huch,  das  bedeutet  ja,  das  ich  zum  Abkassieren ein eigenes Protokoll
+erfinden muß.  Hmm...mal überlegen...)
+
+Sendet Bug-Reports, Flames & Co. an:
+
+    Oliver Wagner
+    EMail : O.WAGNER@LINK-ESW.ZER (Z-Netz)
+    	    O.WAGNER@LINK-ESW.ZER.SUB.ORG (Internet)
+	    Oliver Wagner of 2:240/5600 (Fidonet)
+    Beutel: Auf dem Stein 5, 3441 Weißenborn, West Germoney
+    Teflon: (++49) (0)5659/518
+      Data: (++49) (0)5659/1307 (24h DST) §$§ link esw §$§
+
+Die  jeweils  neuste  Version  von  XPRD  steht  immer  in der LINK-ESW zum
+Download zur Verfügung (Brett /SUPPORT/XPRD).
+
+{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}
+
+Änderungen bei Version 1.01:
+----------------------------
+    - Flag für Window auf vordersten Screen
+    - Tastatur-Abbruch nur noch über die ESC-Taste
+    - Option für Größe von io_RBufLen
+    - kleinere interne Änderungen für höhere Geschwindigkeit
+
+Änderungen bei Version 1.02:
+----------------------------
+    - Funktion "xpr_unlink" implementiert (z.B. für ZModem "DY"-Option)
+
+Änderungen bei Version 1.03:
+----------------------------
+    - Flag für Öffnen mit SHAREDACCESS
+    - Anleitung überarbeitet
+
+Änderungen bei Version 1.04:
+----------------------------
+    - Option zum Setzen des Directorys (z.B. für ZModem Batchdownload)
+
+Änderungen bei Version 1.05:
+----------------------------
+    - Auf Wunsch diversester User :) Abbruch nur noch per CLOSEWINDOW.
+      Aufgrund eines Fehlers bei der Implementierung von xpr_serread()
+      wurde bei jedem IDCMP-Event abgebrochen, also bei auch bei jedem
+      RAWKEY, nicht nur bei ESC.
+    - Auf Wunsch diversester User :) Option zum Setzen der Baudrate
+    - Auf Wunsch diversester User :) Carrier-Detect-Option
+    - Möglichkeit, bei -f die Adresse einer Screen-Struktur zu
+      übergeben, um Multiport-Systeme vernünftig zu unterstützen
+    - Kein Filenamen mehr nötig, so daß Z-Modem-RECEIVE direkt
+      gestartet werden kann
+    - etwas mehr Information im Fenster: verwendetes Device,
+      Unit, Baudrate (auch, falls nicht mit -x gesetzt), Pfad
+    - Möglichkeit zur Positionierung des Fensters
+    - "-i"-Option zur Egoblähung des Autors
+
+Änderungen bei Version 1.06:
+----------------------------
+    - Logfile-Option
+    - Auswertung der XPR-Returncodes
+    - Returncode je nachdem, ob Übertragung erfolgreich
+    - "-r"-Errorcodeauswertung
+    - 68030-Version
+
+Änderungen bei Version 1.07:
+----------------------------
+    - Fehler bei "-f" beseitigt: Fenster wurde immer auf vordersten
+      Screen geöffnet
+    - 68020++-Version prüft auf Vorhandensein des entsprechenden Prozessors
+      und gibt Fehlermeldung statt 03-Guru aus...
+      (Kleine Info: XPRD030 ist mit 68030-Optimierung compiliert, läuft aber
+       trotzdem auf 68020-Prozessoren)
+
+Änderungen bei Version 1.08:
+----------------------------
+    - Fenster wird nicht mehr automatisch aktiviert (für Multitasking-
+      Anwendung mehr als sinnvoll :)
+    - Krabumms bei "-f" beseitigt (bitte um Nachsicht :)
+
+Änderungen bei Version 1.09:
+----------------------------
+    - der Aufruf von sflush() bei der Initialisierung wurde entfernt;
+      das sollte das Problem "TIMEOUT ERROR" vor der Übertragung
+      eigentlich lösen (allerdings keine Gewähr)
+    - endlich, endlich: "XPRD ?" liefert das, was es soll...
+
+VERSION  V1.10  EXISTIERT  NICHT,  DA  EINE  ANGEBLICHE,  GEFÄLSCHTE,  V.10
+KURSIERT  IST!  DIESE V1.10 IST NICHT VOLL LAUFFÄHIG!  BITTE NICHT BENUTZEN!
+
+Änderungen bei Version 1.11:
+----------------------------
+    - Logfile liefert endlich Informationen
+    - Flag für RTS/CTS-Handshaking und SHARED in -x; "-s"-Option entfernt
+
+Änderungen bei Version 1.12:
+----------------------------
+    - xpr_setserial() implementiert (geklaut aus Olsen Barthels TERM)
+    - XPRD öffnet sein Fenster nun auch richtig, wenn unter OS 2.0
+      ein anderer Font als TOPAZ_8 für den betreffenden Screen eingestellt
+      ist (ebenfalls: thanx Olsen :)
+    - ein xpr_gets() wird simuliert; damit laufen auch endlich
+      xprascii.library, xprjmodem.library, xprxmodem.library usw.usf.
+
+Änderungen bei Version 1.13:
+----------------------------
+    - V1.12 lief aufgrund eines Compilier-Fehlers nur mit 020/030-Rechnern
+    - "-q"-Funktion für Mailboxbetrieb
+    - interne Änderungen an sread() (experimentell :)

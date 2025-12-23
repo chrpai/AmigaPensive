@@ -1,0 +1,442 @@
+                               Gateway-5 MultiPort
+                               ===================
+
+
+Dokumentation (Stand: 04.07.1998)
+---------------------------------
+
+
+MultiPort ist ein Tool für Gateway-5! Es läuft nur mit Gateway-5 und
+darf auch nur in Verbindung mit einer lizensierten Gateway-5-Mailbox
+eingesetzt werden.
+
+MultiPort unterliegt dem Copyright von Michaela Prüß und Norman Thoss!
+Jede Verwendung (ausgenommen der Einsatz im Vereinslokal der Gateway-
+Mailbox) bedarf einer schriftlichen Einverständniserklärung!
+
+Jede Manipulation, Änderung sowie jeder Nachdruck dieser Anleitung oder
+eine Nachahmung bzw. Manipulation des Programmes sind Verletzungen des
+Copyright und werden entsprechend verfolgt!
+
+Derzeit lizensierte Gateway-5-Systeme:
+ - Gateway-BBS (Seriennummer Gateway001/Gateway5#1)
+ - Entwicklung Norman Thoss
+ - Entwicklung Michaela Prüß
+
+Zusätzlich lizensierte MultiPort-Versionen:
+ - TSG Schöneweide, öffentlicher Rechner (Standleitung)
+
+                                                 Michaela Prüß, Juni 1998
+-------------------------------------------------------------------------
+
+Das Tool:
+=========
+
+MultiPort ermöglicht es, bis zu 6 Terminals auf einer Leitung zur Mailbox
+zu betreiben.
+Ein intern eingebautes Terminal (Konsole) kann wahlweise als eines der
+6 Terminals benutzt werden. Hier gibt es zwar weniger Funktionen als in
+einem Terminalprogramm, durch den Direktbetrieb ist es aber auf jeden
+Fall der schnellste Port.
+
+Das Tool arbeitet wie folgt:
+----------------------------
+
+ Mailbox <--- Wahl-/Standleitung ---> MultiPort <--- Nullmodem ---> Term6
+                                      ^ ^ ^ ^ ^
+                                      | | | | |
+                                      | | | | \--<-- Nullmodem ---> Term5
+                                      | | | |
+                                      | | | \----<-- Nullmodem ---> Term6
+                                      | | |
+                                      | | \------<-- Nullmodem ---> Term3
+                                      | |
+                                      | \--------<-- Nullmodem ---> Term2
+                                      |
+                                      \--<-- Konsole/Nullmodem ---> Term1
+
+
+Während nur Kosten für eine Leitung zur Box anfallen, können aber bis zu
+6 Personen Online sein. Eine Reihenschaltung des Tools ist nicht möglich,
+es gäbe Anzeige-Salat wegen der Portkodierungen.
+Das Programm MultiPort selbst hat die Aufgabe, die Daten zur Box zu ver-
+schlüsseln und die hereinkommenden zu entschlüsseln. Denn jeder Port soll
+ja nur den Teil sehen, der für ihn bestimmt ist.
+Außerdem müssen die Daten von der einen seriellen Schnittstelle auf bis
+zu 6 weitere verteilt werden bzw. Daten von den 6 Terminal-Schnittstellen
+müssen in Richtung zur Box zusammengelegt werden.
+Natürlich muß auf der Seite der Mailbox etwas ähnliches geschehen und das
+macht die Box sicherlich nicht von alleine. Daher muß als erstes auf Box-
+seite der MultiPort-Server aktiviert werden. Dies ist ein Port, der die
+Aufgabe des MultiPort-Programmes übernimmt. Nur das er die Daten an die
+Ports der Box verteilen muß, nicht an serielle Null-Modem-Ports.
+Die Leitung zwischen Mailbox und Multiport sollte eine möglichst hohe
+Baudrate haben. Noch wichtiger ist jedoch, sie muß absolut fehlerfrei
+sein! Also mindestens ein stabiles MNP-Protokoll oder V42! Ansonsten
+potenzieren sich die Fehler, das Ergebnis wäre unsinniger Zeichensalat.
+
+
+
+Hardwarevoraussetzungen:
+------------------------
+Im Test mit einem Amiga 2000 / MC 68000 und einer Baudrate von 19.200
+auf der internen Schnittstelle war zwar alles benutzbar, aber mehr als
+langsam. Zwei Ports liessen sich aber zur Not auch so betreiben. Bei
+mehr als 2 Ports sollte es schon ein 68030 oder höher sein.
+
+Speicherbedarf: Das MultiPort-Tool benötigt ca. 65.000 Bytes Chip-Ram
+für die Konsole. Für den Rest würden 512 KB genügen. Aber für Buffer
+und "man weiß ja nie"-Reserve würd eich sagen: Minimalausstattung des
+MultiPort-Servers ist 1 MB. Mehr schadet natürlich nicht.
+
+Eine Multi-Ser-Karte wird natürlich auch benötigt. Da seit den neuen
+seriellen Routinen jetzt auch die 7-Port-Karte ohne Probleme und Port-
+hänger arbeitet ist diese für einen Server mit 4 bis 6 Ports fast schon
+optimal. Zur Mailbox hin wäre mehr als 19.200 Baud zwar vorteilhaft,
+jedoch läßt es sich auch damit leben.
+
+
+Einschränkungen:
+----------------
+Im Betrieb des Tools gibt es natürlich Einschränkungen. Z.B. ist kein
+Up-/Download möglich, es würden alle Ports zum Stillstand kommen.
+Allerdings ist für die Zukunft ein Online-Update geplant daß das Tool
+automatisch aktualisiert, falls eine neue Version in der Box bereit
+steht.
+Weitere Einschränkungen: Um Mißbrauch zu vermeiden wurde der Userantrag
+sowie der GAST-Zugang für das MultiPort-Tool gesperrt.
+Ein User der via MultiPort Online ist kann sich nicht tarnen.
+Der User hat keine feste Portnummer, er springt zwischen freien Ports
+herum.
+Außerdem kann auf den MultiPorts kein Monitor benutzt werden. Das
+hat technische Hintergründe, es ist daher auch diese Funktion gesperrt.
+
+
+Wie es funktioniert:
+--------------------
+Das Tool hat 3 Betriebsarten:
+
+1.) Standleitung
+2.) Wahlleitung (Dial)
+3.) Null-Modem  (nur Sysop- oder Testbetrieb)
+
+Normalerweise wird immer Standleitung angenommen. Dafür ist das Tool
+ja auch entwickelt worden.
+Um es zu Testen oder weil der Sysop Schnittstellen sparen will/muß
+kann es auf Null-Modem geschaltet werden. Dazu ist lediglich die
+ENV-Variable G5_MP auf "2" zu setzen ( setenv G5_MP="2" ).
+Ist die ENV-Variable noch nicht vorhanden wird sie abgefragt und an-
+gelegt. Dazu werden die exernen Requester des Betriebssystems ver-
+wendet.
+
+Jetzt zum schweren Teil:
+Der Betrieb per Modem über Wahlleitung (DIAL):
+Folgende Befehle sind auszuführen (am besten einen Start-Batch anlegen):
+
+setenv G5_MP="1"
+setenv G5_MP_Pseudo="<Loginname>"
+setenv G5_MP_Password="<Kennwort>"
+setenv G5_MP_Befname="<Befehl> <ports>"
+setenv G5_MP_Befpsw="<Befehlspasswort>"
+
+Der Loginname ist ein spezielles Pseudo das für den Multiport-Betrieb
+zugelassen ist. Das hat natürlich ein Kennwort. Der Befehl wäre im Moment
+in der Gateway "MULTIPORTS" und der hat wiederum ein Kennwort. Außerdem
+ist er nur für die Sysop's zugänglich (Testbetrieb). Falls User eine
+Nutzungsberechtigung für das Tool erhalten bekommen sie ihre persönlichen
+Zugangsdaten mitgeteilt.
+
+Beispiel:
+---------
+setenv G5_MP="1"
+setenv G5_MP_Pseudo="Michi"
+setenv G5_MP_Password="GEHEIM"
+setenv G5_MP_Befname="MULTIPORTS"
+setenv G5_MP_Befpsw="YOURCODE"
+
+Das Beispiel zeigt User Michi (Kennwort GEHEIM), das ganze aufrufen
+würde. Natürlich immer vorausgesetzt, das der User den Befehl aufrufen
+darf und das sein PERSÖNLICHES Befehlskennwort YOURCODE lautet.
+
+
+
+Was an der Box zu tun ist:
+--------------------------
+
+Standleitung:
+=============
+Es ist ein Port mit Parametern einzurichten, die dem Modem entsprechen.
+DerPort wird mit dem Zusatzparameter <-l -* MAX> aufgerufen.
+-l setzt die Standleitungsoption (Port "sucht" den Connect!)
+-* schaltet den automatischen Multi-Port-Serverbetrieb, MAX ist ein Wert
+von 2 bis 6 der sagt, wie viele Pseudoports über die Leitung kommen.
+Tja, dann nur noch den Port hochfahren, fertig! Der Server selber soll
+auch als User in der Portliste zu sehen sein. Damit das ohne Probleme
+klappt legt das Tool beim Start einen User dafür an, sofern er noch
+nicht vorhanden ist. Da auf der Standleitung kein Zugriff von außen oder
+durch unberechtigte Personen möglich ist wird der Server in diesem Fall
+auf eine sehr eigene Art von der Box eingeloggt. Der Kennwort für den
+MultiPort-User kann auf keinem anderen Port eingegeben werden und der
+User hat auch keinerlei Funktionen (Level 20, alle Funktionen wie Post,
+MSG etc. aus).
+Environment:
+G5_MP         (=0)
+G5_MP_TIMEOUT (Dauer bis zum Timeout des Modems)
+G5_MP_RESET   (Reset-Kommando Modem)
+G5_MP_START   (Startkommando Modem, muß gegenteilig zur Box sein! Wer ANSWER
+               und wer ORGINATE benutzt (Box/MultiPort) ist egal, aber auf
+               jeden Fall beide verschiedene Modi!)
+
+Nullmodem:
+==========
+Der Port wird mit <-n -* MAX> gestartet. Er geht nach dem Start sofort und
+ohne Verzögerung in den Serverbetrieb. Eine Modeminitialisierung gibt es
+theoretisch, aber kein Abwarten auf ein Signal vom Modem (RING etc.).
+
+Wahlleitung:
+============
+Es wird ein User eingerichtet, der die Berechtigung erhält den Serverbefehl
+einzugeben. Der User bekommt die Daten (siehe oben), die er als ENV-Variablen
+setzt. Das Loginpseudo braucht sonst keine Rechte! Kein Lesen, schreiben, MSG
+oder sonstiges!
+Hinter dem Befehl MULTIPORTS wird die Anzahl der Unterports (2-6) festgelegt.
+Alles andere macht das Multiport-Tool!
+Environment:
+G5_MP       (=2)
+G5_MP_RESET (Reset-Kommando Modem)
+
+
+Eine Beendigung des Befehls bzw. Connects beendet in allen 3 Fällem den
+Login und deaktiviert die Zusatzports.
+
+Zur Zeit kann nur EIN Server arbeiten. Eine Erweiterung folgt. Aber zum
+Start ist es besser, wenn nur ein Server läuft. Dann sind Fehler besser
+zu erkennen und einzukreisen.
+
+Beim Aktivieren eines Servers fährt dieser automatisch die weiteren,
+benötigten Ports hoch und beendet sie, wenn er abgeschaltet wird (Kill,
+No Carrier, PORT AUS etc.).
+
+
+In Gateway-5 gibt es zwei Server-Routinen. Die eine ist langsamer, aber
+garantiert 100% stabil in der Bündelung und Aufteilung der Daten.
+Die zweite ist wesentlich schneller und bisher fehlerfrei. Sollte es im
+Realeinsatz allerdings zu Datenbruch kommen muß umgestellt werden. Das
+ist vorbereitet und am Starttag werden beide Programmversionen bereit
+liegen.
+Zur Zeit ist die schnelle Routine aktiviert, ich teste im Moment damit
+herum.
+
+
+Zusatzpseudo's:
+===============
+Jetzt weiß wohl auch der letzte, wozu der ganze Heckmeck mit den Zusatz-
+pseudo's gedacht war: Es war die Vorbereitung für dieses Tool und ein
+aus der Funktion entstehender Nebeneffekt. Die Zusatzpseudo-Routinen
+sind jetzt überarbeitet und angepasst.
+
+Dadurch gibt es folgende Änderungen:
+------------------------------------
+1.) Ein Zusatzpseudo kann im MultiPort-Betrieb jetzt auf einem eigenen
+    Port arbeiten.
+2.) Die Pseudo's des MultiPorts und damit auch alle anderen Zusatz-
+    pseudo's legen sich auf freie Plätze in der Portliste. D.h., sie
+    wandern in der Liste.
+
+
+
+Bedienung des Programmes MultiPort:
+===================================
+Das Programm hat eine Anleitung eingebaut! Einfach 'MultiPort ?' im
+CLI aufrufen!
+Aber hier etwas ausführlicher:
+
+Das Programm braucht einige Angaben:
+1.) Welche serielle Schnittstelle wird zur Box benutzt (am besten die
+    interne oder eine High-Speed-Schnittstelle!).
+2.) Wieviele Zusatzports werden benutzt, und welche seriellen Schnitt-
+    stellen sind diesen zugewiesen.
+3.) Wird ein Konsolenport benutzt oder nur Null-Modem?
+
+Dazu gehen man wie folgt vor:
+
+Parametersatz 1: Leitung zur Box         (Pflicht)
+Parametersatz 2: Null-Modem oder Konsole (Pflicht)
+Parametersatz 3: Null-Modem              (Pflicht)
+...4...5...6...                          (Kann, muß
+Parametersatz 7: Null-Modem               aber nicht)
+
+1-3 sind Pflicht, 4-7 wahlweise.
+
+Jetzt muß für alle 7 Ports die Schnittstelle festgelegt werden:
+serial.device, duart.device oder console.device <CON darf nur auf Port 2!>.
+
+Sagen wir: Ser=0, Con=-, Ser=6, Ser=7 und Duart=0     <--- Demowerte als
+Baudraten: 19200      -  19200   9600     57600       <--- Beispiele
+Aufruf:
+
+MULTIPORT  S0      C      S6     S74       D07
+
+5.Port...................................  D   = duart.device
+                                            0  = Nummer=0
+                                             7 = Baudrate Typ 7 (57600)
+
+4.Port.........................  S   = serial.device
+                                  7  = Nummer=7
+                                   4 = Baudrate Typ 4 (9600 Baud)
+
+3.Port..................  S   = serial.device
+                           6  = Nummer=6
+                            _ = Keine Angabe=19200 Baud
+
+2.Port...........  C  = Konsole (keine Nummer, keine Baudrate!)
+                    _ = keine Angabe (30 Zeilen) H=62 Zeilen
+
+1.Port...  S   = serial.device ----> Port 1 ===>> Mailbox!!!!!!
+            0  = Nummer=0
+             _ = Keine Angabe=19200 Baud!
+
+
+Der 1.Port ruft die Box, Port 2 - 5 wären 4 User (einer auf der Konsole
+und 3 via Null-Modem).
+Die Konsole kann auch mit CH gestartet werden, dann wird sie im Hires-
+Modus gestartet ( Hires-Interlace, nur mit Flickerfixer oder AAA-Chipset
+sinnvoll ). Die Konsole hta normalerweise 30 Zeilen. Im Hires-Interace
+sind es 62 Zeilen. Nur wenn so eine Screen anfängt zu scrollen wird es
+ziemlich traurig wenn nicht eine schnelle CPU und AAA vorhanden sind.
+
+Die Baudraten müssen nur angegeben werden, wenn nicht 19200 Baud benutzt
+werden soll.
+Werden die Device-Nummern weggelassen, so wäre die Vorgabe 1-7 nach der
+Position der Parameter. Also 1 zur Box, 2 unbenutzt, da Konsole, dann
+3,4 und 5 in unserem Beispiel.
+S bzw. C muß immer angegeben werden. Und wenn nur 7 mal S eingesetzt
+wird. Das ist nämlich auch der Zähler, wieviele Ports aktiviert werden
+sollen. Wenn nur eine 7-Portkarte benutzt wird, dann sollte der Port
+zur Box das Device 1 (interne Schnittstelle) sein. Die hat ein besseres
+Timing als die 7-Port-Karte. Für 7-Port-Karte und intern gilt: Maximal
+mit 19.200 Baud fahren, sonst gibt es Datenbruch! Und auf jeden Fall
+müssen die Null-Modemports mit RTS/CTS ohne Carrier-Detect betrieben
+werden. Auf Amiga mit TERM bedeutet das: "RTS/CTS prüfe DSR" unter
+Parameter, "Direkte Verbindung" = AKTIV (damit ist "Trägersignal prüfen"
+automatisch aus). "xON/xOFF durchreichen" = AKTIV damit im Editor CTRL-Q
+benutzt werden kann.
+Die Baudraten sind als Typen verschlüsselt. Der Default ist 5 (19200)!
+Dabei gilt: 0=300, 1=1200, 2=2400, 3=4800, 4=9600, 5=19200, 6=38400,
+            7=57600, 8=115200 und 9=230400. Damit sind alle denkbaren
+            und möglichen Baudraten abgedeckt.
+Die Devicenummern können von 0-9 eingesetzt werden. Da maximal 7 Ports
+benutzt werden können sind größere Device-Nummern unsinnig.
+Das maximum der 7 Devices liegt übrigends darin begründet, das pro
+C-Programm nur eine begrenzte Anzahl von MsgPort's und Message-Queues
+geöffnet werden können. Das 8te, interne Device, ist das timer.device.
+Und damit ist das Maximum dann erreicht.
+Mit MULTIPORT ? gibt es eine interne Hilfe (sehr hübsch anzusehen).
+Diese wird immer aktuell dem Programm angepasst, so das im Falle von
+Updates diese auf jeden Fall passt. Auch dann, wenn die Doku mal gerade
+nicht zur Stelle ist.
+
+
+Modem:
+------
+Bei Modembetrieb (egal ob Wahl- oder Standleitung) ist das Modem extern
+Einzustellen und dieses zu speichern. Das Tool sendet dem Modem ledig-
+lich ein ATZ als Initialisierung!
+Mehr ist sinnlos, solange nicht mehr benötigt wird. Bei Bedarf werden
+hier ggf. Erweiterungen eingabut.
+
+
+Besonderes:
+-----------
+MultiPort prüft beim Start ob sich das Programm Test_A2232 in C: oder
+im eigenen Verzeichnis befindet. Falls ja, wird es gestartet und die
+Ausgabe ausgewertet. Das Tool testet, ob de 7-Port-Karte läuft. Diese
+kann sich wunderbar abschalten, wenn jemand an die Kabel kommt.
+Es ist eine F-Tastenbelegung duch die Box möglich. Siehe hierzu
+F_Tasten.Guide
+
+
+
+Was noch alles fehlt:
+=====================
+Bevor es zu einer Abgabe des MultiPort-Programmes an Dritte kommt wird
+das Programm noch mit einer Ident-Routine und einigen Sicherungen ver-
+sehen werden.
+
+Im Moment fährt das ganze System runter, wenn man die Konsole
+schliesst. Für die Version im Verein denke ich noch über eine
+Sperre nach (evtl. Doppelklick oder so).
+
+Die Anwahl-Version benutzt die Portnummern in fester Reihenfolge.
+Hier soll noch eine Wahl-/Einstellmöglichkeit rein. Dann könnten
+evtl. auch die ISDN-Ports benutzt werden. Dies aber erst, wenn der
+Bedarf da ist.
+
+Die Vereins-Version soll zugleich den Rechner blockieren, d.h., sie
+soll sich permanent in den Vordergrund drücken und damit verhindern
+das jemand an den CLI kommt. Ich weiß aber noch nicht, ob das ohne
+zu große Rechnerlast überhaupt möglich ist.
+
+Das Programm hat die übliche Sicherung, das heißt es läuft nur auf
+dem 3 bekannten Hauptrechnern und dem Rechner für den Verein.
+Rechner "AIRGATE 68060"      <--- Nur Version 040/060
+Rechner "NORMAN 68000"       <--- Nur Version 68000
+Rechner "TSG SCHÖNEWEIDE"    <--- Nur Version 040/060
+Rechner "MICHAELA PPC603e"   <--- Allle Versionen
+Freigabe für User muß das überdacht werden.
+
+Es wird demnächst auch möglich sein das Tool unter OS/2 mit PPC einzu-
+setzen. Auch diverse Unixderivate die hier aber wohl nicht so sehr
+im Einsatz sein dürften.
+Da die gesamte Gateway-5-Entwicklung auf einem PowerPC(tm) und mit
+PowerUP(r) erfolgt.
+Und ganz zum Schluß: Da ich ohnehin ein ParNet brauche werde ich mir
+mal ansehen, ob es evtl. möglich ist auf dem ParNet eine Version
+aufzusetzen. Das würde dann heißen, das zwei Rechner gekoppelt arbeiten
+könnten, jedoch die parallele statt der seriellen Schnittstelle zur
+Kopplung der beiden Rechner dient.
+
+
+Programmversionen:
+------------------
+Wie alle Programme von Gateway-5 kann gewählt werden zwischen 3
+verfügbaren Versionen:
+
+1.) 68040/68060          (Compilereinstellungen für 68040/060 optimiert)
+2.) 68020/68030 mit FPU  (Compiler eingestellt für 68020 und FPU 68881)
+3.) 68000                (läuft auf jedem Amiga, ist aber langsamer)
+weitere Versionen PowerUp(r), OS/2 mit PPC, ELF-Seg und etliche andere
+Versionen stehen zur Verfügung, wenn die Compilerumstellung beendet ist.
+Der neue Rechner ist je bereits im Einsatz.
+
+Die FPU-Version ist im neuen, optimierten MAKE-System überall enthalten,
+wird jedoch nur bei Bedarf und zu Testzwecken übersetzt.
+
+
+Systemvoraussetzungen:
+----------------------
+Amiga mit Kickstart/WB 1.3 oder höher! Das Tool läuft fast von alleine.
+
+intuition.library  <-- KickStart
+graphics.library   <-- KickStart
+timer.device       <-- KickStart
+console.device     <-- KickStart
+serial.device      <-- DEVS:
+                       (oder Alternativ duart.device bzw. eine Kombination!)
+Installiertes ENV: <-- Normalerweise 'Ram Disk:ENV'
+
+
+Anmerkungen:
+============
+Das Programm hat einen internen Selbsttest. Jeder Patchversuch wird erkannt,
+das System läuft dann nicht mehr. So kann niemand das Programm im Verein
+manipulieren. Und auch falls sich ein Virus einschleichen würde, wäre dafür
+gesorgt das nichts passiert.
+
+Sollte das RAM auf dem Rechner im Chaos versinken wird das Programm auch
+nicht laufen weil der Selbsttest scheitert. Dann ist aber so oder so ein
+Reboot nötig!
+
+Die seriellen Schnittstellen werden ab sofort EXCLUSIV geöffnet, nicht mehr
+SHARED. Damit wird verhindert das jemand das Programm "anzapft" und so wie
+in den Bierstuben einen Mitschnitt der Kennworte installiert!

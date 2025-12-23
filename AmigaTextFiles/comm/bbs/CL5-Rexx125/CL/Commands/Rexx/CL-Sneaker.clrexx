@@ -1,0 +1,358 @@
+/*
+**  $VER: CL-Sneaker.clrexx 1.3 (18 Dez 1995)
+**
+**        © 1995 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-Sneaker.clrexx
+**
+**  FUNCTION:
+**      Demonstrationsskript für die cl_rexx.library, Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl_rexx.library © 1995 Mathias Mischler
+**
+**      Haben Sie die Nase voll von vergammelten Binärteilen in ihrem
+**      System, welche von defekten Archiven nur so wimmeln, der Down-
+**      loadfreiraum munter erhöht wurde, in man ein File unter anderem
+**      Namen erneut uppte, oder gar Archive mit illegalen Inhalten ge-
+**      postet wurden?
+**
+**      Dieses Skript hilft Ihnen und den Brettverwaltern, für "Ruhe und
+**      Ordnung" zu sorgen ;)
+**
+**      'Sneaker' (auch 'Faker' genannt) sind Programme, mit welchen es
+**      vereinfacht wird, Brettinhalte sauber zu halten und Usern, die
+**      ein Faible für Uploads von Schrottsoftware haben, zu zeigen, daß
+**      das in Ihrem System nicht Usus ist. 'CL-Sneaker' ist einer der
+**      erbarmungslosesten Vertreter seiner Kategorie, er erlaubt dem Brett-
+**      verwalter, Brettzensor und der Systemadministration, einen Uploader
+**      bis ins Extrem zu quälen. Als einziger bietet er die Möglichkeit,
+**      nicht nur feste Werte vom aktuellen Download-Freiraum eines Users
+**      abzuziehen, sondern alternativ auch bis zu dreistellige Multipli-
+**      katoren und eine feste Zahl verbleibender Kilobyte Freiraum anzu-
+**      geben. Ebenso ist auch ein kompletter Entzug jeweiliger Zugriffs-
+**      berechtigungen auf eine ganze Gruppe möglich.
+**
+**      Installation:
+**
+**      Einbinden in die Shell-Prefs mit folgendem Aufruf
+**
+**          rx CONNECTLINE:Commands/Rexx/CL-Sneaker.clrexx %l
+**
+**      Hinweis: Die Userdaten werden nur geändert, wenn der betroffene User
+**      nicht zur Zeit des Bearbeitens im System eingeloggt ist.
+**      Die betroffenen Nachrichten werden nicht sofort gelöscht, sondern
+**      erst nach dem nächsten Start des Crunchers.
+**
+**  $HISTORY:
+**
+**   26 Nov 1995 : 1.0 : initial release
+**   30 Nov 1995 : 1.01: Carrier-Check (uuuuups)
+**   02 Dez 1995 : 1.1 : Abzug von FreeFiles möglich
+**   18 Jan 1996 : 1.2 : Umgebastelt auf CLGET/SET_UserFreeKByte()
+**   07 Feb 1996 : 1.3 : Diverse kosmetische Fixes
+**
+*/
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    ~addlib('cl_rexx.library',0,-30,0) then do
+    say 'Konnte Library nicht öffnen!'
+    exit
+    end
+
+port=arg(1)
+user=CLGET_PortUsername(port)
+brett=CLGET_PortCurrentBoard(port)
+
+grund.1='Falsches Brett                '
+grund.2='Inkorrekter Betreff           '
+grund.3='Bereits vorhanden             '
+grund.4='Zu alt                        '
+grund.5='Unvollständiges Archiv        '
+grund.6='Archiv defekt                 '
+grund.7='Raubkopie                     '
+grund.8='Verstößt gegen geltendes Recht'
+
+sanction.1='Keine                                               '
+sanction.2='Download-Freiraum kürzen                            '
+sanction.3='Verwarnung an User schicken                         '
+sanction.4='Upload/Download-Ratio ändern                        '
+sanction.5='Zugriff auf alle Bretter der gleichen Gruppe sperren'
+
+call cls
+if (CLGET_UserPriority(user)<99)&~(CLGET_BoardAdmin(brett)~=user)&~(CLGET_BoardCensor(brett)~=user) then do
+    say 'Sie sind in diesem Brett nicht berechtigt, die Inhalte zu ändern!'
+    exit
+    end
+
+/* Eingabe und Parsen des Suchmusters */
+
+call CL_PutStr('Welche Nachrichten :')
+pattern=CLONL_BlueRead(57)
+if (pattern='')|(pattern='-1') then exit
+
+say 'Bitte warten, aktualisiere Datenbestand.'
+
+messagectr=1
+pattern=translate(pattern,' ',',')
+do x=1 to words(pattern)
+    temppattern=translate(word(pattern,x),' ','-')
+    select
+        when words(temppattern)>1 then do
+            /* Wir haben eine Aufzählung, z.B. 4-20 */
+            first = word(temppattern,1)
+            second= word(temppattern,2)
+            if second<first then do         /* War sowas wie 300-280 */
+                second=first+second         /* Also vertauschen wir  */
+                first=second-first          /* die zwei Werte mittels*/
+                second=second-first         /* Addition & Subtraktion*/
+                end
+            end
+        when left(word(pattern,x),1)='-' then do
+            /* Aufzählung, z.B. -10 */
+            first=0
+            second=word(translate(word(pattern,x),' ','-'),1)
+            end
+        when right(word(pattern,x),1)='-' then do
+            /* Aufzählung, z.B. 10- */
+            first=word(translate(word(pattern,x),' ','-'),1)
+            second=CLGET_MsgNumberOf(brett)-1
+            end
+        when word(pattern,x)='*' then do
+            /* Alle Nachrichten */
+            first=0
+            second=CLGET_MsgNumberOf(brett)-1
+            end
+        otherwise do
+            first=word(pattern,x)
+            second=word(pattern,x)
+            end
+        end
+    do y=first to second
+    nachricht.messagectr=y
+    messagectr=messagectr+1
+    end
+
+
+/* Bearbeiten der Nachrichten */
+
+do x=1 to messagectr
+    if nachricht.x~>CLGET_MsgNumberOf(brett) then do
+    absender=CLGET_MsgFrom(brett,nachricht.x)
+    betreff=CLGET_MsgSubject(brett,nachricht.x)
+    filename=CLGET_MsgFilename(brett,nachricht.x)
+    filelaenge=(CLGET_MsgBodyLength(brett,nachricht.x)/1024)%1
+    kommentar=CLGET_MsgShortComment(brett,nachricht.x)
+    readcount=CLGET_MsgReadCount(brett,nachricht.x)
+    if CLIS_MsgBinary(brett,nachricht.x) then typ='Binär'
+    else typ='Text'
+
+    say ''
+    call CLONL_Color(3,0,1); call CL_PutStr('Absender  :'); call CLONL_Normal()
+    say absender
+    call CLONL_Color(3,0,1); call CL_PutStr('Betreff   :'); call CLONL_Normal()
+    say betreff
+    call CLONL_Color(3,0,1); call CL_PutStr('Typ       :'); call CLONL_Normal()
+    say typ
+    call CLONL_Color(3,0,1); call CL_PutStr('Filename  :'); call CLONL_Normal()
+    say filename
+    call CLONL_Color(3,0,1); call CL_PutStr('Kommentar :'); call CLONL_Normal()
+    say kommentar
+    call CLONL_Color(3,0,1); call CL_PutStr('Filelänge :'); call CLONL_Normal()
+    say filelaenge' KB'
+    call CLONL_Color(3,0,1); call CL_PutStr('Downloads :'); call CLONL_Normal()
+    say readcount
+    call CLONL_Color(5,0,0); call CL_PutStr(copies('-',79)); call CLONL_Normal()
+    say ''
+
+    abbruch=false
+    taste=CLONL_ShortMenu('Weiter','Bearbeiten','Quit')
+    select
+        when taste='-1' then exit
+        when taste='W' then nop
+        when taste='B' then call bearbeiten
+        when taste='B' then abbruch=true
+        otherwise nop
+        end
+    if abbruch=true then exit
+    end
+    end
+exit
+
+bearbeiten:
+
+    say ''
+    say 'Bitte den Grund angeben:'
+    taste=CLONL_ShortMenuVertical(grund.1,grund.2,grund.3,grund.4,grund.5,grund.6,grund.7,grund.8,'Manuell eingeben','Quit')
+    select
+        when taste='F' then reason=grund.1
+        when taste='I' then reason=grund.2
+        when taste='B' then reason=grund.3
+        when taste='Z' then reason=grund.4
+        when taste='U' then reason=grund.5
+        when taste='A' then reason=grund.6
+        when taste='R' then reason=grund.7
+        when taste='V' then reason=grund.8
+        when taste='M' then reason=CLONL_BlueRead(79)
+        when taste='Q' then return
+        when taste='-1' then exit
+        otherwise nop
+        end
+    sender=word(translate(absender,' ','@'),1)
+    if (upper(word(translate(absender,'  ','@.'),2))=upper(CLGET_OwnSystemName()))&(CLIS_UserExists(sender)=1) then do
+        rate=CLGET_UserRate(sender)
+        dlkb=CLGET_UserDownloads(sender)
+        upkb=CLGET_UserFreeKByte(sender)
+        freiraum=(rate*upkb)-dlkb
+        say ''
+        say 'Der User 'sender' hat eine Ratio von 'rate':1 ,'CLGET_UserFreefiles(sender)' freie Files und 'freiraum' KB Freiraum.'
+        say 'Gewünschte Sanktion:'
+        taste2=CLONL_ShortMenuVertical(sanction.1,sanction.2,sanction.3,sanction.4,sanction.5)
+        select
+            when taste2='K' then nop
+            when taste2='D' then call lowerratio
+            when taste2='V' then call verwarnung
+            when taste2='U' then call changeratio
+            when taste2='Z' then call restrictedaccess
+            when taste2='-1' then exit
+            otherwise nop
+            end
+        say ''
+        say 'Führe Änderungen aus ...'
+        if open('out','T:sneaker.'port'.'user,'W') then do
+            call writeln 'out','Hallo 'upper(sender)'!'
+            call writeln 'out',''
+            call writeln 'out','Ihre Nachricht "'betreff'" im Brett 'brett
+            call writeln 'out','wurde von 'user' nicht akzeptiert. Als Grund gab er an:'
+            call writeln 'out',''
+            call writeln 'out','>>>>>>> 'upper(reason)
+            call writeln 'out',''
+            select
+                when taste2='K' then nop
+                when taste2='D' then do
+                    call writeln 'out','Daraufhin wurde ihr Freiraum um 'abs(faktor*filelaenge)' KB und 'fanz' Files'
+                    call writeln 'out','gekürzt.'
+                    end
+                when taste2='V' then call writeln 'out','Daraufhin werden sie von 'user' verwarnt.'
+                when taste2='U' then call writeln 'out','Daraufhin wurde ihre Ratio von 'rate':1 auf 'newratio':1 geändert.'
+                when taste2='Z' then call writeln 'out','Daraufhin wurde ihnen der Zugang zur entsprechenden Gruppe verwehrt.'
+                otherwise nop
+                end
+            call writeln 'out',''
+            call writeln 'out','Bei Beschwerden wenden Sie sich bitte an die Systembetreuung.'
+            call writeln 'out',''
+            call writeln 'out','Hochachtungsvoll,'
+            call writeln 'out',''
+            call writeln 'out','           'upper(user)
+            call close 'out'
+
+            call CLONL_Sendmail('Brettverwaltung 'brett,sender,'Ihre Nachricht','T:sneaker.'port'.'user)
+            call CLONL_Sendmail('Brettverwaltung 'brett,root,'Sneaker-Protokoll','T:sneaker.'port'.'user)
+            address command 'delete >NIL: T:sneaker.'port'.'user
+            end
+        rate=CLGET_UserRate(sender)
+        if rate>0 then do
+            call CLSET_MsgShortComment(brett,nachricht.x,'Gelöscht:<'reason'>')
+            newupd=((freiraum/rate)+(dlkb/rate))%1
+            call CLSET_UserFreeKByte(sender,newupd)
+            call CLSET_MsgDelete(brett,nachricht.x)
+            end
+        else say 'Keine Freiraumänderung, User hat Ratio 0!'
+    end
+return
+
+changeratio:
+
+    say ''
+    call CL_PutStr('Welche Ratio soll der User haben? ')
+    newratio=CLONL_BlueRead(3,rate)
+    if newratio='-1' then exit
+    call CLSET_UserRate(sender,newratio)
+    return
+
+restrictedaccess:
+
+    do p=1 to 96
+        if (CLIS_BoardGroup(brett,p))&(CLIS_UserGroup(sender,p)) then do
+            say 'Sperre Zugang für Gruppe: '||CLGET_GroupName(p)
+            call CLSET_UserGroup(sender,p,'0')
+            end
+        end
+    return
+
+lowerratio:
+
+factor.1='1. '   filelaenge' KB abziehen (Faktor 1, Freiraum:'freiraum-filelaenge' KB)'
+factor.2='2. ' 2*filelaenge' KB abziehen (Faktor 2, Freiraum:'freiraum-2*filelaenge' KB)'
+factor.3='3. ' 3*filelaenge' KB abziehen (Faktor 3, Freiraum:'freiraum-3*filelaenge' KB)'
+factor.4='4. ' 4*filelaenge' KB abziehen (Faktor 4, Freiraum:'freiraum-4*filelaenge' KB)'
+factor.5='5. ' 5*filelaenge' KB abziehen (Faktor 5, Freiraum:'freiraum-5*filelaenge' KB)'
+factor.6='6. ' 6*filelaenge' KB abziehen (Faktor 6, Freiraum:'freiraum-6*filelaenge' KB)'
+factor.7='7. ' 7*filelaenge' KB abziehen (Faktor 7, Freiraum:'freiraum-7*filelaenge' KB)'
+factor.8='8. ' 8*filelaenge' KB abziehen (Faktor 8, Freiraum:'freiraum-8*filelaenge' KB)'
+factor.9='9. ' 9*filelaenge' KB abziehen (Faktor 9, Freiraum:'freiraum-9*filelaenge' KB)'
+
+taste=CLONL_ShortMenuVertical(factor.1,factor.2,factor.3,factor.4,factor.5,factor.6,factor.7,factor.8,factor.9,'Faktor manuell angeben','Abzug freier Files','Verbliebenen Freiraum manuell angeben','Restliche freie Files manuell angeben')
+select
+    when (taste>=1)&(taste<=9) then do
+        restfreiraum=freiraum-taste*filelaenge
+        faktor=taste
+        fanz=0
+        end
+    when taste='F' then do
+        call CL_PutStr('Bitte den Faktor angeben: ')
+        faktor=CLONL_BlueRead(3)
+        restfreiraum=freiraum-faktor*filelaenge
+        fanz=0
+        end
+    when taste='A' then do
+        ffiles=CLGET_UserFreeFiles(sender)
+        say sender' hat 'ffiles' freie Files.'
+        call CL_PutStr('Wieviele freie Files abziehen?: ')
+        fanz=CLONL_BlueRead(3,CLGET_UserRate(sender))
+        call CLSET_UserFreeFiles(sender,ffiles-fanz)
+        restfreiraum=freiraum
+        faktor=0
+        end
+    when (taste='V')&(filelaenge>0) then do
+        call CL_PutStr('Bitte den verbleibenden Freiraum angeben: ')
+        restfreiraum=(CLONL_BlueRead(length(freiraum)+1,freiraum))+1
+        faktor=(restfreiraum/filelaenge)-(freiraum/filelaenge)
+        fanz=0
+        end
+    when taste='R' then do
+        ffiles=CLGET_UserFreeFiles(sender)
+        call CL_PutStr('Bitte die verbleibenden freien Files angeben: ')
+        restfiles=CLONL_BlueRead(length(ffiles)+1,ffiles)
+        fanz=ffiles-restfiles
+        call CLSET_UserFreeFiles(sender,restfiles)
+        faktor=0
+        restfreiraum=freiraum
+        end
+    when taste='-1' then exit
+    otherwise do
+        faktor=0
+        restfreiraum=freiraum
+        end
+    end
+freiraum=restfreiraum
+return
+
+verwarnung:
+
+    call CL_Edit('T:Verwarnung.'port,)
+    call CLONL_Sendmail('Brettverwaltung 'brett,sender,'Verwarnung','T:Verwarnung.'port)
+    address command 'delete >NIL: t:Verwarnung.'port
+    return
+
+cls:
+
+if ~CLONL_ClearScreen() then exit
+call CLONL_BlueMode()
+say 'CL-Sneaker                                                                   '
+call CLONL_Normal()
+say ''
+return

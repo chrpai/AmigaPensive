@@ -1,0 +1,111 @@
+;
+;	Scriptfile zum Upload der neuen Nachrichten im Z-Netz-Format
+;	$VER: 1.11 / 29.01.1995
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die Befehle EXTERN, DISK UPLOAD und MENU zugreifen kann !
+;
+;	Aufruf durch User : POINT UPLOAD
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die folgende Befehle zugreifen kann !
+;
+;	CHECK FILE
+;	DISK UPLOAD
+;	ECHO
+;	EOD
+;	EXTERN
+;	GOTO
+;	IF
+;	MENU
+;	ON BREAK
+;	ON ERROR
+;	POINT GETFILE
+;	WAIT
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	DELETE
+;
+;	Konstanten :
+;
+TMPDIR  = "mbmsg:point/'{port}'/"	; Dir fuer Message und Tmp-Files
+PCKFILE = "caller.lha"			; Name des gepackten Files
+MSGFILE = "PUFFER"			; Name des entpackten Msg-Files
+UPACKER  = "lha -P-1 x ""'TMPDIR''PCKFILE'"" ""'TMPDIR'"" ""'MSGFILE'"""
+					; Entpacken
+;
+;	Bei Fehler oder Abbruch verzweigen / Texte laden
+;
+
+_on error ERROR                         ; Beim Fehler ...
+
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/point_upload.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/point_upload.bat"
+
+_on break ABORT                         ; Beim Abbruch ...
+
+;
+;	Starttext ausgeben
+;
+
+_echo STARTTEXT
+
+;
+;	Alte Files loeschen, Upload starten
+;
+RETRY_UPLOAD:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_extern/q rename "'TMPDIR''PCKFILE'" "'TMPDIR''PCKFILE''{CALLNR}'"
+
+_menu MENUTEXT -
+ KEY_UPLOAD UPLOAD -
+ KEY_ABORT ABORT
+
+UPLOAD:
+_echo UPLOADTEXT
+_on error ERROR_UPLOAD
+_disk upload "'TMPDIR''PCKFILE'"
+_on error ERROR
+
+;
+;       File entpacken
+;
+
+_echo/nolf UNPACKTEXT
+_extern/q 'UPACKER'
+_echo UNPACKENDTEXT
+
+;
+;       Nachrichten importieren
+;
+
+_echo/nolf IMPORTTEXT
+_point getfile "'TMPDIR''MSGFILE'"
+_echo IMPORTENDTEXT
+_goto END
+
+;
+;       Wenn Fehler beim Upload ...
+;
+ERROR_UPLOAD:
+_menu RETRYTEXT -
+ KEY_RETRY RETRY_UPLOAD -
+ KEY_BREAK ABORT
+
+;
+;       Ende
+;
+ABORT:
+_echo ABORTTEXT
+_goto END
+
+ERROR:
+_echo ERRORTEXT
+
+END:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_eod

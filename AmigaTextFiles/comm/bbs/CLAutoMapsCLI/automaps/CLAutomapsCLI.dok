@@ -1,0 +1,251 @@
+$VER: CLAutomapsCLI.dok 1.6 (23.04.97)
+
+ CLAutomapsCLI  (Aktuelle Version bitte den untenstehenden Changes entnehmen)
+ -------------
+ Dieses Programm scannt eine mittels CLBoardNetCTRL erstellte
+ Brett- bzw. Netzverteilerliste nach Brettmustern und bestellt
+ inaktive Bretter beim Server ab. Das Kriterium dafuer ist, das
+ ausschliesslich der Server in Verteiler vorhanden ist bzw. nur
+ ein Verteilereintrag vorhanden ist
+ Unterstuetzte Programme und Optionen sind:
+
+ MAPS-A       = Maps, Nur ADD-Nachrichten (Aktive Bretter bestellen)
+ MAPS-D       = Maps, Nur DEL-Nachrichten (Inaktive Bretter abbestellen)
+ MAPS-DA      = Maps, DEL/ADD Kombination (eigendlich default Einstellung)
+ GUP-EI       = GUP, Exclude mit Joker je Brettmuster, Include mit den aktiven Brettern.
+ GUP-E*I      = GUP, Exclude *.*/Include Kombination (Eine Exclude Zeile, div Includes)
+ GUP-D*I      = GUP, 1x delete *.*, diverse includes OHNE Joker.
+ GUP-EIALL    = GUP, Brettweise include/exclude OHNE Joker.
+ GUP-IE       = GUP, Include mit Joker je Brettmuster, exclude mit den inaktiven Brettern.
+ AREAFIX      = +/- kombinationen ohne Joker (meist im Fido verwand, "." Trennung)
+ 
+ Weitere sind auf Wunsch Problemlos implementierbar
+  
+ Die Optionen muessen wie oben beschrieben im Config File aufgefuehrt werden
+ Das Config-File (Connectline:prefs/clAutomapsCLI.cfg ODER im S: Verzeichnis!)
+ 
+ 1. Zeile: Janus-SPOOLDIR, z.B. connectline:data/spool/ (wichtig "/" oder ":" am Ende)
+ 2. Zeile: Eigener Boxnode
+ 3. Zeile: Anzahl der Systeme, mit denen Automaps laufen soll (Maximal 30)
+ die naechsten Zeilen enthalten die Systeme und den benutzten Maps/Gup/Areafix-Typ
+ nach dem Muster:
+ 
+ <Systemname><15><MapsTyp><30><Absender der Msg><60><Empfaenger der Msgs>[<90><Betreff><120><1.ZeileBody><170><L.zeileBody>]
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                   Fuer GUP etc.
+ Betreff, 1.ZeileBody und L.Zeile Body werden in '" "' geschrieben.
+ Max laenge Betreff=28, Body=48, lBody=48 Zeichen.
+ Jetzt folgt die Anzahl der Brettmuster gesamt (folgende Zeilen, max 100)
+ 
+ Die weiteren Zeilen nach dem folgenden Muster erstellen:
+ 
+ <BrettMuster><30><Server>
+ 
+ Beschreibung:
+ -------------
+ Muster:
+ 
+ Z-NETZ/        Komplette Brettgruppe Z-NETZ/ mit allen Unterbrettern
+ DE/COMP/       Unterbrettgruppe DE/COMP/ mit diversen Unterbrettern
+ 
+                (Bei GUP wird aus "/" Slash _automatisch_ ein "." Punkt)
+                (ausserdem wird natuerlich in Kleinschrift gewandelt)
+
+ Server:
+ 
+ DAME           Servername OHNE Domain.
+ 
+ 
+ 
+ Am besten versteht man die Config-Datei, wenn man sich das beigelegte Beispiel
+ mal anschaut.
+ 
+ Dieses Programm ist zwar, wie man unschwer erkennen kann, in BASIC
+ geschrieben (genauer gesagt ACE-Basic V2.4), benutzt aber einige
+ NICHT Basic-Typische Funktionen. So wird auf "GOTO" komplett verzichtet,
+ "PRINT" wird NUR bei der Bildschirmausgabe verwendet.
+ Das File-I/O geschieht zu 100% direkt mit Systemfunktionen der dos.library.
+ (FGets, FPuts) Dies ermoeglicht ein vergleichbar schnelles durchscannen der
+ Brettliste. Ein "Line Input #1," war hier beim direkten vergleich bis zu
+ 100x langsamer. Geschrieben wurde das Programm auf meinem Zweitrechner A2000/A2630.
+
+ Sollte der Rechner aus irgendwelchen Gruenden waerend des Scannvorganges
+ abstuerzen, so wird die Platte etwas laenger validiert. Saemtliche
+ ADD/DEL/GUP etc Temp-Files sind waerend des Programmablaufes zum schreiben
+ geoeffnet. (Ein staendiges Open/Close waere viel zu langsam, und auch unsinnig)
+
+ Waerend des Programmablaufs sollte moeglichst wenig nebenher laufen
+ (Sorter etc., da der Automaps ebenfalls Rechenzeit benoetigt)
+
+ Um in etwa die Geschwindigkeit einschaetzen zu koennen, ein Beispiel an meinem
+ System. 9600 Bretter, 5 Systeme MAPS-DA, 34 Brettmuster:
+ Zeit (nur das Programm) 173 sec (ca 3. min) . Ein Vergleichbarer
+ "MAPS MAP" beim Automaps von Prometheus (EBLMAPSEL) braucht einige minuten laenger!
+ (Das System laeuft auf einem A3000/030/25Mhz/18MB), in neueren Versionen kann
+ es auch mal etwas laenger dauern... Es werden eine Menge Daten veglichen...
+ Der Speicherbedarf ist recht hoch (>300 KB), 2MB Chip werden angeraten,
+ sind aber keine Bedingung.
+ 
+
+
+EINBAU:
+
+Das Archiv wird in das Connectline: Verzeichnis entpackt, und erzeugt eine
+Schublade "AUTOMAPS" sowie ein Unterverzeichnis "AUTOMAPS/TEMP"
+Im AUTOMAPS Directory ist das Hauptprogramm und ein Config File enthalten,
+welches editiert werden muss. Der Aufbau ist oben zu lesen, und recht leicht
+verstaendlich.
+
+Ausserdem liegt ein SCRIPT (Textdatei mit S-Flag) bei, worin folgendes aufgerufen wird:
+(diese kann man im Zeitplaner einbasteln)
+
+-----------------------------
+CLBOARDNETCTRL >CONNECTLINE:AUTOMAPS/TEMP/BRETTLISTE
+CONNECTLINE:AUTOMAPS/CLAUTOMAPSCLI >CON: (weitere Optionen nach eigenem Wunsch)
+DELETE CONNECTLINE:AUTOMAPS/TEMP/BRETTLISTE (Optional, man kann es auch da lassen)
+-----------------------------
+
+WICHTIG! Das Spool/ Verzeichnis MUSS im Pfad: 'JANUS:SPOOL/' liegen.
+Es kam da schon zu Problemen bei jemanden ;-)
+
+Das Programm Scannt diese Brettliste und erstellt daraus diverse
+Maps/GUP/Areafix etc Bestellungen. Sollte es noch weitere Sonderheiten
+geben, so sind diese von mir in minuten eingebaut...Ich freue mich ueber
+jede Anregung. Ausser, wenn ich ne GUI oder sowas einbauen soll. Das kostet
+zuviel Zeit und Speicher.  Die Ausgabe an ein CON: Window sollte ausreichen ;-)
+
+Benutzt jemand EXECUTIVE als Task Scheduler, so sollte man automaps
+etwas mehr Rechenzeit einraeumen, sonst koennte es vorkommen, das
+ein anderer Task (Sorter, uebertragung etc) Automaps bis auf 0
+ausbremst. (Ich persoenlich benutze EXECUTIVE seit dem Erscheinen und
+bin absolut zufrieden damit... wichtige Prozesse erhalten endlich mal
+RICHTIG Rechenzeit, OHNE andere Wichtige Prozesse arg zu stoeren)
+(Das Dazu...)
+
+
+Weitere Angaben, siehe Changes Zeilen an Ende dieses Textes.
+
+Bei Problemen bin ich auch telefonisch erreichbar: 04162/911053
+
+Andreas-cli
+E-Mail: Andreas-cli@dame.de
+
+
+
+
+Changes:
+
+V0.9beta
+
+- Erste oeffendliche Testversion
+- Beherrscht GUP, MAPS in allen Varianten.
+- GUP in Grosschrift (brettnamen)
+
+V1.00
+
+- Gup-Brettnamen werden KLEIN gewandelt
+- Zusatzoption bei GUP (Pflicht) : letzte Zeile Body (z.B. fuer QUIT)
+- Areafix eingebaut (Parameter identisch mit GUP),
+  nur beherrscht Areafix normal keine JOKER. d.h. ADD und DEL (+/-)
+  in EINER Nachricht. Format: "+ FIDO.GER"
+- saemtliche zusatzkommentare (Betreff, 1.Body, lastBody muessen in
+  '"' eingeschlossen werden ALLE!!! auch die alten...)
+- Die Zusatzoptionen haben sich etwas verschoben, bitte anpassen.
+- wird bei Areafix im body nicht angegeben, wird die Zeile NICHT geschrieben.
+- wird bei Areafix oder GUP im Lbody(letzte Zeile Body) NICHTS = "" angegeben,
+  wird die Zeile ebenfalls nicht geschrieben. (hoffe ich zumindest ;-) )
+- Kleiner Bugfix in der ZC-Routine (durch nen Tippfehler war da ein
+  Muellzeichen drinne (asc(13,1) nach der LEN Angabe))
+- Bei GUP Nachrichten wird in KLEINSCHRIFT gewandelt!!! Sollte das bei 
+  AREAFIX auch notwendig sein, bitte bescheid sagen.
+- ist eine Datei 0-Bytes Lang, weil nicht gefunden werden konnte, (MAPS-ONLY)
+  so wird diese NICHT mehr verschickt.
+- Der Betreff (GUP, Areafix etc) wird nicht mehr automatisch in Grosschrift
+  gewandelt, sondern bleibt GENAU SO, wie er geschrieben wurde.
+
+V1.01
+
+- Bei MAPS Nachrichten wird ein "/" dem Brettnamen vorangestellt.
+  (z.B.: '/Z-NETZ/ALT/BLA')
+- Der Maps/GUP etc. Absender muss nun je System bestimmt werden,
+  daher sind verschiedene Absender moeglich. Das Format der Config-Datei
+  wurde dafuer geaendert.
+
+V1.02
+
+- Neue Modis fuer GUP:
+  1. GUP-D*I
+     fuer komplette Automaps Bestellungen 1x delete *.* (loescht Gup Script)
+     sowie diverse includes der einzelnen Bretter.
+  2. GUP-EIALL
+     Gup Nachricht bestehend aus einzelnen Exclude`s und include`s ohne
+     irgendein Jokerzeichen fuer besonders bloede Gups ;-)
+  3. GUP-IE
+     arbeitet genau andersherum wie EI. Alle Mustergruppen werden komplett
+     mittels Joker bestellt (include <gruppe.*>). Die inaktiven Bretter werden
+     abbestellt. Der Vorteil daran ist der, das man immer ALLE BRETTER der
+     Serverbox anbieten kann. beim naechsten Durchlauf von Automaps werden die
+     bereits angelegten Bretter wieder abbestellt. Kurzzeitig kann es allerdings
+     schon mal zu einem Newsschub kommen. Diese Option mit Vorsicht behandeln,
+     da der Automaps hierfuer recht oft laufen muss.
+
+V1.03
+
+- Unterstuetzt nun maximal 2 Server fuer ein Netz.
+  Dafuer wurde extra ein Flag eingefuehrt, welches HINTER dem Servernamen
+  eingesetzt werden muss, und die Anzahl der minimalen Verteilereintraege
+  angibt. (1 = 2 Server(ein zusaetzlicher)) Das Programm prueft NICHT die Verteilernamen,
+  sondern stellt nur die Anzahl der Verteilereintraege fest. Bei mehreren
+  Servern wird ein Verteilereintrag der Server vorausgesetzt.
+  Beispiel: NETZ/     SERVER 1
+
+V1.04
+
+- Config-Datei veraendert. Pfad fuer JANUS: Dir ist nun einstellbar.
+  Ist JANUS: Assigned, muss dort JANUS: eingetragen werden.
+  Dieser Eintrag muss an erster Stelle des config Files erfolgen,
+  und mit einem ":" oder "/" abgeschlossen sein!
+
+V1.05
+
+- Jetzt 200 Brettmuster moeglich (vorher 100)
+
+V1.6
+
+- Janus-Dir angabe (erste Zeile in der Config) verweist nun NUR NOCH AUF DAS
+  SPOOL-Verzeichnis: z.B. CONNECTLINE:DATA/SPOOL/
+  Wobei das letzte Zeichen ein "/" oder ":" sein MUSS!
+- Bei einem Brett OHNE VERTEILER, wird dieses beim Server NACHBESTELLT.
+  (vorher wurde es abbestellt)
+- Bei GUP-Nachrichten ist es moeglich einen Zusatz-Eintrag hinter der Mail,
+  vor dem "QUIT" einzubasteln. z.B. eine Liste der ungewollten Bretter
+  generell excluden oder auch includen, etc. (exclude alt.binaries.pictures.erotica.*)
+  Diese Datei MUSS im Amiga Format vorliegen, und GUP-verstaendliche Befehle beinhalten.
+  Dateiname: connectline:automaps/exclude_<boxname>
+- Versionsnummer nach Commo` Standard geaendert.
+- liest max 300 Zeichen je Zeile in der Brettliste ein. konnte u.U. Probleme geben.(FGets)
+  (Speicherverbrauch daher hoeher)
+
+Noch weitere Optionen???
+
+
+
+Geplant/Vorschlaege:
+
+Zusaetzliche Add/Del Liste auch bei MAPS je System einbindbar
+
+
+WICHTIG!
+
+Das Program wurde sorgfaeltig getestet, dennoch kann der programmierer
+keinerlei Garantien fuer evtl auftretende Hardwareschaeden oder 
+Datenverlusten uebernehmen. Die Benutzung erfolgt auf eigener Gefahr.
+
+Support-BBS: CLI.dame.de
+             +49(0)4162-911051  ISDN X.75
+             +49(0)4162-911052  ISDN X.75
+             +49(0)4162-911054  ISDN X.75 / USR V.*
+             +49(0)4162-911055  ISDN X.75 / USR V.*
+
+Login als gast, Im Menue den Punkt "CLI-Tools" anwaehlen, und schon kann man
+die neusten Versionen downloaden.

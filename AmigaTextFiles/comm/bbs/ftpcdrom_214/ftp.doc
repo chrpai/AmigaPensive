@@ -1,0 +1,256 @@
+                  FTP Simulator Door Version 2.11
+
+  Introduction:
+
+     With the advent of CD-ROM drives, the Citadel BBS needed a method
+     to access multiple directories and allow a user to transfer files
+     from the CD-ROM to their system.  This program allows a user to
+     change directory and yet is safe from the hacker.
+
+     This program is shareware.  If you use it, you must send a small
+     donation to me.  The minimum amount is $10, if you find it more
+     valuable, feel free to send more.  If you decide not to use it
+     then please send me a mail message or a postcard and tell me why.
+
+     Send all fees to:
+
+        Custom Services
+        P.O. Box 254
+        Moorestown, NJ 08055
+
+     Registered users will receive an updated version if they include
+     either a larger donation than the minimum, or a disk and postage.
+     Registration will get you a personalized registration key that will
+     eliminate the reminder.
+
+ User Operation:
+
+   A user runs the door from your BBS, or you run it from a CLI.  See the
+   USER.DOC file for an explination of the commands available.
+
+ Installation
+
+   This program requires the 2.04 ROM or later.  It will not run under
+   1.3.
+
+   The program is simple to operate.  You copy it to a directory on your
+   path and setup the door entry to be:
+
+ For Citadel:
+
+ #door ftp ftp  in:  anyone  modem unlimited
+  File transfer Program.
+  <ctdl-aux: >ctdl-aux:  "%d" cd0: in:
+
+ The program has the following arguments:
+
+   ftp "user name"  <directory 1> <directory 2>  [DLG/FREE flag]
+
+      user name is the name the user has on the BBS.  For Citadel use
+                "%d".
+
+      directory1 is the root directory the user is allowed to examine.
+                 This is the directory the user will start with.  The
+                 user can move into any sub directory in this directory.
+                 The user will not be allowed to move to other places.
+                 This can be on a floppy, HD, or any other file system
+                 type device.
+
+      directory2 is the directory attached to the room you have the door
+                 attached to.  This way, when a user exits the door, the
+                 files retrieved with the GET command are ready to be
+                 downloaded.
+
+                 At this time, when a user does a GET, the file is copied
+                 to this directory.
+
+   DLG/FREE flag This is an optional flag that tells the program to
+                 create a tag file used by the DLG bbs program  If this
+                 argument is present it may be:
+
+                 FREE -- This is a DLG BBS, the downloads are free.
+
+                 DLG  -- This is a DLG BBS, the downloads are normal.
+
+                 If this option is not present or is not one of these
+                 two items, the tagged files list will not get created.
+                 If you are not running DLG, leave it off
+
+                 The tag file is made up of 90 byte records of the
+                 form:
+
+                 struct Batch
+                   {
+                   char filename[40]; /* filename */
+                   char path[45];     /* path to file */
+                   char free;         /* flag:  1=FREE, 0=Normal Download */
+                   long size;         /* size of file in bytes */
+                   };
+
+                 This file will be created if not found and appended to
+                 if it already exists.  The path will always be the
+                 parameter used for directory2.  The program will copy
+                 the files into this directory.
+
+                 This option assumes the following:
+
+                     you have the logical USER: assigned to the
+                     directory and there is a subdirectory called
+                     user:"user name", made from the first parameter
+                     and "user:" where the Batch.File can be created
+                     or found.
+
+
+      There are two other items the program uses if they are defined.
+      These are environment variables.
+
+      FTP_BBS_NAME     - This will be used to display a welcome message as
+                         if the user is on an internet site.
+                         You do not have to have it, the program will
+                         supply a default.
+
+      FTP_SITE_NAME    - This will be used to display the name you chose for
+                         your ftp site.  You do not have to have it, the
+                         program will supply a default.
+
+      FTP_REGISTRATION - This is your registration key, it must match the
+                         FTP_BBS_NAME.  This will be supplied to you
+                         after your registration fee is received.
+
+      FTP_LOG_FILE     - This is an optional name that will define a log
+                         file which will show how active the door was and
+                         what user made use of it.  This is just a file
+                         name.  If not defined, no log is kept.
+
+      Define these with the command: "setenv FTP_BBS_NAME "my.bbs.name"
+
+  I also recommend you create a room attached to directory2 and put the
+  USER.DOC file in there.  That will allow users to examine the door
+  commands.
+
+Warranty
+
+  30 seconds, 30 feet which ever comes first.
+
+  If you have a problem, feel free to email me at apreston@isd.csc.com
+  or post it on your nearest Citadel in either the Citadel 68K, or
+  Sysop Only room.  You can also sent mail to
+
+   tony preston@The Amiga Zone.NJ
+
+  This is a STDIO door, it can be used with BBSes like DLG, and others
+  which have interfaces for that type of door.  If you do use this with
+  another type of BBS other than a Citadel, please send me the information
+  when you register so I can include it with the next update.
+
+
+Registration:  The door has no real restrictions except that the
+  unregistered version will remind your users that it is not registered
+  each time they move down a directory.  This reminder will slow them
+  up, but is harmless.  They will have to hit a return.
+
+  The registration will get you a customized version key in the mail.
+  This will remove the limitations place on the unregistered version.
+
+  Send $10 to:
+
+    Custom Services
+    P. O. Box 254
+    Moorestown, NJ 08055
+
+  Send Your Site Name and BBS Name exactly as you have them in the
+  environment variables mentioned above.  You are limited to 20 characters
+  for these names.
+
+  Note: the registration key is controled by an environment variable.
+  If an incorrect value is registered, the users will experience a
+  10 second delay after an error message which says:
+
+  ERROR: registration key error, auto delay activated
+
+  This only occurs if the key value and your BBS name do not match.
+Future Plans:
+
+  The door's GET command currently uses a COPY to move the files.  The
+  plan is to give the sysop more flexibilty and input the command used
+  with the default being the current COPY command.
+
+  Give the ability for the user to specify a path name such as:
+
+  Cd Aminet/Dev/c
+
+  instead of
+
+  Cd Aminet
+  Cd Dev
+  Cd c
+
+  This will also include the usage of ".." and "/" as psuedonyms for
+  the parent directory.  This will still protect the Sysop in that
+  attempting to Cd above the top directory will exit the door.
+
+
+  Other commands have been suggested and will be added to the program
+  as time permits.
+
+ Contents:
+
+   The archive you have should have the following files:
+
+   ftp.doc       This file you are reading.
+   user.doc      some simple user docs
+   ftp           68000 version
+   ftp.030       68030 version
+
+
+ History:
+
+   Beta 1.0-1.03 - Initial release for testing.
+
+   1.04Beta      - Added commands(LIST, "?")
+                   fixed bug in CD .. and CD / (did not work)
+                   fixed bug in VIEW, LIST, CD and DIR
+                   where error messages would come out even if
+                   ok.
+   2.00
+
+   -- Supports LHA, LZH, LZ, Zoo, Zip, and ARC files with the VIEW command.
+      It will allow you to view the contents of an archive(similar to doing
+      LHA V FILE).
+   -- Supports limited wildcarding.  The "?" matches any character, the
+      "*" matches the rest of the string.  Using the "*" with "Sa*" matches
+      all files starting with the letters "Sa".  It is limited in that you
+      cannot match on "Sa*.lha" and only get the lha files starting with "Sa".
+   -- Supports sorting the directory information.  All lists will come out
+      in alphabetical order.
+   -- Now uses case sensitive names, like real unix would.
+   -- Supports both ".." and "/" as diretory names with the CD.  Both will
+      move up one level.
+   -- Command line supports directory names with or without the slash on
+      the end.  Previous version did not check for proper names.
+   -- Several minor bug fixes included.
+   -- 68030 optimized version include in the archive along with the
+      standard 68000 version.
+
+   2.10
+
+   -- Added the commands CASE to toggle the case sensitivity, C-ON to
+      force case sensitivity, COFF to turn off case sensitivity, and
+      STAT to display the current status information.
+   -- Added some meaningless statistics and a means for the SYSOP to
+      record them to a log file.
+   -- Added a new environment variable FTP_REGISTRATION which will allow
+      the registered version to be distributed and only a key needed to
+      unlock it.
+
+   2.11
+
+   -- Fixed a bug in the compare routine.  The very last character of
+      two names would not be compared if the names matched up to that
+      point.  A name like D300 matched D301.  This is fixed.
+
+
+   2.12 - 2.13
+
+   -- Added the DLG/FREE flag to create the tagged files list for the
+      DLG BBS.

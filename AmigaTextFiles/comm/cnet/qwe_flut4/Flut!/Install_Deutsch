@@ -1,0 +1,269 @@
+;---------------------------------------
+; $VER: Install_Deutsch for Flut! v4 1.0 (23.03.96)
+; By Michael Arlt
+
+;----------------
+; Systemvariables
+(set #ProgName "Flut! v4")
+(set #MainDisk "")
+
+;-------
+; Others
+(set #AssignPath "Flut:")
+(set #DrawerName "Flut!")
+(set #OldGames "Pfiles:Flut/Flut.games")
+(set #OldFlut "Pfiles:Flut")
+(set #OldProgName "Flut! v3.x")
+
+;---------
+; Messages
+
+(set #Update "Update")
+(set #Replace "Replace")
+(set #Remove "Remove")
+(set #Convert "Convert")
+(set #English "English")
+(set #German "German")
+
+(set #Continue "Ja")
+(set #Skip "Diesen Teil überspringen")
+
+(set #WorkingMsg (cat "Bitte warten...\n\nInstalliere " #ProgName))
+
+(set #Location
+	(cat	"Wo soll die Schublade\n" #DrawerName " erzeugt werden?")
+)
+
+(set #DrawerSelectMsg
+	(cat	"\nBitte wählen Sie ein Verzeichnis.\n"
+			"Das Directory \"" #DrawerName "\" wird eingerichtet oder verwendet.\n"
+			"(\"" #DrawerName "\" nicht selektieren!)."
+	)
+)
+
+(set #DrawerSelectHlp
+	(cat	"\nz.B. Pfiles: - wenn Flut! darin nicht existiert, so wird es eingerichtet.\n"
+			"Ist es schon vorhanden, so wird es verwendet.\n\n"
+			"Bitte keinesfalls einen eventuell schon vorhandenen Flut!-Ordner selektieren!"
+	)
+)
+
+(set #DrawerExistsMsg
+	(cat	"\nIm gewählten Zielverzeichnis existiert bereits ein Verzeichnis mit dem Namen \"" #DrawerName "\".\n\n"
+             "Möchten Sie Updaten oder Ersetzen?\n\n"
+	)
+)
+
+(set #DrawerExistsHlp
+	(cat	"\n" #ProgName " wurde gefunden.\n\n"
+			"Klicken Sie auf \"" #Update "\" um es durch die neue Version von " #DrawerName " zu ersetzen.\n"
+			"Klicken Sie auf \"" #Replace "\" um " #ProgName " inklusive der leeren Gamedaten zu installieren.\n\n"
+	)
+)
+
+(set #RemoveOldMsg
+	(cat	"\nSoll das alte " #OldProgName " entfernt werden?\n\n"
+			"Klicken Sie auf \"" #Remove "\" um es zu entfernen.\n"
+			"Klicken Sie auf \"" #Skip "\" um dies zu Übergehen.\n\n"
+	)
+)
+
+(set #RemoveOldHlp
+	(cat	"\nDie neue Version " #ProgName " ist erheblich besser als ältere v3.x Versionen. Es gibt eigentlich keinen Grund die alte Version aufzuheben.\n\n"
+			"Klicken Sie auf \"" #Remove "\" um das gesamte Directory " #OldFlut " zu entfernen.\n"
+			"Klicken Sie auf \"" #Skip "\" um dies zu Übergehen.\n\n"
+	)
+)
+
+(set #ConvertOldMsg
+	(cat	"\nSollen die alten Spielstandsdaten konvertiert werden?\n\n"
+			"Klicken Sie auf \"" #Convert "\" um sie zu konvertieren.\n"
+			"Klicken Sie auf \"" #Skip "\" um dies zu Übergehen.\n\n"
+	)
+)
+
+(set #ConvertOldHlp
+	(cat	"\nAlte Spielstandsdaten von " #OldProgName " wurden gefunden.\n\n"
+			"Klicken Sie auf \"" #Convert "\" um sie zu konvertieren. Es werden alle Games konvertiert, die bei y-size nicht mehr als 8 Zeilen haben.\n"
+			"Dies liegt an den veränderten Maximalgrößen für " #ProgName ". (" #OldProgName ": maximal 11*11 " #ProgName ": maximal 20*8).\n"
+			"Klicken Sie auf \"" #Skip "\" um dies zu Übergehen.\n\n"
+	)
+)
+
+(set #TranslationMsg
+	(cat	"\nWelche Übersetzung soll als Onlinehilfe kopiert werden?\n\n"
+	)
+)
+
+(set #TranslationHlp
+	(cat	"\nKopieren der Onlinehilfe\n\n"
+			"Klicken Sie auf \"" #English "\" für die englische Übersetzung oder auf \"" #German "\" für eine deutsche Onlinehilfe.\n\n"
+	)
+)
+
+(set #Finish
+	(cat	"Sollten Sie noch den Start des alten Serverprogrammes für " #OldProgName " in der Startup-Sequence oder UserStartup haben, so entfernen Sie ihn bitte.\n"
+			#ProgName " benötigt so einen Eintrag nicht. Der Server wird dynamisch geladen und beendet.\n"
+			"Der Rest der Installation ist in \".../Flut!/Ansis/Sysop.readme\" beschrieben."
+	)
+)
+
+
+;----------------------
+; Check the translation
+(procedure @Translation
+(
+	(set TranslationBool
+		(askchoice
+		(prompt #TranslationMsg)
+		(choices #English #German)
+		(help #TranslationHlp)
+		)
+	)
+	(working #WorkingMsg)
+	(if (= TranslationBool 0)
+	(
+		(set #DocDir "doc")
+	)
+	(
+		(set #DocDir "dok")
+	)
+	)
+	(copyfiles
+		(source #DocDir)
+		(dest (cat #DestDir "/ansis")
+			(all)
+		)
+	)
+)
+)
+
+;--------------------------------------------------
+; Check if Update, Replace or FirstTimeInstallation
+(procedure @CheckDrawer
+(
+	(set #DestDir (tackon #DestDrawer #DrawerName))
+	(set @default-dest #DestDir)
+	(if (exists #DestDir)
+	(
+		(set TypeOfInstallBool
+			(askbool
+				(prompt #DrawerExistsMsg)
+				(choices #Update #Replace)
+				(help #DrawerExistsHlp)
+			)
+		)
+		(if (= TypeOfInstallBool 1)
+		(
+			(run (cat "c:rename \"" #DestDir "/flut.games\" \"" #DestDir "/flut.merk\""))
+		)
+		)
+	)
+	(
+		(makedir #DestDir)
+	)
+	)
+)
+)
+
+;-------------------
+; Select destination
+(procedure @SelectDest
+(
+	(set #DestDrawer
+		(askdir
+			(prompt #DrawerSelectMsg)
+			(help #DrawerSelectHlp)
+			(default "Pfiles:")
+		)
+	)
+	(@CheckDrawer)
+)
+)
+
+;----------------------
+; Install program files
+(procedure @InstallProg
+(
+	(working #WorkingMsg)
+	(copyfiles
+		(source (cat "")
+		(dest #DestDir)
+		(Pattern "~(dok|doc|Convert|Install#?)")
+		)
+	)
+	(makedir (cat #DestDir "/walls"))
+	(if (= TypeOfInstallBool 1)
+	(
+		(run (cat "c:copy \"" #DestDir "/flut.merk\" \"" #DestDir "/flut.games\""))
+		(delete (cat #DestDir "/flut.merk"))
+	)
+	)
+)
+)
+
+;---------------------
+; Remove old Flut v3.x
+(procedure @RemoveOld
+(
+	(set RemoveOldBool
+		(askbool
+			(prompt #RemoveOldMsg)
+			(choices #Remove #Skip)
+			(help #RemoveOldHlp)
+		)
+	)
+	(if (= RemoveOldBool 1)
+	(
+		(working #WorkingMsg)
+		(run (cat "c:delete " #OldFlut " all"))
+	)
+	)
+)
+)
+
+;---------------------
+; Convert old gamedata 
+(procedure @ConvertOld
+(
+	(if (exists #OldFlut)
+	(
+		(set ConvertOldBool
+			(askbool
+				(prompt #ConvertOldMsg)
+				(choices #Convert #Skip)
+				(help #ConvertOldHlp)
+			)
+		)
+		(if (= ConvertOldBool 1)
+		(
+		   	(working #WorkingMsg)
+			(run "convert")
+			(run (cat "c:copy ram:flut.games \"" #DestDir "\""))
+			(delete "ram:flut.games")
+		)
+		)
+		(@RemoveOld)
+	)
+	)
+)
+)
+
+;---------
+; Main
+(complete 0)
+(welcome)
+
+(@SelectDest)
+(complete 25)
+
+(@InstallProg)
+(complete 50)
+
+(@Translation)
+(complete 75)
+
+(@ConvertOld)
+(complete 100)
+
+(exit #Finish)

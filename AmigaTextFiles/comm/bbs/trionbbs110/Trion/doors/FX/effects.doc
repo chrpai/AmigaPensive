@@ -1,0 +1,411 @@
+
+
+   =====( FX Doors V0.70 )============================================
+
+
+        Trion menu FX doors.
+
+        (c) Copyright Paul Spijkerman, '96-'97. All rights reserved.
+
+        Written escpecially for use with the Trion BBS package.
+
+
+   ===================================================================
+
+
+   The effects (or short FX) doors are doors to give certain
+   effects or animations to Menu's.
+
+   They are started after the ANSI screen of a menu is shown and
+   before a user gives a command at the prompt of the menu.
+   They add something to the screen, which can be something
+   stationary like a random line or something moving like 
+   a scrolling text.
+   They stop when a user hit's a key.
+   They intercept this input and can use this as they see fit
+   like in a door which select menu items with cursor keys
+   or send the input to the BBS node and quit.
+
+   This is done by using the 'BuildScreen' sequence which was
+   invented especially for this purpose of effects doors.
+
+   A build screen sequence would look something like this.
+
+BuildScreen
+   ......
+   ......
+   ......
+EndCmd
+
+   This is what it would look like in a menu file starting
+   the scroller effect:
+
+BuildScreen
+   CliDoor  "doors:FX/scroller ~50  main.scrl"
+EndCmd
+
+   All the FX doors are started like this with after the door
+   name the ~50 tilde code (node number) and a configuration name.
+
+   If the configuration is in the "doors:FX/" directory you
+   don't have to specify a path.
+
+   In the configuration file you can config the place, colors
+   files and lenghts of the text used in effects.
+   In most configs there is a source file configurated where
+   the text is the effect uses to put on the screen.
+
+
+
+
+
+
+   At this moment there are the folowing effects wich are explained
+   further in this document.
+
+  -Scroller
+
+   This door displays a scrolling text over the screen.
+
+  -Random
+
+   This door adds Random lines to the screen.
+
+  -Blink
+
+   This door shows a blinking line on the screen without the
+   need of special ANSI codes which the Amiga doesn't support.
+
+  -Text
+
+   This door displays lines from a source file one at a time
+   at the same place using the different grey and white colors
+   to produce an effect of a slowly appearing and disappearing lines.
+
+   There is also a door to add new lines to the config so you
+   can use it as a 'Wall' or 'rumor-base'.
+   Or just use it to make the live of the sysop easier.
+
+  -Select
+
+   With this door you can make a menu where the items are
+   selected with the cursor keys or numerical pad.
+   But still use the hotkeys.
+
+
+
+
+
+
+
+
+   =====( Scroller )==================================================
+
+
+   This door displays a scrolling text over the screen.
+
+
+      BuildScreen
+         CliDoor  "doors:FX/scroller ~50  main.scrl"
+      EndCmd
+
+
+   Added an option to the scroller door so the [..] characters
+   around the text are configurable.
+   If you add the word 'BOX' to the scroller config they are
+   added .. else they are left out.
+
+   The text the scroller door can handle is bigger, it was
+   120 characters .. now it is 220 characters..
+
+
+   -----( config )----------------------------------------------------
+
+
+
+;  Configuration for the Scroller Trion FX Door.
+
+;  Text line we want to Scroll (max. 220 characters)
+;
+;  TEXT  "........"
+
+TEXT     "   <<<    Amiga Pet Shop BBS.   >>>   Amiga Pet Shop BBS."
+
+;   Size of the visable part of the line of the screen
+;
+;   SIZE  n
+
+SIZE     35
+
+;   Time in 50th seconds between actions
+;
+;   DELAY  n
+
+DELAY    5
+
+;  Position on the screen where to display the line:
+;
+;  POS  x  y
+
+POS      28  23
+
+;  Do we want the text between [...] characters ?
+;
+;  BOX
+
+;BOX
+
+;  The Low and Hi-intensity colors you can use.
+;
+;  BLACK   RED   GREEN   YELLOW   BLUE   MAGENTA   CYAN   WHITE
+;  HIBLACK HIRED HIGREEN HIYELLOW HIBLUE HIMAGENTA HICYAN HIWHITE
+
+;  Define the ForeGround (is text) color
+
+FCOL    HICYAN
+
+;  Define the BackGround color   (only low intensity !).
+
+BCOL    BLACK
+
+
+
+   =====( Random )====================================================
+
+   This door adds Random lines to the screen.
+
+
+      BuildScreen
+         CliDoor  "doors:FX/Random   ~50  main.rndm"
+      EndCmd
+
+   This door returns immediatly after displaying a line so
+   you can use it in combination with other FX door,
+   just place them after the call of Random in the BuildScreen
+   sequence.
+
+   Made the Random door al little bit faster by loading the text in
+   memory while counting the lines, so it doesn't have to be
+   read twice.
+
+   -----( config )----------------------------------------------------
+
+
+;  Configuration for the Random Trion FX Door.
+
+;  The place where the random lines are:
+;
+;  SOURCE  path/file
+
+SOURCE   "doors:fx/random.lines"
+
+;  Position on the screen where to display the line:
+;
+;  POS  x  y
+
+POS      28  22
+
+;  The Low and Hi-intensity colors you can use.
+;
+;  BLACK   RED   GREEN   YELLOW   BLUE   MAGENTA   CYAN   WHITE
+;  HIBLACK HIRED HIGREEN HIYELLOW HIBLUE HIMAGENTA HICYAN HIWHITE
+
+;  Define the ForeGround (is text) color
+
+FCOL    HIYELLOW
+
+;  Define the BackGround color   (only low intensity !).
+
+BCOL    BLACK
+
+
+
+
+   =====( Blink )=====================================================
+
+   This door shows a blinking line on the screen without the
+   need of special ANSI codes which the Amiga doesn't support.
+
+
+      BuildScreen
+         CliDoor  "doors:FX/blink    ~50  main.blnk"
+      EndCmd
+
+
+   -----( config )----------------------------------------------------
+
+
+;  Configuration for the Blink Trion FX Door.
+
+;  Text line we want to blink
+;
+;  TEXT  "........"
+
+TEXT   "Amiga Pet Shop BBS"
+
+;   Time in 50th seconds between actions
+;
+;   DELAY  n
+
+DELAY  15
+
+;  Position on the screen where to display the line:
+;
+;  POS  x  y
+
+POS    30  2
+
+;  The Low and Hi-intensity colors you can use.
+;
+;  BLACK   RED   GREEN   YELLOW   BLUE   MAGENTA   CYAN   WHITE
+;  HIBLACK HIRED HIGREEN HIYELLOW HIBLUE HIMAGENTA HICYAN HIWHITE
+
+;  Define the ForeGround (is text) color
+
+FCOL    HIWHITE   ;HIYELLOW
+
+;  Define the BackGround color   (only low intensity !).
+
+BCOL    BLACK
+
+
+
+   =====( Text )======================================================
+
+   This door displays lines from a source file one at a time
+   at the same place using the different grey and white colors
+   to produce an effect of a slowly appearing and disappearing lines.
+
+
+   It shows lines that slowly pop up and disappear by using 4 colors.
+   (black, dark grey, light grey and white, works best at 16 color screen)
+   It cycles trough all lines in the file and displays them.
+   By using an empty line, you can create sort of a pause.
+
+   Got the idea on a PC board , which had a "Sysop want's" door,
+   which shows text the same way but on a (random ?) ANSI screen,
+   The idea was nice, but it is a pain to have to see the same
+   text every time you log in and have to wait, so i made it
+   into an 'FX' door.
+
+   You can still make something like descript above , with the
+   advantage that you can quit it , and have a complete menu
+   in the screen.
+
+   In the config is a name of a (SOURCE) file where the
+   lines are you want displayed.
+
+   Use it like this:
+
+
+BuildScreen
+   CliDoor  "doors:FX/text ~50  main.text"
+EndCmd
+
+
+   There is also a door to add new lines to the config so you
+   can use it as a 'Wall' or 'rumor-base'.
+   Or just use it to make the live of the sysop easier.
+   The door remembers the last 16 lines plus the new line.
+
+   You use it at the same way you use the 'Text' door, with
+   the same config name.
+   Note that this isn't a FX door, so you have to use a normal
+   menu sequence instead of a buildscreen sequence.
+
+
+Cmd "A"
+   CliDoor  "doors:FX/AddText ~50  main.text"
+EndCmd
+
+
+   -----( config )----------------------------------------------------
+
+
+;  Configuration for the Text Trion FX Door.
+
+;  The place where the lines are:
+;
+;  SOURCE  path/file
+
+SOURCE   "doors:fx/text.lines"
+
+;  Position on the screen where to display the line:
+;
+;  POS  x  y
+
+POS      28  22
+
+;   Time in 50th seconds between actions
+;
+;   DELAY  n
+
+DELAY    5
+
+
+
+   =====( Select )====================================================
+
+   With this door you can make a menu where the items are
+   selected with the cursor keys or numerical pad.
+   But still use the hotkeys.
+
+   It displays a number of lines on the screen just like the
+   CDdoor displays areas of files, and you can walk trough them
+   with cursor keys.
+
+   You can still Use all the old hotkeys in the menu.
+   What the door does is sending the first character on
+   the line you select to the the BBS node.
+
+   So you have to start all lines in the file with
+   a character like this:
+
+
+F.   Files
+M.   Mail
+D.   Doors
+G.   Goodbye
+
+
+    With this config you only have to press return to enter
+    the file menu.
+
+
+BuildScreen
+   CliDoor  "doors:FX/select ~50  main.slct"
+EndCmd
+
+
+   -----( config )----------------------------------------------------
+
+
+;  Configuration for the Select Trion FX Door.
+
+;  The place where the menu lines are:
+;
+;  SOURCE  path/file
+
+SOURCE   "doors:fx/test.lines"
+
+;  Position on the screen where to display the line:
+;
+;  POS  x  y
+
+POS      40  5
+
+;   Length of the inverted part of the text.
+;
+;   SIZE  n
+
+SIZE     17
+
+;   Time in 50th seconds between actions
+;
+;   DELAY  n
+
+DELAY    5
+
+
+
+   ===================================================================

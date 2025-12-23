@@ -1,0 +1,280 @@
+@Database DOOR_MakeFreeDL
+
+@Node Main "MakeFreeDL"
+
+  MakeFreeDL V1.05
+
+  @{" Description          " link Description}
+  @{" Installation         " link Installation}
+  @{" System Options       " link SystemOptions}
+  @{" Command Line Options " link CmdLineOptions}
+  @{" Screens Displayed    " link ScreensDisplayed}
+  @{" Doors Called         " link DoorsCalled}
+  @{" Returns              " link Returns}
+  @{" Config Files         " link ConfigFiles}
+  @{" ToDo                 " link ToDo}
+  @{" History              " link History}
+
+  Note: Docs last updated for V1.05
+
+@EndNode
+
+@Node Description "Description"
+
+  Description
+  ===========
+
+    This door is a companion to the @{"FreeDL" link HBBS:Docs/Doors/FreeDL.Guide/MAIN} Door.
+
+    When an uploaded file is about to be placed in a conference the door
+    is called, it then looks in that conference's directory for a file
+    called MakeFreeDLList.TXT.  If that file is not found then
+    HBBS:System/Data/MakeFreeDLList.TXT is looked for.
+
+    If a file is found it is loaded and comments are stipped from the file.
+    Then each line of that file is compared (case-insensitively and wild
+    cards) is compared to the file name of the uploaded file.
+
+    If a match is found in the list it will add the filename of the uploaded
+    file to the conference's FreeDLList.TXT file, it will then post a message
+    to a specified recipient list informing them that the file is a free
+    download.
+
+    A user specified comment is then added to the file list.
+
+    The difference between this door and the FreeDL door is that the
+    FreeDL door actually makes the files free downloads, this door is used
+    to automatically post messages to users.
+
+    You may find you'd rather have some wildcard lines in the FreeDLList.TXT
+    files rather than the MakeFreeDLList.TXT files if you don't want
+    messages to be posted but you still want the files to be free.
+
+    E.G.
+
+    Say you have a HBBS Conference:
+
+    HBBS:Conferences/HBBS/MakeFreeDLList.TXT
+
+    cP!-H#?
+    docs.lha
+
+    or a normal file conference:
+
+    HBBS:Conferences/FileConf1/MakeFreeDLList.TXT
+
+    dc-#?
+    flt-#?
+    cP!-#?
+
+    You could also have *every* single file uploaded into a conference
+    made free, and have a message posted about it by having just "#?"
+    as the only line in the conference's MakeFreeDLList.TXT file.
+    This is great for distribution sites!
+
+
+@EndNode
+
+@Node Installation "Installation"
+
+  Installation
+  ============
+
+    The door is stored as:
+
+    HBBS:Doors/System/MakeFreeDL/MakeFreeDL.HBBS
+
+    This is included and enabled with a fresh installation of HydraBBS
+    since V1.05.  Users of prior version should do this:
+
+    Add the following lines to a Commands/System file (HBBS:Commands/System is
+    recommended).
+
+    AddDIZToList_Type_2=HBBS
+    AddDIZToList_Door_2=HBBS:Doors/System/MakeFreeDL/MakeFreeDL.HBBS {N} {O}
+
+    It is recommended that the door be called after all other doors that
+    deal with adding the .DIZ to the file list so that this door can
+    add data to the file list in the right place.
+
+    Edit the config file:
+
+    HBBS:Doors/System/MakeFreeDL/MakeFreeDL.CFG
+
+    Create MakeFreeDLList.TXT files in each conference and in
+    HBBS:System/Data as required.
+
+@EndNode
+
+@Node SystemOptions "SystemOptions"
+
+  System Options
+  ==============
+
+    None
+
+@EndNode
+
+@Node CmdLineOptions "CmdLineOptions"
+
+  Command Line Options
+  ====================
+
+    When no system options are specified they are as follows:
+
+      Command Line Arguments (argv[x])
+      --------------------------------
+
+      2  <confnum>
+
+      3  <diz_file> (full filename and path)
+
+      4  <file_name> (no path)
+
+      5  [NOUSER]
+
+
+@EndNode
+
+@Node ScreensDisplayed "Screens Displayed"
+
+  Screens Displayed
+  =================
+
+    None
+
+@EndNode
+
+@Node DoorsCalled "Doors Called"
+
+  Doors Called
+  ============
+
+    System Doors
+    ------------
+
+    MailAdd
+
+@EndNode
+
+@Node Returns "Returns"
+
+  Returned Values (in N_ND->DoorReturn)
+  =====================================
+
+    Nothing
+
+@EndNode
+
+@Node ConfigFiles "ConfigFiles"
+
+  Config Files
+  ============
+
+    Progdir:MakeFreeDL.CFG
+
+    You CANNOT use comments in this config file (due to it having to support ansi
+    escape sequences)
+
+    e.g. HBBS:Doors/System/MakeFreeDL/MakeFreeDL.CFG
+
+    @{"MailAccessLevel   " link CFG_MailAccessLevel} - Access level for posted mail message
+    @{"MustRead          " link CFG_MustRead       } - Can the users skip this message ?
+    @{"To                " link CFG_To             } - Who the mail is written to.
+    @{"FileListComment   " link CFG_FileListComment} - Comment added to the file list.
+
+@EndNode
+
+@Node CFG_MailAccessLevel "MailAccessLevel"
+
+  MailAccessLevel=<number>
+
+    E.G.
+
+    MailAccessLevel=250
+
+    Default is 50, if default is NOT specified a message will be logged
+    in the BBS Error Log file.
+
+    This option determines the minimum access level a user must have in
+    order for them to read the message that this door posts.
+
+    Normally you'll set this to a VALID access level that is the one
+    above the new user's access level.
+
+    e.g.
+
+    New Users are given access level 10,
+    Normal users are given access level 50
+
+    So you would set MailAccessLevel=50 so that NewUsers can't read
+    messages.
+
+@EndNode
+
+@Node CFG_MustRead "MustRead"
+
+  MustRead=<boolean>
+
+    E.G.
+
+    MustRead=NO
+
+    Default is YES
+
+    This specifies if the message can be skipped during a mailscan.
+
+@EndNode
+
+@Node CFG_To "To"
+
+  To=<string>
+
+    E.G.
+
+    To=SYSOP
+
+    Default is "ALL"
+
+    This specified who the message is written to, so if you have a user
+    on your bbs who manages accounts then you can specify their handle here
+
+    You can have the message written to multiple users by seperating their
+    handles with a comma (,)  e.g. To=SYSOP,ALL,Hydra
+
+@EndNode
+
+@Node CFG_FileListComment "FileListComment"
+
+  FileListComment=<string>
+
+    E.G.
+
+    FileListComment=This file is a free download
+
+    Default is ">>>>>>>>>>>>>>> FREE DOWNLOAD <<<<<<<<<<<<<<<"
+
+    This specifies the comment that is added to the file list.
+
+    You may specify ansi control codes here.
+
+@EndNode
+
+@Node ToDo "ToDo"
+
+  ToDo
+  ====
+
+    Add interactive mode for sysops.
+
+@EndNode
+
+@Node History "History"
+
+  History
+  =======
+
+    V1.05 - First Version
+
+@EndNode
+

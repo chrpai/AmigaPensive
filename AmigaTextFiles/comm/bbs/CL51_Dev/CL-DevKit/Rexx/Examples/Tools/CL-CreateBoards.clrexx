@@ -1,0 +1,146 @@
+/*
+**  $VER: CL-CreateBoards.clrexx 1.2 (05 Feb 1996)
+**
+**        © 1995 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-CreateBoards.clrexx
+**
+**  FUNCTION:
+**      Demonstrationsskript zur cl_rexx.library, Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl_rexx.library © 1995 Mathias Mischler
+**
+**      Dieses Skript legt neue Bretter anhand einer Brettliste an.
+**      Hier werden sämtliche Bretter angelegt, die in der Liste stehen
+**      und welche im System noch nicht existieren. Autoeintrag-Einstellung-
+**      en werden nicht berücksichtigt.
+**
+**      Nehmen Sie eine beliebige Brettliste; es spielt keine Rolle, ob die
+**      Brettnamen in ZConnect- oder RFC-Schreibweise angegeben sind. Ent-
+**      fernen Sie aus der Liste alle nicht erwünschten Bretter (bereits
+**      existierende können drinbleiben), entfernen Sie auch eventuelle Reste
+**      eines Headers. Das Skript setzt das erste zusammenhängende Wort in
+**      jeder Zeile als Brettname voraus.
+**
+**      Als Brettpfad wird der Standardpfad mit dem Brettpfad ergänzt.
+**      Als FTS-Name werden alle '/'es durch '.'e ersetzt, als Newsgroupname
+**      zusätzlich noch in Kleinschreibung gewandelt.
+**      Lese- und Schreibpriorität stehen auf Level 99.
+**      Defaultmäßig wird keinerlei Routgrenze eingetragen.
+**      Folgende Flags stehen auf TRUE (sind also 'eingeschaltet'):
+**          - Binär erlaubt
+**          - Text erlaubt
+**          - Mapszugriff erlaubt
+**          - Autoeintrag gesetzt
+**      Alle anderen Flags sind deaktiviert.
+**      Es wird keinerlei Gruppenzuweisung vorgenommen und auch keine Server
+**      eingetragen.
+**      Die neu angelegten Bretter werden im File 'T:NeueBretter' protokolliert.
+**      Dieses File kann CL-BretterOn.clrexx vorgelegt werden, falls (UND NUR
+**      DANN!!!!) sämtliche neuangelegten Bretter von einem Server bezogen
+**      werden. Ein ADD wird ebenfalls an den Server geschickt.
+**
+**  $HISTORY:
+**
+**      1.2 (05 Feb 1996) : Auf clrexxmods umgestellt
+**
+*/
+
+miscmod='CONNECTLINE:Rexx/Modules/misc.clrexxmod'
+mapsmod='CONNECTLINE:Rexx/Modules/maps.clrexxmod'
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then exit 10
+    end
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*50
+windowheight=Fontsize*15
+windowY=Fontsize+1
+WindowX=Fontsize
+
+/* Standard-IO umleiten */
+
+screen=CLGET_FrontScreenName()
+
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-CreateBoards/SCREEN'screen,'W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+
+/* Hauptprogramm */
+
+address command
+
+blist=arg(1)
+if blist='' then do
+    say "Name und Pfad der Quell-Brettliste:"
+    blist=CLGET_FileRequest()
+    end
+if ~open('in',blist,'R') then do
+    say 'Quell-Brettliste konnte nicht geöffnet werden!'
+    call ende
+    end
+
+if ~open('out','T:NeueBretter','W') then do
+    say 'Ausgabedatei konnte nicht geöffnet werden!'
+    call ende
+    end
+
+do until eof('in')
+    brett=readln('in')
+    if brett~='' then do
+        if ~CLIS_BoardExists(brett) then do
+            call writeln 'out',brett
+            'rx 'miscmod' CREATEBOARD,'brett
+            end
+        end
+    end
+
+call close 'in'
+call close 'out'
+
+say 'Speichere Brettliste.'
+call CL_SaveBoardList()
+
+options prompt "Soll EIN System gleich in die Verteiler der neuen Bretter (J/N)? "
+pull dummy
+if dummy='J' then do
+    options prompt "Name des Servers: "
+    pull server
+    'copy T:NeueBretter CONNECTLINE:Rexx/data/boards.'||server
+    'rx 'mapsmod' HOLDOFF 'server
+    call CL_SendMailFull('sysop','maps@'||server'.'CLGET_SystemDomain(server),'T:NeueBretter',,,'ADD','TEXT','A')
+    'delete >NIL: T:NeueBretter'
+    end
+
+ende:
+
+options prompt "<Bitte drücken Sie RETURN>"
+pull dummy
+
+call close STDOUT
+call close STDIN
+exit

@@ -1,0 +1,262 @@
+Document to L10C V2.00
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
++ L10C V2.00 by Blowfly of Possessed on 22.09.92 +
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+First:
+------
+
+Anyways, I took a look at Grimalkin's Last10 program, which was the best
+of these types that I ran across.
+There was some information that I thought was lacking as well as some
+information that I thought was unnecessary to the general goal of the file.
+If youre wondering about the language in this doc,
+maybe it could be a bit "Bavarian-English" in it !
+
+MAKE SURE TO READ THE NOTES !
+                      =====
+
+--------------------------------------------------------------------------
+
+
+
+=============
+Installation:
+=============
+
+What is What and What is Where ?
+---------------------------------
+In the archiv should be:
+
+L10CProg.rexx          2607  (The Callers process file ONLY for logoff)
+L10CList.rexx          1727  (The Callers list file for Pfiles)
+L10CShow.rexx          3504  (The Callers show file ONLY for logon)
+L10C2.0.doc            4563  (The doc. you read now)
+log.L10COn                6  (This contains some datas for the process file)
+log.L10log              155  (This contains the log of callers)
+
+
+Copy the files:		L10CProg.rexx to PFiles:
+			L10CShow.rexx to PFiles:
+			L10CList.rexx to PFiles:
+			log.L10COn    to Sysdata:
+			log.L10C      to Sysdata:
+
+
+Setting up:
+-----------
+
+After you have copied the files to the appropriate directories, there
+are three more things you will need to do:
+
+Add this line to the first line of your "sys.welcome" file
+located in the SYSTEXT: directory:
+
+\#0Pfiles:L10CShow.rexx\
+
+Load your "bbstext" file, which should be in your CNET: directory
+into your Cygnus Ed(tm). Find the line that says:
+
+@ Logoff Complete\n1
+
+After the "\n1", add the following additional stuff:
+
+\#0Pfiles:L10CProg.rexx\
+
+With the L10CList.rexx file you can do the follow :
+
+You can add it as an Arexx file into your PFiles list, or you
+can add it into your "bbsmenu", which should be in your CNET: directory
+as follow:
+
+Find the line that says:
+
+3; Main prompt
+
+and add this to the end of the block :
+(after the line which say NS in Cnet V2.30)
+
+        CA         |\#0pfiles:L10CList.rexx\
+
+
+NOTE:
+=====
+If you add the L10CList.rexx to your Gfiles, and a anyone started it,
+CNet will log this activity as a PFILES activity and L10C will log it
+as a PFILES activitie, too, becoz L10CList.rexx is an AREXX programm
+and so its a PFILE ! If its important for you to have the listfile
+in the Gfiles, adopt it there, but dont wonder if you get a -P- flag
+insteat a -G- flag for a GFiles activity !
+Sorry, but this may happen with all AREXX/C-Pfiles youre starting
+from the GFiles prompt !
+
+The files log.L10COn and log.L10C are datafiles and dont have to
+be installed ! Just copy it to the required dirs.
+
+Installation finished !
+-----------------------
+
+NOTE:  After any change in "bbstext" or "bbsmenu" you have to reboot
+=====  your machine or you have to restart CNet !
+
+
+
+--------------------------------------------------------------------------
+
+
+
+
+=============
+How it works:
+=============
+
+L10C keeps log of : The users handle
+                    The users city or location
+                    The users connection speed
+                    The users activities
+                    The users total calls (later more infos)
+                    The users login and logoff time
+
+Now load the file L10CShow.rexx into Cygnus Ed and look at the
+`Sysop definealbe variables` !
+
+ Congratulations and Winning Credits means that the user can win
+ Credits at a, from the sysop defineable call number
+ ( all values are definealbe !)
+
+ WINCALL = 1 means that the Congratulations and the extra winning
+             credits are switched on.
+
+ WINCALL = 0 means that all congratulations and credits winnings
+             are totaly switched off ! if you like that, you dont
+             have to read the other stuff about it!
+
+ Example:    A user logging on and its his 10th call.
+	     Before he see the Last 10 Callers, he get the
+             congratulations and win a credit of 10K.
+             After that, the user gets the last 10 callers list.
+
+             A user logging on and its his 100th call.
+             Before he see the Last 10 Callers he get the
+             congratulations and win a credit of 100K.
+             After that, the user gets the last 10 callers list.
+
+aso...........
+
+At how many calls the user should get a congratulation is stored in
+the X.# variables. X.1 = 10 means the congratulation comes at an users
+10th call. X.2 = 664 means the user get the congratulation on
+the users 664th call... aso.......................................
+
+How many bytes the user is winning is the variable for the call,too.
+That means that if you give one of the X.# variable a value of 432,
+the user gets 432KB on his 432th call.  kewl, huh ?
+
+NOTE: 432 is only an example, you can write in what you want !
+=====
+
+If the variable Y is the multiplicator. if Y is set to 1000,
+the credits would be the same as the call * 1000 in bytes !
+
+Example: If Y is set to 1000 -
+         user call # 100 -> user won 100000 Bytes( 100KB )
+
+         If Y is set to 10000 -
+         user call # 100 -> user won 1000000 Bytes( 1 MEG )
+
+         If Y is set to 250 -
+         user call # 50 -> user won 12500 Bytes( 12,5 KB )
+
+            ___________________________________
+           |                                   |
+           | CREDITS = CALL * Y !              |
+           |         =  50 * 250 = 12500 bytes |
+           |___________________________________|
+
+
+NOTE: this all above only if WINCALL is set to 1 !
+=====
+
+Now load the file L10CProg.rexx into Cygnus Ed, and look at the SYSOP
+variable :
+
+SYSOP = 0  -    L10C never add the SYSOP or any caller on PORT 0 with
+		access 23 !
+
+SYSOP = 1  -    If youre a sysop (access 23) on port 0 (local) and you
+		are logging off from this port, L10C will ask you follow:
+		Add yourself to the callers list ?
+		Press return if you dont want to be in the list!
+		Press Y if you want to be in the list !
+		Simple, huh ?
+
+Sysop = 2  -    L10C always add the SYSOP or any caller on PORT 0 with
+		access 23 !
+
+--------------------------------------------------------------------------
+
+
+
+============
+Other Stuff:
+============
+
+NOTE : The file L10CProg.rexx ONLY works in the LOGOFF sequence !
+====== Starting it from a Gfiles/Pfiles list may cause an ERROR !
+
+NOTE : The file L10CShow.rexx ONLY works in the LOGON sequence !
+====== Starting it from a Gfiles/Pfiles list may cause the reset
+       of the LOGON time !
+       To see the CALLERSLIST use the L10CList.rexx programm in
+       your Pfiles or as an Command added in BBSMENU !
+
+
+The handle/username of any new user (accessgroup 1)
+will be listed RED in the callers list.
+
+I think that should been enough infos to that tool !
+But if you have any problems or any questions feel free to call:
+
+Black P.E.N.I.S BBS
++49(0)9227-2542 2400-14400 BPS
+Sysop : Blowfly (Thats my lonesome person)
+
+Special thanks must go to Splicer of Possessed for very helpfull
+betatesting ! (Dont worry about the 50 L10C versions youve inst.)
+
+See ya in my next production !
+
+sign: BlowFly of PSD
+
+                      _      _     _      _      _
+0                    (`)___ (`)_  (`)____(`)____(`)  /\__                   0
+                     |   _ \|   | |   _  |      \  \/   /
+D                    |   __/|   | |  (_) |   ___/      /                    D
+A                    |    \ |   |_|   _  |  (___|     /\                    A
+Y                    |  /  \|     |  | | |      \   |\  \                   Y
+                     |_____/|_____|__| |_|______/___| \_/
+A       _           _ ~~~~~~ ~~~~~_~~~~~ _~~~~~~~_~~~~  ~  _       _        A
+M      (`)_____    (`)_____      (`)_  _(`)     (`)_      (`)_____(`)       M
+I      |       |   |   ___ \     |   \|   |     |___|     |   ______|       I
+G      |   --- |   |  |_  \/     |    \   |      ___      |  |______        G
+A      |    ___|   |   _)        |  \  \  |     |   |     |______   |       A
+       |   |    _  |  |___/\  _  |   \  \ |  _  |   |  _   ______|  |  _
+W      |___|   (`) |_______/ (`) |___|\___| (`) |___| (`) |_________| (`)   W
+A        ~~~   | |  ~~~~~~~~ | |  ~~~~~ ~~~ | |  ~~~~~| |  ~~~~~~~~~~~| |   A
+R ~~~~~~~~~~~~~~ ~~~~~~~~~~~~~ ~~~~~~~~~~~~~~ ~~~~~~~~~ ~~~~~~~~~~~~~~~ ~~~ R
+E       PHunstastic  Electronical  Nutcracker  Intercourse  System          E
+S                                                                           S
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+O                  ______     ___  ___     ___  ___                         O
+N                  \_  _ \___/ __\/ __\___/ __\/ __\___/\_                  N
+L                   / // /_ /\ \  \ \/ __/\ \  \ \/ __/_ /                  L
+Y                  / ___////\/ //\/ / _//\/ //\/ / _/////                   Y
+                   \/   \_/\__/ \__/\__/\__/ \__/\__/\_/  HQ
+                     _     _     _  _  _ __     _  _     _
+                 |_||_| _ | | _ |_| _| _| _| _  _||_ |_| _|
+                   | _|   |_|    _||_ |_   |   |_  _|  ||_
+
+                  ! Call now to get tomorrows stuff today !

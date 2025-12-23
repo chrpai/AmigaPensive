@@ -1,0 +1,1520 @@
+TABLE OF CONTENTS
+
+clonline.library/CLONL_Open
+clonline.library/CLONL_Close
+clonline.library/CLONL_FlushInput
+clonline.library/CLONL_FlushOutput
+clonline.library/CLONL_UpdateUser
+clonline.library/CLONL_Normal
+clonline.library/CLONL_DeleteEOL
+clonline.library/CLONL_DeleteLine
+clonline.library/CLONL_InsertLine
+clonline.library/CLONL_BlueMode
+clonline.library/CLONL_GotoXY
+clonline.library/CLONL_Color
+clonline.library/CLONL_ClearScreen
+clonline.library/CLONL_BlueRead
+clonline.library/CLONL_Wait
+clonline.library/CLONL_DrawTitle
+clonline.library/CLONL_Edit
+clonline.library/CLONL_RequesterSelect
+clonline.library/CLONL_GetLocale
+clonline.library/CLONL_GetCatalog
+clonline.library/CLONL_GetUserShell
+clonline.library/CLONL_IsTTY
+clonline.library/CLONL_GetString
+clonline.library/CLONL_VPrintf
+clonline.library/CLONL_VSPrintf
+clonline.library/CLONL_DoCommand
+clonline.library/CLONL_SendMail
+clonline.library/CLONL_GetKey
+clonline.library/CLONL_FreeRange
+clonline.library/CLONL_ParseExpression
+clonline.library/CLONL_Transfer
+clonline.library/CLONL_GetUserFullName
+clonline.library/CLONL_GetNameVal
+clonline.library/CLONL_IsKeyPressed
+clonline.library/CLONL_Continue
+clonline.library/CLONL_AddShortMenu
+clonline.library/CLONL_FreeShortMenu
+clonline.library/CLONL_ShortMenuSelect
+clonline.library/CLONL_TimeToStr
+clonline.library/CLONL_StrToTime
+clonline.library/CLONL_AddGadget
+clonline.library/CLONL_GetGadget
+clonline.library/CLONL_InputMask
+clonline.library/CLONL_ShortMenuSelectVertical
+clonline.library/CLONL_XFer
+clonline.library/CLONL_FreeXFerList
+clonline.library/CLONL_SetObscure
+clonline.library/CLONL_PrintFile
+clonline.library/CLONL_Open                      cl_online.library/CLONL_Open
+
+   NAME   
+        CLONL_Open -- Startup online system (need to be called)
+
+   SYNOPSIS
+        status = CLONL_Open ( catalogname )
+        D0                    A0
+
+        BOOL     CLONL_Open ( STRPTR )
+
+   FUNCTION
+        Opens some libraries used for nearly all cl actions and inits
+        them. Sets console to raw mode, that user can use unbuffered
+        stdio (e.g. FGetC() from dos.library). It had to be used
+        before the first use of any functions of this library. You
+        should close with CLONL_Close() at the end of your programm.
+        catalogname specifices the name of the clcat file for
+        different languages.
+   
+   INPUTS
+        catalog - a pointer to the name of the clcat file of users
+                  command.
+                  REXX<x> - Takes global shell enviroment and loads
+                            no catalog. <x> is portnummer.
+                  NULL - no catalog will be loaded. You cannot use
+                         catalog functions than.
+   
+   RESULTS
+        status  - TRUE (1)  if anything was ok.
+                  FALSE (0) if an error has occured.       
+
+   EXAMPLE
+
+        struct Library *CLOnlineBase;
+
+        int main(int argc, char *argv[])
+        {
+          if ( !(CLOnlineBase = OpenLibrary ( "clonline.library", 0)) )
+          { 
+            PutStr ("Can't open clonline.library.\n"); 
+            return 20; 
+          }
+          if ( !CLONL_Open("mycommand.clcat") )
+          { 
+            PutStr("Can't init ANSI-System.\n"); 
+            return 1;
+          }
+          CLONL_DrawTitle();
+          if (CLOnlineBase) CloseLibrary (CLOnlineBase);
+        }
+   
+   NOTES
+        if an important error has occured the function will print out
+        the reason of the error (e.g. not logged in).
+   
+   SEE ALSO
+        dos.library/SetMode()
+        CLONL_Close()
+   
+   BUGS
+
+clonline.library/CLONL_Close                    cl_online.library/CLONL_Close
+
+   NAME   
+        CLONL_Close -- Close down online system
+
+   SYNOPSIS
+        CLONL_Close ( )
+
+        CLONL_Close ( )
+
+   FUNCTION
+        Use this function after the last in- or output to close down
+        safely.
+   
+   SEE ALSO
+        dos.library/SetMode()
+        CLONL_Open()
+   
+   BUGS
+
+clonline.library/CLONL_FlushInput          cl_online.library/CLONL_FlushInput
+
+   NAME   
+        CLONL_FlushInput - Flushes the input buffer
+
+   SYNOPSIS
+        CLONL_FlushInput ( )
+
+        CLONL_FlushInput ( )
+
+   FUNCTION
+        Flushes the input buffer to forget all keys pressed before
+        user call this function.
+
+   SEE ALSO
+        CLONL_FlushOutput()
+   
+   BUGS
+
+clonline.library/CLONL_FlushOutput        cl_online.library/CLONL_FlushOutput
+
+   NAME   
+        CLONL_FlushOutput - Flushes the output buffer
+
+   SYNOPSIS
+        CLONL_FlushOutput ( )
+
+        CLONL_FlushOutput ( )
+
+   FUNCTION
+        Flushes the output buffer to print out anything which is in
+        the actual output buffer.
+
+   EXAMPLE
+        CLONL_Printf("Cursor after the three points without linefeed...");
+        CLONL_FlushOutput();
+
+   SEE ALSO
+        CLONL_FlushInput()
+   
+   BUGS
+
+clonline.library/CLONL_UpdateUser          cl_online.library/CLONL_UpdateUser
+
+   NAME   
+        CLONL_UpdateUser - Updates actual users settings
+
+   SYNOPSIS
+        CLONL_UpdateUser ( )
+
+        CLONL_UpdateUser ( )
+
+   FUNCTION
+        This functions updates the users settings. It is usefull when
+        the user has changed his personal settings and they have to
+        effect proberly to the others, e.g. the up- or download ratio.
+
+   NOTES
+        Do not use this function, when there is no really need to
+        calls it, because after logoff all the settings will
+        automatically be updated.
+
+   BUGS
+
+clonline.library/CLONL_Normal                  cl_online.library/CLONL_Normal
+
+   NAME   
+        CLONL_Normal - Set the output style attributes back to normal
+
+   SYNOPSIS
+        CLONL_Normal ( )
+
+        CLONL_Normal ( )
+
+   FUNCTION
+        Set the output style attributes back to normal. This depents
+        on the used terminal.
+
+   SEE ALSO
+        CLONL_BlueMode()
+        CLONL_Color()
+   
+   BUGS
+
+clonline.library/CLONL_DeleteEOL            cl_online.library/CLONL_DeleteEOL
+
+   NAME   
+        CLONL_DeleteEOL - Deletes line to end of line
+
+   SYNOPSIS
+        CLONL_DeleteEOL ( )
+
+        CLONL_DeleteEOL ( )
+
+   FUNCTION
+        This functions send the ANSI Code to the users terminal to
+        delete til end of line from cursor position.
+
+   SEE ALSO
+        CLONL_DeleteLine()
+        CLONL_InsertLine()
+   
+   BUGS
+
+clonline.library/CLONL_DeleteLine          cl_online.library/CLONL_DeleteLine
+
+   NAME   
+        CLONL_DeleteLine - Deletes line
+
+   SYNOPSIS
+        CLONL_DeleteLine ( )
+
+        CLONL_DeleteLine ( )
+
+   FUNCTION
+        This functions sends the ANSI Code to the users terminal to
+        delete the actual line an to scroll up the rest of the text.
+
+   SEE ALSO
+        CLONL_DeleteEOL()
+        CLONL_InsertLine()
+   
+   BUGS
+
+clonline.library/CLONL_InsertLine          cl_online.library/CLONL_InsertLine
+
+   NAME   
+        CLONL_InsertLine - Inserts line
+
+   SYNOPSIS
+        CLONL_InsertLine ( )
+
+        CLONL_InsertLine ( )
+
+   FUNCTION
+        This functions sends the ANSI Code to the users terminal to
+        insert one line at the actual position. The rest of display
+        will scroll down.
+
+   SEE ALSO
+        CLONL_DeleteEOL()
+        CLONL_DeleteLine()
+   
+   BUGS
+
+clonline.library/CLONL_BlueMode              cl_online.library/CLONL_BlueMode
+
+   NAME   
+        CLONL_BlueMode - Sets a special colour mode
+
+   SYNOPSIS
+        CLONL_BlueMode ( )
+
+        CLONL_BlueMode ( )
+
+   FUNCTION
+        Set the colour and style attributes to a special mode, used
+        within the functions CLONL_DrawTitle() and CLONL_BlueRead()
+        inside the library. It is usefull for same looking features.
+
+   SEE ALSO
+        CLONL_Normal()
+        CLONL_Color()
+        CLONL_DrawTitle()
+        CLONL_BlueRead()
+   
+   BUGS
+
+clonline.library/CLONL_GotoXY                  cl_online.library/CLONL_GotoXY
+
+   NAME   
+        CLONL_GotoXY - Sets cursor to specified position
+
+   SYNOPSIS
+        CLONL_GotoXY ( x,     y )
+                       D0     D1
+
+        CLONL_GotoXY ( ulong, ulong )
+
+   FUNCTION
+        Sets the cursor to a specified position on users screen. You
+        can get the maximum lines by calling
+        CLONL_GetUserShell()->userprofile.ShowLines.
+
+   INPUTS
+        x - x coordinate
+        y - y coordinate
+   
+   EXAMPLE
+        ulong count;
+        for ( count = 1; 
+              count <= CLONL_GetUserShell()->userprofile.ShowLines; 
+              count++ )
+        {
+          CLONL_GotoXY ( 1, count);
+          CLONL_Printf ( "Line: %2ld", count );
+          CLONL_FlushOutput();
+        }
+   
+   NOTES
+        The left, upper corner is x = 1, y = 1.   
+   
+   BUGS
+
+clonline.library/CLONL_Color                    cl_online.library/CLONL_Color
+
+   NAME   
+        CLONL_Color - Definies colour and style
+
+   SYNOPSIS
+        CLONL_Color ( col,   bcol, style )
+                      D0     D1    D2
+
+        CLONL_Color ( ulong, ulong, ulong )
+
+   FUNCTION
+        Defines colour an style for the following text output. The
+        colour and style definitions can be found in the include file
+        <cl/clonline.h>.
+
+   INPUTS
+        col   - text colour
+        bcol  - background colour
+        style - text attributes
+   
+   EXAMPLE
+        CLONL_Color ( COLOR_Red, COLOR_White, STYLE_Bold );
+        CLONL_Printf ( "This is very important.\n" );
+        CLONL_Normal ();
+   
+   SEE ALSO
+        CLONL_Normal()
+        CLONL_BlueMode()
+
+   BUGS
+
+clonline.library/CLONL_ClearScreen        cl_online.library/CLONL_ClearScreen
+
+   NAME   
+        CLONL_ClearScreen - Clears the screen
+
+   SYNOPSIS
+        CLONL_ClearScreen ( )
+
+        CLONL_ClearScreen ( )
+
+   FUNCTION
+        This function will clear the users screen, if his terminal
+        makes this possible (e.g. VT100, ANSI). The cursor will also
+        be set in the left, upper edge.
+
+   BUGS
+
+clonline.library/CLONL_BlueRead              cl_online.library/CLONL_BlueRead
+
+   NAME   
+        CLONL_BlueRead - Gets defined input from user
+
+   SYNOPSIS
+        str    = CLONL_BlueRead ( str,    def,    len,   type,  maske )
+        D0                        A0      A1      D0     D1     D2
+
+        STRPTR = CLONL_BlueRead ( STRPTR, STRPTR, ulong, ulong, BOOL  )
+
+   FUNCTION
+        Makes a line input from user with the a specified length.
+        There will be drawn a ANSI Gadget, in the CLONL_BlueMode()
+        where the user can type in the needed information.
+
+   INPUTS
+        str   - the string where to put the result.
+        def   - the default string (NULL is not allowed, give an 
+                empty string).
+        len   - the length of the input.
+        type  - the kind of incoming input (look at clonline.h).
+        maske - an internal parameter (must be FALSE (0)).
+   
+   RESULTS
+        str   - the string the user has typed.
+
+   EXAMPLE
+  char *mystring [ 21 ];
+        CLONL_Normal ();
+        CLONL_Printf ( "Please gimme your name:" );
+        CLONL_BlueRead ( mystring, "nobody", 20, TYPE_ASCII, 0 );
+  CLONL_Printf ( "You gave me the name: %s.\n", mystring );
+   
+   SEE ALSO
+        CLONL_BlueMode()
+
+   BUGS
+
+clonline.library/CLONL_Wait                      cl_online.library/CLONL_Wait
+
+   NAME   
+        CLONL_Wait - Wait for user to press a key
+
+   SYNOPSIS
+        result = CLONL_Wait ( )
+        D0
+
+        BOOL   = CLONL_Wait ( )
+
+   RESULTS
+        result - TRUE (1) if user want to continue.
+               - FALSE (0) if user wants to stop
+                 ("q", "Q", "x", "X", <ESC>, <CTRL>"X").
+
+   FUNCTION
+        This function stops until user pressed a key.
+
+   NOTES
+        Display looks like it has been before the calls. CLONL_Wait()
+        clean up itself.
+
+   BUGS
+
+clonline.library/CLONL_DrawTitle            cl_online.library/CLONL_DrawTitle
+
+   NAME   
+        CLONL_DrawTitle - A standart function for look like commands
+
+   SYNOPSIS
+  CLONL_DrawTitle ( )
+
+  CLONL_DrawTitle ( )
+
+   FUNCTION
+        This function first clears the screen, looks up for the entry
+        "INFO_INTROLINE" in the clcat file, this library was opend
+        with, and prints it out as a status or title line.
+
+   NOTES
+        This is the functions all Connectline online commands are
+        started with. You can give commands a look of professional. ;)
+
+   SEE ALSO
+        CLONL_BlueMode()
+
+   BUGS
+
+clonline.library/CLONL_Edit                      cl_online.library/CLONL_Edit
+
+   NAME   
+        CLONL_Edit - Edit a file
+
+   SYNOPSIS
+        result = CLONL_Edit ( filename )
+        D0                    A0
+
+        BOOL   = CLONL_Wait ( STRPTR   )
+
+   INPUTS
+        filename - a pointer to the filename, which should be
+                   edited.
+
+   RESULTS
+        result - TRUE (1) if anything got allright.
+               - FALSE (0) if user wants to stop or an error
+                 has occured. Better to stop work after with
+                 returncode.
+
+   FUNCTION
+        This functions load the Connectline Editor, must be found in
+        "CONNECTLINE:Modules/CLEditor", an lets the user edit a file.
+
+   NOTES
+        You can also use another editor e.g. AEd for exchange,
+        but you have to rename it.
+        Console user will get the selected offline editor.
+
+   EXAMPLE
+        CLONL_Printf ( "Please edit the startup-sequence.\n" );
+        CLONL_Wait ();
+        CLONL_Edit ( "s:startup-sequence" );
+        CLONL_Printf ( "Thank you very much.\n");
+
+   SEE ALSO
+        CONNECTLINE:Modules/CLEditor
+
+   BUGS
+
+clonline.library/CLONL_RequesterSelectcl_online.library/CLONL_RequesterSelect
+
+   NAME   
+        CLONL_RequesterSelect - shows an ANSI Requester
+
+   SYNOPSIS
+        select            = CLONL_RequesterSelect ( entrys,          pos,   titel,  MODE )
+        D0                                          A0               D0     A1      D1
+
+        struct EntryNode* = CLONL_RequesterSelect ( struct MinList*, ulong, STRPTR, ulong )
+
+   INPUTS
+        entrys - a pointer to struct MinList to the shown entrys.
+        pos    - the position the requester starts (default for user).
+        titel  - a pointer the titelbar name.
+        MODE   - the modus of the requester (look at includes for "MODE_#?").
+
+   RESULTS
+        select - a pointer of the entry which has been choosen.
+                 -1 for cursor left (only in MODE_CHOOSE).
+                 NULL if a break was detected or an error has occured.
+
+   FUNCTION
+        This functions draws an ANSI Requester, to choose one entry or
+        to select multipe.
+
+   EXAMPLE
+         #include <exec/lists.h>
+       
+         struct MinList entrylist;
+         struct EntryNode *en;
+         ulong  count;
+       
+         char *strings[] = 
+         {
+          "my personal entry",
+           "another entry",
+           "the last entry for today",
+           0
+         };
+
+         // Exec function create a new list
+         NewList ((struct List *) &entrylist); 
+
+         count = 0;
+         while (strings [ count ] )
+         {
+           if ( !(en = malloc ( sizeof(struct EntryNode) )) ) 
+           {
+             PutStr ( "Can't get memory.\n" ); 
+             break; 
+           };
+           // Fill in new node an add to list
+           strcpy ( en->data, strings [ count ] );
+           en->inverse = 0;
+           en->bold    = 0:
+           AddTail ((struct List *) &entrylist, (struct Node *) en);
+           count++;
+         }
+
+         // Show Requester
+         CLONL_RequesterSelect(&entrylist, 0, "Look at this amazing requester", MODE_SELECT);
+
+         // Free memory again
+         while ( en = RemHead ((struct Node *) &entrylist) )
+         {
+           free(en);
+         }
+
+   BUGS
+
+clonline.library/CLONL_GetLocale            cl_online.library/CLONL_GetLocale
+
+   NAME   
+        CLONL_GetLocale - returns pointer to locale
+
+   SYNOPSIS
+        locale           = CLONL_GetLocale ( )
+        D0                    
+
+        struct Locale *  = CLONL_GetLocale ( )
+
+   RESULTS
+        locale - pointer to locale.
+
+   FUNCTION
+        This function returns a pointer to the locale from the
+        locale.library.
+
+   NOTES
+        You should only work with it. Do not close it anyway, because
+        CLONL_Close() will do this for you.
+
+   SEE ALSO
+        locale.library/OpenLocale()
+        locale.library/CloseLocale()
+
+   BUGS
+
+clonline.library/CLONL_GetCatalog          cl_online.library/CLONL_GetCatalog
+
+   NAME   
+        CLONL_GetCatalog - returns pointer to catalog
+
+   SYNOPSIS
+        catalog = CLONL_GetCatalog ( )
+        D0                    
+
+        APTR    = CLONL_GetCatalog ( )
+
+   RESULTS
+        calalog - pointer to clcat Connectline catalog.
+
+   FUNCTION
+        This function returns a pointer to the actual user catalog.
+
+   NOTES
+        You should only work with it. Do not close it anyway, because
+        CLONL_Close() will do this for you.
+
+   SEE ALSO
+        cl_text.library/OpenCatalog()
+        cl_text.library/CloseCatalog()
+
+   BUGS
+
+clonline.library/CLONL_GetUserShell      cl_online.library/CLONL_GetUserShell
+
+   NAME   
+        CLONL_GetUserShell - returns a pointer to the usershell.
+
+   SYNOPSIS
+        shell                = CLONL_GetUserShell ( )
+        D0                    
+
+        struct CLUserShell * = CLONL_GetUserShell ( )
+
+   RESULTS
+        shell - pointer to user shell.
+
+   FUNCTION
+        This function returns a pointer to the actual shell of the
+        actual online user.
+
+   EXAMPLE
+        CLONL_Printf ( "Username : %s.\n", 
+                       CLONL_GetUserShell()->user.Username );
+        CLONL_Printf ( "Number Of Lines : %ld.\n",
+                       CLONL_GetUserShell()->userprofile.ShowLines );
+ 
+   SEE ALSO
+        Include: <cl/cl_user.h>
+        Include: <cl/UserShell.h>
+
+   BUGS
+
+clonline.library/CLONL_IsTTY                    cl_online.library/CLONL_IsTTY
+
+   NAME   
+        CLONL_IsTTY - Returns, if TTY emulation is on.
+
+   SYNOPSIS
+        result = CLONL_IsTTY ( )
+        D0
+
+        BOOL   = CLONL_IsTTY ( )
+
+   RESULTS
+        result - TRUE (1) if user uses TTY emulation.
+               - FALSE (0) if user uses something usefull.
+
+   FUNCTION
+        This functions returns, if TTY is used.
+
+   BUGS
+
+clonline.library/CLONL_GetString            cl_online.library/CLONL_GetString
+
+   NAME   
+        CLONL_GetString - gets a string from the clcat catalog
+
+   SYNOPSIS
+        string = CLONL_GetString ( entry  )
+        D0                         A0
+ 
+        STRPTR = CLONL_GetString ( STRPTR )
+
+   INPUTS
+        entry - the entry name of the clcat file.
+
+   RESULTS
+        string - the entry IN the clcat file by the entry.
+
+   FUNCTION
+        You can localicate your commands with this function, without
+        opening cl_text.library.
+
+   NOTES
+        Because clonline.library will do this for you ;)
+
+   EXAMPLE
+        PutStr ( "Let's look, what the entry MSG_TEST is:\n" );
+        PutStr ( GetString("MSG_TEST") );
+        PutStr ( "\n" );
+
+   SEE ALSO
+        cl_text.library/*
+
+   BUGS
+
+clonline.library/CLONL_VPrintf                cl_online.library/CLONL_VPrintf
+
+   NAME   
+        CLONL_VPrintf - prints a localicated, formated string.
+
+   SYNOPSIS
+        CLONL_VPrintf ( format, args  )
+                        A0      A1
+
+        CLONL_VPrintf ( STRPTR, APTR )
+
+        CLONL_Printf ( format, ... )
+
+   INPUTS
+        format - a std. c format string.
+        args   - arguments to print out.
+
+   FUNCTION
+        You can print out ANY text you want, like printf, but buffered
+        and token-replaced. You do not need to open cl_text.library.
+
+   NOTES
+        Because clonline.library will do this for you ;)
+
+   EXAMPLE
+        CLONL_Printf ( "A number : %ld, a string : %s.\n", 1234, "foo" );
+
+   SEE ALSO
+        cl_text.library/*
+        exec.library/DoRawFmt()
+
+   BUGS
+
+clonline.library/CLONL_VSPrintf              cl_online.library/CLONL_VSPrintf
+
+   NAME   
+        CLONL_VSPrintf - prints a localicated, formated string into another.
+
+   SYNOPSIS
+        CLONL_VSPrintf ( to,     format, args  )
+                         A0      A1      A2
+
+        CLONL_VSPrintf ( STRPTR, STRPTR, APTR )
+
+        CLONL_SPrintf ( to, format, ... )
+
+   INPUTS
+        to     - a pointer to string for the result.
+        format - a std. c format string.
+        args   - arguments to print out.
+
+   FUNCTION
+        You can print out ANY text you want into another string, like
+        sprintf, but token-replaced. You do not need to open
+        cl_text.library.
+
+   NOTES
+        Because clonline.library will do this for you ;)
+
+   EXAMPLE
+        CLONL_SPrintf ( mystring, "A number : %ld, a string : %s.\n", 
+          1234, "foo" );
+
+   SEE ALSO
+        VPrintf()
+        cl_text.library/*
+        exec.library/DoRawFmt()
+
+   BUGS
+
+clonline.library/CLONL_DoCommand            cl_online.library/CLONL_DoCommand
+
+   NAME   
+        CLONL_DoCommand - Executes an other online command
+
+   SYNOPSIS
+        result = CLONL_DoCommand ( cmd,    param )
+        D0                         A0      A1
+
+        long   = CLONL_DoCommand ( STRPTR, STRPTR )
+
+
+   INPUTS
+        cmd   - the command name ( full name ).
+        param - the parameter for that command.
+
+   RESULTS
+        result - return code from command, or false if
+                 command connot be found (CLONL_DoCommand()
+                 will also print out the error per stdio).
+
+   FUNCTION
+        You can start another online command from the actual one.
+
+   EXAMPLE
+        CLONL_DoCommand ( "INHALT", "*" );
+
+   BUGS
+
+clonline.library/CLONL_SendMail              cl_online.library/CLONL_SendMail
+
+   NAME   
+        CLONL_SendMail - Sends text mail
+
+   SYNOPSIS
+        result = CLONL_SendMail ( abs,    emp,    bet,    filename, bezid  )
+        D0                        A0      A1      A2      A3        A4
+
+        ulong  = CLONL_SendMail ( STRPTR, STRPTR, STRPTR, STRPTR,   STRPTR )
+
+   INPUTS
+        abs      - the sender of the mail ( no need to be the actual user,
+                   for demon mails, but take care of it ).
+        emp      - the receiver of the mail.
+        bet      - the subject of the mail.
+        filename - the filename, of file to send.
+        bezid    - the message id of reference text.
+                   NULL is allowed.
+
+   RESULTS
+        result - return code from CLMM_SendFile().
+
+   FUNCTION
+        This functions sends any kind of text mails from anybody to
+        anybody. The charset will be converted from ISO to IBM.
+
+   EXAMPLE
+        CLONL_SendMail ( CLONL_GetUserShell()->user.username,
+          "SYSOP", "just testing", "s:startup-sequence" );
+
+   SEE ALSO
+        cl_mailmaster.library/CLMM_SendFile()
+
+   BUGS
+
+clonline.library/CLONL_GetKey                  cl_online.library/CLONL_GetKey
+
+   NAME   
+        CLONL_GetKey - Gets one key from keyboard or remote keyboard
+
+   SYNOPSIS
+        key  = CLONL_GetKey ( )
+        D0
+
+        long = CLONL_GetKey ( )
+
+   RESULTS
+        key - the key which was pressed or parsed keys, e.g.
+              CHAR_BREAK when CHAR_CTRLC, CHAR_CTRLX, or a hangup
+              was detected, or CHAR_UP, CHAR_DOWN, CHAR_RIGHT,
+              CHAR_LEFT if cursorkeys where used.
+
+   FUNCTION
+        This functions waits for a key, parse it for some events,
+        and gives it back to the user.
+
+   EXAMPLE
+        long mykey;
+        {
+          mykey = CLONL_GetKey ();
+          CLONL_Printf ( "You pressed a %c ( %ld ).\n", mykey, mykey );
+        }
+        while ( mykey != CHAR_BREAK )
+        CLONL_Printf ( "You don't want anymore, sigh!\n" );
+
+   SEE ALSO
+        dos.library/FGetC ()
+
+   BUGS
+
+clonline.library/CLONL_FreeRange            cl_online.library/CLONL_FreeRange
+
+   NAME   
+        CLONL_FreeRange - Gives memory back, that was allocated by
+                          CLONL_ParseExpression
+
+   SYNOPSIS
+        CLONL_FreeRange ( myrange        )
+                          A0
+
+        CLONL_FreeRange ( struct Range * )
+
+   INPUTS
+        myrange - a pointer to a struct Range structure given by
+                  CLONL_ParseExpression().
+
+   FUNCTION
+        Frees memory that was allocated by CLONL_ParseExpression().
+
+   SEE ALSO
+        CLONL_ParseExpression()
+
+   BUGS
+
+clonline.library/CLONL_ParseExpressioncl_online.library/CLONL_ParseExpression
+
+   NAME   
+        CLONL_ParseExpression - Parses a expression, needed for
+                                onlinecommands e.g. INHALT, LESEN.
+
+   SYNOPSIS
+        range          = CLONL_ParseExpression ( parsepattern, maximum )
+        D0                                       A0            D0
+
+        struct Range * = CLONL_ParseExpression ( STRPTR,       ulong   )
+
+   INPUTS
+        parsepattern - a stringpointer to the expression to be 
+                       parsed.
+        maximum      - the maximum value ( needed for expressions
+                       like "1-").
+
+   RESULTS
+        range        - a pointer to a structure struct Range.
+                       NULL if it can't be parsed anyway.
+
+   FUNCTION
+        Parses expressions like "-3,4,7-8,10-" for onlinecommands
+        refering to variable numbers.
+
+   NOTES
+        You need to free the memory after work with 
+        CLONL_FreeRange().
+
+   EXAMPLE
+        struct Range *myrange;
+        struct Range *readrange;
+
+        myrange = CLONL_ParseExpression ( "-3,4 5, 8-9 15-17 10,6 20-", 1000);
+
+        readrange = myrange;
+        while ( readrange )
+        {
+          CLONL_Printf ("%ld - %ld.\n", readrange -> from, readrange -> to );
+          readrange = readrange -> next;
+        }
+
+        CLONL_FreeRange ( myrange );
+
+   SEE ALSO
+        CLONL_FreeRange()
+
+   BUGS
+
+clonline.library/CLONL_Transfer              cl_online.library/CLONL_Transfer
+
+   NAME   
+        CLONL_Transfer - Transfers file to user.
+
+   SYNOPSIS
+        result = CLONL_Transfer ( filename, sendfilename )
+        D0                        A0        A1
+
+        long   = CLONL_Transfer ( STRPTR,   STRPTR       )
+
+   INPUTS
+        filename    - a pointer to a string, which contains the
+                      file to be tranfered with its full path.
+
+        senfilename - a pointer to a string, which contains the
+                      filename the user gets from that file.
+
+   RESULTS
+        range        - 1 success.
+                       0 failed.
+
+   FUNCTION
+        Transfers a file to user. The transfer protocoll 
+        the user has choosen once, will be used.
+
+   NOTES
+        It can also be used on console-login.
+
+   EXAMPLE
+        CLONL_Transfer ( "s:startup-sequence", "Look_Inside.txt" );
+
+   SEE ALSO
+        cl_shell.library/CLSHELL_XFer()
+
+   BUGS
+
+clonline.library/CLONL_GetUserFullNamecl_online.library/CLONL_GetUserFullName
+
+   NAME   
+        CLONL_GetUserFullName - returns e-Mail from user.
+
+   SYNOPSIS
+        email  = CLONL_GetUserFullName ( email  )
+        D0                               A0
+
+        STRPTR = CLONL_GetUserFullName ( STRPTR )
+
+   INPUTS
+        email - a buffer the email of the user will be copied.
+
+   RESULTS
+        email - the email of the user.
+
+   FUNCTION
+        Returns the e-Mail of the actual user. It is included
+        with systemname, domainname and realname, e.g.
+        "joe_random@foo.bar.de (Joe Random)".
+
+   EXAMPLE
+        char email [ 80 ];
+        CLONL_Printf ( "My e-Mail is %s.\n", 
+          CLONL_GetUserFullName ( email ) );
+
+   SEE ALSO
+        cl_prefs.library/CLP_GetSystemAddress()
+        CLONL_GetUserShell()
+
+   BUGS
+
+clonline.library/CLONL_GetNameVal          cl_online.library/CLONL_GetNameVal
+
+   NAME   
+        CLONL_GetNameVal - returns a identify number of a string.
+
+   SYNOPSIS
+        ident = CLONL_NameVal ( name   )
+        D0                      A0
+
+        long  = CLONL_NameVal ( STRPTR )
+
+   INPUTS
+        name - a pointer to a string.
+
+   RESULTS
+        ident - a longword value depend on the string.
+
+   FUNCTION
+        Function returns a ident value for the string name.
+        Usefull for passwords.
+
+   NOTES
+        It is directly the function from the clutil.library.
+
+   SEE ALSO
+        clutil.library/CLU_GetNameVal()
+
+   BUGS
+
+clonline.library/CLONL_IsKeyPressed      cl_online.library/CLONL_IsKeyPressed
+
+   NAME   
+        CLONL_IsKeyPressed - Checks if keyboard was hit.
+
+   SYNOPSIS
+        result = CLONL_IsKeyPressed ( )
+        D0
+
+        BOOL   = CLONL_IsKeyPressed ( )
+
+   RESULTS
+        result - TRUE if keboard was hit.
+                 FALSE if keboard was not hit.
+
+   FUNCTION
+        This function checks keyboard, if user had pressed any key.
+        You can get the key with CLONL_GetKey() afterwards.
+
+   EXAMPLE
+        long mykey;
+        if ( CLONL_IsKeyPressed () )
+        {
+          mykey = CLONL_GetKey ();
+          CLONL_Printf ( "You pressed the '%c' key.\n", mykey );
+        }
+        else
+        {
+          CLONL_Printf ( "No key is pressed.\n" );
+        }
+
+   SEE ALSO
+        CLONL_GetKey()
+
+   BUGS
+
+clonline.library/CLONL_Continue               clonline.library/CLONL_Continue
+
+   NAME   
+        CLONL_Continue - Checks break detect.
+
+   SYNOPSIS
+        result = CLONL_Continue ( )
+        D0
+
+        BOOL   = CLONL_Continue ( )
+
+   RESULTS
+        result - TRUE if break was detected.
+                 FALSE if no break detected.
+
+   FUNCTION
+        This function checks the keyboard, if a key was pressed. 
+        The key will be get, and checked if it is a ,,break'' key 
+        (CHAR_BREAK).
+        For response, a "<BREAK>" will be send to users display.
+        If a hangup is detected function will also return FALSE. 
+
+   SEE ALSO
+        CLONL_GetKey()
+
+   BUGS
+
+clonline.library/CLONL_AddShortMenu       clonline.library/CLONL_AddShortMenu
+
+   NAME   
+        CLONL_AddShortMenu - Adds a menu entry
+
+   SYNOPSIS
+        menu               = CLONL_AddShortMenu ( oldmenu,            entry,  hotkey )
+        D0                                        A0                  A1      D0
+
+        struct Shortmenu * = CLONL_AddShortMenu ( struct Shortmenu *, STRPTR, char   )
+
+   INPUTS
+        oldmenu - A pointer to the old menu structure. 
+                  NULL if it is the first entry.
+
+        entry   - A pointer to a string, with name of entry.
+
+        hotkey  - Character, which is hotkey to select entry later on.
+
+   RESULTS
+        menu    - Pointer to new menu structure. Only different from
+                  oldmenu getting first entry.
+
+   FUNCTION
+        This function will add one entry to a short menu structure.
+        You need this structure to make a menu for CLONL_ShortMenuSelect().
+        Free this structure with CLONL_FreeShortMenu() after use.
+
+   SEE ALSO
+        CLONL_ShortMenuSelect()
+        CLONL_FreeMenuSelect()
+        CLONL_FreeMenuSelectVertical()
+        clonline.h/struct Shortmenu
+
+   BUGS
+
+clonline.library/CLONL_FreeShortMenu     clonline.library/CLONL_FreeShortMenu
+
+   NAME   
+        CLONL_FreeShortMenu - Frees all menu entrys
+
+   SYNOPSIS
+        CLONL_FreeShortMenu ( menu               )
+                              A0
+
+        CLONL_FreeShortMenu ( struct Shortmenu * )
+
+   INPUTS
+        menu - Pointer to struct Shortmenu structure.
+
+   FUNCTION
+        Frees memory of short menu entrys allocated by CLONL_AddShortMenu().
+
+   SEE ALSO
+        CLONL_AddShortMenu()
+        clonline.h/struct Shortmenu
+
+   BUGS
+
+clonline.library/CLONL_ShortMenuSelect clonline.library/CLONL_ShortMenuSelect
+
+   NAME   
+        CLONL_ShortMenuSelect - Builds a short menu for user select.
+
+   SYNOPSIS
+        result = CLONL_ShortMenuSelect ( menu               )
+        D0                               A0
+
+        char   = CLONL_ShortMenuSelect ( struct Shortmenu * )
+
+   INPUTS
+        menu - Pointer to a menu structure build with CLONL_AddShortMenu().
+
+   RESULTS
+        result - result character.
+                 0 for break or hangup.
+                 hotkey when select with carriage return or hotkey.
+
+   FUNCTION
+        This function builds up a small requester in one line, an user
+        can select one entry build with CLONL_AddShortMenu(). He can
+        choose with cursor keys and carriage return or pressing the
+        entry hotkey.
+
+   EXAMPLE
+        struct Shortmenu *mymenu = NULL;
+        mymenu = CLONL_AddShortMenu ( mymenu, "onnectline", 'C' );
+        mymenu = CLONL_AddShortMenu ( mymenu, "erberus", 'Z' );
+        mymenu = CLONL_AddShortMenu ( mymenu, "nix", 'U' );
+        CLONL_ShortMenuSelect ( mymenu );
+        CLONL_FreeShortMenu ( mymenu );
+
+   SEE ALSO
+        CLONL_ShortMenuSelectVertical()
+        CLONL_AddShortMenu()
+        CLONL_FreeShortMenu()
+        clonline.h/struct Shortmenu
+
+   BUGS
+
+clonline.library/CLONL_TimeToStr             clonline.library/CLONL_TimeToStr
+
+   NAME   
+        CLONL_TimeToStr - Converts a time_t value to a string
+
+   SYNOPSIS
+        string  = CLONL_TimeToStr ( time,   str    )
+        D0                          D0      A0
+
+        STRPTR  = CLONL_TimeToStr ( time_t, STRPTR )
+
+   INPUTS
+        time - A time_t value.
+        str  - String greater 18 character length.
+
+   RESULTS
+        string - Pointer to str.
+
+   FUNCTION
+        This function converts a time_t value to a readable string.
+        Use CLONL_StrToTime() to make back conversion.
+
+   EXAMPLE
+        char string [ 18 ];
+        CLONL_Printf ( "Last Call: %s.\n",
+                       CLONL_TimeToStr ( CLONL_GetUserShell()->userprofile.LastCall,
+                        string) );
+
+   SEE ALSO
+        CLONL_StrToTime()
+        time.h/time_t
+
+   BUGS
+
+clonline.library/CLONL_StrToTime             clonline.library/CLONL_StrToTime
+
+   NAME   
+        CLONL_StrToTime - Converts string to a time_t value
+
+   SYNOPSIS
+        time   = CLONL_StrToTime ( str,    time     )
+        D0                          A0     A1
+
+        time_t = CLONL_StrToTime ( STRPTR, time_t * )
+
+   INPUTS
+        str  - String Pointer to a Date/Time String.
+        time - Pointer to time_t variable.
+
+   RESULTS
+        time - Result of conversion.
+
+   FUNCTION
+        This function converts a string in the CLONL_TimeToStr() 
+        Format back to a time_t value.
+
+   EXAMPLE
+        char string [ 18 ];
+        time_t mytime;
+        CLONL_Printf ( "Time: %s.\n",
+                       CLONL_TimeToStr ( CLONL_StrToTime ( "12.04.1971 12:30", &mytime ),
+                        string ));
+
+   SEE ALSO
+        CLONL_TimeToStr()
+        time.h/time_t
+
+   BUGS
+
+clonline.library/CLONL_AddGadget             clonline.library/CLONL_AddGadget
+
+   NAME   
+        CLONL_AddGadget - Adds a gadget entry
+
+   SYNOPSIS
+        CLONL_AddGadget ( mask,    masktype, identifier, buffer, buffersize )
+                          A0       D0        A1          A2      D1
+
+        CLONL_AddGadget ( Mask **, ulong,    char *,     char *, ulong      )
+
+   INPUTS
+        mask       - Pointer to Mask **.
+                     Mask * should bei NULL for first entry.
+        masktype   - Entrytype, like Type bei CLONL_BlueRead().
+        identifier - Pointer to identifier name.
+        buffer     - Pointer to buffer for this entry.
+        buffersize - Size of buffer.
+        
+   FUNCTION
+        This function will add one entry to a gadget MaskNode structure.
+        You need this structure to make a mask for CLONL_InputMask().
+
+   SEE ALSO
+        CLONL_InputMask()
+        clonline.h/struct MaskNode
+        clonline.h/Mask
+
+   BUGS
+
+clonline.library/CLONL_GetGadget             clonline.library/CLONL_GetGadget
+
+   NAME   
+        CLONL_GetGadget - Gets masknode of specified gadget
+
+   SYNOPSIS
+        masknode          = CLONL_GetGadget ( mask,    identifier )
+                                              A0       A1
+
+        struct MaskNode * = CLONL_GetGadget ( Mask **, char *     )
+
+   INPUTS
+        mask       - Pointer to Mask *.
+        identifier - Pointer to identifier name.
+        
+   RESULTS
+        masknode   - Pointer to MaskNode structure.
+
+   FUNCTION
+        This functions returns pointer to MaskNode structure of a given
+        identifier, set with CLONL_AddGadget().
+
+   SEE ALSO
+        CLONL_AddGadget()
+        clonline.h/struct MaskNode
+
+   BUGS
+
+clonline.library/CLONL_InputMask             clonline.library/CLONL_InputMask
+
+   NAME   
+        CLONL_InputMask - Builds up a mask variable entrys
+
+   SYNOPSIS
+        result = CLONL_InputMask ( mask,    title )
+                                   A0       A1
+
+        BOOL   = CLONL_GetGadget ( Mask **, char *)
+
+   INPUTS
+        mask       - Pointer to Mask *.
+        title      - Stringpointer to titlename.
+        
+   RESULTS
+        result - TRUE, if entrys finished correct.
+                 FALSE, if break or hangup detected.
+
+   FUNCTION
+        This functions builds up a mask of variable entrys. It look
+        like lots of CLONL_BlueRead(). User can change up and down with
+        cursorkeys and quit savely with CTRL-Z.
+
+   EXAMPLE
+        char str1 [ 42 ], str2 [ 7 ];
+        Mask *mask = NULL;
+        strcpy ( str1, "Gadget1" );
+        strcpy ( str2, "123" );
+        CLONL_AddGadget ( &mask, TYPE_ASCII, str1, str1, 40 );
+        CLONL_AddGadget ( &mask, TYPE_NUMBER, str2, str2, 5 );
+        CLONL_InputMask ( mask, "Just testing gadgets..." );
+
+   SEE ALSO
+        CLONL_AddGadget()
+        CLONL_FreeGadget()
+        CLONL_BlueRead()
+        clonline.h/struct MaskNode
+        clonline.h/Mask
+
+   BUGS
+
+clonline.library/CLONL_ShortMenuSelectVertical
+
+   NAME   
+        CLONL_ShortMenuSelectVertical - Builds a short menu for user select.
+
+   SYNOPSIS
+        result = CLONL_ShortMenuSelectVertical ( menu               )
+        D0                                       A0
+
+        char   = CLONL_ShortMenuSelectVertical ( struct Shortmenu * )
+
+   INPUTS
+        menu - Pointer to a menu structure build with CLONL_AddShortMenu().
+
+   RESULTS
+        result - result character.
+                 0 for break or hangup.
+                 hotkey when select with carriage return or hotkey.
+
+   FUNCTION
+        This function builds up a menu, an user can select one entry
+        build with CLONL_AddShortMenu(). He can choose with cursor keys
+        and carriage return or pressing the entry hotkey.
+
+   EXAMPLE
+        struct Shortmenu *mymenu = NULL;
+        mymenu = CLONL_AddShortMenu ( mymenu, "onnectline", 'C' );
+        mymenu = CLONL_AddShortMenu ( mymenu, "erberus", 'Z' );
+        mymenu = CLONL_AddShortMenu ( mymenu, "nix", 'U' );
+        CLONL_ShortMenuSelectVertical ( mymenu );
+        CLONL_FreeShortMenu ( mymenu );
+
+   SEE ALSO
+        CLONL_ShortMenuSelect()
+        CLONL_AddShortMenu()
+        CLONL_FreeShortMenu()
+        clonline.h/struct Shortmenu
+
+   BUGS
+
+clonline.library/CLONL_XFer                       clonline.library/CLONL_XFer
+
+   NAME   
+        CLONL_XFer - Transfer or receive a file. 
+
+   SYNOPSIS
+
+   INPUTS
+
+   RESULTS
+
+   FUNCTION
+
+   EXAMPLE
+
+   SEE ALSO
+        CLONL_FreeXFerList()
+        CLONL_Transfer()
+
+   BUGS
+
+clonline.library/CLONL_FreeXFerList       clonline.library/CLONL_FreeXFerList
+
+   NAME   
+        CLONL_FreeXFerList - Give Memory back, got from CLONL_XFer().
+
+   SYNOPSIS
+
+   INPUTS
+
+   RESULTS
+
+   FUNCTION
+
+   EXAMPLE
+
+   SEE ALSO
+        CLONL_FreeXFerList()
+
+   BUGS
+
+clonline.library/CLONL_SetObscure           clonline.library/CLONL_SetObscure
+
+   NAME   
+        CLONL_SetObscure - Make Sysop Display unreadable.
+
+   SYNOPSIS
+
+   INPUTS
+
+   RESULTS
+
+   FUNCTION
+
+   EXAMPLE
+
+   SEE ALSO
+
+   BUGS
+
+clonline.library/CLONL_PrintFile             clonline.library/CLONL_PrintFile
+
+   NAME   
+        CLONL_PrintFile - Types a plain Ascii File to StdOut.
+
+   SYNOPSIS
+
+   INPUTS
+
+   RESULTS
+
+   FUNCTION
+
+   EXAMPLE
+
+   SEE ALSO
+        cl_txt.library/CLTXT_ViewFile() (don't use - may crashing!)
+
+   BUGS
+
+

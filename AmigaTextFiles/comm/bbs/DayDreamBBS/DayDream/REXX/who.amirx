@@ -1,0 +1,84 @@
+/****************************************************************************
+
+				   IRC who Script 0.2 For DayDream BBS 1.25+
+
+							  For use with AmIRC.
+
+						Done By Mattias Nilsson 960924.
+                           Tuned By Ariel/DC 970220.
+
+
+Usage:
+------
+
+/CTCP yournick WHO
+
+History :
+---------
+0.2 20/2/97 Removed AMIRC.1 dependancy and converted to CTCP. (Ariel/DC)
+
+Install :
+---------
+From AmIRC settings set the CTCP event to :
+who.amirx %p
+For K¹¹ users :
+Copy to AmIRC/Rexx/CTCP
+Add the CTCP Plugin as -
+Command : WHO Script : WHO
+
+*****************************************************************************/
+
+
+NUMNODES        =   4       /* IMPORTANT!! SET TO NUMBER OF NODES IN BBS !! */
+USERFIELD       =   11      /* How many chars to user for username */
+LOCATIONFIELD   =   20      /* How many chars to user for location */
+ACTIVITYFIELD   =   15      /* How many chars to user for activity */
+OFFLINESTRING   =   "         -{ O f f l i n e }-       "
+STANDBYSTRING   =   "-{ A w a i t i n g   C o n n e c t }-"
+BANNERSTRING    =   "            PURE CLIMAX - DayDream WHQ!     "
+
+
+
+/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/**/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/
+/*/*/*/*/*/*/*/*/*/*  DON'T TOUCH ANYTHING BELOW THIS LINE  */*/*/*/*/*/*/*/*/*/
+/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/**/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/
+
+options results
+parse arg args
+
+PARSE var args ':'NICK'!'JUNK1' 'TYPE' 'TO' :'MSG
+div='01'x
+parse upper var msg (div) msg . (div)
+if msg~='WHO' then exit
+
+address command displaybeep
+
+RAW 'NOTICE 'NICK' :-'
+RAW 'NOTICE 'NICK' :'BANNERSTRING
+RAW 'NOTICE 'NICK' :-'
+
+do node=1 to NUMNODES
+	ADDRESS "SERVER-REXX"
+	outstr="Nd("node"): "
+	NODEINFO node 0
+	nodei=RC
+	IF nodei=0 THEN do;outstr=outstr||OFFLINESTRING;end
+	IF nodei=1 THEN do;
+		NODEINFO node 1
+		nodei=RC
+		IF nodei=0 THEN do; outstr=outstr||STANDBYSTRING; end
+		IF nodei=1 THEN do;
+			NODEINFO node 3
+			handle=RESULT
+			NODEINFO node 5
+			location=RESULT
+			NODEINFO node 2
+			acti=RESULT
+			outstr=outstr||left(handle,USERFIELD)" "left(location,LOCATIONFIELD)" "left(acti,ACTIVITYFIELD)
+		End
+	End
+	outstr='NOTICE 'NICK' :'||outstr
+	address
+	IF outstr ~="" THEN RAW outstr
+End
+RAW 'NOTICE 'NICK' :-'

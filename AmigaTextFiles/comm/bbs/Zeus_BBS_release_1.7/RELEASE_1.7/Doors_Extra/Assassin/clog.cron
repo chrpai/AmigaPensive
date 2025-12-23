@@ -1,0 +1,100 @@
+/******* City Logs nightly update Cron for ASSASSIN *******/
+ 
+ This program deletes all dead characters from all the city logs.
+ Run as a nightly cron in BBSEVENT0! If you do not run this program
+ at all your city logs will get PILED HIGH!
+
+/**********************************************************/
+
+options results
+signal on error;signal on syntax;signal on ioerr
+ddir = 'Xdoors:Assassin/ASSdata/'
+udir = ddir'Users/'
+mdir = ddir'MAPS/'
+mdata = mdir'Cities.dat'
+clogdata = ddir'CLogs/'
+UList = udir'List.dat'
+ct=0
+call LOADCITIES
+call LOADUSERS
+
+
+Do loop = 1 to Usertot
+   var=Loop;call Parse1
+   say 'Figuring user 'Alias
+
+   if status=0 then do
+      do loop2 = 1 to Cities
+         var=loop2;call CPARSE1
+         if exists(clogdata||CName'.visits') then do
+             call open(file,clogdata||CName'.visits','R')
+                  ct=1
+                  do until eof(file)
+                     visit.ct = readln(file)
+                     ct=ct+1
+                  end                  
+             call close file
+
+             do loop3 = 1 to ct
+                parse var visit.loop3 vname'||'vdate'||'vto
+                if vname = alias then Visit.loop3 = 0 
+             end
+
+             do loop3 = 1 to ct
+                call open(file,clogdata||CName'.visits','W')
+                     do loop3 = 1 to ct
+                        if visit.loop3 ~= 0 then call writeln(file), visit.loop3
+                     end
+                call close(file)
+             end
+         end
+      end
+   end                
+
+END
+
+signal QUIT    
+
+
+LoadCities:
+ call open(file,mdata,'R')
+      cities = readln(file)
+      do loop = 1 to Cities
+         City.loop = readln(file) 
+      end
+ call close(file)
+return
+
+LoadUsers:
+ UFound = FALSE
+ call open(file,UList,'R')
+      usertot = readln(file)
+      do loop = 1 to usertot
+         User.loop = readln(file)
+      end
+ call close(file)
+return
+
+ERROR:
+ say 'An error .. #'sigl' Exiting..'
+exit
+
+SYNTAX:
+ say 'An error .. #'sigl' Exiting..'
+exit
+
+IOERR:
+ say 'An error .. #'sigl' Exiting..'
+exit
+
+Quit:
+exit
+
+
+PARSE1:
+ parse var User.var Alias'||'date'||'str' 'dex' 'hp' 'mhp' 'status' 'assign' 'misstype' 'missions' 'MSuccess' 'MFailure' 'money' 'bankmoney' 'exp'  'in' 'country' 'Weapon' 'Armor' 'skill' 'MovesToday' 'company' 'UBase' 'Lvl
+return
+
+CPARSE1:
+  parse var City.var p1' 'p2' 'p3' 'p4' 'p5' 'p6' 'CNAME'||'cPrice' 'cCountry
+return

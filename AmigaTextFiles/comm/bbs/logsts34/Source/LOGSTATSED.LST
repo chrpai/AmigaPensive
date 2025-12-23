@@ -1,0 +1,539 @@
+' Logstats Editor/Generator Program
+'
+' Author : Peter Deane
+' Date   : 20 September 1991
+' Version: 3.2
+'
+' The first GFA version of this. Boy, it flies!
+'
+' Date   : 9 December 1994
+' Version: 3.4
+'
+' This is the second GFA version of this (after over 3 years) :-)
+'
+OPENW #0
+TITLEW #0,"LogStats Editor (by PD) V3.4"
+~ActivateWindow(WINDOW(0))
+'
+GOSUB about
+'
+' Get the path of where the userlog is
+'
+path$="BBS:BBSFILES/"
+'
+' find Hi User #
+'
+flnm$=path$+"hiuser"
+OPEN "I",#2,flnm$,1024
+LINE INPUT #2,hiuser$
+hiuser%=VAL(hiuser$)
+CLOSE #2
+'
+' find Old Hi User # (if it exists)
+'
+flnm$=path$+"Logstats.oldhi"
+IF EXIST(flnm$)
+  OPEN "I",#2,flnm$,1024
+  LINE INPUT #2,oldhiuser$
+  oldhiuser%=VAL(oldhiuser$)
+  CLOSE #2
+ELSE
+  oldhiuser%=hiuser%
+ENDIF
+'
+' Setup Arrays
+DIM stats%(hiuser%,5)
+DIM uname$(hiuser%)
+DIM temp%(5)
+DIM main$(50)
+statsgot!=FALSE
+'
+' Set the menu options in array
+' \/
+GOSUB setmenstring
+MENU main$()
+ON MENU GOSUB parsemen
+'
+DO
+  ON MENU
+LOOP
+'
+'
+PROCEDURE about
+  '
+  PRINT
+  PRINT
+  PRINT "    ==================================================================="
+  PRINT "    ||        LogStats Editor Program  (V 3.2)  By Peter Deane       ||"
+  PRINT "    ==================================================================="
+  PRINT "    ||                                                               ||"
+  PRINT "    || * Run this program FIRST before using Logstats the first time.||"
+  PRINT "    ||                                                               ||"
+  PRINT "    || * Or to do MAINTENANCE on the logstats files.                 ||"
+  PRINT "    ||                                                               ||"
+  PRINT "    || * This program will process the 'logstats' file in your       ||"
+  PRINT "    ||   BBSFILES/ directory.                                        ||"
+  PRINT "    ||                                                               ||"
+  PRINT "    ==================================================================="
+  PRINT "    ||                   Please select a menu item.                  ||"
+  PRINT "    ==================================================================="
+RETURN
+'
+PROCEDURE setmenstring
+  main$(0)="Project "
+  main$(1)="About   "
+  main$(2)="Help    "
+  main$(3)="!Generate"
+  main$(4)="!Clear   "
+  main$(5)="!Edit    "
+  main$(6)="!        "
+  main$(7)="-       "
+  main$(8)="-Spare  "
+  main$(9)="-Spare  "
+  main$(10)="-       "
+  main$(11)="Quit    "
+  main$(12)=""
+  main$(13)="Generate "
+  main$(14)="New Stats File "
+  main$(15)=""
+  main$(16)="Maintenance "
+  main$(17)="Check and Clear "
+  main$(18)="Edit One User   "
+  main$(19)="-               "
+  main$(20)="-Spare          "
+  main$(21)="-Spare          "
+  main$(22)="-Spare          "
+  main$(23)="-Spare          "
+  main$(24)=""
+  main$(25)=""
+  main$(26)=""
+  '
+  IF NOT EXIST(path$+"Logstats")
+    main$(17)="-Check and Clear "
+    main$(18)="-Edit One User   "
+    main$(19)="-                "
+    main$(20)="-Spare           "
+    main$(21)="-Spare           "
+    main$(22)="-Spare           "
+    main$(23)="-Spare           "
+  ENDIF
+  '
+RETURN
+'
+PROCEDURE parsemen
+  '
+  MENU KILL
+  '
+  a%=MENU(0)
+  SELECT a%
+    '
+  CASE 1
+    GOSUB about
+  CASE 3
+    GOSUB helpgen
+  CASE 4
+    GOSUB helpclear
+  CASE 5
+    GOSUB helpedit
+  CASE 11
+    ALERT 0,"Really Quit?",1,"For Sure|Just Kidding",xx%
+    IF xx%=1
+      CLOSEW #0
+      END
+    ENDIF
+  CASE 14
+    GOSUB generate
+  CASE 17
+    GOSUB logclear
+  CASE 18
+    GOSUB editone
+  ENDSELECT
+  '
+  GOSUB setmenstring
+  MENU main$()
+  IF a%<>1
+    GOSUB about
+  ENDIF
+  '
+RETURN
+'
+PROCEDURE generate
+  '
+  PRINT
+  IF EXIST(path$+"Logstats")
+    def%=2
+  ELSE
+    def%=1
+  ENDIF
+  '
+  ALERT 0,"Will I generate a|BLANK logstats file?",def%,"Yes|No",xx%
+  '
+  IF xx%=2
+    GOTO generateexit
+  ENDIF
+  '
+  IF def%=2
+    ALERT 0,"You already have a stats file.|Are you sure?",2,"Yes|No",xx%
+    IF xx%=2
+      GOTO generateexit
+    ENDIF
+  ENDIF
+  '
+  PRINT
+  PRINT "There are ";STR$(hiuser%);" users on the system."
+  PRINT
+  '
+  '  Create old Hi User # File
+  '
+  flnm$=path$+"Logstats.oldhi"
+  OPEN "O",#2,flnm$,64
+  PRINT #2,hiuser%
+  CLOSE #2
+  '
+  '  Create the empty stats file
+  '
+  PRINT "Zeroing User # ";
+  flnm$=path$+"logstats"
+  OPEN "O",#2,flnm$,4096
+  FOR k%=1 TO hiuser%
+    PRINT STR$(k%)+SPACE$(7-LEN(STR$(k%)));
+    PRINT #2,"0,0,0,0,0,0"
+    PRINT STRING$(7,8);
+  NEXT k%
+  CLOSE #2
+  '
+  PRINT
+  PRINT
+  PRINT "There you go! We now have the necessary files."
+  PRINT
+  '
+  generateexit:
+  '
+RETURN
+'
+PROCEDURE getstats
+  '
+  PRINT
+  PRINT "Standby, reading in Stats file...";
+  '
+  flnm$=path$+"Logstats"
+  OPEN "I",#2,flnm$,4096
+  FOR k%=1 TO oldhiuser%
+    PRINT STR$(k%)+SPACE$(7-LEN(STR$(k%)));
+    FOR l%=0 TO 5
+      INPUT #2,stats%(k%,l%)
+    NEXT l%
+    PRINT STRING$(7,8);
+  NEXT k%
+  CLOSE #2
+  '
+  PRINT
+  PRINT
+  PRINT "Standby, reading in all the names...";
+  PRINT SPACE$(25);
+  '
+  flnm$=path$+"userlog"
+  '
+  OPEN "R",#2,flnm$,125
+  FIELD #2,25 AS uname$,100 AS garb$
+  '
+  FOR k%=1 TO hiuser%
+    PRINT STRING$(25,8);
+    GET #2,k%
+    uname$(k%)=uname$
+    PRINT uname$;
+  NEXT k%
+  CLOSE #2
+  '
+  PRINT
+  PRINT
+  statsgot!=TRUE
+  ' FLAG so we can see if we have to do it all again...
+  '
+RETURN
+'
+PROCEDURE logclear
+  PRINT
+  PRINT
+  PRINT "Use this option if you have done a Mass User Delete By Date."
+  PRINT "It will go through the userlog, looking for cleared users,"
+  PRINT "and set their values in the logstats file back to zero."
+  PRINT
+  ALERT 0,"Shall we proceed?",1,"Yes|No",xx%
+  IF xx%=2
+    GOTO logclearexit
+  ENDIF
+  '
+  IF statsgot!=FALSE
+    GOSUB getstats
+  ENDIF
+  '
+  flag%=0
+  emptyname$=SPACE$(20)
+  '
+  PRINT "Clearing User Number(s)"
+  '
+  FOR k%=1 TO oldhiuser%
+    IF LEFT$(uname$(k%),20)=emptyname$
+      INC flag%
+      FOR l%=0 TO 5
+        stats%(k%,l%)=0
+      NEXT l%
+      PRINT STR$(k%)+SPACE$(8-LEN(STR$(k%)));
+      IF flag% MOD 7=0
+        PRINT
+      ENDIF
+    ENDIF
+  NEXT k%
+  PRINT
+  PRINT
+  '
+  IF flag%>0
+    PRINT CHR$(7)+"Reset ";flag%;" users!!"
+    GOSUB statsdrop
+  ELSE
+    PRINT "No Deleted Users Were Found!"
+  ENDIF
+  '
+  logclearexit:
+  '
+RETURN
+'
+PROCEDURE editone
+  '
+  PRINT
+  PRINT
+  PRINT "This will allow you to alter the stats for any particular user,"
+  PRINT "or manually reset them all to zero."
+  PRINT
+  PRINT "You can enter the User-Name or User-Number."
+  PRINT
+  '
+  IF statsgot!=FALSE
+    GOSUB getstats
+  ENDIF
+  '
+  editit$=""
+  PRINT "User to Edit (Return aborts): ";
+  FORM INPUT 25 AS editit$
+  editit$=UPPER$(editit$)
+  '
+  IF VAL(editit$)<1
+    '
+    IF editit$=""
+      GOTO editoneexit
+    ENDIF
+    editit$=editit$+SPACE$(25-LEN(editit$))
+    count%=0
+    WHILE editit$<>uname$(count%)
+      INC count%
+      EXIT IF count%>oldhiuser%
+    WEND
+    IF count%>oldhiuser%
+      PRINT CHR$(7)
+      PRINT
+      PRINT "Sorry, no match for that input found."
+      GOTO editoneexit
+    ENDIF
+    '
+    seluser%=count%
+    '
+  ELSE
+    editit%=VAL(editit$)
+    IF (editit%>oldhiuser%) OR (editit%<1)
+      PRINT CHR$(7)
+      PRINT
+      PRINT "Sorry, invalid user number. Try Again!"
+      GOTO editoneexit
+    ENDIF
+    seluser%=editit%
+  ENDIF
+  '
+  FOR k%=0 TO 5
+    temp%(k%)=stats%(seluser%,k%)
+  NEXT k%
+  '
+  editloop:
+  '
+  choice$=""
+  xx$=INKEY$
+  WHILE xx$<>""
+    xx$=INKEY$
+  WEND
+  '
+  PRINT
+  PRINT "-------------------------------------------------------------"
+  PRINT "User #:";seluser%;" -  Username: ";uname$(seluser%)
+  PRINT "-------------------------------------------------------------"
+  PRINT "        <C>alls      : ";temp%(0)
+  PRINT "        <P>ublic Msgs: ";temp%(1)
+  PRINT "        <S>ecret Msgs: ";temp%(2)
+  PRINT "        <D>ownloads  : ";temp%(3)
+  PRINT "        <U>ploads    : ";temp%(4)
+  PRINT "        <G>ames/Doors: ";temp%(5)
+  PRINT
+  PRINT "Enter Letter to Change, <R> to Reset ALL, <Q> to Quit ";
+  '
+  xx$=UPPER$(INKEY$)
+  WHILE xx$<>"C" AND xx$<>"P" AND xx$<>"S" AND xx$<>"D" AND xx$<>"U" AND xx$<>"G" AND xx$<>"R" AND xx$<>"Q"
+    xx$=UPPER$(INKEY$)
+  WEND
+  '
+  choice$=xx$
+  PRINT choice$
+  PRINT
+  PRINT
+  SELECT choice$
+  CASE "R"
+    FOR k%=0 TO 5
+      temp%(k%)=0
+    NEXT k%
+  CASE "C"
+    temp$=STR$(temp%(0))
+    PRINT "Enter New # Calls ";
+    FORM INPUT 6 AS temp$
+    temp%(0)=ABS(VAL(temp$))
+  CASE "P"
+    temp$=STR$(temp%(1))
+    PRINT "Enter New # Public Msgs ";
+    FORM INPUT 6 AS temp$
+    temp%(1)=ABS(VAL(temp$))
+  CASE "S"
+    temp$=STR$(temp%(2))
+    PRINT "Enter New # Private Msgs ";
+    FORM INPUT 6 AS temp$
+    temp%(2)=ABS(VAL(temp$))
+  CASE "D"
+    temp$=STR$(temp%(3))
+    PRINT "Enter New # Downloads ";
+    FORM INPUT 6 AS temp$
+    temp%(3)=ABS(VAL(temp$))
+  CASE "U"
+    temp$=STR$(temp%(4))
+    PRINT "Enter New # Uploads ";
+    FORM INPUT 6 AS temp$
+    temp%(4)=ABS(VAL(temp$))
+  CASE "G"
+    temp$=STR$(temp%(5))
+    PRINT "Enter New # Games/Doors ";
+    FORM INPUT 6 AS temp$
+    temp%(5)=ABS(VAL(temp$))
+  CASE "Q"
+    ALERT 0,"Commit changes to disk?",1,"Yes|No",xx%
+    '
+    IF xx%=1
+      FOR k%=0 TO 5
+        stats%(seluser%,k%)=temp%(k%)
+      NEXT k%
+      GOSUB statsdrop
+    ELSE
+      PRINT
+      PRINT "Okay, changes aborted!"
+    ENDIF
+  ENDSELECT
+  '
+  IF choice$<>"Q"
+    GOTO editloop
+  ENDIF
+  '
+  editoneexit:
+  '
+RETURN
+'
+PROCEDURE statsdrop
+  '
+  ' Drops out the array to the logstats file...
+  '
+  PRINT
+  PRINT "Saving out the new Stats file..."
+  PRINT
+  PRINT "User #         ";
+  flnm$=path$+"Logstats"
+  OPEN "O",#2,flnm$,4096
+  '
+  FOR k%=1 TO hiuser%
+    PRINT STRING$(7,8);
+    PRINT #2,stats%(k%,0);",";stats%(k%,1);",";stats%(k%,2);",";stats%(k%,3);",";stats%(k%,4);",";stats%(k%,5)
+    PRINT STR$(k%)+SPACE$(7-LEN(STR$(k%)));
+  NEXT k%
+  CLOSE #2
+  PRINT
+  PRINT "Done!!!"
+RETURN
+'
+PROCEDURE helpgen
+  CLS
+  xx$=INKEY$
+  WHILE xx$<>""
+    xx$=INKEY$
+  WEND
+  PRINT "---------------------------"
+  PRINT "Generating a New Stats File"
+  PRINT "---------------------------"
+  PRINT
+  PRINT "Use this feature if you want a completely new stats file with everyone"
+  PRINT "re-set to zero. The most likely use for this feature is when you are"
+  PRINT "first starting to run Logstats, and don't have one (although you may"
+  PRINT "use it to reset everyone back to zero for some reason)."
+  PRINT
+  PRINT "The program will create two files in your BBSFILES/ directory: the first"
+  PRINT "is 'logstats', the statistics themselves (all zeroes), and the second is"
+  PRINT "'logstats.oldhi', which is used by the midnight stats gatherer program"
+  PRINT "to keep up with any new users who may have logged on that day."
+  PRINT
+  PRINT "Press any key..."
+  WHILE INKEY$=""
+  WEND
+RETURN
+'
+PROCEDURE helpclear
+  CLS
+  xx$=INKEY$
+  WHILE xx$<>""
+    xx$=INKEY$
+  WEND
+  PRINT "------------------------------------"
+  PRINT "Check Userlog & Clear Deleted Users:"
+  PRINT "------------------------------------"
+  PRINT
+  PRINT "If you have used the sysop maintenance function from Metro to delete"
+  PRINT "inactive users' accounts, there will still be the old stats left for"
+  PRINT "that user number, and the next person to login will have a head-start"
+  PRINT "on other users."
+  PRINT
+  PRINT "Use this function to go through your userlog, and reset these deleted"
+  PRINT "users' stats back to zero. You should run this as soon as possible"
+  PRINT "after deleting users from your system. It does no harm to run it more"
+  PRINT "than once, either, so you could delete a user now, clear the stats, delete"
+  PRINT "another user, and again clear the stats. That's fine!"
+  PRINT
+  PRINT "Press any key..."
+  WHILE INKEY$=""
+  WEND
+RETURN
+'
+PROCEDURE helpedit
+  CLS
+  xx$=INKEY$
+  WHILE xx$<>""
+    xx$=INKEY$
+  WEND
+  PRINT "--------------------"
+  PRINT "Editing the Figures:"
+  PRINT "--------------------"
+  PRINT
+  PRINT "If the need ever arises, you can change any of the values in the stats"
+  PRINT "file by using this feature. It's pretty simple: you just enter the key"
+  PRINT "for the item you wish to change, and enter a new figure."
+  PRINT
+  PRINT "Please note the program doesn't do much checking on what you enter, so"
+  PRINT "try to make it a sensible figure, please!"
+  PRINT
+  PRINT "The option <R>eset All will set EVERY stat figure back to zero. This is"
+  PRINT "useful for clearing one user's stats, such as the Sysop's - if you'd like"
+  PRINT "to give the other users a chance to catch up!"
+  PRINT
+  PRINT "Press any key..."
+  WHILE INKEY$=""
+  WEND
+RETURN

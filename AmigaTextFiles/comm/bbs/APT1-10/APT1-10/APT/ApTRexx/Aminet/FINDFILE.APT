@@ -1,0 +1,115 @@
+/* FindFile.apt
+**
+** $VER: FINDFILE.apt 0.0.1 (17.7.94)
+**
+** ARexx support program for Searching Aminet CDROM by ApT-Design
+**
+** Copyright © 1994 ApT-Design All Rights Reserved,DM
+**
+*/
+
+parse arg lineno
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+RootDir="net:cd0/aminet"
+tempdir="t:apt-misc-"lineno
+
+tempfile = tempdir"/findfile.script"
+
+IF EXISTS(tempfile) THEN DO
+ADDRESS COMMAND 'delete 'tempfile
+END
+
+
+call SELECT_MENU ; fname=upper(result)
+if fname=0 then EXIT
+'msg' "\n\n"
+
+CR		= '0A'x
+command 	= 'findfile 'fname
+Path		= tempfile
+block		= 	'failat 1000'	CR,
+			'stack 10000'	CR,
+			'CD aptrexx:aminet'	CR,
+			command			CR,
+			'endcli'	CR
+
+
+DO
+
+address command
+call open 'temp',Path,write
+call writeln('temp',block)
+call close('temp')
+address value portname
+'RUNDOS' "%RAW. %CTRL_C. run >nil: newshell >nil: %HANDLER. from "Path
+address command "delete "Path
+'HOTKEY' "%TC=7.Press any key => " ; command=upper(result)
+EXIT
+
+
+/*
+** SELECT_MENU:
+**
+*/
+
+SELECT_MENU: procedure
+
+asc=getclip(ASCII_FLT)
+
+DO FOREVER
+
+	info="\n%TC=7.Enter the (partial) text to search for.\n%TC=2.Wild Card characters %TC=3.NOT needed!\n"
+	call PROMPT info"%TC=7.%BC=4. Search Text? %BC=0. Type ""Q"" to exit => ",1,"",1,30,asc,0 ; file=upper(result)
+	'ISDROP' ; if(result=1) then return 0
+	if file="Q" then return 0
+	if file~="" then return file
+END
+return 0
+
+/* ######################################################################### */
+/*
+** PROCEDURE: PROMPT
+**
+** Used whenever requesting more than one charcter from user.
+**
+** Whatever = Text string or Template FileName
+**     Type = Is the above a string or file?
+**      Def = Default string to be used
+**   MinLen = Minimum amount of characters required
+**   MaxLen = Maximum length string can be
+**   Filter = Various Filter options
+**     Case = Turn all characters into Upper case?
+**
+** RETURNS: Entered string
+*/
+
+PROMPT: procedure
+
+STRING=getclip(STRING)
+FILE=getclip(FILE)
+FIREFILT_OPT=getclip(FIREFILT_OPT)
+FIRELEN_OPT=getclip(FIRELEN_OPT)
+FIRECASE_OPT=getclip(FIRECASE_OPT)
+
+parse arg Whatever,Type,Def,MinLen,MaxLen,Filter,Case
+
+	DataRequired=1
+	DO UNTIL (DataRequired==0)
+		IF (Type) THEN	'MSG' Whatever
+		ELSE		'SHOWFILE' Whatever
+		'FIREOPTS' FIRECASE_OPT Case
+		'FIREOPTS' FIREFILT_OPT Filter
+		'FIREOPTS' FIRELEN_OPT MaxLen
+		'FIREPROMPT' Def ; strval=result
+		'ISDROP' ; if(result=1) then break
+ 		if(LENGTH(strval) < MinLen) THEN DO
+			'MSG' "%NL.%NL.%BOLD=1.%TC=3.More text input needed!%BOLD=0.%TC=7.%NL.%NL."
+			DataRequired=1
+			END
+		ELSE DataRequired=0
+	END
+	return strval

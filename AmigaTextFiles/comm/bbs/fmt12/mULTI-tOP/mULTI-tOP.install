@@ -1,0 +1,259 @@
+; $VER: mULTI-tOP Install V1.1 (15.06.98) - written by Sascha "SieGeL" Pfalz
+; Installer and Installer project icon
+; (c) Copyright 1985-99 Amiga International Inc.  All Rights Reserved.
+;
+; For best view set TAB to 2
+;
+; This script follows the rules for the Installer V43.3, all text vars have
+; a t_ preceeding the var name, all other vars have the # in front of the
+; names and all sub procedures (if any) will start with P_ .
+;
+; V1.1 (15.06.98)   - Initial Version, Script is able to install all required
+;                     files for mULTI-tOP
+
+;====================================
+;= Variables used inside the script =
+;====================================
+
+(set @user-level 2)
+(set #GUIDE			"mULTI-tOP.guide")
+(set #HIST			"mULTI-tOP.history")
+(set #CONFIG		"")
+
+(complete 0)
+
+;=================================
+;= All texts used in this script =
+;=================================
+
+(set	t_bad-kick			(cat	"\nMulti-Top requires Kickstart V3.0 or higher\n\n"
+														"to run, please upgrade your machine !!!"))
+(set	t_AskForCPU			(cat	"\nPlease select the programversion you wish to have\n"
+														"installed according to your installed Processor.\n\n"
+														"Installer has indicated the following setup:"))
+(set	t_AskForDest					"Please specify Destination directory for mULTI-tOP")
+(set	t_copyfile						"Now copying file %s...")
+(set	t_AskForHeader	(cat	"\n\nDo you wish to have the sample Bull Headers installed ?\n\n"
+														"(Will be installed to %s)"))
+(set	t_header-help		(cat	"The Bull Headers are some ANSI Pictures for all Bulls mULTI-tOP "
+														"is able to create. They aren't a must to install, if you won't "
+														"wish to have such pictures on top of each bull, simply skip "
+														"this part of the installation or delete individual pictures out "
+														"of the Header Directory which will be created if you select YES "
+														"now. This directory contains all Headers, see Docs for further "
+														"informations."))
+(set	t_askforconfig	(cat	"\n\nDo you wish to have the sample configfile installed ?\n\n"
+														"(Will be installed to %s)"))
+(set	t_config-help		(cat	"If you select YES, Installer will copy the supplied sample "
+														"config file to the directory where you have mULTI-tOP installed.\n\n"
+														"It's strongly recommended to install it, as this file contains "
+														"a detailed description of all available options.\n\n"
+														"If you have already installed mULTI-tOP, you may skip the "
+														"installation of the sample file and enhance manually your "
+														"existing prefs file from within the manual description."))
+(set	t_madebackup		(cat	"\n\nInstaller has found an already installed config file !\n\n"
+														"Do you wish to make a backup of your installed config\n\n"
+														"file before proceeding with the installation ?"))
+(set	t_bak_help			(cat	"Installer has found an already installed config file. If "
+														"you wish, Installer can make a backup of your original "
+														"configfile before installing the supplied sample config "
+														"file. If you select YES, Installer will rename your existing "
+														"file to mULTI-tOP.cfg.bak in the same directory, then install "
+														"the supplied version.\n\n"
+														"If you select NO, Installer will simply overwrite your existing "
+														"version with the one supplied with this archive."))
+(set 	t_askfordocs					"\n\nDo you wish to install/update the documentation ?")
+(set 	t_selectdocs					"Please choose which parts of the documentation should be installed/updated:")
+(set 	t_askforddest					"Select Destination directory for the documentation:")
+(set	t_askbool-help	(cat	"If you wish to have the documentation installed, answer "
+														"YES, else answer NO to skip this part of the installation"))
+
+;****************************************************************************
+;***                  MAIN INSTALLATION SCRIPT STARTS HERE !              ***
+;****************************************************************************
+
+;======================================================================
+;= FIRST SYSTEM-CHECKS TO DETERMINE USED AMIGA AND INSTALLED SOFTWARE =
+;======================================================================
+
+(set #osver (/ (getversion) 65536))				; Determine OS Version...
+(if (< #osver 39) ( (ABORT t_bad-kick)))	; ...and stop if OS < 39
+
+(complete 1)
+
+(welcome)
+
+;======================================================================
+;=  PROMPT FOR THE DESTINATION DIRECTORY/PROCESSOR VERSION AND COPY   =
+;======================================================================
+
+(complete 10)
+
+(set #mypath "")
+
+(until (<> #mypath "")
+	(
+	(set #mypath
+		(askdir (prompt t_AskForDest)
+						(default "FAME:Doors")
+						(help @askdir-help)))
+		))
+
+(complete 12)
+
+(set @default-dest #mypath)
+
+(set #cpu_name (database "CPU"))
+
+(if (= (patmatch "68000|68010" #cpu_name) 0) (set #this_cpu 0))
+(if (= (patmatch "68020|68030" #cpu_name) 0) (set #this_cpu 1))
+(if (= (patmatch "68040|68060" #cpu_name) 0) (set #this_cpu 2))
+
+(set #cpuchoice
+	(AskChoice	(prompt	t_AskForCPU)
+							(choices 	"68000/010"
+												"68020/030"
+												"68040/060")
+							(default	#this_cpu)
+							(help			@askoptions-help)))
+
+(if (= #cpuchoice 0) (set #source "bin/multi-top.000"))
+(if (= #cpuchoice 1) (set #source "bin/multi-top.020"))
+(if (= #cpuchoice 2) (set #source "bin/multi-top.040"))
+
+(copylib 	(prompt (t_copyfile #source))
+					(source #source)
+					(dest		@default-dest)
+					(confirm)
+					(help	@copylib-help))
+
+;===============================================================
+;=             ASK TO COPY THE SUPPLIED HEADERS                =
+;===============================================================
+
+(complete 18)
+
+(set #headerpath (tackon @default-dest "Header"))
+(if (= 1 (AskBool (prompt (t_askforheader #headerpath)) (help t_header-help)))
+	(
+	(makedir #headerpath)
+
+	(copyfiles 	(prompt "Now copying selected Bull Headers...")
+							(source "Header")
+							(dest		#headerpath)
+							(help		t_header-help)
+							(all)
+							(confirm))
+	))
+
+;======================================================================
+;=                ASK TO INSTALL SAMPLE CONFIG-FILE                   =
+;======================================================================
+
+(complete 25)
+
+(set #CONFIG (tackon @default-dest "mULTI-tOP.cfg"))
+(set #CONFIG_TEMP ("%s.bak" #CONFIG))
+
+(if (= 1 (AskBool (prompt (t_askforconfig #CONFIG)) (help t_config-help)))
+	(
+	(if (= 1 (exists #CONFIG))
+		(
+		(if (= 1 (AskBool (prompt t_madebackup) (help t_bak_help)))
+			(
+			(rename #CONFIG #CONFIG_TEMP)
+		))
+	))
+	(copyfiles 	(prompt (t_copyfile "bin/mULTI-tOP.cfg"))
+							(source	"bin/mULTI-tOP.cfg")
+							(dest	@default-dest)
+							(help	@copyfiles-help)
+							(confirm))
+))
+
+;======================================================================
+;=        INSTALL AMIGA-GUIDE DOCUMENTATION & HISTORY FILE            =
+;======================================================================
+
+(complete 50)
+
+(set #myguide (exists #GUIDE))
+(set #myhist (exists #HIST))
+
+(set #docdef 0)
+
+(if (OR (<> 0 #myguide) (<> 0 #myhist))
+	(
+	(if (= 1 (AskBool	(prompt t_askfordocs)	(help		t_askbool-help)))
+		(
+
+		(if (<> 0 #myguide) 
+			(
+			(set #selguide "AmigaGuide Manual (9kb)")
+			(set #docdef (+ #docdef 1))
+			)
+			(
+			(set #selguide "")
+			)
+		)
+
+		(if (<> 0 #myhist) 	
+			(
+			(set #selhis   "Program History   (6kb)")
+			(set #docdef (+ #docdef 2))
+			)
+			(
+			(set #selhis "")
+			)
+		)
+
+		(complete 60)
+
+		(set #docparts
+			(askoptions (prompt		t_selectdocs)
+									(help			@askoptions-help)
+									(choices #selguide
+												   #selhis)
+									(default #docdef)))
+		(complete 70)
+
+		(if (<> 0 #docparts)
+			(
+			(set #docdest
+				(askdir (prompt 	t_askforddest)
+								(help			@askdir-help)
+								(default	"FAME:Documentation")))
+
+			(complete 75)
+
+			(if (<> "" #docdest)
+				(
+				(if (IN #docparts 0)
+					(
+					(copyfiles 	(prompt (t_copyfile "mULTI-tOP.guide"))
+											(help		@copyfiles-help)
+											(source	#GUIDE)
+											(dest		#docdest)
+											(infos))
+
+					(complete 85)
+
+					))
+				(if (IN #docparts 1)
+					(
+					(copyfiles 	(prompt (t_copyfile "mULTI-tOP.history"))
+											(help		@copyfiles-help)
+											(source	#HIST)
+											(dest		#docdest)
+											(infos))
+
+					(complete 95)
+
+					))
+				))
+			))
+		))
+	))
+
+(complete 100)
+(exit)

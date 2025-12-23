@@ -1,0 +1,34 @@
+.key user/A
+.bra [
+.ket ]
+
+Assign EXISTS UUMAIL: >nil:
+If WARN
+	Quit 5
+EndIf
+
+Set eazyusername `mb:c/unspace "[user]"`
+
+MB:C/Exist UULIB:Aliases
+If $RC GT 0 VAL
+	;
+	; UULIB:Aliases exists, so we have a sendmail
+	; that supports this file.
+	;
+	Search >nil: UULIB:Aliases "${eazyusername}: " QUIET
+	If $RC GT 0 VAL
+		Echo "${eazyusername}: *"*|mail2eazy [user]*"" >> UULIB:Aliases
+	EndIf
+Else
+	;
+	; No UULIB:Aliases, so this must be a crazy admin
+	; or we have Feulner's or wusel's sendmail installed.
+	;
+	MB:C/Exist "uumail:${eazyusername}"
+	If $RC EQ 0 VAL
+		Echo "forward to *|mail2eazy *"[user]*"" > "uumail:${eazyusername}"
+	EndIf
+EndIf
+
+Unset eazyusername
+

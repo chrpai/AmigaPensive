@@ -1,0 +1,1283 @@
+/* Core_Button.apt
+**
+** $VER: Core 0.0.3 (20.9.95)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright © 1993-95 ApT-Design All Rights Reserved,AG,DM
+**
+** This is mearly to act as a very basic example of how you may wish
+** to do things, or at least get started in the right direction.
+**
+** Editor TABS = Size of 3.
+**
+** NOTE: It is down to you to do your own 'LINE DROPPING' checks.
+** If your scripts fail to pick a dropped carrier then you have to debug
+** your own scripts, ... yourself :)
+**
+*/
+
+/* ######################################################################### */
+
+/*
+** TABLE LIST AND DEFINES:
+**
+** Version 0.0.2
+**
+** The following block of code should remain untouched by 3rd party
+** programmers. The block will be updated at times and all that will
+** be required from you is to paste the new block in. You may
+** alter code only when told specified.
+*/
+
+		/* Used within the CALLFUNCTION calls */
+
+COMPUTERTYPE_CALL	= 0
+COUNTRY_CALL		= 1
+BIRTHDAY_CALL		= 2
+PROTOCOL_CALL		= 3
+ARCHIVER_CALL		= 4
+SHOW_PASSWORD_AND_NAME_CALL = 5
+
+
+		/* This block is used in the SET GFX FLAG  function ONLY */
+
+ANSI_COL_FLG = 0 	/* Ansi Colour Flag	*/
+ANSI_POS_FLG = 1	/* Ansi Positioning 	*/
+ANSI_FLG_FLG = 2	/* ANSI at all!?		*/
+ANSI_SCR_FLG = 3	/* Ansi Scrolling		*/
+ANSI_CUR_FLG = 4	/* Ansi Cursor			*/
+SCRN_CLR_FLG = 7	/* Screen Clears		*/
+
+	/* This block is used in the GET VAR and  SET VAR ONLY */
+
+ACCESSLEVEL_VAR 	= 0
+VALID_VAR			= 1
+CALLSMADE_VAR		= 2
+MSGSLEFT_VAR		= 3
+MSGSREC_VAR			= 4
+UPLOADS_VAR			= 5
+DNLOADS_VAR			= 6
+BYTESUP_VAR			= 7
+BYTESDN_VAR			= 8
+BYTESLEFT_VAR		= 9
+FILERATIO_VAR		= 10
+BONUSRATIO_VAR		= 11
+HOTKEY_VAR			= 12
+EDITOR_VAR			= 13
+COMPTYPE_VAR		= 14
+SCRLENGTH_VAR		= 15
+SCRWIDTH_VAR		= 16
+GENDER_VAR			= 17
+MORE_VAR				= 18
+PROTOCOL_VAR		= 19
+ARCHIVER_VAR		= 20
+/* MENUSET_VAR			= 21 */
+
+	/* This block is used in the GET STR and SET STR functions ONLY */
+
+USERNAME_STR 		= 0
+ADDR1_STR			= 1
+ADDR2_STR			= 2
+ADDR3_STR			= 3
+POSTCODE_STR		= 4
+COUNTRY_STR			= 5
+VOICENO_STR			= 6
+DATANO_STR			= 7
+PASSWORD_STR		= 8
+HANDLE_STR			= 9
+
+FIRELEN_OPT 		= 0
+FIRECASE_OPT		= 1
+FIREFILT_OPT		= 2
+
+LETTER_FLT			= 1
+NUMBER_FLT			= 2
+ASCII_FLT			= 4
+UPFIRST_FLT			= 8
+PUNCT_FLT			= 16
+
+FILE 					= 0
+STRING 				= 1
+
+USER_MEMBER			= 0	/* For the MOVEUSER function */
+USER_NEW				= 1
+USER_REVIEW			= 2
+
+DAYS2REVIEW_STVAR		= 0
+DAYSLASTCALL_STVAR	= 1
+DOB_DAY_STVAR			= 4
+DOB_MONTH_STVAR		= 5
+DOB_YEAR_STVAR			= 6
+
+LASTDATECALL_STSTR	= 0
+LASTTIMECALL_STSTR	= 1
+GETQUOTE_STSTR			= 2
+
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+
+CR = 'A'x
+CLS = '%CLS.'
+
+
+/* #######################################################################
+                         Program Starts Here!
+   #######################################################################
+*/
+
+parse arg lineno justlog .
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+'SETMORE' 0
+
+'RETURNCODE' 0
+
+'GETSTATICVAR' 2 ; ansidetect=result
+
+'GETVAR' ACCESSLEVEL_VAR			; level=result
+'GETVAR' CALLSMADE_VAR 				; callsmade = result	/* how many calls made */
+'GETVAR' MSGSLEFT_VAR  				; msgsleft = result	/* How many msgs left  */
+'GETSTR' USERNAME_STR  				; username = result	/* username				*/
+var=getclip(MENUSET_VAR)			; 'GETVAR' var	; menuset=result
+'GETSTR' DAYS2REVIEW_STVAR			; daysto = result		/* Days to review		*/
+'GETSTATICVAR' DOB_DAY_STVAR		; bday = result
+'GETSTATICVAR' DOB_MONTH_STVAR	; bmonth = result
+'GETSTATICVAR' DOB_YEAR_STVAR		; byear = result
+
+
+'SETMORE' 1
+
+/*
+** If the user is accessing here on 'default menu' syle, then we
+** might as well remember which the real number of the menu and
+** set it.
+**/
+if(menuset=0) then do
+	var=getclip(MENUSET_VAR) ; 'SETVAR' var	1
+end
+
+'MAIL_CMD'	"HASMAIL"
+if result=1 then do
+ 'MSG' "%NL. You have waiting mail!%NL."
+ 'HOTKEY' "%NL. Press a key to continue: => "
+END
+ELSE DO
+	'MSG' "%NL. A thought for the Day...%NL."
+	'GETSTATICSTR' GETQUOTE_STSTR
+	'MSG' "%TC=6." RESULT
+	'HOTKEY' "%TC=7. Press a key to continue: => "
+END
+
+'MSG' "%NL."
+'SMALLCMD' "SCANNEWS"
+'msg' "Please press a key to continue =>%WAITKEY=1000."
+
+
+/*
+** MAIN_MENU:
+**
+**/
+
+MAIN_MENU:
+
+refresh=1
+reload=1
+buttonnumber=0
+'SETSIG' "NEWSIG=0"
+DO FOREVER
+
+	var=getclip(MENUSET_VAR) ; 'GETVAR' var ; menuset=result ; if(result~=1) then break
+	if(reload) then do
+		CALL REFRESH_BUTTONS "main"
+		reload=0
+	end
+
+	if(refresh) then do
+		'INFORM' "At Main Menu."
+		'MSG' "%CURSOR=0."
+		'SETBREAK' "FMCLPDXWGB12345"
+		'SHOWGLOBALFILE' "tplates:menus/mainbutton.tpl"
+
+		call REFRESH_TIMER
+		clock = result
+		'msg' "%CPOS=3,64.%TC=7.%BC=4."clock" %BC=0."
+		'msg' "%CPOS=7,3.%TC=3.%BC=0."||LEFT(username,15)
+		'msg' "%CPOS=10,13.%TC=7."||LEFT(level,5)
+
+		'GETVAR' UPLOADS_VAR	; uploads=result
+		'GETVAR' DNLOADS_VAR	; dnloads=result
+		'msg' "%CPOS=11,13."||LEFT(uploads,5)
+		'msg' "%CPOS=12,13."||LEFT(dnloads,5)
+		'msg' "%CPOS=13,13."||LEFT(callsmade,5)
+
+		'BUTTONOPTS' "SETPOS="buttonnumber
+		refresh=0
+	end
+
+	'BUTTONOPTS' "USEBANK" ; rawkey=result ; key=upper(rawkey)
+	'BUTTONOPTS' "GETPOS"  ; buttonnumber = result
+	'ISDROP'		  ; if(result=1) then break
+
+	call REFRESH_TIMER
+	clock = result
+
+	select
+		when key=CR then do
+			/*
+			** Another select within a select..
+			**/
+			select
+
+			when buttonnumber=0 then do
+				'INFORM' "Entering file areas..."
+				call FILES_MENU 0
+				refresh=1 ; end
+			when buttonnumber=1 then do
+				'INFORM' "Entering mail areas..."
+				'MAILLIST' 0	; refresh=1 ; end
+			when buttonnumber=2 then do ; 'PAGESYSOP'					 ; refresh=1 ; end
+			when buttonnumber=3 then do ;
+				'INFORM' "Leaving Feedback."
+				'SHOWGLOBALFILE' "tplates:menus/FeedBack.tpl"
+				'MAIL_CMD' "FEEDBACK" ; refresh=1 ; end
+			when buttonnumber=4 then do ; call PREFS_MENU 0			 ; refresh=1 ; reload=1  ; end
+			when buttonnumber=5 then do ; call GAME_BUTTONS			 ; refresh=1 ; reload=1 ; end 
+			when buttonnumber=6 then do
+				'INFORM' "CDROM Script."
+				'CHAINAPT' "Aminet-CDROM"
+				refresh=1 ; reload=1 ; end
+			when buttonnumber=7 then do ; 'MAIL_CMD' "SHOWMAIL"		; refresh=1 ; end
+			when buttonnumber=9 then do
+				'SHOWGLOBALFILE' "tplates:txt/apt-bbs.tpl"
+				'HOTKEY' "%TC=7.Press a key =>"
+				refresh=1 ; end
+			when buttonnumber=10 then signal AMIGA_BUTTONS
+			when buttonnumber=11 then signal IBM_BUTTONS
+			when buttonnumber=12 then do
+				'INFORM' "Running QWK Bundler."
+				'CHAINAPT' "QWKbuttons 0"
+				refresh=1 ; reload=1 ; end
+			when buttonnumber=13 then do
+				'INFORM' "Doing NewFile Scan."
+				'MSG' CLS
+				'MSG' "%CURSOR=1."
+				CALL NEWSCAN_SINCE_DATE
+				refresh=1 ; end
+			when buttonnumber=14 then signal PICTURE_BUTTONS
+			when buttonnumber=8 then do
+				TX=63 ; TY=8
+				CALL TERMINATE_BUTTONS
+				'ISDROP' ; if(result=1) then break
+				'BUTTONOPTS' 'LOADBANK="tplates:button/main.bank" INITBANK'
+				'BUTTONOPTS' "SETPOS="buttonnumber
+				end
+			otherwise
+				call REFRESH_TIMER
+				clock = result
+			END
+		END
+
+		when key='F' then do ; 'BUTTONOPTS' "SETPOS=0"  ;  end
+		when key='M' then do ; 'BUTTONOPTS' "SETPOS=1"  ;  end
+		when key='C' then do ; 'BUTTONOPTS' "SETPOS=2"  ;  end
+		when key='L' then do ; 'BUTTONOPTS' "SETPOS=3"  ;  end
+		when key='P' then do ; 'BUTTONOPTS' "SETPOS=4"  ;  end
+		when key='D' then do ; 'BUTTONOPTS' "SETPOS=5"  ;  end
+		when key='X' then do ; 'BUTTONOPTS' "SETPOS=6"  ;  end
+		when key='W' then do ; 'BUTTONOPTS' "SETPOS=7"  ;  end
+		when key='G' then do ; 'BUTTONOPTS' "SETPOS=8"  ;  end
+		when key='B' then do ; 'BUTTONOPTS' "SETPOS=9"  ;  end
+		when key='1' then do ; 'BUTTONOPTS' "SETPOS=10"  ;  end
+		when key='2' then do ; 'BUTTONOPTS' "SETPOS=11"  ;  end
+		when key='3' then do ; 'BUTTONOPTS' "SETPOS=12"  ;  end
+		when key='4' then do ; 'BUTTONOPTS' "SETPOS=13"  ;  end
+		when key='5' then do ; 'BUTTONOPTS' "SETPOS=14"  ;  end
+
+		when rawkey='F0'x then do ; 'CHATMODE' ;  CALL REFRESH_BUTTONS "main" ; end
+		when rawkey=F2 then do
+			'CHAINAPT' "newQWK 0"
+			 CALL REFRESH_BUTTONS "main" ; end
+		when rawkey=F3 then do
+			'MSG' CLS
+			'MSG' "%CURSOR=1."
+			CALL NEWSCAN_SINCE_DATE ;  CALL REFRESH_BUTTONS "main"
+			end
+
+		otherwise
+			call REFRESH_TIMER
+			clock = result
+		END
+	END
+EXIT
+END
+
+/* #################################################################### */
+/*
+** Refresh Menu Timer
+**/
+
+REFRESH_TIMER: procedure
+
+	'DAVE_CMD' "USERTIME"
+	rt=(RESULT)
+	'msg' "%CPOS=9,13.%TC=7.%BC=0."||LEFT(rt,4)"m"
+	clock=TIME() ; clock=LEFT(clock,5)
+	chk=TIME('H') ; if chk<12 then clock=clock||"am" ; else do
+	chk=chk-12; if chk=0 then chk=12
+	clock=chk||SUBSTR(clock,3,3)||"pm"; end
+	'msg' "%CPOS=3,64.%TC=7.%BC=4."clock" %BC=0."
+	return clock
+
+
+/* #################################################################### */
+/*
+** Refresh Menu buttons..
+**/
+
+REFRESH_BUTTONS: procedure expose refresh
+
+parse arg name
+	'BUTTONOPTS' 'LOADBANK="tplates:button/'name'.bank" INITBANK'
+	refresh=1
+return
+
+/*
+** PREFS_MENU:
+**
+**/
+PREFS_MENU: procedure
+'INFORM' "At Prefs Menu."
+
+parse arg prefarg
+
+DO FOREVER
+	'SHOWFILE' "pref/prf_choice"
+	'HOTKEY' "  Choose an option: " ; key=upper(result)
+	'ISDROP' ; if(result=1) then return
+
+	select
+		when key="Q" then do
+		return 0
+		end
+		when key="P" then do
+			'CHAINAPT' "editstats 0"
+		end
+
+		when key="B" then do
+		var=getclip(MENUSET_VAR) ; 'SETVAR' var	1
+		var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result
+ 		return 1
+		end
+		when key="C" then do
+		var=getclip(MENUSET_VAR) ; 'SETVAR' var	3
+		return 3
+		end
+
+		when key="H" then do
+		var=getclip(MENUSET_VAR) ; 'SETVAR' var	2
+		return 2
+		end
+
+		when key="S" then do
+			'CHAINAPT' "editstats 1"
+		end
+		when key="M" then do
+		'DAVE_CMD' "MAILSELECT" prefarg
+		end
+		otherwise
+		end
+	end
+
+	'ISDROP' ; if(result=1) then return
+
+END
+return
+
+
+/*
+** Terminate?
+**
+** Displays the 'Terminate' requester within the same
+** screen as the main menu. Takes care of correcting the
+** display if the user wishes to stick within the menu.
+** Input with TX (Xpos) and TY (Ypos) for positioning
+** display.
+**
+** VERY, VERY IMPORTANT! - You must ensure that you have pre-compiled
+** a buttons menu of value TX and TY that you wish to use in this menu!
+** Check out the ButtonCompile.rexx file in the APT:rexx directory.
+** ...Ensure that theres an entry in there with the TX=?? ; TY=?? values
+** that you need. If not, then you can duplicate an existing one and
+** then change the TX and TY values to suit. THEN you must compile the
+** button files by issuing "rx apt:rexx/ButtonCompile.rexx" from a CLI
+** window.
+**
+** Also note: This is just a small example of what you can create with a
+**            little thought. Your use of Button menus can create a truly
+**            unique user interface!
+**
+**/
+
+TERMINATE_BUTTONS: procedure expose CR TX TY
+'INFORM' "At Termination Menu."
+'BUTTONOPTS' 'LOADBANK="tplates:button/terminate'TX''TY'.bank" INITBANK'
+
+'MSG' "["||TY";"||TX"H[34mÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ"
+'MSG' "["||TY+1";"||TX"H[34mÛÛ[44m [37mTerminate?[34m[40mÛÛÛ"
+'MSG' "["||TY+2";"||TX"H[34mÛßßßßßßßßßßßßßßÛ"
+'MSG' "["||TY+3";"||TX"H[34mÛ  [37mN   -  NO   [34mÛ"
+'MSG' "["||TY+4";"||TX"H[34mÛ  [37mY   -  YES  [34mÛ"
+'MSG' "["||TY+5";"||TX"H[34mÛÜÜÜÜÜÜÜÜÜÜÜÜÜÜÛ"
+
+'BUTTONOPTS' "SETPOS=0"
+
+DO FOREVER
+
+	'BUTTONOPTS' "USEBANK" ; rawkey=result ; key=upper(rawkey)
+	'BUTTONOPTS' "GETPOS"  ; buttonnumber = result
+
+	'ISDROP'	 ; if(result=1) then break
+
+	select
+		when key=CR THEN DO
+			/*
+			** Another select within a select..
+			**/
+			select
+				when buttonnumber=0 then do
+					'MSG' "["||TY";"||TX"H                "
+					'MSG' "["||TY+1";"||TX"H                "
+					'MSG' "["||TY+2";"||TX"H                "
+					'MSG' "["||TY+3";"||TX"H                "
+					'MSG' "["||TY+4";"||TX"H                "
+					'MSG' "["||TY+5";"||TX"H                "
+					return
+				end
+			when buttonnumber=1 then do
+					'SMALLCMD' "REMOVEDLG"
+					'SHOWFILE' "review/review_day"
+					'FLUSHACCOUNT'
+					'DROPLINE'
+					return
+				end
+				otherwise
+			END
+		END
+
+		/*
+		** Position the cursor otherwise on the right
+		** button..
+		**/
+		when key='N' then do ; 'BUTTONOPTS' "SETPOS=0"  ;  end
+		when key='Y' then do ; 'BUTTONOPTS' "SETPOS=1"  ;  end
+		otherwise
+		END
+	END
+RETURN 
+END
+
+/*
+** Amiga Menu
+**
+**/
+
+/* AMIGA_BUTTONS: procedure expose CR */
+AMIGA_BUTTONS:
+refresh=1
+reload=1
+buttonnumber=0
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+'BUTTONOPTS' 'LOADBANK="tplates:button/amiga.bank" INITBANK'
+'BUTTONOPTS' "SETPOS=0"
+'SETSIG' "NEWSIG=1"
+
+
+DO FOREVER
+
+	if(reload) then do
+		CALL REFRESH_BUTTONS "amiga"
+		reload=0
+	end
+
+	if(refresh) then do
+	'INFORM' "At Amiga Menu."
+	'MSG' "%CURSOR=0."
+	'SETBREAK' "FMCLPDQWGN"
+	'SHOWGLOBALFILE' "tplates:menus/menu_amiga.tpl"
+	'BUTTONOPTS' "SETPOS="buttonnumber
+	refresh=0
+	end
+
+
+	'BUTTONOPTS' "USEBANK" ; rawkey=result ; key=upper(rawkey)
+	'BUTTONOPTS' "GETPOS"  ; buttonnumber = result
+
+	'ISDROP'	 ; if(result=1) then break
+
+	select
+		when key=CR THEN DO
+			/*
+			** Another select within a select..
+			**/
+			select
+
+			when buttonnumber=0 then do
+				'INFORM' "Entering Amiga File area..."
+				call FILES_MENU 1
+				refresh=1 ; end
+			when buttonnumber=1 then do
+				'INFORM' "Entering Amiga Mail area..."
+				'MAILLIST' 1	; refresh=1 ; end
+			when buttonnumber=2 then do ; 'PAGESYSOP'					 ; refresh=1 ; end
+			when buttonnumber=3 then do
+				'INFORM' "Leaving Feedback."
+				'SHOWGLOBALFILE' "tplates:menus/FeedBack.tpl"
+				'MAIL_CMD' "FEEDBACK" ; refresh=1 ; end
+			when buttonnumber=4 then do ; call PREFS_MENU 1			 ; refresh=1 ; reload=1  ; end
+			when buttonnumber=5 then do ; call GAME_BUTTONS			 ; refresh=1 ; reload=1 ; end 
+			when buttonnumber=6 then signal MAIN_MENU
+			when buttonnumber=7 then do
+				'INFORM' "Checking for waiting mail."
+				'MAIL_CMD' "SHOWMAIL"	; refresh=1 ; end
+			when buttonnumber=8 then do
+				TX=2 ; TY=2
+				CALL TERMINATE_BUTTONS
+				'ISDROP' ; if(result=1) then break
+				'BUTTONOPTS' 'LOADBANK="tplates:button/amiga.bank" INITBANK'
+				'BUTTONOPTS' "SETPOS="buttonnumber
+				end
+			when buttonnumber=9 then do
+				'INFORM' "In Amiga QWK bundler."
+				'CHAINAPT' "QWKbuttons 1"
+				; refresh=1 ; reload=1 ; end
+			when buttonnumber=10 then do
+				'INFORM' "Amiga New File scan."
+				'MSG' CLS
+				'MSG' "%CURSOR=1."
+				CALL NEWSCAN_SINCE_DATE
+				refresh=1 ; end
+
+			otherwise
+			END
+		END
+
+		when key='F' then do ; 'BUTTONOPTS' "SETPOS=0"  ;  end
+		when key='M' then do ; 'BUTTONOPTS' "SETPOS=1"  ;  end
+		when key='C' then do ; 'BUTTONOPTS' "SETPOS=2"  ;  end
+		when key='L' then do ; 'BUTTONOPTS' "SETPOS=3"  ;  end
+		when key='P' then do ; 'BUTTONOPTS' "SETPOS=4"  ;  end
+		when key='D' then do ; 'BUTTONOPTS' "SETPOS=5"  ;  end
+		when key='Q' then do ; 'BUTTONOPTS' "SETPOS=6"  ;  end
+		when key='W' then do ; 'BUTTONOPTS' "SETPOS=7"  ;  end
+		when key='G' then do ; 'BUTTONOPTS' "SETPOS=8"  ;  end
+		when key='B' then do ; 'BUTTONOPTS' "SETPOS=9"  ;  end
+		when key='N' then do ; 'BUTTONOPTS' "SETPOS=10"  ;  end
+
+		when rawkey='F0'x then do ; 'CHATMODE' ;  CALL REFRESH_BUTTONS "amiga" ; end
+		when key="T" then do
+			'msg' "\n\n\b1\c7Toggling over to CommandLine Menu Screens!...\b0\c7"
+			var=getclip(MENUSET_VAR) ; 'SETVAR' var 1
+			'RETURNCODE' 2
+			leave
+			end
+		otherwise
+		END
+	END
+EXIT
+END
+
+/*
+** IBM Menu
+**
+**/
+
+/* IBM_BUTTONS: procedure expose CR */
+IBM_BUTTONS:
+refresh=1
+reload=1
+buttonnumber=0
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+'BUTTONOPTS' 'LOADBANK="tplates:button/IBM.bank" INITBANK'
+'BUTTONOPTS' "SETPOS=0"
+'SETSIG' "NEWSIG=2"
+
+
+DO FOREVER
+
+	if(reload) then do
+		CALL REFRESH_BUTTONS "IBM"
+		reload=0
+	end
+
+	if(refresh) then do
+		'INFORM' "At IBM Menu."
+		'MSG' "%CURSOR=0."
+		'SETBREAK' "FMCLPDQWGN"
+		'SHOWGLOBALFILE' "tplates:menus/menu_IBM.tpl"
+		'BUTTONOPTS' "SETPOS="buttonnumber
+		refresh=0
+	end
+
+
+	'BUTTONOPTS' "USEBANK" ; rawkey=result ; key=upper(rawkey)
+	'BUTTONOPTS' "GETPOS"  ; buttonnumber = result
+
+	'ISDROP'	 ; if(result=1) then break
+
+	select
+		when key=CR THEN DO
+			/*
+			** Another select within a select..
+			**/
+			select
+
+
+
+			when buttonnumber=0 then do
+				'INFORM' "Entering IBM file area..."
+				call FILES_MENU 2
+				refresh=1 ; end
+			when buttonnumber=1 then do ; 'MAILLIST' 2				; refresh=1 ; end
+			when buttonnumber=2 then do ; 'PAGESYSOP'					; refresh=1 ; end
+			when buttonnumber=3 then do
+				'SHOWGLOBALFILE' "tplates:menus/FeedBack.tpl"
+				'MAIL_CMD' "FEEDBACK" ; refresh=1 ; end
+			when buttonnumber=4 then do ; call PREFS_MENU 2			; refresh=1 ; reload=1  ; end
+			when buttonnumber=5 then do ; call GAME_BUTTONS			; refresh=1 ; reload=1 ; end 
+			when buttonnumber=6 then signal MAIN_MENU
+			when buttonnumber=7 then do ; 'MAIL_CMD' "SHOWMAIL"	; refresh=1 ; end
+			when buttonnumber=8 then do
+				TX=2 ; TY=2
+				CALL TERMINATE_BUTTONS
+				'ISDROP' ; if(result=1) then break
+				'BUTTONOPTS' 'LOADBANK="tplates:button/IBM.bank" INITBANK'
+				'BUTTONOPTS' "SETPOS="buttonnumber
+				end
+			when buttonnumber=9 then do
+				  'CHAINAPT' "QWKbuttons 2"
+				  ; refresh=1 ; reload=1 ; end
+			when buttonnumber=10 then do
+				'MSG' CLS
+				'MSG' "%CURSOR=1."
+				CALL NEWSCAN_SINCE_DATE
+				refresh=1 ; end
+
+			otherwise
+			END
+		END
+
+		when key='F' then do ; 'BUTTONOPTS' "SETPOS=0"  ;  end
+		when key='M' then do ; 'BUTTONOPTS' "SETPOS=1"  ;  end
+		when key='C' then do ; 'BUTTONOPTS' "SETPOS=2"  ;  end
+		when key='L' then do ; 'BUTTONOPTS' "SETPOS=3"  ;  end
+		when key='P' then do ; 'BUTTONOPTS' "SETPOS=4"  ;  end
+		when key='D' then do ; 'BUTTONOPTS' "SETPOS=5"  ;  end
+		when key='Q' then do ; 'BUTTONOPTS' "SETPOS=6"  ;  end
+		when key='W' then do ; 'BUTTONOPTS' "SETPOS=7"  ;  end
+		when key='G' then do ; 'BUTTONOPTS' "SETPOS=8"  ;  end
+		when key='B' then do ; 'BUTTONOPTS' "SETPOS=9"  ;  end
+		when key='N' then do ; 'BUTTONOPTS' "SETPOS=10"  ;  end
+		when rawkey='F0'x then do ; 'CHATMODE' ;  CALL REFRESH_BUTTONS "IBM" ; end
+
+		otherwise
+		END
+	END
+EXIT
+END
+
+
+/*
+** FILES_MENU:
+**/
+FILES_MENU: procedure
+
+parse arg new_sig
+Finished = 0
+
+'INITFILEAREA'
+'SETSIG' "NEWSIG="new_sig ; old_sig = result
+
+'SELECTAREA' ; selected_area = result
+if( selected_area == -1 ) then Finished = 1
+else 'TOUCHINDEX'
+
+'FILESTYLE' "RESET"
+
+			DO WHILE Finished~=1
+
+				'SHOWFILE' "file/fmenu"
+
+				'HOTKEY' "" ; rawkey=result ; key=upper(rawkey)
+
+				'ISDROP' ; if(result=1) then Finished = 1
+
+				select
+					when key="A" then do
+						'SELECTAREA' ; selected_area = result
+						if(selected_area == -1) then Finished=1
+						else 'TOUCHINDEX'
+					end
+					when key="S" then						'SCANAREA'
+					when key="=" then						'GLOBALNEWSCAN'
+					when key='N' then						'LOCALNEWSCAN'
+					when key='D'x | key='A'x then		'CONTINUESCAN'
+					when key='M' then						'MARKFILE'
+					when key='R' then						'REMOVEMARKED'
+					when key='U' then						'UPLOAD'
+					when key='D' then						'DOWNLOAD'
+					when key='L' then						'LISTMARKED'
+					when key='>' | key='.' then		'NEXTAREA'
+					when key='<' | key=',' then		'PREVAREA'
+					when key='V' then						'VIEWARCHIVE'
+					when key='F' then						'FILTERMENU'
+					when key='O' then						'FILTERSOFF'
+					when key='-' then do 
+						'FILEAREAINFO' "AREANUMBER" ; selected_area = result
+						'CHAINAPT' "FLST_Downloader "selected_area
+					end
+					when key="Q" then do
+						/*
+						** As the user may wish to QUIT, he may, unknowingly
+						** have forgot that they have files 'marked' for
+						** download. We should be kind and remind them of this,
+						** and give them the chance of sticking around.
+						**/
+						'MARKFILE' "QUERY" ; got_any_files = result
+						if( got_any_files==1 ) then do
+							'SHOWFILE' "file/filesmarked"	/* Inform of marked files */
+							call YESNO 1						/* default to YES         */
+							if(result) THEN Finished=1		/* If TRUE, then finish.. */
+						end
+						else Finished=1						/* Otherwise simply Quit  */
+					end
+					when rawkey='F0'x then do ; 'CHATMODE' ; end
+					otherwise
+				end
+
+				'ISDROP' ; if(result=1) then Finished = 1
+			END
+
+			'FREEFILEAREA'
+
+			'SETSIG' "NEWSIG="old_sig ; old_sig = result
+
+			'msg' "\z4\b1\c7Leaving File Area...\b0\z0\c7"
+
+return old_sig
+
+
+			/*
+			** NewScan:
+			**
+			** Takes care of doing all of the "file scanning since date"
+			** functions without the need to have pre-accessed a file
+			** area.. Example, shortly after logon ask the user if they
+			** wish to scan for new files since last on.
+			**/
+			NEWSCAN_SINCE_DATE: procedure
+
+				'INFORM' "Scanning for files since date.."
+
+				'FILESTYLE' "RESET"
+
+				'INITFILEAREA'
+
+				'FINDDEFAULTBASE' ; first_base = result
+
+				if( first_base ~= -1) then do
+					'TOUCHINDEX' first_base
+					'GLOBALNEWSCAN'
+				end
+
+				/*
+				** As the user may have ABORTED scanning, but STILL
+				** have marked files, one needs to do the obvious
+				** and check..
+				**/
+				'MARKFILE' "QUERY" ; got_any_files = result
+				if( got_any_files==1 ) then do
+					'SHOWFILE' "file/downnsmarked"
+					call YESNO 1
+					if(result) THEN 'DOWNLOAD'
+				end
+
+				'FREEFILEAREA'
+
+			return
+
+
+
+/*
+** GAME Menu
+**
+**/
+
+GAME_BUTTONS: procedure expose CR
+refresh=1
+reload=1
+buttonnumber=0
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+
+'BUTTONOPTS' 'LOADBANK="tplates:button/GAME.bank" INITBANK'
+'BUTTONOPTS' "SETPOS=0"
+
+
+DO FOREVER
+
+	if(reload) then do
+		CALL REFRESH_BUTTONS "GAME"
+		reload=0
+	end
+
+	if(refresh) then do
+		'MSG' "%CURSOR=0."
+		'SETBREAK' "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		'SHOWGLOBALFILE' "tplates:menus/menu_DOORBUTTON.tpl"
+		'BUTTONOPTS' "SETPOS="buttonnumber
+		'INFORM' "At Games Menu."
+		refresh=0
+	end
+
+
+	'BUTTONOPTS' "USEBANK" ; rawkey=result ; key=upper(rawkey)
+	'BUTTONOPTS' "GETPOS"  ; buttonnumber = result
+
+	'ISDROP'	 ; if(result=1) then break
+
+	select
+		when key=CR THEN DO
+			/*
+			** Another select within a select..
+			**/
+			select
+
+
+			when buttonnumber=0 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=1 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=2 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=3 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=4 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=5 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=6 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=7 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=8 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=9 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=10 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=11 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=12 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=13 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=14 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=15 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=16 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=17 then do
+				'INFORM' "Paging Sysop!"
+				'PAGESYSOP'	; refresh=1 ; end
+			when buttonnumber=18 then leave
+			when buttonnumber=19 then do
+				TX=32 ; TY=15
+				CALL TERMINATE_BUTTONS
+				'ISDROP' ; if(result=1) then break
+				'BUTTONOPTS' 'LOADBANK="tplates:button/GAME.bank" INITBANK'
+				'BUTTONOPTS' "SETPOS="buttonnumber
+				end
+			when buttonnumber=20 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=21 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=22 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=23 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=24 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=25 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=26 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=27 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=28 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=29 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=30 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=31 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=32 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=33 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=34 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+			when buttonnumber=35 then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n"
+				; refresh=1 ; end
+
+			otherwise
+			END
+		END
+
+		when key='0' then do ; 'BUTTONOPTS' "SETPOS=0"  ;  end
+		when key='1' then do ; 'BUTTONOPTS' "SETPOS=1"  ;  end
+		when key='2' then do ; 'BUTTONOPTS' "SETPOS=2"  ;  end
+		when key='3' then do ; 'BUTTONOPTS' "SETPOS=3"  ;  end
+		when key='4' then do ; 'BUTTONOPTS' "SETPOS=4"  ;  end
+		when key='5' then do ; 'BUTTONOPTS' "SETPOS=5"  ;  end
+		when key='6' then do ; 'BUTTONOPTS' "SETPOS=6"  ;  end
+		when key='7' then do ; 'BUTTONOPTS' "SETPOS=7"  ;  end
+		when key='8' then do ; 'BUTTONOPTS' "SETPOS=8"  ;  end
+		when key='9' then do ; 'BUTTONOPTS' "SETPOS=9"  ;  end
+		when key='H' then do ; 'BUTTONOPTS' "SETPOS=10"  ;  end
+		when key='M' then do ; 'BUTTONOPTS' "SETPOS=11"  ;  end
+		when key='P' then do ; 'BUTTONOPTS' "SETPOS=12"  ;  end
+		when key='T' then do ; 'BUTTONOPTS' "SETPOS=13"  ;  end
+		when key='V' then do ; 'BUTTONOPTS' "SETPOS=14"  ;  end
+		when key='Z' then do ; 'BUTTONOPTS' "SETPOS=15"  ;  end
+		when key='X' then do ; 'BUTTONOPTS' "SETPOS=16"  ;  end
+
+		when key='C' then do ; 'BUTTONOPTS' "SETPOS=17"  ;  end
+		when key='Q' then do ; 'BUTTONOPTS' "SETPOS=18"  ;  end
+		when key='G' then do ; 'BUTTONOPTS' "SETPOS=19"  ;  end
+		when key='E' then do ; 'BUTTONOPTS' "SETPOS=20"  ;  end
+		when key='F' then do ; 'BUTTONOPTS' "SETPOS=21"  ;  end
+		when key='N' then do ; 'BUTTONOPTS' "SETPOS=22"  ;  end
+
+		when key='A' then do ; 'BUTTONOPTS' "SETPOS=23"  ;  end
+		when key='B' then do ; 'BUTTONOPTS' "SETPOS=24"  ;  end
+		when key='D' then do ; 'BUTTONOPTS' "SETPOS=25"  ;  end
+		when key='I' then do ; 'BUTTONOPTS' "SETPOS=26"  ;  end
+		when key='J' then do ; 'BUTTONOPTS' "SETPOS=27"  ;  end
+		when key='K' then do ; 'BUTTONOPTS' "SETPOS=28"  ;  end
+		when key='O' then do ; 'BUTTONOPTS' "SETPOS=29"  ;  end
+		when key='R' then do ; 'BUTTONOPTS' "SETPOS=30"  ;  end
+		when key='S' then do ; 'BUTTONOPTS' "SETPOS=31"  ;  end
+		when key='W' then do ; 'BUTTONOPTS' "SETPOS=32"  ;  end
+		when key='Y' then do ; 'BUTTONOPTS' "SETPOS=33"  ;  end
+		when key='L' then do ; 'BUTTONOPTS' "SETPOS=34"  ;  end
+		when key='U' then do ; 'BUTTONOPTS' "SETPOS=35"  ;  end
+
+		when rawkey='F0'x then do ; 'CHATMODE' ;  CALL REFRESH_BUTTONS "GAME" ; end
+
+		otherwise
+		END
+		'ISDROP' ; if(result=1) then return 0
+	END
+return 0
+
+
+/*
+** PICTURE Menu
+**
+**/
+
+/* PICTURE_BUTTONS: procedure expose CR */
+
+PICTURE_BUTTONS:
+refresh=1
+reload=1
+buttonnumber=0
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+'BUTTONOPTS' 'LOADBANK="tplates:button/PICTURE.bank" INITBANK'
+'BUTTONOPTS' "SETPOS=0"
+'SETSIG' "NEWSIG=5"
+
+
+DO FOREVER
+
+	if(reload) then do
+		CALL REFRESH_BUTTONS "PICTURE"
+		reload=0
+	end
+
+	if(refresh) then do
+	'INFORM' "At PICTURE Menu."
+	'MSG' "%CURSOR=0."
+	'SETBREAK' "FMCLPDQWGN"
+	'SHOWGLOBALFILE' "tplates:menus/menu_PICTURE.tpl"
+	'BUTTONOPTS' "SETPOS="buttonnumber
+	refresh=0
+	end
+
+	'BUTTONOPTS' "USEBANK" ; rawkey=result ; key=upper(rawkey)
+	'BUTTONOPTS' "GETPOS"  ; buttonnumber = result
+
+	'ISDROP'	 ; if(result=1) then break
+
+	select
+		when key=CR THEN DO
+			/*
+			** Another select within a select..
+			**/
+			select
+
+
+			when buttonnumber=0 then do
+		'INFORM' "Entering PICTURE File area..."
+		call FILES_MENU 5
+		refresh=1 ; end
+			when buttonnumber=1 then do
+				'INFORM' "Entering PICTURE Mail area..."
+				'MAILLIST' 5	; refresh=1 ; end
+			when buttonnumber=2 then do ; 'PAGESYSOP'					 ; refresh=1 ; end
+			when buttonnumber=3 then do
+				'INFORM' "Leaving Feedback."
+				'SHOWGLOBALFILE' "tplates:menus/FeedBack.tpl"
+				'MAIL_CMD' "FEEDBACK" ; refresh=1 ; end
+			when buttonnumber=4 then do ; call PREFS_MENU 5			 ; refresh=1 ; reload=1  ; end
+			when buttonnumber=5 then do ; call GAME_BUTTONS			 ; refresh=1 ; reload=1 ; end 
+			when buttonnumber=6 then signal MAIN_MENU
+			when buttonnumber=7 then do
+				'INFORM' "Checking for waiting mail."
+				'MAIL_CMD' "SHOWMAIL"	; refresh=1 ; end
+			when buttonnumber=8 then do
+				TX=2 ; TY=2
+				CALL TERMINATE_BUTTONS
+				'ISDROP' ; if(result=1) then break
+				'BUTTONOPTS' 'LOADBANK="tplates:button/PICTURE.bank" INITBANK'
+				'BUTTONOPTS' "SETPOS="buttonnumber
+				end
+			when buttonnumber=9 then do
+				'INFORM' "PICTURE New File scan."
+				'MSG' CLS
+				'MSG' "%CURSOR=1."
+				CALL NEWSCAN_SINCE_DATE
+				refresh=1 ; end
+
+			otherwise
+			END
+		END
+
+		when key='F' then do ; 'BUTTONOPTS' "SETPOS=0"  ;  end
+		when key='M' then do ; 'BUTTONOPTS' "SETPOS=1"  ;  end
+		when key='C' then do ; 'BUTTONOPTS' "SETPOS=2"  ;  end
+		when key='L' then do ; 'BUTTONOPTS' "SETPOS=3"  ;  end
+		when key='P' then do ; 'BUTTONOPTS' "SETPOS=4"  ;  end
+		when key='D' then do ; 'BUTTONOPTS' "SETPOS=5"  ;  end
+		when key='Q' then do ; 'BUTTONOPTS' "SETPOS=6"  ;  end
+		when key='W' then do ; 'BUTTONOPTS' "SETPOS=7"  ;  end
+		when key='G' then do ; 'BUTTONOPTS' "SETPOS=8"  ;  end
+		when key='N' then do ; 'BUTTONOPTS' "SETPOS=9"  ;  end
+		when rawkey='F0'x then do ; 'CHATMODE' ;  CALL REFRESH_BUTTONS "PICTURE" ; end
+
+		otherwise
+		END
+	END
+EXIT
+END
+
+
+/*
+** PROCEDURE: YESNO
+**
+** Used whenever requesting a [Y/n] [y/N] style hotkey input
+**
+** Flag = 1 for Default to YES, 0 for Default to NO on return
+**
+** RETURNS: 1 for YES and 0 for NO
+*/
+
+YESNO: procedure
+
+parse arg Flag
+
+'HOTKEY' ""
+Key=upper(result)
+if(Flag=0) THEN DO
+	if(Key='Y') THEN DO
+		'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+		Flag = 1
+	END
+	ELSE DO
+		'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+		Flag = 0
+	END
+END
+ELSE
+if(Key='N') THEN DO
+	'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+	Flag = 0
+END
+ELSE DO
+	'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+	Flag = 1
+END
+	return Flag
+
+

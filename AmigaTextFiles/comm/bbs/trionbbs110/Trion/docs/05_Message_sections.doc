@@ -1,0 +1,445 @@
+
+
+  Introduction
+  ------------
+
+   This chapter is a description of the Trion BBS mail system.
+   The mail system is what lets the user read and write messages
+   and let the mailer import and export mail to other systems.
+
+
+  Message base format
+  -------------------
+
+   The message base is stored (default) in the directory
+   "trion:mail/" with optional sub paths for different
+   networks or types or messages.
+   But all of these paths can be changed in the Mailareas.cfg
+   Note that the only fixed use of the "trion:mail/" dir is
+   for temporary storeage of (parts of) messages.
+
+   Every message section consists of 2 or 3 files, the
+   a MsgData.N file, a MsgText.N file and sometimes a
+   Attach.N files.  (Where N is the number of the section)
+
+   The MsgData files contain the actuall information on messages,
+   like names, data, subject, size, attributes etc..
+   All the entries in this file have the same (fixed) size,
+   this is usefull because when a message has to be updated
+   because for instance files are attached only a tiny part of
+   the file has to be changed.
+   Also random access is a lot easier that way, a message can
+   be found with a simple calculation instead of having to
+   read all previous messages.
+
+   The MsgText contain the actuall bodies of the messages.
+   Every message in the MsgData files have "pointers" to
+   where a message is stored including its size, so when
+   a the actuall body of the message has to be read a hunk
+   of memory of the rigth size can be allocated.
+
+   Sometimes there is also an Attaches file where a list
+   of attached files including their path is stored for
+   some messages. Note that incoming attached files
+   are stored in the directory "trion:outbound/attaches/".
+
+   Note that message sections will grow bigger and bigger
+   until you give a command to "trim" them.
+   This is done by the program "RMCommander", if you use the
+   dupe check options you also have to remake the DupeBase
+   because that will grow to.
+   So the best way would be to use the script "trion:scripts/trimmsgs"
+   because it contains all the calls needed to trim the message base.
+   A good idea would be to start the script a couple of times a
+   week with the scheduler or a Cron program.
+
+
+  User access capabilities
+  ------------------------
+
+   The access a user has to a message section is defined in the "template"
+   that is connected to his level. Templates are defined in the
+   templates.cfg and described in chapter 3.
+
+   In a template, lines with sections ranges with the same access flags
+   are listed. Like this:
+
+    MsgAccess   [V-PW--]    , 1 , 3                      ;CommentToSysop
+    MsgAccess   [V-P---]    , 10-40                      ;Netmail
+    MsgAccess   [VR----]    , 2 , 5 , 100-199 , 200-299  ;Local/Echomail
+
+    (with 'All' you can use all areas with the given flags, same
+     effect as 1 - 65536)
+
+   At the moment there are 6 flags for message sections:
+
+    View Read Private Write Attach Special
+
+   Where the flags have the folowing meaning:
+
+   V = View,    User sees area in Lists and can go to this area.
+   R = Read,    User can Read/Scan all messages in this area.
+   P = Private, User can only Read/Scan messages To and From him.
+   W = Write,   User can Write in this area.
+   A = Attach,  User can Attach files to messages.
+   S = Special, User can Read/Scan deleted or private messages.
+
+
+
+  Message related features
+  ------------------------
+
+   message forwarding & cross reply
+
+   While reading messages, a user can forward them to other
+   users and other sections or cross reply in an other section.
+   Note that the user should have access to the section he wants
+   to forward the message to.
+   Note that the forward and cross reply options look like
+   each other but are different. With the forward option the
+   original message is left intact, but with the cross reply
+   option the message text is quoted.
+
+
+   file attaches
+
+   After writing a message a menu appears with questions if
+   the message should be saved or files should be attached.
+   During a local login there appears a prompt to enter
+   filenames (with path), when a user is logged in remote
+   files can be uploaded.
+   Note that the message is first saved and then the system
+   asks for the files to be attached.
+   Note that files are stored in "trion:outbound/attaches/".
+   If a user forgets to attach files during saving, then
+   files can be attached when reading messages.
+
+
+  Message editors
+  ---------------
+
+   Every user has a parameter which determines which editor
+   is loaded when he writes mail.
+
+   If it is 0 (zero) the internal line editor is started.
+
+   If it is 1 (one) you get the internal line editor if you
+   call remote, but if you login locally you get the
+   external editor configured in Trion:cfg/trion-X.cfg,
+   so you can use editors like the CygnusEditor (CED) for
+   your mail. In that case there will be a text that the
+   editor is started and that you have to press return
+   to continue. Of course you only press return after
+   you edited the message and did a 'Save&Quit' in CED.
+   Note that if you had CED already running nothing
+   seems to be happening but there will be a window
+   on the workbench stating that there is already a
+   CED running and if you want to run an other one.
+
+   If the parameter is 2 or higher an external editor
+   will be ran with the name "doors:fsed/fsedX"
+   (Where X is the value of the parameter)
+   This is done so you can have different editor, which
+   is usefull when writing/testing new editors.
+
+
+  message section configuration
+  -----------------------------
+
+   Message areas are configured in the 'Trion:cfg/MailAreas.cfg'.
+
+   Each config line is in a specific format which is dependent on the
+   type of the area, there are 3 different kinds of area types.
+   There are Local areas , echomail and netmail areas.
+
+
+   Global format
+   -------------
+
+
+   Format for a local message area:
+
+   #area  flags  MaxMsgs  path  areaName
+
+   Examples:
+
+   #001  [LW-ST-] 120  TRION:mail/   "[loc] Sysop Comments"
+   #002  [LWA---] 100  TRION:mail/   "[loc] Chat Area"
+   #003  [LW-ST-] 100  TRION:mail/   "[loc] Private Area"
+
+
+
+
+   Format for an netmail area:
+
+   #area  flags  MaxMsgs  path  areaName  TagName  NodeNumber
+
+   Examples:
+
+   #016  [NWIST-] 100 TRION:mail/ "[Fido] Netmail"  FIDO_NET  2:284/324.20
+   #017  [NW-ST-] 100 TRION:mail/ "[Trion] Netmail" TRION_NET 350:1002/100
+   #040  [NWIST-] 100 TRION:mail/ "[I-net] E-mail"  "E-Mail"  2:284/324.20
+
+
+
+
+   Format for an echomail area:
+
+   #area  flags  MaxMsgs  path  areaName  TagName  NodeNumber
+
+
+   Examples:
+
+   #304  [EW-ST-] 999 TRION:mail/fido/ "[Fido] Amiga"         AMIGA       2:284/324.20
+   #305  [EW-ST-] 120 TRION:mail/fido/ "[Fido] Amiga NL"      AMIGA.028   2:284/324.20
+   #306  [EW-ST-] 120 TRION:mail/fido/ "[Fido] Amiga Comms"   AMIGA_COMMS 2:284/324.20
+   #308  [EW-ST-] 120 TRION:mail/fido/ "[Fido] Amiga Program" AMIGA_PROG  2:284/324.20
+   #309  [EW-ST-] 120 TRION:mail/fido/ "[Fido] Amiga Tech"    AMY_TECH    2:284/324.20
+
+
+   Format for an echomail area if you are a HUB or HOST:
+
+   #area  flags  MaxMsgs  path  areaName  TagName  NodeNumber
+   HubNumber HostNumber [other_nodenumbers]
+
+   (Maximum of 5 extra NodeNumbers per Area)
+
+   Examples:
+
+
+   #050  [EW-ST-] 100 TRION:mail/trion/ "[Trion] Beta"  TRION_BETA  350:1002/100
+   350:1002/0 350:1002/1
+   #051  [EW-ST-] 300 TRION:mail/trion/ "[Trion] Chat"  TRION_CHAT  350:1002/100
+   350:1002/0 350:1002/1
+   #052  [EW-ST-] 100 TRION:mail/trion/ "[Trion] News"  TRION_NEWS  350:1002/100
+   350:1002/0 350:1002/1
+   #053  [EW-ST-] 100 TRION:mail/trion/ "[Trion] Quest" TRION_QUEST 350:1002/100
+   350:1002/0 350:1002/1
+
+
+   Note:  Don't use area number #0
+   Note:  Don't forget a ':' or '/' at the end of a path !!
+   Note:  A 'BAD' area is an echomail area with tagname 'BAD'
+   Note:  A 'DUPES' area is an echomail area with tagname 'DUPES'
+   Note:  Use "" if you want to use spaces in a field.
+
+
+   Fields:
+   -------
+
+   Area:
+
+   Every section definition starts with an area number.
+   Note that the area number should be unique, there can only
+   be one message area number with a certain number.
+   Numbers allowed for a message section are 1 - 65536.
+   Note that the number should start with a '#' character so
+   the BBS knows this line is the start of a section definition.
+
+
+   Flags:
+
+   Every section needs a number of flags.
+   Flags are basically a string of characters, optionally you
+   can use '-' characters to make the config clearer. In that
+   case you can give the characters a fixed position.
+   Also you can place the string between [] to make the the config
+   more readable.
+
+   The type of an area is configured by flags, each area has to have
+   a flag which determines if it is used for local, echo or netmail.
+
+    type of area    (you must use 1 of these per section)
+
+    L = Local Messages
+    N = Netmail
+    E = Echomail
+
+
+   Also there are a few flags which determine the characteristics of an area.
+   Which means that those flags can not be overruled by flags in the
+   users template.
+
+
+    Characteristics of area
+
+    A = User may use an alias in this area.
+    W = Users can write in this area.
+    O = Obligatory (for areafix) can't disconnect with areafix
+    I = Internet support (For E-mail)
+    S = Use signatures in this section
+    T = Use taglines in the section
+
+   Note that a user can only write messages in an area if he has Write
+   acces in his Template AND the area has a Write flag.
+
+   Note that an area can have a Read flag OR a Private flag or none of
+   the before mentioned.
+   If a user has a Read flag he can read all messages, if he has a Private
+   flag he can only Read messages which he has written or which are
+   written to his name or alias.
+
+
+   MaxMsgs:
+
+   MaxMsgs if the number of messages left in this message section
+   after the command to reduce messages in the message base is given.
+
+
+   path:
+
+   The path is where the files for this section are stored.
+   Note that a path should end with a ':' or '/' character
+   of the files are placed in the wrong path.
+
+
+   areaName:
+
+   The areaName is the "nice name" the BBS uses to indicate this
+   section.
+
+
+   TagName:
+
+   The TagName is used in Echomail sections to as a identifier of
+   the section. All messages with a matching TagName are placed
+   in this section. Note that TagNames are case sensitive and
+   should be copied exactly as they are given to you.
+
+
+   NodeNumber:
+
+   This is the node number used in messages if an echomail or
+   netmail is written in this section.
+
+
+  BAD messages
+  ------------
+
+   You can create an optional section where bad messages are
+   stored. a bad section is an echomail section with the
+   tagname "BAD" (in uppercase).
+
+   Bad messages are echomail messages with no matching section
+   on your system.
+
+   Also messages with a damaged or missing origin line, messages
+   with no path lines or messages with no seen-by lines
+   are moved to the bad section (if the -G option is used in
+   the mail processor).
+
+   Also duplicate messages are stored in the bad section if
+   you have no DUPES section.
+
+
+  Duplicate messages
+  ------------------
+
+   If you use the duplicate check function you should create a
+   section where duplicate messages are move to.
+   A dupes section is an echomail section with the tagname "DUPES"
+   (in uppercase).
+   
+
+  Fidonet netmail
+  ---------------
+
+   It is a good idea to make the first netmail section a FIDO
+   netmail section. Because if there is no section with a 
+   matching zone number the message is stored in the first
+   netmail section. Because fido net uses zone number 1 to 6,
+   netmail from an other continent probably has an other
+   zone number than you have.
+
+   Note that for netmail you need a route.cfg where the program
+   can find where netmail has to be send to.
+   See chapter 14 for an explanation of the route file.
+
+   There are a handfull of programes that are able to write
+   netmail, like tick and areafix programs. These programs
+   may need the name of the sysop, these are stored in
+   nodelists or pointlists. See chapter 14 for an explanation
+   of these files.
+
+
+  Fidonet echomail
+  ----------------
+
+   Note that if you are not a point or node but a hub, host or
+   even higher like hq in a net you need an address list with
+   all the extra node numbers you have got.
+   The extra nodenumbers are listed at an extra line after
+   the definition of the section itself.
+
+   Note that the mail processor has the option to check for
+   duplicate messages. This means that if there is an error
+   somewhere and you receive messages you already received
+   earlier they are moved to the DUPES (or BAD) section.
+   To be able to use "DupeChecking" you first have to make
+   a "DupeBase" which contains information on all messages
+   needed to detect a "Dupe". Note that you only have to
+   create a DupeBase if you have a message base and
+   didn't use dupechecking before, or after you trimmed
+   messages in the messages base.
+   Read the "trion:docs/tmp.doc" for details how to use
+   dupechecking.
+
+   Every Echomail section needs a tagname.
+   The TagName is used in Echomail sections as a identifier of
+   the section. Note that TagNames are case sensitive and
+   should be copied exactly as they are given to you.
+   If you join a net you should obtain a list with the tagnames
+   of all sections and create them in the mailareas.cfg.
+
+
+
+   If you want the mail processor to export echomail to your boss or
+   other systems you have to add the area to the 'trion:cfg/mail.cfg'.
+
+   In this configuration file you make an entry for each area.
+   An entry starts with an AREA xxxx line, folowed with lines on which
+   the nodenumber of your boss and the nodenumbers of the nodes and
+   points you feed are placed.
+   An entry is terminated with a '#' symbol.
+
+
+   For example:
+
+   AREA TRON_BETA
+   14:103/0
+   14:103/103
+   #
+
+
+   You can use the GUI program MailEd to add a nodenumber to a
+   whole net .. and to see what sections are missing in the
+   mail.cfg
+
+
+   Note that the mail processor needs to know a password and archiver
+   for your boss node and the nodes you feed, these are configured
+   in the 'trion:cfg/systems.cfg' file.
+
+   Also you need to add your nodenumbers to the 'trion:cfg/aka.config'
+   or you will get no mail if you call your boss.
+
+
+
+   If you want to connect points you have te change some configs.
+
+   You have to add the point to the 'trion:cfg/systems.cfg' file.
+   If the system is not in a nodelist, you have to add it
+   to a nodelist or beter the pointlist (See the areafix doc)
+   or else the areafix and tick programms don't know the name of
+   the point/sysop.
+
+   Then you to add the point to areas in the mail.cfg OR you could
+   use areafix for that. (See the areafix doc)
+   You have to add the point the areafix configuration
+   and then the point can connect itself, or you can give areafix
+   the command to connect all the available areas.
+
+   If you want triontick to send files to the point you
+   have to change the filenet.doc and filenodes.doc
+   (see the triontick doc)
+

@@ -1,0 +1,103 @@
+
+lab StartInstall
+
+echo ""
+echo "*e[32mTechnoBBS quick installation script*e[0m"
+echo ""
+echo "This script can be used to install TechnoBBS quickly so you can test the"
+echo "software.  You should have the directory where you unarchived the TechnoBBS"
+echo "distribution archive as your current directory."
+echo ""
+ask "Continue? (Y/N)"
+if WARN
+    echo ""
+    ask "Do you wish to install TechnoBBS in the current directory? (Y/N)"
+    if WARN
+        echo ""
+        set >NIL: BBSDir `cd`
+        echo "*e[33mAssigning BBS: to *e[0m$BBSDir"
+        assign BBS: "$BBSDir"
+    else
+        echo ""
+        echo noline "Enter the name of the directory to copy TechnoBBS to: "
+        set >NIL: BBSDir ?
+        echo ""
+        if NOT EXISTS "$BBSDir"
+            echo "*e[32mThe directory *e[0m$BBSDir*e[32m doesn't exist*e[0m"
+            echo ""
+            ask "Create $BBSDir? (Y/N)"
+            if WARN
+                echo ""
+                echo "*e[33mCreating directory *e[0m$BBSDir"
+                makedir "$BBSDir"
+                echo ""
+            else
+                echo ""
+                echo "*e[33mCan't install into *e[0m$BBSDir*[33m jumping to start*e[0m"
+		unset BBSDir
+                skip back StartInstall
+            endif
+        endif
+        echo "*e[33mAssigning BBS: to *e[0m$BBSDir"
+        assign BBS: "$BBSDir"
+        echo ""
+        echo "*e[33mCopying files to BBS:*e[0m"
+        echo ""
+        copy #? BBS: all
+    endif
+    echo ""
+    echo "*e[33mAssigning MAIL: to BBS:MAIL*e[0m"
+    assign MAIL: BBS:MAIL
+    echo ""
+    echo "*e[33mAdding BBS:Bin BBS:Scripts and BBS:Rexx to your paths*e[0m"
+    path BBS:Bin BBS:Scripts BBS:Rexx add
+    echo ""
+    echo "*e[33mCorrecting the protection bits for BBS:Bin/*e[0m"
+    echo ""
+    protect BBS:Bin/~(TechIO) +p
+    echo ""
+    echo "*e[33mCorrecting the protection bits for BBS:Util/*[0m"
+    echo ""
+    protect BBS:Util/~(#?.doc) +p
+    echo ""
+    echo "*e[33mCorrecting the protection bits for BBS:Scripts/*e[0m"
+    echo ""
+    protect BBS:Scripts/#? +s
+    echo ""
+    echo "*e[33mCorrecting the protection bits for BBS:Rexx/*[0m"
+    echo ""
+    protect BBS:Rexx/#? +s
+    echo ""
+    echo "*e[32mTechnoBBS has now been installed in *e[0m$BBSDir"
+    echo ""
+    echo "You will probably want to add the following commands in your"
+    echo "User-Startup or Startup-Sequence:"
+    echo ""
+    echo "assign BBS: $BBSDir"
+    echo "assign MAIL: BBS:MAIL"
+    echo "path BBS:Bin BBS:Scripts BBS:Rexx add"
+    echo ""
+    ask "Press enter to continue..."
+    echo ""
+    echo "You should now edit the files in BBS:Cfg, BBS:Text, BBS:Files and"
+    echo "BBS:Mail/MsgDat to configure your system.  You may also want to edit"
+    echo "the menus in BBS:Menu and the ARexx scripts in BBS:Rexx."
+    echo ""
+    echo "To quickly test the system, try the following commands:"
+    echo ""
+    echo "run <>NIL: TechCon"
+    echo "run BBS:Scripts/RunNode 0"
+    echo ""
+    ask "Press enter to continue..."
+    echo ""
+    echo "Note:  You may have to retype run BBS:Scripts/RunNode 0 a couple of"
+    echo "times if you're running an unregistered TechnoBBS, since it doesn't"
+    echo "accept all calls."
+    echo ""
+    echo "*e[32mInstallation complete*e[0m"
+    unset BBSDir
+else
+    echo ""
+    echo "Installation aborted"
+endif
+echo ""

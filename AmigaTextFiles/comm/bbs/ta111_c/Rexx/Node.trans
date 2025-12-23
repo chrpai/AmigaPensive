@@ -1,0 +1,74 @@
+/* Useful for those running FidoNet with TrapDoor.  Looks up the specified
+   node in the nodelist and displays some info about it (only users with
+   access 255 can see the passwords).  The most obvious place to install it
+   would in in your Message.Rx file as a command off the message menu.
+   
+   NOTE: TrapDoor's traplist.library. must be in Libs:.
+*/
+
+options results
+signal on error
+
+privacc = 240					/* Set this to your privileged access level */
+
+CSI		= '1b'x||'['
+CLREOL	= CSI'K'
+OFF		= CSI'0m'
+BO		= CSI'1m'
+UL		= CSI'4m'
+IT		= CSI'3m'
+CRLF	= '0d'x||'0a'x
+FF		= '0c'x
+
+userinfo 'o' ; access=result
+userinfo 'x' ; ansi=result
+
+if ansi='ON' then do
+	CLI = CSI'37m' ; CLP = CSI'36m' ; CLT = CSI'31m' ; CLE = CSI'31m'
+end
+else do
+	CLI = '' ; CLP = '' ; CLT = '' ; CLE = ''
+end	
+
+query CRLF||CLP||'Enter node to look up:' CLI
+fqfa=result
+if fqfa='###PANIC' then exit 10
+
+if ~show('Libraries', 'traplist.library') then do
+	if ~addlib('traplist.library', 0, -30, 0) then do
+		send CLT||"Couldn't open nodelist.library."||CLI
+		exit 20
+	end
+end
+
+data = FindNode(fqfa, 'All', 'NodeList:')
+ok   = left(data, 2)
+data = delstr(data, 1, 2)
+
+if ~ok then do
+    print CRLF||CLE||data||OFF
+    exit 10
+    end
+
+node. = ''
+parse var data node.Addr "," node.Sysop "," node.System "," node.Phone "," node.City "," node.Password "," node.Baud "," node.Cost "," node.Region "," node.HUB "," node.Flags
+
+print
+print UL||CLI||node.System node.Addr 'Sysop' node.Sysop ||OFF||":"CRLF
+send CLP||'  Phone'||CLT||':' CLI||left(node.Phone,20)
+print CLP||'Max. Baud'||CLT||':' CLI||node.Baud
+send CLP||'  City'||CLT||':' CLI||left(node.City,21)
+print CLP||'Region'||CLT||':' CLI||node.Region
+send CLP||'  HUB'||CLT||':' CLI||left(node.HUB,22)
+print CLP||'Flags'||CLT||':' CLI||node.Flags
+if access>=255 then do
+	send CLP||'  Password'||CLT||':' CLI||left(node.Password,17)
+	print CLP||'Cost'||CLT||':' CLI||node.Cost
+end
+
+print
+
+continue
+
+exit
+

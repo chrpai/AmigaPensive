@@ -1,0 +1,698 @@
+
+                      Transamiga FileLister V1.46
+                      ---------------------------
+
+                    geschrieben 1993-95 von Mathias Supp
+
+             Sysop der Amiga Inside I Line 1: ++49(0)721-854112
+                                      Line 2: ++49(0)721-841292
+                                      Line 3: ++49(0)721-841230
+
+             erreichbar ueber : 2:2476/539.0@fidoclassic
+                                39:173/50.0@amiganet
+                                s_supp@ira.uka.de
+
+         Modem : 1. ZyXEL U-1496E Plus - 1200-19200bps [V32(bis),ZyX]
+                 2. Digitech SG2834    - 1200-28800bps [V32(bis),VFC,V34]
+                 3. Digitech SG2834    - 1200-28800bps [V32(bis),VFC,V34]
+                          Ausgabe : 25.09.1995
+
+============================================================================
+
+Einleitung :
+------------
+
+Zunaechst entschuldige ich mich dafuer, dass die deutsche Anleitung keine
+Installtionshinweise enthaelt. Dies wird wohl auch noch erledigt, es kommt
+mir im Moment aber mehr darauf an, dass die Leute, die die Registrierungs-
+gebuehr bezahlt haben, auch ihre persoenliche Version benutzen koennen.
+
+Dieses Programm habe ich geschrieben, weil ich ueber die mitgelieferten
+Utilities von Transamiga frustriert bin :-)
+
+Es gibts zwar seit einiger Zeit schon Arexx-Programme, die Aehnliches
+leisten, jedoch sind diese erschreckend langsam.
+
+ACHTUNG ! Diese Programm wurde geschwindigkeitsoptimiert ! Bei einem
+          kompletten Newfiles-Scan z.B. werden ALLE Files.BBS eingelesen.
+          Dies kann bei ca. 3000 Files in der Box ein Speicherbedarf von
+          ca. 1MB bedeuten. Ist nicht genuegend Speicher vorhanden,
+          werden nachfolgende Files.BBS nicht eingelesen und so behandelt,
+          als waeren sie LEER.
+
+          SEHR wichtig : Leute, die nur ca. 1MB frei haben, sollten
+          Filelister nicht benutzen, da der Speicher sonst zu stark
+          fragmentiert wird. Dies hat zu Folge, dass mind. einmal am Tag
+          ein Reset durchgefuehrt werden muss.
+
+          Seit V0.411 wird ein Arexx-Skript mitgeliefert, das entscheidet,
+          wann ein Reset durchgefuehrt werden muss. In der im Archiv ent-
+          haltenen Version wird nur eine Meldung auf dem Bildschirm aus-
+          gegeben. Im Grunde koennte man aber auch die Warnungszeile durch
+          ein "address command 'reset'" ersetzen. Der Aufruf-
+          zeitpunkt sollte am besten im Logoff.trans in der allerletzten
+          Zeile sein (z.B. CALL 'BBS:Rexx/CheckMem.rexx"). Zur Sicherheit
+          setzt man vor den Resetteil noch eine Warteschleife, damit
+          nicht waehrend dem Festplattenzugriff geresettet wird.
+          (z.B. "address command 'wait 10'")
+
+          In der momentanen Version benoetigt "FileLister" 18462 Bytes
+          Stack.
+
+Filelister wurde Enforcer/Mungwall-Tests unterzogen, wobei KEINERLEI
+Fehler auftraten. Damit sollte ein Hoechstmass an Laufstabilitaet garan-
+tiert sein.
+
+
+============================================================================
+
+Inhalt des Archivs :
+
+  - FileLister             : das Programm
+  - FileLister_NC          : das Programm OHNE Stackcheck/Subrangecheck/...
+                             VORSICHT ist geboten ! Im Falle eines Programm-
+                             fehlers wird der Rechner mit grosser Sicherheit
+                             abstuerzen; Vorteil dieser Version ist die etwas
+                             hoehere Geschwindigkeit
+  - FileLister.DOK         : diese Dokumentation
+  - FileLister.DOC         : eine englische Anleitung
+  - FileListerTech.DOK     : Programmiererinfos (momentan nur in deutsch)
+  - History.DOC            : Geschichte seit der 1. oeffentlichen Version
+  - Example.trans          : ein Beispiel-Skript, wie FileLister aufgerufen
+                             wird
+  - Logoff.trans           : notwendige Eintraege fuer das Logoff.trans
+  - CheckMem.Rexx          : testet die Speicherintegritaet
+  - Reset                  : tut, was der Name sagt :-)
+  - DeleteMarks.trans      : Uebergangsloesung, um File-Markierungen
+                             loeschen zu koennen
+  - Upload.Trans           : ein Beispiel, wie es mit "MemoryLamer NO" aus-
+                             sehen koennte
+  - FileLister.Cfg         : Beispiel-Config-File fuer Filelister
+                             Ist dieses nicht vorhanden, bzw. wird es nicht
+                             gefunden, werden automatisch die Grundein-
+                             stellungen genommen. (diese sind in der
+                             Beispiel-Config enthalten)
+                             Der Aufbau ist selbsterklaerend.
+  - Deutsch.FL.Lang        : Beispieldatei fuer deutsche Textausgabe
+  - English.FL.Lang        : Beispieldatei fuer englische Textausgabe
+  - FL.Help*               : Die Online-Hilfe-Texte
+                             Format : FL.Help[.Access][.Sprache][.ANSI]
+                             Mitgelieferte Hilfe-Texte :
+                             FL.Help
+                             FL.Help.ANSI
+                             FL.Help.255
+                             FL.Help.255.ANSI
+                             FL.Help.Deutsch
+                             FL.Help.Deutsch.ANSI
+                             FL.Help.255.Deutsch
+                             FL.Help.255.Deutsch.ANSI
+                             FL.Help.English
+                             FL.Help.English.ANSI
+                             FL.Help.255.English
+                             FL.Help.255.English.ANSI
+  - TACFl156.lha           : Filelistengenerator, der auch entsprechende
+                             Indexfiles fuer Filelister erzeugen kann
+  - MakeIndex              : Beispielbatchdatei, um einen sortierten Index
+                             fuer Filelister zu erzeugen
+  - ReadFLData.0?0         : Programm, um den Index fuer Filelister zu
+                             laden. Dieses MUSS vor dem Start von Fileliste
+                             aufgerufen werden.
+                             Maske : ReadFLData CONFIGPATH/A SHOWNEW/K
+                             NOTININDEX/K
+                             ACHTUNG : ShowNew und NotInIndex sollten
+                             natuerlich mit den Werten in der FileLister.Cfg
+                             uebereinstimmen
+  - FreeFLData             : gibt Speicher von ReadFLData frei
+  - GetFile                : nuetzt die neuen Faehigkeiten von Filelister
+                             aus, wenn ein Index im Speicher liegt, wobei
+                             (Aufruf : GetFile NAME/A/M CL=COMPLETELINE/S)
+                             mehrere Files und Pattern erlaubt sind.
+                             WICHTIG : GetFile funktioniert nur mit im
+                             Speicher liegendem Index !! (Version 2.4/
+                             C-Version)
+
+============================================================================
+
+Was kann es ?
+-------------
+
+Listen natuerlich ( :-) ) und Files schicken.
+
+Anfallender Speicher (sofern das Index-Feature benutzt wird) zwischen
+mehreren Filelistern teilen !
+
+Per Arexx anzugeben     : - Alle Files aller Areas
+                          - Alle Files einer Area
+                          - Abfrage, ob alle Files oder nur die der
+                            aktuellen Area
+
+                          - Neue Files aller Area anzeigen
+                          - Abrage, ob in allen Areas nach neuen Files
+                            gesucht werden soll
+
+                          - Files suchen (auch mit Pattern) mit Abfrage,
+                            ob in allen Areas gesucht werden soll
+
+                          - markierte Files senden und gegebenenfalls
+                            neue dazu markieren
+
+Die Markier/Fake/Changedesc-Routine kann folgende Faelle behandeln :
+ - Zahl vor dem File (z.B. "17" markiert das File mit der Nr. 17)
+ - Bereich (z.B. "17-77" markiert die Files mit den Nummern 17 bis 77)
+ - Filenname (keine Erklaerung ;-) )
+ - Amiga-DOS 2.x-kompatibler Pattern (z.B. "ff8(5[1-9]|60).lha" markiert
+                                      die Files : ff851.lha bis ff860.lha)
+
+Der Faker kann Upload fuer den User sowohl gutschreiben, also auch ab-
+ziehen. Im Falle des Abzugs kann das File auch gleich geloescht werden.
+In jedem Fall bekommt der User eine private Mail vom Faker.
+
+ChangeDescription aendert eine bestehende Beschreibung zu einem File und
+achtet dabei darauf, dass der vorhandene Downloadcounter nicht geaendert
+wird oder falls nicht vorhanden, hinzugefuegt wird.
+
+============================================================================
+
+Parameter :
+-----------
+
+BBSLINE     : Line-Nummer der betreffenden BBS-Line (MUSS angebenen werden)
+
+CONFIG      : optional kann hier ein Config-File angegeben werden
+
+Bemerkung : FileLister liefert eine Fehlermeldung, wenn BBSLINE nicht
+            angegeben wird.
+
+
+Arexx-Befehle : (Portname sollte FILELISTER.bbsline sein !)
+---------------
+
+NEWFILES        : Newfiles-Scan starten
+
+ALLNEWFILES     : NewFiles-Scan von allen Areas
+
+AREAFILES       : Files der aktuellen Area anzeigen
+
+ALLFILES        : Files von allen Areas anzeigen
+
+LISTFILES       : Files von allen oder der aktuellen Area anzeigen
+
+SEARCHFILES     : Searchfiles-Scan starten
+
+DOWNLOAD        : Download-Routine aufrufen
+
+MARK            : Identische Funktion in der Fileliste als Arexx-Befehl,
+                  mit der Ausnahme, dass KEINERLEI Bildschirmausgaben
+                  stattfinden.
+                  Moegliche Parameter :
+                  - Nummer (sofern zuvor etwas gelistetet wurde)
+                  - Pattern (Vorsicht : KEIN Abbruch beim Suchen moeglich)
+                  - Name
+                  - Aufzaehlung der obigen Typen mit Kommata getrennt
+                  Beispiel :
+                  RX "ADDRESS 'FILELISTER.0' 'MARK ff901.lha,ff80?.lha'"
+
+RESCAN [No]     : Gibt den Speicher fuer die zuletzt aufgelisteten Files
+                  frei; wird als Parameter noch eine Nummer angegeben, so
+                  wird die der Nummer zugeordneten Area neu eingelesen
+                  (die zugehoerigen Nummern vom vorherigen Listen gehen
+                   verloren!). Dieser Parameter ist bei Benutzung der
+                  "MemoryLamer NO" - Option DRINGEND erforderlich. Ein
+                  Beispiel liegt bei. (Upload.Trans)
+
+LOADINDEX [Cfg] : Laed SAEMTLICHE Files.BBS'e ein und erzeugt danach einen
+                  sortierten Index im Speicher; das Masterconfigfile mit
+                  komplettem Pfad sollte angeben werden, da keine Infos
+                  von TA geholt werden, um diese Vorbereitung OHNE
+                  ein laufendes BBS treffen zu koennen. Desweiteren wird
+                  eine ENV-Variable (TA.Index) gesetzt, die die Anzahl der
+                  Files im Index und einen Zeiger auf das Array von
+                  Stringpointern enthaelt, um anderen Programmen den
+                  Zugriff auf den sortierten Index zu ermoeglichen.
+                  Format : ASCII 1. Wort = Anzahl Zeilen
+                           ASCII 2. Wort = Zeiger auf Stringpointer-Array
+
+QUITFILELISTER
+oder QUIT      : Filelister aus dem Speicher entfernen und Port freigeben
+
+Beispiel, um einen Befehl an Filelister auf Line 0 einen Befehl zu geben :
+RX "ADDRESS 'FILELISTER.0' 'QUITFILELISTER'"
+
+vom CLI aus. Im Arexx-Prg muss man das RX und aeussersten Quotes weglassen.
+Obiges wuerde Filelister deaktivieren.
+
+============================================================================
+
+Geschichte :
+------------
+
+V0.01     : 16.05.93 Newfiles-Scan funktioniert mit Markieren
+V0.02     : 24.05.93 Searchfiles und AreaFiles implementiert
+V0.03     : 25.05.93 der TA-Faker funktioniert bis auf das Updaten des
+                     Message.BBS und dem Aufruf von "RESCAN"
+V0.04     : 27.05.93 das Updaten der Message.BBS/RESCAN und loeschen
+                     der aeltesten Message funktioniert nun; ausserdem
+                     kann der TA-Faker nun Files, die mit "Minus"
+                     gefaket wurden, gleich loeschen
+V0.05     : 30.05.93 werden die Areas, in denen keine neuen/gesuchten
+                     Files enthalten sind, bei NICHT-Ansi-Usern erst
+                     gar nicht angezeigt, damit der Bildschirm schoen
+                     aufgeraeumt bleibt. Ansi-User sehen weiterhin, bei
+                     welcher Area der File-Scan gerade ist.
+V0.06     : 03.06.93 funktioniert endlich das Veraendern der Beschreibungen,
+                     ausserdem kann nun auch waehrend der Auflistung von
+                     leeren Areas abgebrochen werden
+V0.07     : 03.06.93 hab ich bemerkt, dass keine Hotkeys unterstuetzt
+                     werden; nun geht's aber :-)
+V0.08     : 04.06.93 eine Zwischenversion fuer Memory-Lamer
+V0.09     : 04.06.93 nun koennen bis zu 9999 Files numeriert werden
+V0.10     : 10.06.93 waehrend des Auflistens der durch Pattern gefundenen
+                     Files, kann nun mit SPACE/CTRL+C abgebrochen werden
+V0.11     : 17.06.93 wurden SAEMTLICHE Befehle zur Bildschirmausgabe so
+                     umgesetzt, dass kein Arexx-Befehl mehr noetig ist.
+                     Daraus ergibt sich ein merklicher Geschwindikeits-
+                     gewinn.
+V0.12     : 23.06.93 werden mehr als ein File GLEICHZEITIG, z.B. mit
+                     Pattern, gefakt o.ae., wird nach jedem File gefragt,
+                     ob fortgesetzt werden soll. In V0.11 war ein Abbrechen
+                     nicht moeglich ! Ausserdem wurde in allen Teilen des
+                     Programms ein Carrier-Check eingebaut, der auch im
+                     Falle des CarrierLost einen Eintrag im Logbuch macht.
+V0.13     : 24.06.93 war eine Testversion fuer mich : die markierten Files
+                     werden durch einen "*" gekennzeichnet
+V0.14     : 05.07.93 gibt es nunmehr 2 Versionen :
+                     1. bei Eingabe eines Dateinamen wird im Files.BBS
+                        gesucht ("FileLister-FilesBBS")
+                     2. s.o. nur wird im Directory DIREKT gesucht
+                     ausserdem wurde eine Unschoenheit bei NON-Ansi ent-
+                     fernt; ebenso kann man nicht mehr ueber die Zeile
+                     hinausschreiben, wenn man Files in der Markierungs-
+                     routine aufzaehlt
+V0.15     : 05.07.93 wurde aufgrund eines Flames vom Thomas die Anzeige
+                     der aktuellen Area beim Filemarkieren eingebaut;
+                     NON-Ansi-User sehen nun auch in 10-er Schritten,
+                     wie weit durchsucht wurde
+V0.16     : 29.07.93 kann FileLister nun auch die ".ReadMe"-Files von
+                     z.B. der AmiNet-CD als Langbeschreibung erkennen
+                     und ausgeben.
+V0.17     : 30.07.93 musste ich einen SEHR schwerwiegenden Bug ent-
+                     fernen, der zum Fehlmarkieren bei Areas >255 fuehrte.
+                     Danke an Alexander , der mich darauf brachte.
+V0.19     : 30.08.93 hab' ich einen INTERNEN Parameter eingebaut, der
+                     dafuer sorgt, dass Filelister nur soviel RAM verbraucht,
+                     wie minimal noetig
+V0.20     : 31.08.93 gibt es ENDLICH das lang ersehnte Config-File :-)
+                     als nette Option hab ich noch fuer CD-ROM-Besitzer
+                     ein Schluesselwort eingebaut, mit dem man die Areas
+                     angeben kann, die beim Newfiles-Scan beruecksichtigt
+                     werden sollen
+V0.21     : 02.93.93 geht es Schlag auf Schlag :-)))
+                     Filelister wird nun (am besten nach dem Start von
+                     Transamiga) in den Speicher geladen und wird dann
+                     per Arexx gesteuert. Sinn soll sein, dass sich
+                     in der naechsten Version mehrere Filelister den
+                     Speicher fuer die Files.BBS'e teilen koennen !
+                     Desweiteren soll die Up-/Download-Routine mit im-
+                     plementiert werden.
+V0.22     : 06.09.93 wurde die Downloadroutine implementiert; es werden
+                     saemtliche Protokolle unterstuetzt; desweiteren
+                     koennen die zuletzt aufgelisteten Nummern bei der
+                     weiteren Eingabe von Files benutzt werden
+V0.23     : 07.09.93 hab' ich noch "Autologoff" eingebaut, das ich an-
+                     scheinend in geistiger Umnachtung in 0.22 vergessen
+                     hatte :-) Ein neues Keyword ermoeglicht die Angabe
+                     der Anzahl der Messageareas (Privat Use !)
+                     Als weiteres wurde ein Bug behoben, der ein DIREKTES
+                     Aufrufen der Download-Routine unmoeglich machte
+V0.24     : 08.09.93 sind ein paar Anregungen vom Sami implementiert
+                     worden : "Delete" beim Listenprompt und
+                     "SetNodeLocation" fuer die einzelnen Unterprogramme;
+                     desweiteren kann nun auch bei der Filemarkierung ab-
+                     gebrochen werden, wenn der Name DIREKT ohne Pattern
+                     eingeben wird; zusaetzlich werden nun auch die Tasten
+                     ESC und CTRL+D fuer den Abbruch beruecksichtigt;
+                     sowohl Abbruchpruefung, also auch Carrier-Abfrage
+                     sollten nun wesentlich sicherer sein, da ich auf die
+                     TA.lib-Befehle zureuckgegriffen habe
+V0.25     : 09.09.93 sind nun wieder ein paar Dinge geaendert worden :
+                     - ANSI-User bekommen den rausgescrollten Teil des
+                       Bildschirms beim Filemarkieren wieder komplettiert
+                     - SETNODELOCATION enthaelt nun auch brav den Usernamen
+                       die Texte 100-105 sind fuer die "Anhaengsel" da
+                     - der "0m"-Bug bei NON-Ansi ist entfernt
+                     - das Keyword "ShowLogoffText" bestimmt, ob beim
+                       Autologoff der GOODBYE-Text angezeigt werden soll
+V0.26     : 09.09.93 wird nun auch der Bildschirm wieder komplettiert,
+                     wenn Faker o.ae. benutzt wird
+                     neues Keyword : CompleteList
+V0.27     : 14.09.93 darf nun auch ein Gast die Fileliste benutzen :-)
+                     Danke an Thomas fuer den genauen Bug-Report
+V0.28     : 15.09.93 kann man nach einem Abbruch der Fileliste mit Space
+                     o.ae. wieder die Liste fortsetzen; sollte es jemand
+                     stoeren, mach ich es per Keyword konfigurierbar :-)
+V0.29     : 22.09.93 wurden ein paar Unschoenheiten und Bugs entfernt :
+                     - auf eine Area wird nun nur noch zugegriffen, wenn
+                       der Access UND die Flags stimmen; markiert wurde
+                       zwar schon vorher nach diesen Kriterien, aber
+                       gerade auf CDs war das Suchen doch recht zeitraubend
+                     - der Bug beim Bildschirm-Komplettieren nach Aufruf
+                       von Info wurde behoben
+                     - bei der Pattern-Eingabe wird nun auch das Privat-
+                       fach mit durchsucht
+                     - beim Autologoff wird nun sinnvollerweise von
+                       9..0 gezaehlt und nicht von 0..9 :-)
+                     - nach dem Download erfolgt eine Carrier-Lost-Abfrage,
+                       damit Filelister nicht beim zeigen des Goodbye.trans
+                       haengen bleiben kann
+V0.30     : 06.10.93 ist nun die Aenderung von V0.28 nach einem Flame vom
+                     Thomas konfigurierbar :-)
+                     neues Keyword : ReallyAbortList YES/NO (Voreinst.=YES)
+V0.31     : 11.10.93 darf nun der Yves ENDLICH seinen heiss geliebten
+                     Filescroller problemlos benutzen, da es einen neuen
+                     Arexx-Befehl gibt : MARK ; dieser ist VOELLIG identisch
+                     mit dem Mark-Befehl der Fileliste; desweiteren werden
+                     die Logeintraege des Protokoll TA-kompatibel einge-
+                     tragen, damit Hobby-Programme wie NumFiDl auch richtig
+                     die Downloads zaehlen ;-); ausserdem werden nun auch
+                     markierte Files SOFORT mit einem "*" versehen, wenn
+                     NICHT NUR Zahlen bei der Markierung eingeben werden
+                     (zufrieden, Thomas ? ;-) )
+V0.32     : 12.10.93 wurde nun mit Hilfe vom Alex einen Bug in der Down-
+                     load-Routine entfernt, wodurch nicht immer mit RETURN
+                     das erste Protokoll ausgewählt wurde
+V0.33     : 16.10.93 hat mich Sami darauf aufmerksam gemacht, dass mein
+                     Programm keinen Carrier bei der Wahl des Protokolls
+                     ueberprueft; dieses Manko ist nun behoben
+V0.34     : 04.11.93 Bug-Beseitigungen :
+                     - Nummern-Markierung im Download-Menue liefert bei
+                       LEEREM Puffer keinen Schrott mehr
+                     - Abschneiden von Texten aus dem Config-File verhindert
+                     - kein Absturz von Filelister, wenn er DIREKT nach dem
+                       Start beendet wird
+                     Neues Feature : Beruecksichtigung der Ratios
+                     - hierzu zwei neue Keywords : (Beschreibung siehe Cfg-File)
+                       - UseRatio
+                       - UploadAdd
+                       WICHTIG in diesem Zusammenhang : die bereits gesaugten
+                       oder gesendeten Files in der aktuellen Session werden
+                       auch beruecksichtigt; TA zeigt diese aber leider nicht
+                       an, da die Up/Download-Werte nicht Online geaendert
+                       werden koennen
+                     - Texte 86-90 hinzugenommen
+V0.35     : 08.11.93 kann man nun per Keyword (CheckBeforeDl) vor dem Download
+                     pruefen lassen, ob alle markierten Files auch tatsaechlich
+                     vorhanden sind (besonders interessant, wenn ein User
+                     noch Markierungen von ein paar Tagen stehen hat); des-
+                     weiteren sind dadurch wieder mal ein paar Texte hinzu-
+                     gekommen (91-93); damit der Thomas nicht mehr so schimpft,
+                     kann nun Filelister auch mit "QUIT" alleine beendet
+                     werden :-)
+                     BEMERKUNG : ab dieser Version ist Filelister fuer
+                                 Transamiga V1.11 (release) ausgelegt
+V0.36     : 14.11.93 wurde ein weiteres Keyword (UnlimitedAccess) eingebaut
+                     und ein paar optische Maengel, die durch Aenderungen
+                     in Transamiga V1.11 hevorgerufen wurden, behoben
+V0.37     : 20.11.93 kann man nun ENDLICH auch die Cursor-Tasten zum
+                     Markieren benutzen; es wird Cursor hoch/runter,
+                     SHIFT+Rechts=Ende und SHIFT+Links=Anfang unterstuetzt;
+                     leider gibts noch kein Backscroll :-( ; markiert wird
+                     durch Druecken von RETURN
+V0.38     : 21.11.93 habe ich ein paar Bugs beim Cursor-Markieren entfernt;
+                     desweiteren kann man nun auch Demarkieren beim Cursor-
+                     Markieren, und bei Druck auf RETURN bei einem Files,
+                     wird automatisch auf das naechste gesprungen; es ist
+                     auch nicht mehr zwingend notwendig "CompleteScreen"
+                     eingeschaltet zu haben
+V0.381    : 21.11.93 wurde ein Bug entfernt, der beim Listen der Newfiles,
+                     z.B., aus EINER Area, verhinderte, dass man an die
+                     obersten 2 Files per Cursor dran kam; Danke an Bernd
+V0.382    : 22.11.93 sollte nun auch die Cursor-Steuerung per Modem kein
+                     Problem mehr sein :-) ; diverse Timing-Probleme bei
+                     der Serielluebertragung fuehrten zu Abbruechen waehrend
+                     der Cursorsteuerung :-( ; wer kann es nur bemerkt
+                     haben ? RICHTIG : der Bernd :-)
+V0.383    : 22.11.93 geht's Schlag auf Schlag : als ich gerade dachte, alle
+                     optischen Fehler beseitigt zu haben und die Version
+                     schon an die Beta-Tester herausgab', fand' ich einen
+                     Fehler, der NUR am Ende der Fileliste aufgetreten ist
+V0.384    : 23.11.93 bemerkte Jens, dass man die Cursor-Markierung nicht
+                     benutzen kann, wenn nur ein File auf dem Bildschirm zu
+                     sehen ist, z.B. wenn aus einer Suchaktion nur ein File
+                     hervorkommt; derweiteren sieht man nun in der Download-
+                     Routine wieder, wo nach den Files gesucht wird
+V0.39     : 03.12.93 ist es geschafft : man kann nun in der Fileliste auch
+                     vor-/zurueck-blaettern; zusaetzlich wurde ein Bug in
+                     der Download-Routine entfernt, der dann auftrat, wenn
+                     das erste markierte File nicht mehr existierte (danke
+                     an Thomas)
+V0.391    : 03.12.93 wird nun dank Sami auch der Bildschirm beim PageUp/
+                     down geloescht
+V0.392    : 04.12.93 behob' ich (hoffentlich :-) ) eine von Alex berichteten
+                     Fehler, der bei Term den Cursor bei Bildschirmloeschen
+                     nicht richtig setze
+V0.393    : 17.01.94 verhaelt sich der Cursor so, wie man es als "normal"
+                     empfindet : geht man mit dem Cursor laufend hoch/
+                     runter wird entsprechend nun das naechstliegende File
+                     hervorgehoben (Seite hoch/runter); desweiteren funk-
+                     tioniert nun das REALLYABORTLIST in diesem Zusammen-
+                     hang wieder richtig, und es entstehen keine Schrott-
+                     zeilen mehr am Ende eine Liste
+V0.40     : 13.03.94 wird nun auch TA 1.12 unterstuetzt (neues Keyword :
+                     ASKPROTOCOL) und saemtliche Fehlausgaben, die durch
+                     Aenderungen in 1.12 gegenueber 1.11 entstanden sind,
+                     wurden behoben (QueryY/N-Befehle durch eigene Routine
+                     ersetzt)
+V0.41     : 15.03.94 werden LocalDisplay und der CommandKeyStack VOLL
+                     unterstuetzt; ein neues Keywords bestimmt das Ver-
+                     halten beim Auftreten eines Befehl vom CommandStack
+                     (HideStackedQuerys); saemtlich Eingabe-Routinen
+                     von TA sind nun durch eigene ersetzt
+V0.411    : 16.03.94 hab' ich zwei ueble Bugs (danke an Sami und Daniel)
+                     entfernt, die u.a. das Download unmoeglich machten
+                     und die Ausgabe bei der Filemarkierung zerfetzten
+V0.412    : 28.03.94 darf nun auch der NON-Ansi-User ungestraft meine
+                     eigene Eingabe-Routine benutzen :-) ; der Bug bei
+                     der Aenderung der Description wurde behoben und das
+                     ? ist nun auch als Eingabe-Zeichen erlaubt ;-) ; als
+                     letzte Neuerung kann man nun einen Parameter beim
+                     Rescan-Befehl anhaengen, der eine EINZELNE neu einzu-
+                     lesende Area angibt
+V0.413    : 04.04.94 wurde ein optischer Fehler im Faker behoben und
+                     die Geschwindigkeit beim Ueberspringen von Areas
+                     beim Filescan (z.B. wegen Access) stark beschleunigt
+V0.414    : 06.04.94 ist nun die Ausgabegeschwindigkeit gewohnt schnell
+                     und dank Michael Doerr hab' ich einen dummen Fehler
+                     in der Non-Ansi-Eingabe korrigieren koennen
+V0.415    : 14.04.94 laeuft nun Filelister auch auf TA1.11 MIT lokalem
+                     Display ( ;-) ); danke an Jens
+V0.416    : 18.04.94 habe ich nun doch ein Keyword fuer TA V1.11 eingebaut,
+                     da die Keystack-Abfrage doch recht kritisch ist, weil
+                     TA in der Version bei GETCHARSTACK den Befehl GETCHAR
+                     ausfuehrt :-( ; um Irrtuemer zu vermeiden, habe ich
+                     NICHT von "BBSIDENTIFY BBS" Gebrauch gemacht, um die
+                     Version zu erkennen
+V0.417    : 24.04.94 ist nun Filelister auch LOKAL zu Powersnap kompatibel
+V0.418    : 02.05.94 wird beim Rescan keine BBS-Line mehr geoeffnet, so dass
+                     diese Operation auch ausserhalb eines Arexx-Skriptes
+                     GEFAHRLOS benutzt werden kann
+            12.05.94 stuertzt nun Filelister nicht mehr ab, wenn ein Rescan
+                     ohne Einlesen der File.Cfg ausgefuehrt wird
+V0.419    : 06.06.94 sollte nun das DIREKTE Markieren von Files, d.h. bei
+                     explizierter Eingabe des Namens, um einiges schneller
+                     sein, da man optional ein Indexfile benutzen kann,
+                     in dem gesucht wird; es spielt damit zeitlich keine
+                     Rolle mehr, in welcher Area ein File liegt !
+V0.42     : 13.06.94 gibt es nun die Moeglichkeit, fuer's direkte File-
+                     markieren einen internen/externen Index zu benutzen,
+                     um das Suchen zu beschleunigen
+                     Neue Keywords : SortedIndexFile
+                                     UseIndex
+                     Neuer Arexx-Befehl : LOADINDEX [Masterconfig]
+            14.06.94 in die ENV-Variable wurden noch zwei Zahlen hinzu-
+                     gefuegt : Anzahl der Areas und Zeiger auf die File-
+                     config-Struktur von Filelister
+            15.06.94 wurde noch der Zeiger auf das Array ALLER Files.BBS'e
+                     in die ENV-Variable hinzugefuegt, um TACFl den
+                     kompletten Zugriff zu ermoeglichen, was den Lese-
+                     zugriff bei der Filelistenerzeugung ersparen soll
+V0.43     : 24.06.94 ist nun die Ausgabegeschwindigkeit beim Filelisten
+                     und Vor-/Zurueck-Blaettern mehr als doppelt so
+                     schnell durch Optimierung der Stringverkettung
+                     (Kickpascal+Stringverkettung = KRIECH :-) )
+V0.431    : 25.06.94 gibt es eine neues Keyword "NotInIndex", welches
+                     als Parameter dieselbe Syntax wie "Arealist" hat,
+                     wobei die angebenen Areas NICHT in den Index auf-
+                     genommen werden (Erklaerung siehe Beispiel-Config);
+                     desweiteren koennen sich nun zwei Filelister den
+                     Speicher teilen, wenn die TA.Index-Variable existiert;
+                     VORSICHT beim Rescannen von im Index liegenden Areas
+                     eines Filelisters, waehrend in anderen gearbeitet
+                     wird !!! Dies duerfte in den meisten Faellen zum Ab-
+                     sturz fuehren;
+                     eine MINI-Aenderung : mit SPACE wird nun die File-
+                     liste nicht mehr fortgefuehrt, wenn man im Prompt
+                     ist (Hallo Thomas ;-) )
+                     !! ACHTUNG !! Es MUESSEN die neuen Tools (TACFl 1.52
+                     und GetFile 1.1) benutzt werden, um einen absturz-
+                     freien Betrieb zu gewaehrleisten !!
+V0.432    : 26.06.94 scheint es nun zumindest, dass die Probleme beim
+                     Speicherteilen behoben sind :-)
+V0.44     : 27.06.94 wird man beim Versuch, ein File doppelt zu markieren,
+                     gefragt, ob man dieses File von der Markierungsliste
+                     loeschen will; desweiteren ist es nun auch moeglich,
+                     Files mit Kommata im Filenamen zu markieren, indem
+                     man den Namen mit Anfuehrungsstrichen umgibt
+                     ACHTUNG : zwei neue Textzeilen in der Konfig !
+            28.06.94 geht nun auch Demarkieren per Cursortasten wieder :-)
+                     ausserdem werden bei JEDEM neuen Listen nun auch die
+                     nicht im Index enthaltenen Area neu eingelesen, damit
+                     sie immer aktuell sind
+V0.45     : 04.07.94 sind nun .Lang-Files moeglich, die von Filelister
+                     automatisch geladen werden, wenn die Sprache von
+                     TA nicht mit der von Filelister uebereinstimmt;
+                     bekanntes fehlendes Feature : Prompt-Abfrage NUR in
+                     deutsch
+V0.451    : 06.07.94 stimmt nun auch wieder das Datum des letzten Anrufs
+                     bei Usern, die beim Speicherteilen nicht gerade das
+                     Glueck haben, den 1. Filelister zu benutzen; der
+                     Fehler war, dass jeder weitere Filelister immer das
+                     aktuelle Datum als LASTCALL-Datum vorgegeben hat
+V0.452    : 06.07.94 hab' ich einen Enforcer-Hit entfernt, der auftrat,
+                     wenn man die erste oder letzte Markierung loeschte
+V0.453    : 06.07.94 wurden ein paar Optimierungen vorgenommen, welche
+                     Filelister stolze 6kB kuerzer machten :-)
+V0.454    : 10.07.94 werden nun auch Online-Hilfe-Files unterstuetzt
+                     Format : FL.Help[.Access][.Language][.ANSI]
+V0.455    : 11.07.94 wird das Config-File auch dann weiter eingelesen,
+                     wenn Leerzeilen darin sind (seit ca. V0.44) und
+                     die Texte aus dem Config-Files neu eingelesen,
+                     wenn TA auf die "Default"-Sprache wechselt
+V0.456    : 22.07.94 MINI-Aenderung bei der Eingabe im Such-Prompt
+V0.457    : 29.07.94 wurden folgende Dinge behoben/geaendert/hinzugefuegt :
+                     - 2 Textzeilen, damit der Prompt und CONTINUE auch
+                       multilingual ist (Danke an Chris)
+                     - Bugfix, damit man auch in der Download-Routine de-
+                       markieren kann
+V0.46     : 31.07.94 beachtet Filelister auch den Idle-Timeout (wurde auch
+                     Zeit :-) ); danke an Sami fuer's Schimpfen ;-)
+                     ausserdem resultiert daraus eine weitere Text-Zeile
+                     in der Config !
+V0.46     : 04.08.94 gab' es zwar keine Aenderung mehr am Filelister, aber
+                     dafuer hab' ich aus Uebungszwecken GetFile in C um-
+                     geschrieben; netter Nebeneffekt : die Patternsuche
+                     ist bis zu 7(!)-mal schneller und das Executable 10k
+                     kuerzer :-)
+V0.46     : 10.08.94 GetFile kann nun auch die komplette Filezeile durch-
+                     suchen. Neuer Parameter "CompleteLine" oder "CL".
+                     Natuerlich funktionieren auch Pattern :-)
+V0.461    : 12.08.94 ENDLICH ENDLICH ENDLICH :-))) Filelister macht keine
+                     Probleme mehr mit dem Timer. Danke an Thomas fuer
+                     die tatkraeftige Unterstuetzung in Sachen timer.device
+V0.47     : 12.08.94 Loadindex wurde durch ein C-Programm ersetzt, das den
+                     Index gute 8-mal schneller sortiert !
+V0.47     : 15.08.94 ReadDLData erkennt nun, wenn sich bereits ein Index im
+                     Speicher befindet. GetFile behauptet nun auch nicht
+                     mehr, dass ein File, welches gelistet wurde, nicht
+                     existiert :-)
+V0.471    : 27.08.94 duerfte nun auch der letzte Bug in Verbindung mit dem
+                     Inactivity-Timeout enfernt worden sein (wer weiss ;-) )
+                     Ausserdem schreibt Filelister nun nicht mehr in ein
+                     Logfile, das in einem Phatansie-Verzeichnis liegt.
+
+            ---------------- Release -----------------
+
+V1.3      : 18.09.94 Der grosse Tag :-)))) Technisch hat sich nichts zu
+                     V0.471 geaendert, aber ENDLICH ist die Release soweit.
+V1.31     : 21.09.94 Wieder mal hatte sich ein Bug eingeschlichen : bei
+                     Verwendung des Commandkey-Stacking funktionierte die
+                     Benutzung der landesspezifischen (J/A/..) Tasten nicht.
+                     Desweiteren wurde in ReadDLData ein Workarround fuer
+                     Kickpascal eingebaut, damit die Protokolnamen wieder
+                     RICHTIG aussehen. Zum Teil fehlte von den Namen das
+                     erste Zeichen.
+                     Neue Versionen von : Filelister[_NC]
+                                          ReadDLData[020/040]
+                                          FreeFLData
+V1.33     : 06.10.94 Dank Thomas kann nun ein NORMALER User keine Files
+                     mehr aus dem Sysop-Fach markieren (Patternmarkieren
+                     war moeglich !! :-((( )
+V1.4      : 19.10.94 Da mich einige User genervt haben ( ;-) ), kann man
+                     nun die Areas auswaehlen, die beim New/Search/All-
+                     Files-Scan durchlaufen werden sollen. Man beant-
+                     wortet die Frage nach "alle Areas" einfach mit NEIN
+                     und kann dann den Areabereich angeben.
+V1.41     : 09.11.94 FileLister, TACfl, ReadFLData sind beim Lesen von
+                     manchen Files.BBS'en sporadisch abgestuertzt. Das
+                     lag daran, dass manche Zeilen laenger als 100 Zeichen
+                     sind. Danke an Harald Meinzer fuer einen detailierten
+                     Fehlerbericht.
+            19.01.94 Getfile zeigt nun ALLE Vorkommnisse eines Files,
+                     sofern es mehr als einmal vorkommt. Zusaetzlich kann
+                     der Areabereich angegeben werden, der durchsucht
+                     werden soll.
+            28.01.95 Parameter "DELEMPTY" zu TACfl hinzugefuegt (vgl. An-
+                     leitung)
+V1.42     : 03.03.95 Die Gesamtlaenge der Files werden nun im Download-Menue
+                     richtig berechnet, auch wenn Files demarkiert wurden.
+V1.43     : 12.03.95 Filelister bricht nun sofort den Markierungsversuch ab,
+                     falls ein : oder / im Dateinamen auftritt. Zuvor
+                     konnten etwas seltsame AmigaDOS-Requester auftreten.
+V1.44     : 21.05.95 Ab sofort kommt eine Informationszeile, falls der
+                     New/Search/All/Area/ListFile-Scan erfolglos war. Die
+                     Texte 111-115 wurden dazu in der Config hinzugefuegt.
+            15.07.95 Endlich gibt FreeFLData den gesamten Speicher frei,
+                     den ReadFLData alloziiert hat
+            26.08.95 Der GetFile-Quelltext wurde nach einem Verlust der
+                     letzten Aenderungen (:-( ) wieder komplettiert. Ein
+                     weiterer Parameter (VERBOSE) und die Ausgabe des Datums
+                     wurden hinzugefuegt. (Version ist nun 2.5)
+V1.45     : 27.08.95 Es gibt ein neues Keyword fuer die Konfigdatei :
+                     WaitAfterLine. Hier kann eine Wartezeit nach eine
+                     ausgegeben Zeile angegeben werden, um CPU-Zeit zu
+                     sparen. Die Angabe ist in millionstel(!) Sekunden.
+V1.46     : 25.09.95 Ein neues Keyword : TaskPriority (das sollte alles
+                     sagen :-) )
+
+============================================================================
+
+Kleine To-Do-Liste :
+--------------------
+
+ - Demarkieren sowohl IN als auch ausserhalb der Liste (in Fileliste und
+   Download implementiert)
+ - Move/Copy zwischen einzelnen Areas in/ausserhalb der Fileliste
+ - Refresh der Anzeige, falls von obigen Dingen Gebrauch gemacht wurde
+ - Cursor-Steuerung fuer Markierung/Demarkierung usw. (Mark-/Demark
+   eingebaut)
+ - Farben an transamiga.cfg anpassen
+ - Keyword zum areabezogenen Markieren
+ - Auswahl der Funktionen im Prompt per Cursortasten
+ - Filedescription beim Aendern auch in die File-Notes von Amiga-DOS
+   schreiben
+ - mehrzeilige Descriptions erlauben
+
+============================================================================
+
+Danke an : (in alphabetischer Reihenfolge)
+----------
+Daniel Baumgartl  (ehemaliger Beta-Tester)
+Thomas Boerkel    (Beta-Tester)
+Jens Depenau      (Beta-Tester)
+Michael Doerr     (betroffener User :-) )
+Martin Eitel      (betroffender User :-) )
+Bernd Ernesti     (betroffener User :-) )
+Mario Jung        (ehemaliger Beta-Tester)
+Hartmut Meiering  (Beta-Tester)
+Chris Quonoey     (Beta-Tester)
+Sami Radwan       (Beta-Tester und TA-Developer)
+Yves Rausch       (Beta-Tester)
+Mathias Supp      (fuer TACfl ;-) )
+Alexander Wiggert (betroffener User :-) )
+
+fuer Tests, Anregungen und Bug-Reports
+
+
+
+viel Spass
+
+Mathias

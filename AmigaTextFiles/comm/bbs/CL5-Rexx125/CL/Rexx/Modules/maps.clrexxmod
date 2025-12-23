@@ -1,0 +1,834 @@
+/*
+**  $VER: maps.clrexxmod 0.8 (07 Feb 1996)  **
+**
+**        © 1996 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      maps.clrexxmod
+**
+**  FUNCTION:
+**      clrexx-Modul für MAPS-Befehle, entsprechend
+**      dem MAPS-Standard Anlage ZConnect 3.1
+**
+**      Bisherige Funktionen:
+**          ADD
+**          DEL
+**          HELP
+**          HOLDON (HOLD ON)
+**          HOLDOFF (HOLD OFF)
+**          INDEX
+**          LIST
+**
+**  $HISTORY:
+**
+**   18 Jan 1996 : 0.1 : initial release
+**   24 Jan 1996 : 0.2 : LIST implementiert
+**   25 Jan 1996 : 0.3 : LIST verschickt nun optional
+**                       auch an Systeme, die lokal
+**                       nicht bekannt sind.
+**                 0.4 : LIST verbessert
+**                       ADD implementiert
+**                       DEL implementiert
+**                 0.5 : INDEX implementiert
+**   03 Feb 1996 : 0.6 : HELP implementiert
+**                       INDEX prüfte nicht, ob es
+**                       sich um ein angeschlossenes
+**                       System handelt
+**                       Diverse kleinere Fixes
+**   06 Feb 1996 : 0.7 : ADD und DEL zusammengefasst
+**   07 Feb 1996 : 0.8 : Logfile-Unterstützung
+**                       Die Mailinhalte werden bei
+**                       der Erzeugung in STDOUT ge-
+**                       spiegelt
+**                       Falls vorhanden, wird die
+**                       globale ENV-Variable 'mapsmod'
+**                       ausgewertet. Diese beinhaltet
+**                       die gewünschte Taskpriorität.
+*/
+
+line=upper(arg(1))
+line=translate(line,' ',',')
+procname=word(line,1)
+objname=word(line,2)
+if words(line)>2 then do
+    do argctr=1 to words(line)
+        param.argctr=word(line,argctr+2)
+        end
+    end
+
+if open('env','ENV:mapsmod','R') then do
+    call pragma 'P',readln('env')
+    call close 'env'
+    address command 'delete >NIL: ENV:mapsmod'
+    end
+
+ctr=0
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+select
+    when procname='HOLDOFF' then interpret 'call' procname
+    when procname='HOLDON' then interpret 'call' procname
+    when procname='LIST' then interpret 'call' procname
+    when procname='ADD' then interpret 'call' procname
+    when procname='DEL' then interpret 'call' procname
+    when procname='INDEX' then interpret 'call' procname
+    when procname='HELP' then interpret 'call' procname
+    when procname='ERROR' then interpret 'call' procname
+    otherwise nop
+    end
+
+exit
+
+
+/* HOLD ON <systemname> [,<flag> [,<absender>]]
+**
+** Parameter:
+**
+**  systemname  = Name des Points/Systems
+**  flag        = Optional; entspricht es dem Wert 1, wird eine
+**                Rückantwort verschickt
+**  absender    = Optional; wird hier eine vollständige Mail-
+**                adresse angegeben, wird nicht auf Point ge-
+**                testet sondern an diesen die Rückantwort
+**                geschickt
+**
+** Beschreibung:
+**
+**  Diese Routine entspricht einer Urlaubsfuntion. Sämtliche be-
+**  stellten Bretter des Points/Systems werden ausgetragen und
+**  in einer temporären Datei zwischengespeichert. Siehe auch
+**  maps.clrexxmod/HOLDOFF
+*/
+
+HOLDON:
+
+if ~exists('CONNECTLINE:Rexx/Data') then do
+    call makedir('CONNECTLINE:Rexx/Data')
+    end
+
+
+if exists('CONNECTLINE:Rexx/Data/boards.'objname) then mode='A'
+else mode='W'
+
+
+if ~open('out','CONNECTLINE:Rexx/Data/boards.'objname,mode) then do
+    say 'Konnte Ausgabedatei nicht öffnen !'
+    exit
+    end
+
+/* Brettliste durchsuchen */
+
+say ''
+say 'Durchsuche Verteiler nach System 'objname'.'
+
+x=CLGET_BoardList(brett)         /* Anzahl der Bretter ermitteln */
+
+if x=0 then do
+    say 'Keine Brettliste gefunden !'
+    exit 20
+    end
+
+if x>0 then do
+    do i=0 to x-1
+        call testforsystem
+        end
+    end
+
+say 'Es wurden 'ctr' Verteiler von '||x||' Brettern geändert.'
+
+call close 'Out'
+
+say 'Speichere Brettliste.'
+
+call CL_SaveBoardList()
+say 'Fertig.'
+
+if param.1='1' then do
+    if param.2~='' then do
+        emp=CLGET_SystemPointuser(objname)
+        if emp='' then emp='sysop'
+        end
+    else emp=param.2
+    call CL_SendMailFull('MAPS',emp,'CONNECTLINE:Data/boards.'objname,,,'Your HOLD ON','TEXT','A')
+    end
+
+return
+
+testforsystem:
+
+/* Verteilerstring wortweise nach System durchsuchen */
+
+    found=false
+    anzahl=(CLGET_BoardBoxList(brett.i,verteiler))-1 /* Verteiler einlesen */
+    do y=0 to anzahl
+        if upper(objname)=upper(verteiler.y) then found=true     /* System gefunden */
+        end
+    if found=true then do
+        say 'Gefunden: /'brett.i
+        ctr=ctr+1
+        call CLSET_BoardDelBox(brett.i,objname) /* System austragen */
+        call CL_LogAdd('0','MAPS','System 'objname' aus /'brett.i' ausgetragen')
+        call writeln 'out',brett.i
+        end
+    return
+
+/* HOLD OFF <systemname> [,<flag> [,<absender>]]
+**
+** Parameter:
+**
+**  systemname  = Name des Points/Systems
+**  flag        = Optional; entspricht es dem Wert 1, wird eine
+**                Rückantwort verschickt
+**  absender    = Optional; wird hier eine vollständige Mail-
+**                adresse angegeben, wird nicht auf Point ge-
+**                testet sondern an diesen die Rückantwort
+**                geschickt
+**
+** Beschreibung:
+**
+**  Dieser Befehl entspricht einer Urlaubsfunktion. Sämtliche,
+**  mittels HOLDON ausgetragenen Bretter, werden wieder einge-
+**  tragen.
+*/
+
+HOLDOFF:
+
+if CLIS_SystemExists(objname)=FALSE then return
+
+/* Eingabedatei öffnen */
+
+if ~open('In','CONNECTLINE:Rexx/Data/boards.'objname,'R') then do
+    say system' wurde nicht von CL-BretterOff.rexx bearbeitet.'
+    exit 20
+    end
+
+/* Zeilenweise einlesen, Verteiler ändern */
+
+do until eof('In')
+    brett=readln('In')
+    if brett~='' then do
+        say 'Brett: /'brett
+        if ~CLSET_BoardAddBox(brett,objname) then
+            say 'Vernetzung fehlerhaft: 'brett
+        else do
+            call CL_LogAdd(0,'MAPS','System 'objname' in 'brett' eingetragen')
+            ctr=ctr+1
+            end
+        end
+    end
+
+call close 'In'
+if param.1='1' then do
+    if param.2~='' then do
+        emp=CLGET_SystemPointuser(objname)
+        if emp='' then emp='sysop'
+        end
+    else emp=param.2
+    call CL_SendMailFull('MAPS',emp,'CONNECTLINE:Data/boards.'objname,,,'Your HOLD OFF','TEXT','A')
+    end
+
+address command 'delete >NIL: Connectline:Rexx/data/boards.'||objname
+say 'System 'system' in 'ctr' Verteiler zurückgeschrieben.'
+say 'Speichere Brettliste.'
+call CL_SaveBoardList()
+return
+
+/* LIST <systemname> [,<flag1>,<absender> [,<flag2>]]
+**
+** Parameter:
+**
+**  systemname  = Name des Points/Systems
+**  flag1       = Ist der Wert = 1, so wird
+**                als Empfänger der Rückant-
+**                wort der User <absender>
+**                eingesetzt
+**  absender    = Absender der Nachricht an
+**                MAPS
+**  flag2       = Ist der Wert = 1, so wird
+**                nicht überprüft, ob das Sys-
+**                tem <systemname> existiert.
+**
+** Beschreibung:
+**
+** Erstellt eine Liste der Bretter und verschickt
+** an den Point/das System
+*/
+
+
+LIST:
+
+call pragma 'P',-9
+
+outfile='T:LIST.'objname||time(s)
+if ~open('out',outfile,'W') then exit 20
+
+bestbrett=0
+pflichtbrett=0
+zugrbrett=0
+
+if param.1='1' then do
+    if param.2='' then do
+        emp=CLGET_SystemPointuser(objname)
+        if emp='' then emp='root@'objname
+        end
+    else do
+        emp=param.2
+        if param.3='1' then notest=true
+        else notest=false
+        end
+    end
+else emp=CLGET_SystemPointuser(objname)
+emp=translate(emp,'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+objname=translate(objname,'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+
+if ~(CLIS_SystemExists(objname))&(notest=false) then return
+
+call mapskopf
+anzahl=CLGET_BoardList(brett)-1
+do x=0 to anzahl
+    noaccess=FALSE
+    access=CLGET_BoardValidateBox(brett.x,objname)
+    if access='' then do
+        access='1'
+        noaccess=TRUE
+        end
+    if access='1' then do
+        if noaccess=FALSE then zugrbrett=zugrbrett+1
+        end
+    ordered=FALSE
+    veranz=CLGET_BoardBoxList(brett.x,verteiler)-1
+    do y=0 to veranz
+        if upper(verteiler.y)=upper(objname) then ordered=TRUE
+        end
+    select
+        when ((access='0')&(ordered=FALSE))|(noaccess=TRUE) then     /* Zugriffsberechtigt? */
+            steuzei='-'
+        when (access='0')&(ordered=TRUE) then do                     /* Pflichtbezug? */
+            steuzei='!'
+            pflichtbrett=pflichtbrett+1
+            end
+        when (access='1')&(ordered=FALSE) then                       /* Zugriff und nicht bestellt? */
+            steuzei=' '
+        when (access='1')&(ordered=TRUE) then do                     /* Zugriff und bestellt? */
+            steuzei='+'
+            bestbrett=bestbrett+1
+            end
+        otherwise nop
+        end
+    call formatline brett.x
+    end
+
+call mapstail
+call close 'out'
+
+
+call CL_SendMailFull('MAPS',emp,outfile,,,'Your LIST','TEXT','A')
+address command 'delete >NIL: 'outfile
+call CL_LogAdd(0,'MAPS','Brettliste an System 'objname' verschickt')
+say 'Brettliste für System 'objname' an User 'emp' verschickt.'
+return
+
+formatline:
+param=arg(1)
+zeile=steuzei' /'param
+if length(zeile)<60 then do
+    do i=length(zeile) to 60
+        zeile=zeile' '
+        end
+    end
+zeile=zeile||CLGET_BoardAbout(param)
+call writeboth zeile
+return
+
+mapskopf:
+
+call writeboth '; ZC-Maps Version 3.1'
+call writeboth '; processed on <'CLGET_OwnSystemAddress()'> for user 'emp'.'
+call writeboth '; system: 'objname
+call writeboth '; date  : 'date()','time()
+call writeboth ';'
+return
+
+mapstail:
+
+call writeboth ';'
+call writeboth '; total number of groups:      'anzahl+1
+call writeboth '; number of ordered groups:    'bestbrett
+call writeboth '; number of accessible groups: 'zugrbrett
+call writeboth '; number of obligatory groups: 'pflichtbrett
+return
+
+/* ADD <systemname>,<sourcefile> [,<absender>]
+**
+** Parameter:
+**
+**  systemname  = Name des Points/Systems
+**  sourcefile  = Pfad und Name des ausgelager-
+**                ten Mailbodies mit den Brett-
+**                namen
+**  absender    = Empfänger der Rückantwort,
+**                optional
+**
+** Beschreibung:
+**
+**  Wertet <sourcefile> aus und trägt das System
+**  in die dort angegebenen Brettnamen ein.
+*/
+
+ADD:
+
+add=true
+
+/* DEL <systemname>,<sourcefile> [,<absender>]
+**
+** Parameter:
+**
+**  systemname  = Name des Points/Systems
+**  sourcefile  = Pfad und Name des ausgelager-
+**                ten Mailbodies mit den Brett-
+**                namen
+**  absender    = Empfänger der Rückantwort,
+**                optional
+**
+** Beschreibung:
+**
+**  Wertet <sourcefile> aus und trägt das System
+**  aus dort angegebenen Brettverteilern aus.
+*/
+
+DEL:
+
+if add=true then outfile='T:ADD.'objname||time(s)
+else outfile='T:DEL.'objname||time(s)
+if ~open('out',outfile,'W') then exit 20
+
+ignbrett=0
+inexistent=0
+noaccess=0
+orderbrett=0
+changed=0
+
+if param.2='' then do
+    emp=CLGET_SystemPointuser(objname)
+    if emp='' then emp='root'@objname
+    end
+else emp=param.2
+emp=translate(emp,'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+
+anzlines=CL_GetText(param.1,xline)-1
+
+/* Auf Wildcards prüfen */
+
+call mapskopf
+
+do x=0 to anzlines
+    xline.x=word(xline.x,1)
+    if ((pos('*',xline.x)>0)|(pos('?',xline.x)>0))|((pos('~',xline.x)>0)|(pos('|',xline.x)>0)) then do
+        call writeboth '; analysing group pattern <'xline.x'> as:'
+        if left(xline.x,1)='/' then brett=substr(xline.x,2,length(xline.x)-1)
+        anzbretter=CLGET_BoardList(board,brett)
+        if anzbretter>0 then do
+            do i=x+1 to anzlines                                            /* Eintrag aus Liste raus */
+                f=i-1
+                xline.f=xline.i
+                end
+            do i=0 to anzbretter-1                                          /* Neue Bretter in Liste */
+                idx=anzlines+i
+                xline.idx='/'board.i
+                call writeboth ';  'xline.idx
+                end
+            call writeboth '; pattern match count: 'anzbretter
+            call writeboth ';'
+            anzlines=anzlines+anzbretter-1                                  /* Counter korrigieren */
+            end
+        end
+    end
+
+/* (Ab)Bestellung bearbeiten */
+
+do x=0 to anzlines
+    if left(xline.x,1)~='/' then ignored=TRUE                                /* gültiger Brettname? */
+    else do
+        brett=substr(xline.x,2,length(xline.x))
+        brett=strip(brett)
+        ordered=FALSE
+        ignored=FALSE
+        if ~CLIS_BoardExists(brett) then exist=FALSE                        /* existiert Brett? */
+        else do
+            exist=TRUE
+            if CLGET_BoardValidateBox(brett,objname)='0' then access=FALSE  /* Zugriffsberechtigt? */
+            else do
+                access=TRUE
+                veranz=CLGET_BoardBoxList(brett,verteiler)-1
+                do q=0 to veranz
+                    if (add=true)&(upper(verteiler.q)=upper(objname)) then do
+                        ordered=TRUE
+                        orderbrett=orderbrett+1
+                        end
+                    else if (add=false)&(upper(verteiler.q)=upper(objname)) then ordered=TRUE
+                    end
+                if (add=false)&(ordered=FALSE) then orderbrett=orderbrett+1
+                if add=true then do
+                    call CLSET_BoardAddBox(brett,upper(objname))
+                    call CL_LogAdd(0,'MAPS','System 'objname' in 'brett' eingetragen')
+                    end
+                else do
+                    call CLSET_BoardDelBox(brett,upper(objname))
+                    call CL_LogAdd(0,'MAPS','System 'objname' aus 'brett' ausgetragen')
+                    end
+                end
+            end
+        end
+     select
+        when ignored=TRUE then do
+            steuzei=' '
+            ignbrett=ignbrett+1
+            end
+        when exist=FALSE then do
+            steuzei=' '
+            inexistent=inexistent+1
+            end
+        when access=FALSE then do
+            steuzei='!'
+            noaccess=noaccess+1
+            end
+        otherwise do
+            if add=true then steuzei='+'
+            else steuzei=' '
+            call formatline brett
+            changed=changed+1
+            end
+        end
+    select
+        when ignored=TRUE then call writeboth '; <invalid group pattern>'
+        when exist=FALSE then  call writeboth "; <group doesn't exist>"
+        when access=FALSE then call writeboth '; <inaccessible group>'
+        when (add=true)&(ordered=TRUE) then  call writeboth '; <already ordered>'
+        when (add=false)&(ordered=FALSE) then call writeboth '; <not ordered>'
+        otherwise nop
+        end
+    end
+
+call writeboth ';'
+call writeboth '; total number of entries              : 'changed
+call writeboth '; number of ignored group patterns     : 'ignbrett
+call writeboth '; number of inactive group patterns    : 'inexistent
+if add=true then call writeboth '; number of already active patterns    : 'orderbrett
+else call writeboth '; number of already inactive patterns  : 'orderbrett
+call writeboth '; number of inaccessible group patterns: 'noaccess
+call close 'out'
+
+if add=true then call CL_SendMailFull('MAPS',emp,outfile,,,'Your ADD','TEXT','A')
+else call CL_SendMailFull('MAPS',emp,outfile,,,'Your DEL','TEXT','A')
+address command 'delete >NIL: 'outfile
+if add=true then say 'Brettbestellung für System 'objname' an User 'emp' verschickt.'
+else say 'Brettabbestellung für System 'objname' an User 'emp' verschickt.'
+return
+
+
+/* INDEX <systemname>,<sourcefile> [,<flag1>,<absender> [,<flag2>]]
+**
+** Parameter:
+**
+**  systemname  = Name des Points/Systems
+**  sourcefile  = Pfad und Name der Quell-
+**                brettliste
+**  flag1       = Ist der Wert = 1, so wird
+**                als Empfänger der Rückant-
+**                wort der User <absender>
+**                eingesetzt
+**  absender    = Absender der Nachricht an
+**                MAPS
+**  flag2       = Ist der Wert = 1, so wird
+**                nicht überprüft, ob das Sys-
+**                tem <systemname> existiert.
+**
+** Beschreibung:
+**
+** Erstellt eine Auflistung der Inhalte der
+** angegebenen Bretter.
+*/
+
+INDEX:
+
+
+outfile='T:INDEX.'objname||time(s)
+if ~open('out',outfile,'W') then exit 20
+
+if param.2='1' then do
+    if param.3='' then do
+        emp=CLGET_SystemPointuser(objname)
+        if emp='' then emp='root@'objname
+        end
+    else do
+        emp=param.3
+        if param.4='1' then notest=true
+        else notest=false
+        end
+    end
+else do
+    emp=CLGET_SystemPointuser(objname)
+    if emp='' then emp='root@'objname
+    end
+
+if notest=false then do
+    if ~CLIS_SystemExists(objname) then exit 20
+    end
+
+emp=translate(emp,'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+if ~(CLIS_SystemExists(objname))&(notest=false) then return
+
+msgctr=0
+
+anzlines=CL_GetText(param.1,xline)-1
+
+/* Auf Wildcards prüfen */
+
+call mapskopf
+
+do x=0 to anzlines
+    xline.x=word(xline.x,1)
+    if ((pos('*',xline.x)>0)|(pos('?',xline.x)>0))|((pos('~',xline.x)>0)|(pos('|',xline.x)>0)) then do
+        call writeboth '; analysing group pattern <'xline.x'> as:'
+        if left(xline.x,1)='/' then brett=substr(xline.x,2,length(xline.x)-1)
+        if xline.x='*' then xline.x='#?'
+        anzbretter=CLGET_BoardList(board,brett)
+        if anzbretter>0 then do
+            do i=x+1 to anzlines                                            /* Eintrag aus Liste raus */
+                f=i-1
+                xline.f=xline.i
+                end
+            do i=0 to anzbretter-1                                          /* Neue Bretter in Liste */
+                idx=anzlines+i
+                xline.idx='/'board.i
+                call writeboth ';  'xline.idx
+                end
+            call writeboth '; pattern match count: 'anzbretter
+            call writeboth ';'
+            anzlines=anzlines+anzbretter-1                                  /* Counter korrigieren */
+            end
+        end
+    end
+
+/* Inhalte bearbeiten */
+
+do x=0 to anzlines
+    if left(xline.x,1)~='/' then ignored=TRUE                                /* gültiger Brettname? */
+    else do
+        brett=substr(xline.x,2,length(xline.x))
+        brett=strip(brett)
+        ordered=FALSE
+        ignored=FALSE
+        if ~CLIS_BoardExists(brett) then exist=FALSE                        /* existiert Brett? */
+        else do
+            exist=TRUE
+            if CLGET_BoardValidateBox(brett,objname)='0' then access=FALSE  /* Zugriffsberechtigt? */
+            else do
+                access=TRUE
+                msganz=CLGET_MsgNumberOf(brett)-1
+                if msganz>0 then do
+                    call CL_LogAdd(0,'MAPS','Erstelle Index von 'brett' für System 'objname)
+                    do i=0 to msganz
+                        subject=CLGET_MsgSubject(brett,i)
+                        filename=CLGET_MsgFilename(brett,i)
+                        shortcom=CLGET_MsgShortComment(brett,i)
+                        sender=CLGET_MsgFrom(brett,i)
+                        mid=CLGET_MsgMsgID(brett,i)
+                        readcount=CLGET_MsgReadCount(brett,i)
+                        incomed=CLGET_MsgIncomeDate(brett,i)
+                        sendd=CLGET_MsgSendDate(brett,i)
+                        bin=CLIS_MsgBinary(brett,i)
+                        length=CLGET_MsgBodyLength(brett,i)
+                        komleng=CLGET_MsgCommentLength(brett,i)
+                        ausg='; Article 'i' in group /'upper(brett)':'
+                        call writeboth ausg
+                        call writeboth '; 'copies('-',length(ausg)-2)
+                        call writeboth '; subject   : 'subject
+                        call writeboth '; group     : /'upper(brett)
+                        call writeboth '; sender    : 'sender
+                        if bin='1' then do
+                            call writeboth '; type      : binary'
+                            call writeboth '; filename  : 'filename
+                            end
+                        else call writeboth '; type      : text'
+                        call writeboth '; length    : 'length
+                        if shortcom~='' then call writeboth '; comment   : 'shortcom
+                        else call writeboth '; comment   : <none>'
+                        if komleng>0 then call writeboth '; long comm.: 'komleng
+                        else call writeboth '; long comm.: <none>'
+                        call writeboth '; sent      : 'sendd
+                        call writeboth '; received  : 'incomed
+                        call writeboth '; message id: 'mid
+                        call writeboth '; downloads : 'readcount
+                        call writeboth ';'
+                        msgctr=msgctr+1
+                        end
+                    end
+                else do
+                    ausg='; No articles found in group /'upper(brett)
+                    call writeboth ausg
+                    call writeboth '; 'copies('-',length(ausg)-2)
+                    end
+            end
+        end
+     select
+        when ignored=TRUE then call writeboth '; /'upper(brett)': <pattern ignored>'
+        when exist=FALSE then call writeboth  '; /'upper(brett)': <pattern not active>'
+        when access=FALSE then call writeboth '; /'upper(brett)': <group not accessible>'
+        otherwise end
+        end
+    end
+
+call writeboth ';'
+call writeboth '; total number of articles: 'msgctr
+call close 'out'
+
+call CL_SendMailFull('MAPS',emp,outfile,,,'Your INDEX','TEXT','A')
+address command 'delete >NIL: 'outfile
+say 'Brettindizes für System 'objname' an User 'emp' verschickt.'
+return
+
+/* HELP <systemname>,<sourcefile>,<language> [,<flag1>,<absender> [,<flag2>]]
+**
+** Parameter:
+**
+**  systemname  = Name des Points/Systems
+**  sourcefile  = Name des Hilfstextes, keine
+**                Pfadangabe
+** language     = Sprache
+**  flag1       = Ist der Wert = 1, so wird
+**                als Empfänger der Rückant-
+**                wort der User <absender>
+**                eingesetzt
+**  absender    = Absender der Nachricht an
+**                MAPS
+**  flag2       = Ist der Wert = 1, so wird
+**                nicht überprüft, ob das Sys-
+**                tem <systemname> existiert.
+**
+** Beschreibung:
+**
+** Verschickt einen Hilfstext
+*/
+
+HELP:
+
+if param.2='' then exit 20              /* Keine Sprache angegeben */
+else do
+    param.1='CONNECTLINE:Online/'param.2'/'param.1
+    if ~exists(param.1) then exit 20
+    end
+
+if param.3='1' then do
+    if param.4='' then do
+        emp=CLGET_SystemPointuser(objname)
+        if emp='' then emp='root@'objname
+        end
+    else do
+        emp=param.4
+        if param.5='1' then notest=true
+        else notest=false
+        end
+    end
+else do
+    emp=CLGET_SystemPointuser(objname)
+    if emp='' then emp='root@'objname
+    end
+
+if notest=false then do
+    if ~CLIS_SystemExists(objname) then exit 20
+    end
+
+call CL_SendMailFull('MAPS',emp,param.1,,,'Your HELP','TEXT','A')
+call CL_LogAdd(0,'MAPS','Verschicke Hilfstext für System 'objname' an 'emp)
+say 'Hilfstext für System 'objname' an 'emp' verschickt.'
+return
+
+/* ERROR <systemname>,<sourcefile>,<subject>,<reason> [,<flag1>,<absender> [,<flag2>]]
+**
+** Parameter:
+**
+**  systemname  = Name des Points/Systems
+**  sourcefile  = Pfad und Name des Mailbodies
+**  subject     = Betreff der Originalnachricht,
+**                steht in Datei, Pfad + Name
+**                derselben
+**  reason      = Fehlertext, ebenfalls Datei
+**  flag1       = Ist der Wert = 1, so wird
+**                als Empfänger der Rückant-
+**                wort der User <absender>
+**                eingesetzt
+**  absender    = Absender der Nachricht an
+**                MAPS
+**  flag2       = Ist der Wert = 1, so wird
+**                nicht überprüft, ob das Sys-
+**                tem <systemname> existiert.
+**
+** Beschreibung:
+**
+** Verschickt eine Fehlermeldung
+*/
+
+ERROR:
+
+if ((param.1="''")|(param.1='""'))|(param.1='') then noBody=true
+else noBody=false
+if ((param.3='')|(param.3='""'))|(param.3="''") then param.3='unknown function'
+if param.4='1' then do
+    if param.5='' then do
+        if CLGET_SystemPointuser(objname)='' then
+            emp='root'@objname
+        else emp=CLGET_SystemPointuser(objname)'@'objname
+        end
+    else emp=param.5
+    end
+else do
+    if CLGET_SystemPointuser(objname)='' then
+        emp='root'@objname
+    else emp=CLGET_SystemPointuser(objname)'@'objname
+    end
+
+if open('subjin',param.2,'R') then do
+    subject=readln('subjin')
+    call close 'subjin'
+    end
+else subject='MAPS Error'
+
+if open('reasin',param.3,'R') then do
+    reason=readln('reasin')
+    call close 'reasin'
+    end
+else reason='unknown function'
+
+outfile='T:ERROR.'objname||time(s)
+if ~open('out',outfile,'W') then exit 20
+
+call writeboth 'The following error occured: 'reason
+call writeboth 'If you have any questions, please contact root@'CLGET_OwnSystemAddress()'.'
+if noBody=false then do
+    call writeboth '--'
+    call writeboth 'Your message:'
+    anz=CL_GetText(param.1,zeile)-1
+    do x=0 to anz
+        call writeln'out',zeile.x
+        end
+    end
+call close 'out'
+
+call CL_SendMailFull('MAPS',emp,outfile,,,subject,'TEXT','A')
+address command 'delete >nil: 'outfile
+call CL_LogAdd(0,'MAPS','System 'objname': Fehler 'subject)
+say 'Fehlermeldung von MAPS an 'emp' verschickt.'
+return
+
+writeboth:
+param=arg(1)
+call writeln 'out',param
+call writech STDOUT,param'0a'x
+return
+

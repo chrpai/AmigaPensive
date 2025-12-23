@@ -1,0 +1,67 @@
+.BRA {
+.KET }
+
+; Create directory listing for Anonymous UUCP.
+; Don't show groups, secret areas and uninteresting things.
+;
+; We need two files.  One which shows all files we have,
+; and one which shows only files of the last (for example) 10 days.
+;
+; Optionally, we generate a third listing with new files of the
+; last 24 hours. This is useful for posting it to a network.
+
+
+Copy UUPUB:readme.1st t:anon-list.1day     CLONE QUIET >nil:
+Copy UUPUB:readme.1st t:anon-list.index    CLONE QUIET >nil:
+Copy UUPUB:readme.1st t:anon-list.index_xp CLONE QUIET >nil:
+Copy UUPUB:readme.1st t:anon-list.recent   CLONE QUIET >nil:
+
+MB:C/NuucpList.one "Amiga/Audio"
+MB:C/NuucpList.one "Amiga/CD-ROM"
+MB:C/NuucpList.one "Amiga/Comm"
+MB:C/NuucpList.one "Amiga/Gfx"
+MB:C/NuucpList.one "Amiga/Internet"
+MB:C/NuucpList.one "Amiga/Misc"
+MB:C/NuucpList.one "Amiga/Packer"
+MB:C/NuucpList.one "Amiga/Text"
+MB:C/NuucpList.one "Amiga/UUCP"
+MB:C/NuucpList.one "Pictures/Misc"
+;MB:C/NuucpList.one "Pictures/GIF"
+;MB:C/NuucpList.one "Pictures/IFF"
+;MB:C/NuucpList.one "Pictures/JPG"
+MB:C/NuucpList.one "Sound/Misc"
+MB:C/NuucpList.one "Sound/Modules"
+MB:C/NuucpList.one "System/EazyBBS"
+MB:C/NuucpList.one "Text/Misc"
+
+Copy t:anon-list.index    UUPUB:index    CLONE QUIET >nil:
+Copy t:anon-list.index_xp UUPUB:index_xp CLONE QUIET >nil:
+Copy t:anon-list.recent   UUPUB:recent   CLONE QUIET >nil:
+
+; GZip is a very cool file compression utility.
+; Available under GNU license.
+
+gzip -9 -c UUPUB:index    >UUPUB:index.gz
+gzip -9 -c UUPUB:index_xp >UUPUB:index_xp.gz
+gzip -9 -c UUPUB:recent   >UUPUB:recent.gz
+
+; Post listing of last 24 hours (only if new files are available).
+
+MB:C/Cmp UUPUB:readme.1st t:anon-list.1day >NIL:
+If WARN
+	;Set currentdate `Date`
+	Date >t:anon-list.1day_date
+	Set currentdate `awk '{printf("%.3s %s %.5s\n",$1,$2,$3)}' <t:anon-list.1day_date`
+	Delete t:anon-list.1day_date QUIET
+	Echo "Subject: new files on ZikZak, ${currentdate}" >t:anon-list.1day_post
+	Echo "From: root@zikzak.in-berlin.de (ZikZak Archive)" >>t:anon-list.1day_post
+	Echo "Newsgroups: eazy.lists" >>t:anon-list.1day_post
+	Echo "Followup-To: eazy.uucp" >>t:anon-list.1day_post
+	Echo "*N" NOLINE >>t:anon-list.1day_post
+	Type t:anon-list.1day >>t:anon-list.1day_post
+	inews -h -W <t:anon-list.1day_post
+	;inews -h -W -f "root@zikzak.in-berlin.de (ZikZak Archive)" -t "New files on ZikZak, ${currentdate}" -n eazy.lists <t:anon-list.1day
+EndIf
+
+Delete t:anon-list.index t:anon-list.index_xp t:anon-list.recent t:anon-list.1day QUIET
+

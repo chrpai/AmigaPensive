@@ -1,0 +1,134 @@
+(complete 0)
+(set registered (exists "fmqwk.key" (noreq)))
+(if registered (set registered 1)
+    (set registered (exists "doors:fmqwk/fmqwk.key" (noreq)))
+)
+(set doors
+	(askdir
+	  (help @askdir-help)
+	  (prompt "Select a path where you wish the program to be installed."
+	          "Remember that doors: will be assigned to this directory "
+	          "if it has not been already."
+	  )
+	  (default "bbs:extras")
+	)
+)
+(set choice (database "cpu"))
+(complete 10)
+(makedir (tackon doors "fmqwk") ((safe)))
+(makeassign "FMQWKTMP" doors (safe))
+(if (= choice "68000")
+    (copylib
+         (prompt "Installing the FMQWK door program (68000 version)")
+	 (source "bin/fmqwk")
+	 (dest "fmqwktmp:fmqwk")
+    )
+)
+(if (= choice "68010")
+    (copylib
+         (prompt "Installing the FMQWK door program (68000 version)")
+	 (source "bin/fmqwk")
+	 (dest "fmqwktmp:fmqwk")
+    )
+)
+(if (= choice "68020")
+    (copylib
+         (prompt "Installing the FMQWK door program (68020 version)")
+	 (source "bin020/fmqwk")
+	 (dest "fmqwktmp:fmqwk")
+    )
+)
+(if (= choice "68030")
+    (copylib
+         (prompt "Installing the FMQWK door program (68030 version)")
+	 (source "bin030/fmqwk")
+	 (dest "fmqwktmp:fmqwk")
+    )
+)
+(if (= choice "68040")
+    (copylib
+         (prompt "Installing the FMQWK door program (68040 version)")
+	 (source "bin040/fmqwk")
+	 (dest "fmqwktmp:fmqwk")
+    )
+)
+
+(complete 20)
+(copyfiles
+         (prompt "Copying the FMQWK help and doc files")
+	 (dest "fmqwktmp:fmqwk")
+	 (source "doc")
+	 (files)
+	 (all)
+)
+(copyfiles
+         (prompt "Copying the FMQWK sample config file")
+	 (dest "fmqwktmp:fmqwk")
+	 (source "config/fmqwk.cfg")
+)
+(complete 40)
+(copyfiles
+         (prompt "Copying FMQWK text files")
+	 (dest (askdir
+		(help @askdir-help)
+		(prompt "Please give me your BBS text directory")
+		(default "bbs:text")
+	       )
+	 )
+	 (source "text")
+	 (all)
+)
+(complete 60)
+(copyfiles
+         (prompt "Copying FMQWK.trans REXX script")
+	 (dest (askdir
+		(help @askdir-help)
+		(prompt "Please give me your BBS REXX directory")
+		(default "bbs:rexx")
+	       )
+	 )
+	 (source "rexx/fmqwk.trans")
+	 (files)
+)
+(complete 80)
+(if (exists "fmqwk.key")
+    (copyfiles
+             (prompt "Copying your keyfile")
+	     (source "fmqwk.key")
+	     (dest "fmqwktmp:fmqwk")
+	     (files)
+    )
+)
+(if (expandpath "doors:") "dummy"
+ (startup "FMQWK"
+	 (help @startup-help)
+	 (prompt "doors: must be assigned to the directory where you have "
+		 "just installed the program. If you want I can add this "
+		 "assignment to your startup file"
+	 )
+	 (command ("assign doors: %s" doors))
+ )
+)
+(makeassign "fmqwktmp" ((safe))) 
+(if registered
+    (message "Thanks for owning a registered version. New versions of this "
+	     "program will always be available at Aminet. If you want a "
+	     "special program to be written, please write me. I can "
+	     " try to do it if think it's necessary."
+    )
+    (message "You don't have a registered version. Please register this "
+	     "program and have all features available. Give us a help "
+	     "in order to make this program always better. This door has "
+	     "lots of improvements that can be done, but for this I need "
+	     "you to help me, sending your shareware registration fee. "
+    )
+)
+(message "FMQWK has been installed. Please read the fmqwk.doc carefully "
+	 "It teaches you how to make the config file that is needed in "
+	 "this version of the program. The AREXX script changed and is "
+	 "simplier than before. Now you can have many archivers, "
+	 "bulletins and some other nice features."
+	 ("I've installed the %s version" choice)
+)
+(complete 100)
+(set @default-dest (tackon doors "fmqwk"))

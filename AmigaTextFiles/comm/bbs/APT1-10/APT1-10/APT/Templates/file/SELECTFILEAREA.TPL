@@ -1,0 +1,1 @@
+ %BC=4.%TC=7. File Area %BC=0.%TC=6. => %TC=7.

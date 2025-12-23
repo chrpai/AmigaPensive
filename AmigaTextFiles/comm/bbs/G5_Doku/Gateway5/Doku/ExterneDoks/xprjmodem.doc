@@ -1,0 +1,66 @@
+
+           XPR JMODEM File Transfer Protocol, Amiga Version 0.1
+          ------------------------------------------------------
+
+  Based on original implementation version 1.20 by Richard B. Johnson
+  for IBM PC compatibles. Amiga port made by Kenneth Osterberg, released
+  into public domain June 10, 1989.
+  XPR Amiga Library Version made by Markus Pietz on Okt, 1990.
+
+  Diese Files sollten sich im Archiv befinden:
+  xprjmodem.library  Die fertige XPRLibrary, compiliert mit AztecC V5.0
+  JModem.c           Der C Sourcecode für das Protocol
+  docrc.asm          Assembler Sourcecode der für die Checksummen berechnung
+                     zuständig ist
+  timeout.c          Routine die eine Delay() Funktion bereit stellt.
+  libsup.c &         Routinen die beim öffnen und schließen der Library
+  mylib.h &          angesprungen werden.
+  libstart.asm
+  Makefile           Makefile für AztecC V5.0
+
+  Kurzanleitung zu JModem:
+   Für genaue Informationen über das JModem Protocol siehe die
+   Original Anleitung bei der JModem Implemation für PC.
+
+  Features:
+  o      16-bit CRC für efficiente Fehlerfindung
+  o      Eine Limitierte Form von Datencompression.
+  o      Schnelle Syncronisation mit der Gegenstelle
+  o      Variable Länge der Übertragenden Blöcke von bis zu 8192 Bytes,
+         je nach Qualität der Verbindung
+  o      Es gibt keine Mindest Größe der übertragenden Blöcke,
+         müssen nur 2 Bytes übertragen werden, werden nur 2 übertragen
+         ( plus BlockHeader)
+
+  Beschränkungen:
+  o      Filename, -größe, und änderungs Datum werden nicht übertragen :-(
+  o      Das Protocol arbeitet mit Handshaking für jeden Block.
+         Das verlangsamt die Übertragung, es muß aber kein Nachteil sein
+         weil so schnell auf die Qualität der Übertragungsleitung
+         reagiert werden kann.
+
+  Datencomprimierung:
+   Beim verwendeten Compressionsverfahren ist es nicht sicher das die
+   Länge des Blocks wirklich kürzer wird (b.z. bei schon comprimierten
+   Files), deshalb werden von Fall zu Fall Comprimierte oder nicht
+   Comprimierte Blocks übertragenden.
+   Die Compressionsmethode heißt Run-Length-Encoding. Sie wird auch
+   bei IFF-Bildern verwendet.
+
+  XPR-Implementierung:
+   Jedes Programm was mit der XPRZmodem.library functioniert sollte
+   auch mit JModem laufen.
+
+   Zur Information während der Übertragung werden folgende Daten ausgegeben:
+   XPRU_BYTES, XPRU_BLOCKS, XPRU_BLOCKSIZE, XPRU_ERROR, XPRU_MSG, XPRU_FILENAME
+   beim Senden zusätzlich: XPRU_FILESIZE
+
+   Die Library braucht zum Senden und zum Empfangen einen Filenamen
+   weil das Protocol das Mitversenden des Filenamens wie ZModem nicht
+   unterstützt.
+
+   Folgende Call-Back-Funktionen müssen bereitgestellt werden:
+    fopen(),fclose(),fread(),fwrite(),
+    sread(),swrite(),sflush(),
+    update(),chkabort()
+

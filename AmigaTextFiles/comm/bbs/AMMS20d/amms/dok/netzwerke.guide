@@ -1,0 +1,1398 @@
+@DATABASE "Dokumentation ueber die Netzwerke"
+@VER: V1.01 (18-08-1995)
+@node main "Netzwerke"
+
+				  Fastnet
+
+		      @{"        Was ist Fastnet       " link "F_WiF"}
+		      @{"         Was sind Maps        " link "F_WsM"}
+		      @{"    Prinzip eines Netcalls    " link "F_PeN"}
+		      @{"   LocalNet, LocalGate, Gate  " link "F_LLG"}
+		      @{"   Funktion eines Netzusers   " link "F_FeN"}
+		      @{"  Einrichten eines Netzusers  " link "F_EeN"}
+		      @{"   Einrichten eines Clients   " link "F_EeC"}
+		      @{"   Einrichten eines Servers   " link "F_EeS"}
+		      @{"  Datenexport vor dem Netcall " link "F_DvdN"}
+		      @{" Datenimport nach dem Netcall " link "F_DndN"}
+		      @{"Loeschen eines Clients/Servers" link "F_LeCS"}
+		      @{"      Wechsel des Servers     " link "F_WdS"}
+
+
+				  ZConnect
+
+		      @{"       Was ist ZConnect       " link "Z_WiZC"}
+		      @{"         Was sind Maps        " link "Z_WsM"}
+		      @{"    Prinzip eines Netcalls    " link "Z_PeN"}
+		      @{" Prinzip eines User-Pointcalls" link "Z_PeU"}
+		      @{"   LocalNet, LocalGate, Gate  " link "Z_LLG"}
+		      @{"   Funktion eines Netzusers   " link "Z_FeN"}
+		      @{"  Einrichten eines Netzusers  " link "Z_EeN"}
+		      @{"   Einrichten eines Clients   " link "Z_EeC"}
+		      @{"   Einrichten eines Servers   " link "Z_EeS"}
+		      @{"  Datenexport vor dem Netcall " link "Z_DvdN"}
+		      @{" Datenimport nach dem Netcall " link "Z_DndN"}
+		      @{"Loeschen eines Clients/Servers" link "F_LeCS"}
+		      @{"      Wechsel des Servers     " link "Z_WdS"}
+
+		      @{"       Was ist ein Event      " link "E_WieE"}
+
+		      @{"           Wildcards          " link "Wildcards"}
+
+Alle Rechte der Software AMMS gehoeren der Firma Marquardt & Scheler GbR.
+
+@endnode
+
+@node F_WiF "Was ist Fastnet"
+
+			      Was ist Fastnet
+			      ---------------
+
+Das Fastnet ist ein speziell fuer das AMMS entwickeltes Netzwerk-Protokoll.
+Mit diesem Protokoll koennen oeffentliche bzw. private Files und Nachrichten
+verschickt werden.
+Zusaetzlichen koennen ueber Systemnachrichten weitere Netz-Informationen
+wie z.B. Nodelisten und Nodeinfotexte versendet werden.
+Damit kann das Netz die Netzstruktur, die fuer das Versenden von privaten
+Nachrichten und Files wichtig ist, selber verwalten.
+
+Ausfuehrliche Informationen zum Fastnet-Protokoll stehen im Text zum
+@{"FASTNET-FORMAT" link "amms:dok/fastnet.guide/main" 0}.
+
+@endnode
+
+@node F_WsM "Was sind Maps"
+
+			       Was sind Maps
+			       -------------
+
+Mit Hilfe von Maps koennen Bretter und Filebretter gelistet, eingetragen und
+ausgetragen werden.
+
+Maps werden in Form von privaten Nachrichten an den User MAPS geschickt, das
+funktioniert aber nur bei direkten Verbindungen.
+
+Sendet ein User als POINT eine MAPS-Nachricht, so darf er sie nur an seinen
+Server schicken, weitergeleitete MAPS-Nachrichten an andere Nodes werden
+ignoriert.
+
+Sendet eine Node im Netz an seinen Server eine MAPS-Nachricht, so darf das
+aus Sicherheitsgruenden nur vom User SYSOP geschickt werden. Andere User
+duerfen dies nicht, weil sonst jeder User fuer seine Node die Netzbretter
+bestellen oder abbestellen koennte.
+
+Im Betreff der privaten Nachricht steht der MAPS-Befehl. Teilweise muessen
+zusaetzlich Daten im Nachrichteninhalt mitgeschickt werden.
+
+Folgende Befehle versteht AMMS :
+
+-       LIST BOARDS [spec]
+	LIST ALL BOARDS [spec]
+	LIST BRETTER [spec]
+	LIST ALL BRETTER [spec]
+
+	Liste alle Bretter, auf denen der User Zugriff hat.
+	Diesem Befehl kann optional ein Name uebergeben werden, der Wildcards
+	enthalten darf. Ist ein Name angegeben, so werden nur die Bretter
+	gelistet, die ueber diesen Namen selektiert werden (z.B. :Fastnet/*
+	bedeutet, dass nur alle Fastnet-Bretter gelistet werden).
+	Die Antwort ist wie folgt aufgebaut :
+	Im Thema steht das Wort "BOARDS", und die Brettnamen sind zeilenweise
+	alphabetisch im Nachrichteninhalt im Format :Pfad/Brett aufgelistet.
+
+-       LIST MY BOARDS [spec]
+	LIST MY BRETTER [spec]
+
+	Liste alle Bretter auf, die in der Brettliste des Users stehen.
+	Im Thema der Antwort steht das Wort "MY BOARDS".
+	Weiteres siehe unter LIST BOARDS.
+
+-       LIST OTHER BOARDS [spec]
+	LIST OTHER BRETTER [spec]
+
+	Liste alle Bretter auf, die nicht in der Brettliste des Users stehen.
+	Im Thema der Antwort steht das Wort "OTHER BOARDS".
+	Weiteres siehe unter LIST BOARDS.
+
+-       LIST NEW BOARDS [spec]
+	LIST NEW BRETTER [spec]
+
+	Liste alle neuen Bretter auf.
+	Im Thema der Antwort steht das Wort "NEW BOARDS".
+	Weiteres siehe unter LIST BOARDS.
+
+-       ADD [datum]
+
+	Trage alle Bretter in die Brettliste, die zeilenweise im Nachrichten-
+	inhalt im Format :Pfad/Brett enthalten sind.
+	In den Namen koennen Wildcards benutzt werden, die das Selektieren
+	mehrere Bretter ermoeglichen.
+	Zum Beispiel bedeutet :Fastnet/*, dass alle Fastnet-Bretter in die
+	Brettliste aufgenommen werden.
+	Wird ein Datum angegeben wird, so werden alle Nachrichten in den
+	angewaehlten Brettern ab dem Datum als ungelesen markiert.
+	Das Datum kann folgende Formate haben :
+	x        : +-Tage vom akt. Datum (z.B. -1 [gestern] oder 0 [heute])
+	tt.mm.jj : tt=Tag im Monat (z.B. 1 oder 01)
+		   mm=Monat (z.B. 3, 03, Mar oder Maerz)
+		   jj=Jahr (z.B. 94 oder 1994)
+
+-       DEL
+
+	Loesche alle Bretter aus der Brettliste, die zeilenweise im Nach-
+	richteninhalt im Format :Pfad/Brett enthalten sind.
+	In den Namen koennen Wildcards benutzt werden, die das Selektieren
+	mehrere Bretter ermoeglichen.
+	Zum Beispiel bedeutet :Fastnet/*, dass alle Fastnet-Bretter aus der
+	Brettliste ausgetragen werden.
+
+-       DATE <datum>
+
+	Markiere alle Nachrichten von den angegebenen Brettern ab dem Datum
+	als ungelesen. Die Bretter werden wie bei ADD und DEL selektiert.
+	Das Datumsformat entspricht der Beschreibung bei ADD.
+
+-       LIST FBOARDS [spec]
+	LIST ALL FBOARDS [spec]
+	LIST FILEBRETTER [spec]
+	LIST ALL FILEBRETTER [spec]
+
+	Liste Filebretter, Funktion wie LIST BOARDS.
+	Im Thema der Antwort steht das Wort "FILEBOARDS".
+
+-       LIST MY FBOARDS [spec]
+	LIST MY FILEBRETTER [spec]
+
+	Liste Filebretter, Funktion wie LIST MY BOARDS.
+	Im Thema der Antwort steht das Wort "MY FILEBOARDS".
+
+-       LIST OTHER FBOARDS [spec]
+	LIST OTHER FILEBRETTER [spec]
+
+	Liste Filebretter, Funktion wie LIST OTHER BOARDS.
+	Im Thema der Antwort steht das Wort "OTHER FILEBOARDS".
+
+-       LIST NEW FBOARDS [spec]
+	LIST NEW FILEBRETTER [spec]
+
+	Liste Filebretter, Funktion wie LIST NEW BOARDS.
+	Im Thema der Antwort steht das Wort "NEW FILEBOARDS".
+
+-       FADD
+
+	Fuege Filebretter in Brettliste ein, siehe ADD.
+
+-       FDEL
+
+	Trage Filebretter aus Brettliste aus, siehe DEL.
+
+-       HELP
+	HILFE
+
+	Ausfuehrliche Befehlsliste aller MAPS-Befehle.
+
+@endnode
+
+@node F_PeN "Prinzip eines Netcalls"
+
+			  Prinzip eines Netcalls
+			  ----------------------
+
+Zwei Nodes verbinden sich miteinander und tauschen Nachrichten aus.
+Dabei ruft in der Regel der Client (Empfaengernode) ueber einen Port mit Hilfe
+eines @{"Events" link "E_WieE"} den Server (Verteilernode) an.
+Wenn der Server den Client anrufen soll, wird fuer den Anruf der Server zum
+Client und der Client zum Server. Im Prinzip koennen sich die Nodes abwechselnd
+anrufen.
+
+Wenn die beiden Nodes connecten, wird der Batch-Befehl FASTNET CLIENT unter
+dem Netzuser NET@Servername auf der Seite des Clients ausgefuehrt. Diese
+Batchdatei loggt sich auf dem Server unter dem Usernamen NET@<Clientname> ein.
+Der Server erkennt in seiner Login-Batchdatei mbbatch:login durch die Zeile
+IF/P {NAME} == "NET@*" THEN..., dass es sich um einen Netzuser handelt und
+startet den Batch-Befehl FASTNET SERVER.
+
+Nun exportieren beide Seiten ihre neuen Nachrichten, Files usw., packen diese
+Daten mit dem Packer LHA und tauschen diese mit Hilfe des ZMODEM-Protokolls
+aus. Optional koennen die neuen Nachrichten mit Hilfe eines @{"Events" link E_WieE} und des
+Befehls @{"FASTNET PACKER" link F_DvdN} vor dem eigentlichen Netcall gepackt werden. Allerdings
+kann dadurch der Netcall nicht ganz aktuell sein, wenn das Packen nicht kurz
+vor dem Netcall ausgefuehrt wird.
+
+Nachdem alle Daten ausgetauscht sind, wird die Verbindung abgebrochen, die
+empfangenen Daten werden importiert bzw. weitergeleitet.
+
+@endnode
+
+@node F_LLG "LocalNet, LocalGate, Gate"
+
+			 LocalNet, LocalGate, Gate
+			 -------------------------
+
+AMMS-Nodes verwalten nur ein Hauptnetz. Alle weiteren Netze muessen entweder
+ueber LocalNet, LocalGate oder Gate-Verbindungen eingebunden werden.
+
+LOCALNET :
+----------
+Soll ein Nebennetz importiert werden, deren Nodes auch im Hauptnetz bekannt
+sind, aber nicht vom Hauptnetz-Server geliefert werden kann, so muss das
+Nebennetz ueber einen gesonderten Localnetcall geholt werden. Dieser Netcall
+aendert die Nodeliste in seiner Struktur nicht, verbindet aber die beiden
+Nodes beim Mail-Verkehr direkt. In beiden Nodes muss das LOCALNET aktivert
+werden, der Rest verlaeuft wie beim normalen Netcall.
+
+
+LOCALGATES :
+------------
+Soll ein Nebennetz importiert werden, deren Nodes nicht im Hauptnetz bekannt
+sind, und soll die eigene Node wie eine normale Node im Nebennetz eingetragen
+sein, so muss das ueber ein Localgate ablaufen.
+Dabei wird die eigene Node im Nebennetz wie alle anderen Nodes normal
+adressiert (die anderen Nodes bekommen dadurch nichts vom Localgate mit),
+aber die Adressierung innerhalb der eigenen Node laeuft ueber die Gate-
+adressierung.
+Dabei werden alle User im Nebennetz ueber <Username>%<Nodename>@<Pseudonode>
+adressiert, im Hauptnetz weiterhin ueber <Username>@<Nodename>.
+
+Damit das Nebennetz auch an andere Nodes im Hauptnetz weitergeleitet werden
+kann, existiert das File MBNET:LOCALNODES/<Pseudonode> (z.B.
+MBNET:LOCALNODES/Z-NETZ), in dem alle Hauptnetz-Nodenamen, die das Nebennetz
+ebenfalls empfangen sollen, zeilenweise wie folgt eingetragen werden :
+<Hauptnetz-Nodename> <Nebennetz-Nodename>
+
+Die Angabe des Nebennetz-Nodenamens dient nur dazu, dass die Hauptnetz-Node
+im Nebennetz einen anderen Namen besitzen darf (z.B. wenn eine gleichnamige
+Node im Nebennetz schon existiert), im normalfall sollte aber in beiden der
+gleiche Name stehen.
+Existiert das File nicht oder steht der Hauptnetz-Nodename der Node nicht
+drin, die als Localgate-Schnittstelle arbeitet, so wird diese Node automatisch
+in die Liste eingefuegt.
+
+
+GATES :
+-------
+Damit weitere Netze netzweit im Hauptnetz eingebunden werden koennen, gibt es
+sogenannte Gates. Ein Gate stellt eine Schnittstelle zwischen zwei Netzwerken
+dar. Dabei ist das Gate eine Pseudonode im jeweiligen Netz. Die Adressierung
+eines Users im anderen Netz erfolgt ueber <Username>%<Nodename>@<Pseudonode>.
+Der Name der Pseudonode kann fuer jedes Netzwerk bliebig definiert werden.
+Gehen Nachrichten ueber das Gate, so werden die Adressen vom Gate in das
+jeweilige Netzformat konvertiert.
+
+@Endnode
+
+@node F_FeN "Funktion eines Netzusers"
+
+			 Funktion eines Netzusers
+			 ------------------------
+
+Damit nur die neuen Nachrichten und Files ausgetauscht werden, wird zum
+Uebertragen und Speichern von Daten ein Netzuser benoetigt.
+
+Der Netzuser ist nichts anderes als ein normaler User, dessen Name mit den
+Buchstaben NET@ anfaengt. Danach folgt der Name der anderen Node, mit der
+die Daten ausgetauscht werden sollen.
+
+Beispiel : Die Node PHASE1 tauscht mit der Node COMMU Daten aus.
+	   Netzuser in der Phase1 : NET@COMMU
+	   Netzuser in der Commu  : NET@PHASE1
+
+Der Netzuser verwaltet ueber seine Brettliste die Bretter, deren Nachrichten
+bzw. Files ausgetauscht werden sollen. Darum muss der Netzuser auf alle
+Bretter seiner Brettliste RW-Zugriff (Nachrichten-Bretter) bzw. UD-Zugriff
+(File-Bretter) haben.
+
+@endnode
+
+@node F_EeN "Einrichten eines Netzusers"
+
+			Einrichten eines Netzusers
+			--------------------------
+
+Ein Netzuser kann nur ueber den Befehl EDIT USER eingetragen werden, da der
+Antrag-Befehl den Buchstaben @ im Usernamen und der Strasse verbietet.
+
+Rufe unter Sysop-Privilegien EDIT USER auf. Eine Tabelle mit allen einge-
+tragenen Usern erscheint. Druecke die Taste CTRL-A zum Eintragen eines neuen
+Users. Trage nun den @{"Netzuser" link "F_FeN"} mit folgenden Daten ein :
+
+ Username : NET@...                      Timeout : 600 sec.
+				      Onlinezeit : 30  min.   Neu : 0   Tage
+				...
+    Level : 2000                      max. Login : 1      Protect : -syp
+    Flags : -------7-------- -et--                       max. PMs : 0
+##############################################################################
+   Zeilen : 30
+     More : Off
+				...
+				   Fileprotokoll : Z-Modem
+				...
+
+Es sind nur die Daten dargestellt, die wichtig fuer den Netzuser sind.
+Die restlichen Daten koennen in der Default-Einstellung bleiben.
+Handelt es sich um einen Netzuser, der nur anruft (Client-Seite), so sollte
+der Login unter diesem User gesperrt werden. Dazu muss nur das l-Flag in der
+Protect-Zeile gesetzt werden :
+
+	Protect : -syp   ->   Protect : lsyp
+
+Handelt es sich um einen Netzuser, der das Hauptnetz verschickt, so muss im
+Strassennamen @NETCALL stehen.
+
+	Strasse : @NETCALL
+
+Handelt es sich um einen Netzuser, der ein Nebennetz verschickt, dessen Nodes
+auch im Hauptnetz bekannt sind, aber dies von einem anderen Server importieren
+will, so muss im Strassennamen @@{"LOCALNET" link F_LLG} stehen.
+
+	Strasse : @LOCALNET
+
+Handelt es sich um einen Netzuser, der ein lokales Nebennetz importiert, deren
+Nodenamen unbekannt im Hauptnetz sind, so muss im Strassennamen @@{"LOCALGATE" link F_LLG} und
+im Vornamen der Name des Pseudogates stehen.
+
+	Vorname : Pseudogatenamen
+	Nachname:
+	Strasse : @LOCALGATE
+
+Beispiel: Das Z-Netz wird lokal als Nebennetz eingebunden
+
+	Vorname : Z-NETZ
+	Nachname:
+	Strasse : @LOCALGATE
+
+Handelt es sich um einen Netzuser, der ein globales Nebennetz importiert, so
+muss im Strassennamen @@{"GATE" link F_LLG}, im Vornamen der Name des Gates im Hauptnetz und
+im Nachname der Name des Gates im Nebennetz stehen.
+
+	Vorname : Gatename im Hauptnetz
+	Nachname: Gatename im Nebennetz
+	Strasse : @GATE
+
+Beispiel: Das Nebennetz Z-Netz wird als Gate beim Hauptnetz Fastnet eingebunden
+
+	Vorname : ZNETZ
+	Nachname: FASTNET
+	Strasse : @GATE
+
+Beende den Editor mit SPEICHERN+ENDE und gib das Passwort ein, das zusaetzlich
+auch beim Client (die anrufende Node) im File MBDAT:NET@<Servername>.PW stehen
+muss. Beim Server muss diese Datei nicht existieren, ausser er soll auch
+beim Client anrufen koennen. Dann muss das File MBDAT:NET@<Clientname>.PW
+heissen.
+
+Starte den Befehl EDIT ACCESS, und gib dem Netzuser auf alle Bretter, die
+ausgetauscht werden sollen, RW-Zugriff. Danach starte den Befehl EDIT FACCESS,
+und gib dem Netzuser auf alle File-Bretter, die ausgetauscht werden sollen,
+UD-Zugriff. Gibt es schon ein User (z.B. ein anderer Netzuser), der die
+gleichen Zugriffe schon besitzt, so kann man ueber EDIT USER die Zugriffe
+kopieren und erspart sich die ganze Arbeit mit EDIT ACCESS/EDIT FACCESS.
+
+Nun loggt man sich mit Hilfe des LOGIN-Befehls unter dem Netzuser ein.
+
+Nun ruft man den Befehl READ auf und traegt alle Bretter, die uebertragen
+werden sollen, in die Brettliste ein.
+Danach ruft man den Befehl FILES auf und traegt alle File-Bretter, die
+uebertragen werden sollen, in die Brettliste ein.
+
+Wenn es sich um das Einrichten eines Netzusers bei einer Node handelt, die
+noch keine Nachrichten oder Files in den Brettern besitzt, so muessen die
+Filebretter als angezeigt markiert werden, damit nicht die BOARDINFO-Files
+beim ersten Netcall ausgetauscht werden. Dazu starte den Befehl FN auf und
+beende die Filebretter mit der Taste "x".
+
+Wenn es sich um das Einrichten eines Netzusers bei einer Node handelt, die
+schon Nachrichten oder Files besitzt, so muss individuell entschieden, wieviele
+Nachrichten und Files der neuen Node beim ersten Netcall geschickt werden
+sollen.
+Dazu starte den Befehl READ/DATE=-x, wobei x der Anzahl der letzten Tagen
+enspricht, deren neuen Nachrichten verschickt werden sollen.
+Beispiel: READ/DATE=-1  <- Schicke alle neuen Nachrichten ab gestern
+			   zur neuen Node
+
+Bei den Files starte den Befehl FILES/DATE=-x, wobei x der Anzahl der letzten
+Tagen enspricht, deren neuen Files verschickt werden sollen.
+Beispiel: FILES/DATE=-1  <- Schicke alle neuen Files ab gestern zur neuen Node
+
+Nun ist alles beim Netzuser eingestellt.
+
+@endnode
+
+@node F_EeC "Einrichten eines Clients"
+
+			 Einrichten eines Clients
+			 ------------------------
+
+Der Client ist eine Node, die taeglich einen Server anruft, um die Netz-
+Nachrichten auszutauschen. Daher benoetigt der Client eine Moeglichkeit,
+den Server anzurufen. Dies geschieht mit Hilfe der @{"Events" link "E_WieE"}.
+
+Es muessen alle Netzbretter (Message- und Filebretter) eingerichtet werden,
+die vom Server geholt werden sollen. Dabei muessen die Bretter identisch
+heissen, wie sie auf dem Server angeboten werden. Die Userzugriffe auf die
+Bretter muessen so gesetzt werden, wie sie im Netz fuer die User vorgesehen
+sind.
+Fuer das Fastnet existiert die Batchdatei MBBATCH:CREATE_NET.BAT, die das
+komplette Einrichten aller Fastnet-Bretter und deren Zugriffe uebernimmt.
+Schon vorhandene Bretter werden uebergangen. Wenn es sich um die Einrichtung
+des Fastnet's handelt, so rufe diese Batchdatei unter Sysop-Privilegien auf :
+
+sysop> DISK EXECUTE MBBATCH:CREATE_NET.BAT
+
+Sind alle Bretter eingerichtet, so muss der @{"Netzuser" link "F_EeN"} fuer einen Client
+eingerichtet werden.
+
+Danach muss die Datei MBDAT:NET@<Servername>.PW erzeugt werden, die das
+Passwort des Netzusers NET@<Clientname> vom Server enthaelt.
+Fuer das Erzeugen kann man den Befehl DISK EDIT benutzen :
+
+sysop> DISK EDIT MBDAT:NET@<Servername>.PW
+
+Beispiel: sysop> DISK EDIT MBDAT:NET@Phase1.PW
+
+Sind das Passwort-File, alle Bretter und der Netzuser im System erstellt, so
+muessen nur noch die Events fuer den Netcall zum Server eingetragen werden.
+
+Fuehre folgenden Befehl aus, um einen Event zu erzeugen, der taeglich die
+Nummer 8334778 mit max. 3 Anrufversuchen auf dem Port SER0 um 01:15 Uhr ab
+morgen anruft. Zwischen den Anrufversuchen wartet der Event 120 Sekunden.
+Wird ein Anruf ohne Fehler beendet, so verfallen die weiteren Anrufversuche.
+Der Event fuehrt beim Connect die Batchdatei MBBATCH:FASTNET_CALLER, die den
+Befehl FASTNET CLIENT ausfuehrt, unter dem Netzuser @{"NET@<Servername>" link "F_FeN"}
+NET@Phase1 aus.
+
+sysop> ADD EVENT/DIAL="8334778"/TRIES=3/DELAY=120/REPEAT=1 -
+cont.> SER0 1:15 1 MBBATCH:FASTNET_CALLER NET@Phase1
+
+	DIAL="8334778"          : Rufnummer der Serverbox
+	TRIES=3                 : Anzahl der Anrufversuche bei Fehlern
+	DELAY=120               : Wartezeit zwischen zwei Anrufversuchen
+	REPEAT=1                : Anzahl der Tage, an denen der naechste
+				  Event ausgefuehrt werden soll.
+				  (1=taeglich, 2=jeden zweiten Tag usw.)
+	SER0                    : Port, auf dem der Event ablaufen soll
+	1:15                    : Uhrzeit des Starts des Events
+	1                       : Startdatum, siehe Datumseingabeformat
+				  des AMMS (0=heute, 1=morgen usw.)
+	MBBATCH:FASTNET_CALLER  : Batchdatei, die ausgefuehrt werden soll
+	NET@Phase1              : Netzuser, unter dem die Batchdatei ablaufen
+				  soll
+
+Wird ein weiterer Event fuer eine andere Netcall-Zeit benoetigt, so muss der
+obere Befehl nochmal mit der anderen Zeit ausgefuehrt werden.
+
+@endnode
+
+@node F_EeS "Einrichten eines Servers"
+
+			 Einrichten eines Servers
+			 ------------------------
+
+Der Server ist die Node, die taeglich wegen des Datenaustausches von den
+Clients angerufen wird. Er stellt damit einen Mittelpunkt im Netzwerk dar.
+Tauschen zwei Server Nachrichten aus, muss fuer diesen Anruf ein Server zum
+Client werden.
+
+Sofern der Server nicht schon alle Netzbretter (Message- und Filebretter)
+besitzt, muessen die fehlenden Bretter eingerichtet werden. Die Bretter
+muessen beim Server und den Clients identisch heissen.
+Die Userzugriffe auf die Bretter muessen so gesetzt werden, wie sie im Netz
+fuer die User vorgesehen sind.
+Fuer das Fastnet existiert die Batchdatei MBBATCH:CREATE_NET.BAT, die das
+komplette Einrichten aller Fastnet-Bretter und deren Zugriffe uebernimmt.
+Schon vorhandene Bretter werden uebergangen. Wenn es sich um die Einrichtung
+des Fastnet's handelt, so rufe diese Batchdatei unter Sysop-Privilegien auf :
+
+sysop> DISK EXECUTE MBBATCH:CREATE_NET.BAT
+
+Sind alle Bretter eingerichtet, so muss der @{"Netzuser" link "F_EeN"} fuer einen Server
+eingerichtet werden.
+
+Das Passwort des Netzuser NET@<Clientname> muss dem Sysop der Client-Node
+mitgeteilt werden, damit er es bei sich im File mbdat:NET@<Servername>.PW
+speichert.
+
+Wenn der Server von mehreren Clients angerufen wird, ist es ratsam, dass die
+Netcall-Zeiten fuer jede Node definiert wird. Dabei ist ein Abstand von
+mindestens 15 Min. zwischen zwei Netcalls ratsam, damit sich die Netcalls
+nicht gegenseitig behindern.
+Die Netcall-Zeiten fuer den Client muss dem Sysop des Clients mitgeteilt
+werden, damit er seine @{"Events" link "E_WieE"} auf die Zeiten einstellen kann.
+
+@endnode
+
+@node F_DvdN "Datenexport vor dem Netcall"
+
+			Datenexport vor dem Netcall
+			---------------------------
+
+Optional ist es moeglich, die neuen Nachrichten, Files usw. vor dem
+eigentlichen Netcall exportieren und packen zu lassen. Diese Moeglichkeit
+besteht sowohl fuer den Client als auch fuer den Server.
+
+Der Befehl FASTNET PACKER packt die neusten Nachrichten, Files usw. in das
+File MBNET:EXPORT/<Username>@FA.LHA und erstellt das Verwaltungsfile
+MBNET:EXPORT/<Username>@FA.MSGNR.
+Der Befehl kann beliebig oft zur Erneuerung der schon gepackten Daten
+aufgerufen werden.
+
+Kommt es zum Netcall, so wird ueberprueft, ob das File
+MBNET:EXPORT/<Username>@FA.LHA existiert. Wenn ja, so wird das vorgepackte
+File als Datenfile genommen. Damit entfaellt dann das Exportieren und Packen
+der Nachrichten waehrend des Netcalls.
+Existiert nicht das File, so werden die neusten Nachrichten usw. waehrend des
+Netcalls exportiert und gepackt.
+
+Um den Datenexport vor dem Netcall zur realisieren, ist die Einrichtung eines
+{@"Events" link "E_WieE"} notwendig, der immer vor Netcall die Batch MBBATCH:FASTNET_EXPORT,
+in der der Befehl FASTNET PACKER steht, unter dem Netzuser ausfuehrt.
+Dafuer wird allerdings ein Batchport benoetigt, in der der Netzuser bei der
+Ausfuehrung des Events automatisch einloggt wird.
+
+Beim folgenden Befehl wird eine Event erstellt, die taeglich die Batchdatei
+MBBATCH:FASTNET_EXPORT um 23:00 Uhr auf Port BAT0 unter dem Netzuser
+NET@Phase1 ab heute ausfuehrt.
+
+sysop> ADD EVENT/REPEAT=1 BAT0 23:00 0 MBBATCH:FASTNET_EXPORT NET@Phase1
+
+	REPEAT=1                : Anzahl der Tage, an denen der naechste
+				  Event ausgefuehrt werden soll.
+				  (1=taeglich, 2=jeden zweiten Tag usw.)
+	BAT0                    : Port, auf dem der Event ablaufen soll
+	23:00                   : Uhrzeit des Starts des Events
+	0                       : Startdatum, siehe Datumseingabeformat
+				  des AMMS (0=heute, 1=morgen usw.)
+	MBBATCH:FASTNET_EXPORT  : Batchdatei, die ausgefuehrt werden soll
+	NET@Phase1              : Netzuser, unter dem die Batchdatei ablaufen
+				  soll
+
+Wird ein weiterer Event benoetigt, so muss der obere Befehl nochmal mit der
+anderen Zeit ausgefuehrt werden.
+
+@endnode
+
+
+@node F_DndN "Datenimport nach dem Netcall"
+
+			Datenimport nach dem Netcall
+			----------------------------
+
+Der Datenimport nach einem Netcall darf auf dem Modemport oder auf dem
+speziellen Port IMPORT ablaufen.
+Existiert der Port IMPORT, so wird nach dem Netcall der Modemport sofort 
+fuer andere User freigegeben, die empfangenen Netcall-Daten werden auf dem
+Port IMPORT importiert.
+Existiert nicht der Port IMPORT, so werden die empfangenen Netcall-Daten
+sofort auf dem Modemport importiert, der Modemport bleibt solange blockiert,
+bis der Import vollstaendig abgeschlossen ist.
+
+Um den Modemport nicht zu lange wegen eines Netcalls zu blockieren, ist es
+sinnvoll, dass man mit dem Port IMPORT arbeitet, weil dadurch gerade bei
+groesseren Netzpaketen der Modemport viel frueher wieder fuer andere User
+oder Netcalls zur Verfuegung steht.
+
+@endnode
+
+
+@node F_LeCS "Loeschen eines Clients/Servers"
+
+		    Loeschen eines Clients oder Servers
+		    -----------------------------------
+
+Wenn eine direkt angeschlossenen Node nicht mehr am Netzbetrieb teilnimmt, ist
+es sinnvoll, alle Daten und Informationen fuer diese aus seiner eigenen Node
+zu entfernen.
+Dabei muessen der Netzuser, die Node aus der Nodeliste und alle dafuer
+angelegten Files geloescht werden.
+Um diesen Vorgang zu vereinfachen, existiert der Befehl DELETE NODE.
+
+sysop> delete node 
+
+Name der zu loeschenden Node : Phase1
+Wirklich User "Phase1" loeschen (J/N) ? j
+Loesche Node Phase1 aus der Nodeliste ... OK
+Loesche File mbdat:Phase1.pw ... OK
+Loesche File mbnet:nodes/Phase1... OK
+Loesche File mbnet:localnodes/Phase1... OK
+Loesche File mbnet:Phase11 ... OK
+Loesche File mbnet:Phase12 ... OK
+Loesche File mbnet:Export/Phase1@??.#? ... OK
+Loesche File mbnet:Import/Phase1@#? ... OK
+Loesche File mbnet:ExportFTab/Phase1 ... OK
+Loesche File mbnet:ImportFTab/Phase1 ... OK
+
+@endnode
+
+
+@node F_WdS "Wechsel des Servers"
+
+			    Wechsel des Servers
+			    -------------------
+
+Beim Wechsel des Servers muss man mit einen Datenverlust von oeffentlichen/
+privaten Nachrichten und Files rechnen.
+Beim unkorrekten Wechsel des Servers kann es zu zeitweisen Problemen in der
+Nodeliste kommen, so dass zumind. die eigene Node nicht mehr korrekt fuer
+private Nachrichten und Files zu erreichen ist, daher sollte so ein Wechsel
+nur in wirklich notwendigen Faellen und NUR UNTER GENAUER BEACHTUNG DIESER
+ANLEITUNG ablaufen. 
+
+Um einen moeglichst geringen Datenverlust zu erleiden, sollte vor dem
+eigentlichen Serverwechsel noch einmal ein Netcall zum alten Server gestartet
+werden. Existiert der Server nicht mehr, so faellt natuerlich der Netcall weg.
+
+AMMS> add event/dial="<TELEFONNUMMER DES ALTEN SERVERS>"
+Port : <NETCALL-PORT>
+Datum : 0
+Startzeit : 0
+Batschdatei : mbbatch:fastnet_caller
+User : net@<ALTER SERVERNAME>
+
+Beispiel :
+
+AMMS> add event/dial="8334778" ser0 0 0 mbbatch:fastnet_caller net@commu
+
+
+Nun muss der alte Server komplett ausgetragen werden. Siehe dazu Kapitel
+@{"Loeschen eines Clients/Servers" link F_LeCS}.
+
+Nachdem der alte Server ausgetragen ist, muss nun der neue Server in der
+eigenen Node eingetragen werden. Siehe dazu Kapitel @{"Einrichten eines Clients" link F_EeC}.
+Bei dem neuen Netzuser muessen alle Nachrichten und Files als gelesen bzw.
+angezeigt markiert werden, damit man nicht massig alte Nachrichten und Files
+dem neuen Server schickt.
+
+Beim neuen Server muss entsprechend nach Kapitel @{"Einrichten eines Servers" link F_EeS}
+ein neuer Netzuser fuer den Client eingerichtet werden.
+Auch bei diesem neuen Netzuser muessen alle Nachrichten und Files als gelesen
+bzw. angezeigt markiert werden, damit auch von dort nicht massig alte
+Nachrichten und Files geschickt werden.
+
+@endnode
+
+
+
+@node Z_WiZC "Was ist ZConnect"
+
+			      Was ist ZConnect
+			      ----------------
+
+Das ZConnect-Format ist ein standardisiertes Uebertragungsprotokoll fuer den 
+Datenaustausch zwischen Mailboxen bzw. zwischen Mailbox und User. 
+Mit diesem Protokoll koennen oeffentliche bzw. private Files und Nachrichten
+verschickt werden. Das Verbindungsprotokoll ist JANUS.
+
+Ausfuehrliche Informationen zum ZConnect-Protokoll stehen im Text zum
+@{"ZCONNECT-FORMAT" link "amms:dok/zconnect.guide/main" 0}.
+
+ZCONNECT(R) ist ein eingetragenes Warenzeichen der ZERBERUS GmbH.
+
+@endnode
+
+@node Z_WsM "Was sind Maps"
+
+			       Was sind Maps
+			       -------------
+
+Mit Hilfe von Maps koennen Bretter und Filebretter gelistet, eingetragen und
+ausgetragen werden.
+
+Maps werden in Form von privaten Nachrichten an den User MAPS geschickt, das
+funktioniert aber nur bei direkten Verbindungen.
+
+Sendet ein User als POINT eine MAPS-Nachricht, so darf er sie nur an seinen
+Server schicken, weitergeleitete MAPS-Nachrichten an andere Nodes werden
+ignoriert.
+
+Sendet eine Node im Netz an seinen Server eine MAPS-Nachricht, so darf das
+aus Sicherheitsgruenden nur vom User SYSOP geschickt werden. Andere User
+duerfen dies nicht, weil sonst jeder User fuer seine Node die Netzbretter
+bestellen oder abbestellen koennte.
+
+Im Betreff der privaten Nachricht steht der MAPS-Befehl. Teilweise muessen
+zusaetzlich Daten im Nachrichteninhalt mitgeschickt werden.
+
+Folgende Befehle versteht AMMS :
+
+-       LIST BOARDS [spec]
+	LIST ALL BOARDS [spec]
+	LIST BRETTER [spec]
+	LIST ALL BRETTER [spec]
+
+	Liste alle Bretter, auf denen der User Zugriff hat.
+	Diesem Befehl kann optional ein Name uebergeben werden, der Wildcards
+	enthalten darf. Ist ein Name angegeben, so werden nur die Bretter
+	gelistet, die ueber diesen Namen selektiert werden (z.B. /Fastnet/*
+	bedeutet, dass nur alle Fastnet-Bretter gelistet werden).
+	Die Antwort ist wie folgt aufgebaut :
+	Im Thema steht das Wort "BOARDS", und die Brettnamen sind zeilenweise
+	alphabetisch im Nachrichteninhalt im Format /Pfad/Brett aufgelistet.
+
+-       LIST MY BOARDS [spec]
+	LIST MY BRETTER [spec]
+
+	Liste alle Bretter auf, die in der Brettliste des Users stehen.
+	Im Thema der Antwort steht das Wort "MY BOARDS".
+	Weiteres siehe unter LIST BOARDS.
+
+-       LIST OTHER BOARDS [spec]
+	LIST OTHER BRETTER [spec]
+
+	Liste alle Bretter auf, die nicht in der Brettliste des Users stehen.
+	Im Thema der Antwort steht das Wort "OTHER BOARDS".
+	Weiteres siehe unter LIST BOARDS.
+
+-       LIST NEW BOARDS [spec]
+	LIST NEW BRETTER [spec]
+
+	Liste alle neuen Bretter auf.
+	Im Thema der Antwort steht das Wort "NEW BOARDS".
+	Weiteres siehe unter LIST BOARDS.
+
+-       ADD [datum]
+
+	Trage alle Bretter in die Brettliste, die zeilenweise im Nachrichten-
+	inhalt im Format /Pfad/Brett enthalten sind.
+	In den Namen koennen Wildcards benutzt werden, die das Selektieren
+	mehrere Bretter ermoeglichen.
+	Zum Beispiel bedeutet /Fastnet/*, dass alle Fastnet-Bretter in die
+	Brettliste aufgenommen werden.
+	Wird ein Datum angegeben wird, so werden alle Nachrichten in den
+	angewaehlten Brettern ab dem Datum als ungelesen markiert.
+	Das Datum kann folgende Formate haben :
+	x        : +-Tage vom akt. Datum (z.B. -1 [gestern] oder 0 [heute])
+	tt.mm.jj : tt=Tag im Monat (z.B. 1 oder 01)
+		   mm=Monat (z.B. 3, 03, Mar oder Maerz)
+		   jj=Jahr (z.B. 94 oder 1994)
+
+-       DEL
+
+	Loesche alle Bretter aus der Brettliste, die zeilenweise im Nach-
+	richteninhalt im Format /Pfad/Brett enthalten sind.
+	In den Namen koennen Wildcards benutzt werden, die das Selektieren
+	mehrere Bretter ermoeglichen.
+	Zum Beispiel bedeutet /Fastnet/*, dass alle Fastnet-Bretter aus der
+	Brettliste ausgetragen werden.
+
+-       DATE <datum>
+
+	Markiere alle Nachrichten von den angegebenen Brettern ab dem Datum
+	als ungelesen. Die Bretter werden wie bei ADD und DEL selektiert.
+	Das Datumsformat entspricht der Beschreibung bei ADD.
+
+-       LIST FBOARDS [spec]
+	LIST ALL FBOARDS [spec]
+	LIST FILEBRETTER [spec]
+	LIST ALL FILEBRETTER [spec]
+
+	Liste Filebretter, Funktion wie LIST BOARDS.
+	Im Thema der Antwort steht das Wort "FILEBOARDS".
+
+-       LIST MY FBOARDS [spec]
+	LIST MY FILEBRETTER [spec]
+
+	Liste Filebretter, Funktion wie LIST MY BOARDS.
+	Im Thema der Antwort steht das Wort "MY FILEBOARDS".
+
+-       LIST OTHER FBOARDS [spec]
+	LIST OTHER FILEBRETTER [spec]
+
+	Liste Filebretter, Funktion wie LIST OTHER BOARDS.
+	Im Thema der Antwort steht das Wort "OTHER FILEBOARDS".
+
+-       LIST NEW FBOARDS [spec]
+	LIST NEW FILEBRETTER [spec]
+
+	Liste Filebretter, Funktion wie LIST NEW BOARDS.
+	Im Thema der Antwort steht das Wort "NEW FILEBOARDS".
+
+-       FADD
+
+	Fuege Filebretter in Brettliste ein, siehe ADD.
+
+-       FDEL
+
+	Trage Filebretter aus Brettliste aus, siehe DEL.
+
+-       HELP
+	HILFE
+
+	Ausfuehrliche Befehlsliste aller MAPS-Befehle.
+
+@endnode
+
+@node Z_PeN "Prinzip eines Netcalls"
+
+			  Prinzip eines Netcalls
+			  ----------------------
+
+Zwei Nodes verbinden sich miteinander und tauschen Nachrichten aus.
+Dabei ruft in der Regel der Client (Empfaengernode) ueber einen Port mit
+Hilfe eines @{"Events" link "E_WieE"} den Server (Verteilernode) an.
+Wenn der Server den Client anrufen soll, wird fuer den Anruf der Server zum
+Client und der Client zum Server. Im Prinzip koennen sich die Nodes
+abwechselnd anrufen.
+
+Wenn die beiden Nodes connecten, wird der Batch-Befehl ZCONNECT CLIENT unter
+dem Netzuser <Servername> auf der Seite des Clients ausgefuehrt. Diese
+Batchdatei loggt sich auf dem Server unter dem Usernamen JANUS ohne Passwort
+ein. Der Server erkennt anhand des Users JANUS, dass es sich um einen Netcall
+bzw. um den Poll eines Users handelt. Unter AMMS wird die Login-Batch des
+Users JANUS gestartet, die nach dem Systemnamen und dessen Passwort fragt.
+Diese Daten werden vom Client gesendet, die Verbindung steht.
+
+Nun exportieren beide Seiten ihre neuen Nachrichten, Files usw., packen diese
+Daten mit dem Packer LHA und tauschen diese mit Hilfe des ZMODEM-Protokolls
+aus. Optional koennen die neuen Nachrichten ueber den Befehl @{"ZCONNECT PACKER" link Z_DvdN} 
+vor dem eigentlichen Netcall gepackt werden.
+Dies kann auch ueber einen @{"Event" link E_WieE} automatisiert werden.
+Die vorgepackten Daten enthalten nur die Daten, die zum Zeitpunkt des
+Packens vorhanden waren. Alle neueren Daten werden erst beim naechsten
+Vorpacken bzw. Netcall uebertragen.
+
+Nachdem alle Daten ausgetauscht sind, wird die Verbindung abgebrochen, die
+empfangenen Daten werden importiert bzw. weitergeleitet.
+
+@endnode
+
+
+@node Z_PeU "Prinzip eines User-Pointcalls"
+
+                       Prinzip eines User-Pointcalls
+                       -----------------------------
+
+Damit ein User auch ausserhalb der Mailbox seine Nachrichten lesen und
+somit auch erheblich Telefonkosten sparen kann, existiert die Moeglichkeit,
+dass ein User wie eine Node im Netzwerk seinen Server (Mailbox) anruft.
+Dabei werden dann die neusten Nachrichten ausgetauscht, diesen Vorgang
+nennt man POLLEN.
+Als Voraussetzungen fuer diese Art der Kommunikation steht zwei Dinge :
+1. Der User besitzt ein ZConnect-Pointprogramm, das ueber JANUS sich
+   in die Mailboxen einloggen kann
+2. Die Mailbox unterstuetzt ZConnect und den JANUS-Login
+
+AMMS erlaubt fuer ALLE User diese Art der Kommunikation, der Sysop muss
+nichts dafuer einrichten.
+
+Ablauf eines Pointcalls :
+
+1. Der User startet sein Pointprogramm
+1a. Sind der Systemname und das Passwort noch nicht eingetragen, so traegt
+    er seinen Usernamen beim Systemnamen und sein Userpasswort beim Passwort
+    ein
+1b. Ist die Telefonnummer der Mailbox noch nicht eingetragen, so traegt er
+    es im Pointprogramm ein
+2. Der User startet den Pointcall
+3. Das Pointprogramm ruft die Mailbox an
+4. JANUS-Login, der User JANUS wird von AMMS erkannt, die Login-Datei des
+   Users JANUS wird sofort ausgefuehrt
+5. Die Login-Datei fragt nach SYSTEMNAME:
+6. Das Pointprogramm schickt den Usernamen
+7. Die Login-Datei fragt nach PASSWORT:
+8. Das Pointprogramm schickt das Userpasswort
+9. Der Befehl ZCONNECT SERVER wird gestartet
+10. ZCONNECT SERVER schickt 5 mal running ARC^J, exportiert und packt
+    die neusten Nachrichten. Sollten @{"vorgepackte Daten" link Z_DvdN} des Users vorliegen,
+    so werden diese Daten genommen, das Exportieren und Packen entfaellt.
+11. Das ^U, Seriennummer und ^F Handshaking erfolgt
+12. Die Daten vom Pointprogramm werden empfangen (muessen als LHA-Archiv
+    vorliegen)
+13. Die gepackten Daten der Mailbox werden gesendet
+14. AMMS legt auf, es importiert die Nachrichten auf dem akt. Port oder,
+    wenn der Port @{"IMPORT" link Z_DndN} existiert, auf diesem Port
+
+@endnode
+
+
+@node Z_LLG "LocalNet, LocalGate, Gate"
+
+			 LocalNet, LocalGate, Gate
+			 -------------------------
+
+AMMS-Nodes verwalten nur ein Hauptnetz. Alle weiteren Netze muessen entweder
+ueber LocalNet, LocalGate oder Gate-Verbindungen eingebunden werden.
+
+LOCALNET :
+----------
+Soll ein Nebennetz importiert werden, deren Nodes auch im Hauptnetz bekannt
+sind, aber nicht vom Hauptnetz-Server geliefert werden kann, so muss das
+Nebennetz ueber einen gesonderten Localnetcall geholt werden. Dieser Netcall
+aendert die Nodeliste in seiner Struktur nicht, verbindet aber die beiden
+Nodes beim Mail-Verkehr direkt. In beiden Nodes muss das LOCALNET aktivert
+werden, der Rest verlaeuft wie beim normalen Netcall.
+
+
+LOCALGATES :
+------------
+Soll ein Nebennetz importiert werden, deren Nodes nicht im Hauptnetz bekannt
+sind, und soll die eigene Node wie eine normale Node im Nebennetz eingetragen
+sein, so muss das ueber ein Localgate ablaufen.
+Dabei wird die eigene Node im Nebennetz wie alle anderen Nodes normal
+adressiert (die anderen Nodes bekommen dadurch nichts vom Localgate mit),
+aber die Adressierung innerhalb der eigenen Node laeuft ueber die Gate-
+adressierung.
+Dabei werden alle User im Nebennetz ueber <Username>%<Nodename>@<Pseudonode>
+adressiert, im Hauptnetz weiterhin ueber <Username>@<Nodename>.
+
+Damit das Nebennetz auch an andere Nodes im Hauptnetz weitergeleitet werden
+kann, existiert das File MBNET:LOCALNODES/<Pseudonode> (z.B.
+MBNET:LOCALNODES/Z-NETZ), in dem alle Hauptnetz-Nodenamen, die das Nebennetz
+ebenfalls empfangen sollen, zeilenweise wie folgt eingetragen werden :
+<Hauptnetz-Nodename> <Nebennetz-Nodename>
+
+Die Angabe des Nebennetz-Nodenamens dient nur dazu, dass die Hauptnetz-Node
+im Nebennetz einen anderen Namen besitzen darf (z.B. wenn eine gleichnamige
+Node im Nebennetz schon existiert), im normalfall sollte aber in beiden der
+gleiche Name stehen.
+Existiert das File nicht oder steht der Hauptnetz-Nodename der Node nicht
+drin, die als Localgate-Schnittstelle arbeitet, so wird diese Node automatisch
+in die Liste eingefuegt.
+
+
+GATES :
+-------
+Damit weitere Netze netzweit im Hauptnetz eingebunden werden koennen, gibt es
+sogenannte Gates. Ein Gate stellt eine Schnittstelle zwischen zwei Netzwerken
+dar. Dabei ist das Gate eine Pseudonode im jeweiligen Netz. Die Adressierung
+eines Users im anderen Netz erfolgt ueber <Username>%<Nodename>@<Pseudonode>.
+Der Name der Pseudonode kann fuer jedes Netzwerk bliebig definiert werden.
+Gehen Nachrichten ueber das Gate, so werden die Adressen vom Gate in das
+jeweilige Netzformat konvertiert.
+
+@Endnode
+
+@node Z_FeN "Funktion eines Netzusers"
+
+			 Funktion eines Netzusers
+			 ------------------------
+
+Damit nur die neuen Nachrichten und Files ausgetauscht werden, wird zum
+Uebertragen und Speichern von Daten ein Netzuser benoetigt.
+
+Der Netzuser ist nichts anderes als ein normaler User, der den Namen der
+anderen Node besitzt, mit der die Daten ausgetauscht werden.
+
+Beispiel : Die Node PHASE1 tauscht mit der Node COMMU Daten aus.
+	   Netzuser in der Phase1 : COMMU
+	   Netzuser in der Commu  : PHASE1
+
+Der Netzuser verwaltet ueber seine Brettliste die Bretter, deren Nachrichten
+bzw. Files ausgetauscht werden sollen. Darum muss der Netzuser auf alle
+Bretter seiner Brettliste RW-Zugriff (Nachrichten-Bretter) bzw. UD-Zugriff
+(File-Bretter) haben.
+
+@endnode
+
+@node Z_EeN "Einrichten eines Netzusers"
+
+			Einrichten eines Netzusers
+			--------------------------
+
+Ein Netzuser kann nur ueber den Befehl EDIT USER eingetragen werden, da der
+Antrag-Befehl den Buchstaben @ im Strassennamen verbietet.
+
+Rufe unter Sysop-Privilegien EDIT USER auf. Eine Tabelle mit allen einge-
+tragenen Usern erscheint. Druecke die Taste CTRL-A zum Eintragen eines neuen
+Users. Trage nun den @{"Netzuser" link "Z_FeN"} mit folgenden Daten ein :
+
+ Username : ...                          Timeout : 600 sec.
+      ...                             Onlinezeit : 30  min.   Neu : 0   Tage
+  Strasse : ...                               
+      ...                          
+    Level : 2000                      max. Login : 1      Protect : -syp
+    Flags : -------7-------- -et--                       max. PMs : 0
+##############################################################################
+   Zeilen : 30
+     More : Off
+				...
+				   Fileprotokoll : Z-Modem
+				...
+
+Es sind nur die Daten dargestellt, die wichtig fuer den Netzuser sind.
+Die restlichen Daten koennen in der Default-Einstellung bleiben.
+Handelt es sich um einen Netzuser, der nur anruft (Client-Seite), so sollte
+der Login unter diesem User gesperrt werden. Dazu muss nur das l-Flag in der
+Protect-Zeile gesetzt werden :
+
+	Protect : -syp   ->   Protect : lsyp
+
+Handelt es sich um einen Netzuser, der das Hauptnetz verschickt, so muss im
+Strassennamen @NETCALL stehen, im Stadtnamen muss die Domain stehen.
+
+	Strasse : @NETCALL
+	  Stadt : Domainname
+
+Beispiel : Eine ZConnect-Box will das Fastnet erhalten und traegt dabei
+	   alle Fastnet-Boxen in der Domain FASTNET.DE ein.
+
+	Strasse : @NETCALL
+	  Stadt : Fastnet.de
+
+Handelt es sich um einen Netzuser, der ein lokales Nebennetz importiert, deren
+Nodenamen unbekannt im Hauptnetz sind, so muss im Strassennamen @@{"LOCALGATE" link Z_LLG} und
+im Vornamen der Name des Pseudogates stehen. Da die Nodeverwaltung beim
+ZConnect auch Domains enthaelt, wird die AMMS-Box einer Domain zugeordnet.
+Dieser Domainname muss im Stadtnamen angegeben werden.
+
+	Vorname : Pseudogatenamen
+	Nachname:
+	Strasse : @LOCALGATE
+	  Stadt : Domainname
+
+Beispiel: Das Z-Netz wird lokal als Nebennetz von der Node Wibo.berlinet.de
+	  eingebunden
+
+	Vorname : Z-NETZ
+	Nachname:
+	Strasse : @LOCALGATE
+	  Stadt : BERLINET.DE
+
+Handelt es sich um einen Netzuser, der ein globales Nebennetz importiert, so
+muss im Strassennamen @@{"GATE" link Z_LLG}, im Vornamen der Name des Gates im Hauptnetz und
+im Nachname der Name des Gates im Nebennetz stehen.
+Da die Nodeverwaltung beim ZConnect auch Domains enthaelt, wird die AMMS-Box 
+einer Domain zugeordnet. Dieser Domainname muss im Stadtnamen stehen.
+
+	Vorname : Gatename im Hauptnetz
+	Nachname: Gatename im Nebennetz
+	Strasse : @GATE
+	  Stadt : Domainname
+
+Beispiel: Das Nebennetz Z-Netz von der Node Wibo.berlinet.de wird als Gate 
+	  beim Hauptnetz Fastnet eingebunden
+
+	Vorname : ZNETZ
+	Nachname: FASTNET
+	Strasse : @GATE
+	  Stadt : BERLINET.DE
+
+Beende den Editor mit SPEICHERN+ENDE und gib das Passwort ein, das zusaetzlich
+auch beim Client (die anrufende Node) im File MBDAT:<Servername>.PW stehen
+muss. Beim Server muss diese Datei nicht existieren, ausser er soll auch
+beim Client anrufen koennen. Dann muss das File MBDAT:<Clientname>.PW
+heissen.
+
+Starte den Befehl EDIT ACCESS, und gib dem Netzuser auf alle Bretter, die
+ausgetauscht werden sollen, RW-Zugriff. Danach starte den Befehl EDIT FACCESS,
+und gib dem Netzuser auf alle File-Bretter, die ausgetauscht werden sollen,
+UD-Zugriff. Gibt es schon ein User (z.B. ein anderer Netzuser), der die
+gleichen Zugriffe schon besitzt, so kann man ueber EDIT USER die Zugriffe
+kopieren und erspart sich die ganze Arbeit mit EDIT ACCESS/EDIT FACCESS.
+
+Nun loggt man sich mit Hilfe des LOGIN-Befehls unter dem Netzuser ein.
+
+Nun ruft man den Befehl READ auf und traegt alle Bretter, die uebertragen
+werden sollen, in die Brettliste ein.
+Danach ruft man den Befehl FILES auf und traegt alle File-Bretter, die
+uebertragen werden sollen, in die Brettliste ein.
+
+Wenn es sich um das Einrichten eines Netzusers bei einer Node handelt, die
+noch keine Nachrichten oder Files in den Brettern besitzt, so muessen die
+Filebretter als angezeigt markiert werden, damit nicht die BOARDINFO-Files
+beim ersten Netcall ausgetauscht werden. Dazu starte den Befehl FN auf und
+beende die Filebretter mit der Taste "x".
+
+Wenn es sich um das Einrichten eines Netzusers bei einer Node handelt, die
+schon Nachrichten oder Files besitzt, so muss individuell entschieden, wieviele
+Nachrichten und Files der neuen Node beim ersten Netcall geschickt werden
+sollen.
+Dazu starte den Befehl READ/DATE=-x, wobei x der Anzahl der letzten Tagen
+enspricht, deren neuen Nachrichten verschickt werden sollen.
+Beispiel: READ/DATE=-1  <- Schicke alle neuen Nachrichten ab gestern
+			   zur neuen Node
+
+Bei den Files starte den Befehl FILES/DATE=-x, wobei x der Anzahl der letzten
+Tagen enspricht, deren neuen Files verschickt werden sollen.
+Beispiel: FILES/DATE=-1  <- Schicke alle neuen Files ab gestern zur neuen Node
+
+Nun ist alles beim Netzuser eingestellt.
+
+Sind noch keine Bretter bekannt, so kann man auch alles ueber die 
+@{"MAPS-Befehle" link Z_WiZC} einstellen.
+
+@endnode
+
+@node Z_EeC "Einrichten eines Clients"
+
+			 Einrichten eines Clients
+			 ------------------------
+
+Der Client ist eine Node, die taeglich einen Server anruft, um die Netz-
+Nachrichten auszutauschen. Daher benoetigt der Client eine Moeglichkeit,
+den Server anzurufen. Dies geschieht mit Hilfe der @{"Events" link "E_WieE"}.
+
+Es muessen alle Netzbretter (Message- und Filebretter) eingerichtet werden,
+die vom Server geholt werden sollen. Dabei muessen die Nachrichten-Bretter 
+identisch heissen, wie sie auf dem Server angeboten werden. Nur statt dem
+ersten / muss ein : im AMMS-System stehen.
+Die Userzugriffe auf die Bretter muessen so gesetzt werden, wie sie im Netz 
+fuer die User vorgesehen sind.
+Die File-Bretter koennen sowohl identisch (aber auch hier : statt / im ersten
+Zeichen des Brettnamens) als auch anders heissen.
+Wenn sie anders heissen sollen, z.B, weil schon ein gleichnamiges Message-
+Brett existiert, muessen sie ueber die Files MBNET:IMPORTFTAB/<Servername>
+und MBNET:EXPORTFTAB/<Servername> konvertiert werden.
+
+Die Files haben folgenden Aufbau :
+
+<ZConnect-Brettname> <AMMS-Brettname><LF>
+...
+
+Beide Namen duerfen Wildcards enthalten, beim Import (MBNET:IMPORTFTAB/...) 
+sind aber nur Wildcards bei den ZConnect-Brettnamen sinnvoll, beim Export 
+(MBNET:EXPORTFTAB/...) natuerlich nur bei den AMMS-Brettnamen.
+Die ZConnect-Brettnamen werden wie auch die AMMS-Brettnamen mit einem
+: statt einem / am Anfang geschrieben.
+Durch die Wildcards koennen sehr schnell alle Files, die ja unter AMMS
+nicht in die Message-Bretter importiert werden koennen, auf Filebretter
+umgelenkt werden.
+
+Beispiel : 
+
+	   File : MBNET:IMPORTFTAB/Wibo
+
+		 :Z-Netz/* :Z-Netz/Alle_Files
+		 :T-Netz/* :T-Netz/Alle_Files
+
+	   File : MBNET:EXPORTFTAB/Wibo
+
+		 :Z-Netz/Binaer/Pictures :Z-Netz/Alle_Files
+		 :T-Netz/Pins/Allgemein  :T-Netz/Alle_Files
+
+
+Alle gewuenschten Bretter werden entweder vom Sysop der Server-Box 
+voreingestellt oder durch die @{"MAPS-Befehle" link Z_WiZC} eingebunden.
+Das Einrichten der Bretter in der AMMS-Box laeuft nicht automatisch ab,
+sie muessen entweder per Hand oder durch eine vorgefertigte Batch erzeugt
+werden.
+
+
+Die Datei MBDAT:<Servername>.PW muss erzeugt werden, sie enthaelt das
+Systempasswort des Systems <Clientname> beim Server.
+Fuer das Erzeugen kann man den Befehl DISK EDIT benutzen :
+
+sysop> DISK EDIT MBDAT:<Servername>.PW
+
+Beispiel: sysop> DISK EDIT MBDAT:Phase1.PW
+
+Sind das Passwort-File, alle Bretter und der Netzuser im System erstellt, so
+muessen nur noch die Events fuer den Netcall zum Server eingetragen werden.
+
+Fuehre folgenden Befehl aus, um einen Event zu erzeugen, der taeglich die
+Nummer 8334778 mit max. 3 Anrufversuchen auf dem Port SER0 um 01:15 Uhr ab
+morgen anruft. Zwischen den Anrufversuchen wartet der Event 120 Sekunden.
+Wird ein Anruf ohne Fehler beendet, so verfallen die weiteren Anrufversuche.
+Der Event fuehrt beim Connect die Batchdatei MBBATCH:ZCONNECT_CALLER, die 
+den Befehl ZCONNECT CLIENT ausfuehrt, unter dem @{"Netzuser" link "Z_FeN"} Servername
+Phase1 aus.
+
+sysop> ADD EVENT/DIAL="8334778"/TRIES=3/DELAY=120/REPEAT=1 -
+cont.> SER0 1:15 1 MBBATCH:ZCONNECT_CALLER Phase1
+
+	DIAL="8334778"          : Rufnummer der Serverbox
+	TRIES=3                 : Anzahl der Anrufversuche bei Fehlern
+	DELAY=120               : Wartezeit zwischen zwei Anrufversuchen
+	REPEAT=1                : Anzahl der Tage, an denen der naechste
+				  Event ausgefuehrt werden soll.
+				  (1=taeglich, 2=jeden zweiten Tag usw.)
+	SER0                    : Port, auf dem der Event ablaufen soll
+	1:15                    : Uhrzeit des Starts des Events
+	1                       : Startdatum, siehe Datumseingabeformat
+				  des AMMS (0=heute, 1=morgen usw.)
+	MBBATCH:ZCONNECT_CALLER : Batchdatei, die ausgefuehrt werden soll
+	Phase1                  : Netzuser, unter dem die Batchdatei ablaufen
+				  soll
+
+Wird ein weiterer Event fuer eine andere Netcall-Zeit benoetigt, so muss der
+obere Befehl nochmal mit der anderen Zeit ausgefuehrt werden.
+
+@endnode
+
+@node Z_EeS "Einrichten eines Servers"
+
+			 Einrichten eines Servers
+			 ------------------------
+
+Der Server ist die Node, die taeglich wegen des Datenaustausches von den
+Clients angerufen wird. Er stellt damit einen Mittelpunkt im Netzwerk dar.
+Tauschen zwei Server Nachrichten aus, muss fuer diesen Anruf ein Server zum
+Client werden.
+
+Sind noch nicht alle Netzbretter vorhanden, so muessen sie @{"eingerichtet" link Z_EeC}
+werden.
+Nun muss der @{"Netzuser" link "Z_EeN"} fuer einen Server eingerichtet werden.
+
+Das Passwort des Netzuser <Clientname> muss dem Sysop der Client-Node
+mitgeteilt werden.
+
+Wenn der Server von mehreren Clients angerufen wird, ist es ratsam, dass die
+Netcall-Zeiten fuer jede Node definiert wird. Dabei ist ein Abstand von
+mindestens 15 Min. zwischen zwei Netcalls ratsam, damit sich die Netcalls
+nicht gegenseitig behindern.
+Die Netcall-Zeiten fuer den Client muss dem Sysop des Clients mitgeteilt
+werden, damit er seine @{"Events" link "E_WieE"} auf die Zeiten einstellen kann.
+
+@endnode
+
+@node Z_DvdN "Datenexport vor dem Netcall"
+
+			Datenexport vor dem Netcall
+			---------------------------
+
+Optional ist es moeglich, die neuen Nachrichten, Files usw. vor dem
+eigentlichen Netcall exportieren und packen zu lassen. Diese Moeglichkeit
+besteht sowohl fuer den Client als auch fuer den Server.
+
+Der Befehl ZCONNECT PACKER packt die neusten Nachrichten, Files usw. in das
+File MBNET:EXPORT/<Username>@ZC.LHA und erstellt das Verwaltungsfiles
+MBNET:EXPORT/<Username>@ZC.MSGNR und MBNET:EXPORT/<Username>@ZC.PMNR.
+Der Befehl kann beliebig oft zur Erneuerung der schon gepackten Daten
+aufgerufen werden.
+
+Kommt es zum Netcall, so wird ueberprueft, ob das File
+MBNET:EXPORT/<Username>@ZC.LHA existiert. Wenn ja, so wird das vorgepackte
+File als Datenfile genommen. Damit entfaellt dann das Exportieren und Packen
+der Nachrichten waehrend des Netcalls.
+Existiert nicht das File, so werden die neusten Nachrichten usw. waehrend des
+Netcalls exportiert und gepackt.
+
+Um den Datenexport vor dem Netcall zur realisieren, ist die Einrichtung eines
+{@"Events" link "E_WieE"} notwendig, der immer vor Netcall die Batch MBBATCH:ZCONNECT_EXPORT,
+in der der Befehl ZCONNECT PACKER steht, unter dem Netzuser ausfuehrt.
+Dafuer wird allerdings ein Batchport benoetigt, in der der Netzuser bei der
+Ausfuehrung des Events automatisch einloggt wird.
+
+Damit auch User waehrend eines normalen Calls Nachrichten fuer ihren 
+naechsten Userpoll vorpacken lassen koennen, existiert der Befehl
+ZCONNECT PACKER fuer alle.
+Existiert der Port EXPORT, so wird das Vorpacken auf diesen Port umgelenkt,
+der User kann dann waehrend des Vorpackens normal in der Box weiterarbeiten.
+Wenn die Daten fertig vorgepackt sind, wird eine normale Online-Message
+dem User geschickt.
+Existiert nicht dieser Port, so werden auf dem akt. Port die Nachrichten
+exportiert und vorgepackt, der User muss solange warten.
+
+Beim folgenden Befehl wird eine Event erstellt, die taeglich die Batchdatei
+MBBATCH:ZCONNECT_EXPORT um 23:00 Uhr auf Port EXPORT unter dem Netzuser
+Phase1 ab heute ausfuehrt.
+
+sysop> ADD EVENT/REPEAT=1 EXPORT 23:00 0 MBBATCH:ZCONNECT_EXPORT Phase1
+
+	REPEAT=1                : Anzahl der Tage, an denen der naechste
+				  Event ausgefuehrt werden soll.
+				  (1=taeglich, 2=jeden zweiten Tag usw.)
+	EXPORT                  : Port, auf dem der Event ablaufen soll
+	23:00                   : Uhrzeit des Starts des Events
+	0                       : Startdatum, siehe Datumseingabeformat
+				  des AMMS (0=heute, 1=morgen usw.)
+	MBBATCH:ZCONNECT_EXPORT : Batchdatei, die ausgefuehrt werden soll
+	Phase1                  : Netzuser, unter dem die Batchdatei ablaufen
+				  soll
+
+Wird ein weiterer Event benoetigt, so muss der obere Befehl nochmal mit der
+anderen Zeit ausgefuehrt werden.
+
+@endnode
+
+@node Z_DndN "Datenimport nach dem Netcall"
+
+			Datenimport nach dem Netcall
+			----------------------------
+
+Der Datenimport nach einem Netcall darf auf dem Modemport oder auf dem
+speziellen Port IMPORT ablaufen.
+Existiert der Port IMPORT, so wird nach dem Netcall der Modemport sofort 
+fuer andere User freigegeben, die empfangenen Netcall-Daten werden auf dem
+Port IMPORT importiert.
+Existiert nicht der Port IMPORT, so werden die empfangenen Netcall-Daten
+sofort auf dem Modemport importiert, der Modemport bleibt solange blockiert,
+bis der Import vollstaendig abgeschlossen ist.
+
+Um den Modemport nicht zu lange wegen eines Netcalls zu blockieren, ist es
+sinnvoll, dass man mit dem Port IMPORT arbeitet, weil dadurch gerade bei
+groesseren Netzpaketen der Modemport viel frueher wieder fuer andere User
+oder Netcalls zur Verfuegung steht.
+
+@endnode
+
+
+@node Z_WdS "Wechsel des Servers"
+
+			    Wechsel des Servers
+			    -------------------
+
+Beim Wechsel des Servers muss man mit einen Datenverlust von oeffentlichen/
+privaten Nachrichten und Files rechnen.
+Beim unkorrekten Wechsel des Servers kann es zu zeitweisen Problemen in der
+Nodeliste kommen, so dass zumind. die eigene Node nicht mehr korrekt fuer
+private Nachrichten und Files zu erreichen ist, daher sollte so ein Wechsel
+nur in wirklich notwendigen Faellen und NUR UNTER GENAUER BEACHTUNG DIESER
+ANLEITUNG ablaufen. 
+
+Um einen moeglichst geringen Datenverlust zu erleiden, sollte vor dem
+eigentlichen Serverwechsel noch einmal ein Netcall zum alten Server gestartet
+werden. Existiert der Server nicht mehr, so faellt natuerlich der Netcall weg.
+
+AMMS> add event/dial="<TELEFONNUMMER DES ALTEN SERVERS>"
+Port : <NETCALL-PORT>
+Datum : 0
+Startzeit : 0
+Batschdatei : mbbatch:zconnect_caller
+User : <ALTER SERVERNAME>
+
+Beispiel :
+
+AMMS> add event/dial="8334778" ser0 0 0 mbbatch:zconnect_caller commu
+
+
+Nun muss der alte Server komplett ausgetragen werden. Siehe dazu Kapitel
+@{"Loeschen eines Clients/Servers" link Z_LeCS}.
+
+Nachdem der alte Server ausgetragen ist, muss nun der neue Server in der
+eigenen Node eingetragen werden. Siehe dazu Kapitel @{"Einrichten eines Clients" link Z_EeC}.
+Bei dem neuen Netzuser muessen alle Nachrichten und Files als gelesen bzw.
+angezeigt markiert werden, damit man nicht massig alte Nachrichten und Files
+dem neuen Server schickt.
+
+Beim neuen Server muss entsprechend nach Kapitel @{"Einrichten eines Servers" link Z_EeS}
+ein neuer Netzuser fuer den Client eingerichtet werden.
+Auch bei diesem neuen Netzuser muessen alle Nachrichten und Files als gelesen
+bzw. angezeigt markiert werden, damit auch von dort nicht massig alte
+Nachrichten und Files geschickt werden.
+
+@endnode
+
+
+
+@node E_WieE "Was ist ein Event"
+
+
+			     Was ist ein Event
+			     -----------------
+
+Ein Event stellt einen Zeitpunkt dar, an dem automatisch eine bestimmte
+Batchdatei unter einem bestimmten User auf einem bestimmten Port ausgefuehrt
+wird. Dabei kann auch eine Telefonnummer angegeben werden, die beim Start
+des Events mit Hilfe des Modems gewaehlt werden soll.
+Tritt ein Connect ein, so wird die gewuenschte Batchdatei gestartet.
+
+Das AMMS stellt die Befehle ADD EVENT, DELETE EVENT und LIST EVENTS zur
+Bearbeitung der Events zur Verfuegung.
+
+@endnode
+
+@node Wildcards "Wildcards"
+				Wildcards
+				---------
+
+Wildcard   Funktion                             Beispiel        Ein True
+---------------------------------------------------------------------------
+*          Beliebiger String (auch Leerstring)  R*F             Raumschiff
+?          Ein beliebiges Zeichen               Fast?an         Fastman
+()         String                               H(all)o         Hallo
+(|)        Mehrfacher Stringvergleich           P(a|b|c)xyz     Pbxyz
+~()        String-Negation                      ~(Hallo)        Was
+~(|)       Mehrfacher String-Negationsvergleich ~(a|b|cd)ef     gef
+
+@endnode
+
+

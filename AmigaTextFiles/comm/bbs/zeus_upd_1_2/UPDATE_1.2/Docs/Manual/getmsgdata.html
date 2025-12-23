@@ -1,0 +1,103 @@
+<html>
+<head>
+  <title></title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="msg.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="getmsgarea.html"><img src="prev.gif" alt="PREV" border=0></a><a href="getmsginfo.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+<PRE>
+   NAME
+                GetMsgData -- Returns information about the currently loaded message.
+
+   SYNOPSIS
+                GetMsgData [FILEATTACHED|NEXT|PREV]
+
+   FUNCTION
+                Returns information about the currently loaded message.
+                This function allows you to access through ARexx information
+                that is commonly used when traversing the message base.
+
+                This command requires that a successful call to
+                rexxMsgCommands/LoadMsg has been made (RC = 0).
+
+                Information requested is returned in RESULT.
+
+   INPUTS
+                FILEATTACHED  - Does the current message have a file
+                                attached to it. Possible return values,
+                                0 for false, 1 for true. The names of the
+                                attached files are stored in the Subject
+                                lines, separated by spaces.
+
+                NEXT          - Return next message number in thread.
+
+                PREV          - Return previous message number in thread.
+
+   RESULT
+                Data requested.
+
+   RC
+                 0 -- Data requested returned
+                10 -- Bad arguments
+                20 -- Fatal error
+
+   EXAMPLE
+        /*
+        **        Make those nice &quot;Next/Prev&quot; reply keys...
+        */
+        DoReply:
+
+                GetMsgData 'PREV'
+                PrevRes = RESULT
+                GetMsgData 'NEXT'
+                NextRes = RESULT
+
+                /*
+                **        Are there any replies in any direction?
+                */
+                of PrevRes ~= 0 | NextRes ~= 0 then do
+                        Out = ''
+
+                        /*
+                        **        Is the original message left?
+                        */
+                        if PrevRes ~= 0 then do
+                                ExtraKeys = '-'
+                                Out = '&quot;&#027;[36m[&#027;[1;33m-&#027;[0;36m]&#027;[37m &#060;- &quot;'
+                                end
+
+                        Out = Out||'&quot;&#027;[0;37mRead Replies&quot;'
+
+                /*
+                **        Is there a reply to this message?
+                */
+                IF NextRes ~= 0 thend o
+                        Out = Out||'&quot; -&#062; &#027;[36m[&#027;[1;33m+&#027;[0;36m]&#027;[0;37m&quot;'
+                        ExtraKeys = ExtraKeys||'+'
+                        end
+
+                Write Out 'NoMore'
+                end
+        Return
+
+        /*
+        ** Check if there were some files attached...
+        */
+        FileAttach:
+                GetMsgData 'FileAttached'
+                        if RESULT = 1 then do
+                                Write '&quot;n&#027;[0;37mThere are file(s) attached to this message. Press ''&#027;[31mD&#027;[37m'' to Download.n&quot;' 'NoMore'
+                                ExtraKeys = ExtraKeys||'D'
+                                end
+                Return
+
+
+   NOTES
+
+   SEE ALSO
+                rexxMsgCommands/LoadMsg
+
+</PRE><br></body>
+</html>

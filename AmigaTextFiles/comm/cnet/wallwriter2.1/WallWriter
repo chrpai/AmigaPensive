@@ -1,0 +1,287 @@
+	       /*This is Version 2.1 of my Wallwriter.
+			  Works good for me.		*/
+
+	      /*Written by: Clipper
+		Rooks Corner
+		612/464-2798
+		Forest Lake, MN	  */
+
+
+     options results
+     signal on syntax
+     signal on error
+     bufferflush
+     getuser 1	  /*get handle from system*/
+     handle = result
+     getuser 15
+     access = result	/* get access of reader	 */
+     getuser 11
+     laston = result	/* Last date on sysytem */
+     getuser 12
+     sysdate = result	/*Todays Date */
+     path1 = 'pfiles:notice2'	      /* Path for regular Wall readers*/
+     path2 = 'pfiles:notice.elite2'	    /* Path for 'Elite Wall readers*/
+     bigcheese = 'SysOp1'	      /*Place your handle here*/
+     sysop = 23
+     level1 = 10		      /*levels for second wall*/
+     level2 = 11
+			  /*use level1 = 'none' if not used*/
+     sysdate = substr(sysdate,5,12)
+
+     laston = substr(laston,5,12)
+     day = left(laston,2)
+     month = substr(laston,4,3)
+     year = right(laston,4)
+     call convert2
+
+     transmit "\c3                             Wall Writer Version 2.1\q1"
+     transmit "                               \c1Written by Clipper\n2"
+     transmit "                 \c3New messages from your last call on "laston
+     sendstring "\n1\c1Would you like to read The Wall? (y/N) \q1"
+     getchar
+     choice = result
+     transmit choice
+     bufferflush
+     if choice = '###PANIC' then call death
+     if choice = 'y' | choice = 'Y' then do
+     if access = sysop then do
+     transmit "\c2*\c1 Signifies Anonymous Message"
+     end
+     transmit "\n1"
+     transmit "\c4----------------------------------------------------------------------------\q1"
+     path = path1
+     call fileexist
+     call readwall
+     call writewall
+     end
+     if access = sysop | access = level2 | access = level1 then do
+     call elite
+     call death
+     end
+     call death
+
+     elite:
+     transmit " "
+     sendstring "\c1Would you like to read \c2The Elite Wall\c1? (y/N) \q1"
+     getchar
+     echoice = result
+     bufferflush
+     transmit echoice
+     bufferflush
+     if echoice = '###PANIC' then return
+     if echoice = 'y' | echoice = 'Y' then do
+     transmit "\n1"
+     path = path2
+     call fileexist
+     call elitereadwall
+     call elitewritewall
+     end
+     else do
+     nop
+     end
+     return
+
+     elitereadwall:
+     call open(file1,path2,'R')
+     message = readln(file1)
+     poster = readln(file1)
+     anon = readln(file1)
+     datecreate = readln(file1)
+     creday = left(datecreate,2)
+     cremonth = substr(datecreate,4,3)
+     creyear = right(datecreate,4)
+     call convert
+     do while ~ eof(file1)
+     /*if thismonth > lastmonth then call displaywall else nop
+     if credayc >= lastdayc & thismonth >= lastmonth then call displaywall else nop*/
+     lasttotal = lastdayc + lastmonth
+     thistotal = thismonth + credayc
+     if thistotal >= lasttotal then call displaywall else nop
+     message = readln(file1)
+     poster = readln(file1)
+     anon = readln(file1)
+     datecreate = readln(file1)
+     creday = left(datecreate,2)
+     cremonth = substr(datecreate,4,3)
+     creyear = right(datecreate,4)
+     call convert
+     end
+     call close(file1)
+     return
+
+     elitewritewall:
+     bufferflush
+     transmit " "
+     sendstring "\c3Would you like to add to the Wall\c3? (y/N) \q1"
+     getchar
+     ans = result
+     transmit ans
+     if ans = '###PANIC' then call death else nop
+     if ans = 'y' | ans = 'Y' then do
+     sendstring "\c1Is this an \c2ANONYMOUS \c1message? "
+     getchar
+     wimpy = result
+     if wimpy = '###PANIC' then call death else nop
+     transmit wimpy
+     transmit "\c5\n1Enter a 1 line Notice (70 chars max)\q1"
+     query "\c2>\c1 "
+     notice = result
+     if notice = '###PANIC' then call death else nop
+     if notice = '' then call death else nop
+     if notice = ' ' then call death else nop
+     call open(file1,path2,'A')
+     signal off error
+     writeln(file1,notice)
+     writeln(file1,handle)
+     writeln(file1,wimpy)
+     writeln(file1,sysdate)
+     signal on error
+     call close(file1)
+     transmit " "
+     transmit "\c2It is written!\q1"
+     end
+     else do
+     nop
+     end
+     return
+
+
+     displaywall:
+     if anon = 'Y' & access ~ = sysop | anon = 'y' & access ~ = sysop then poster = '\c2ANONYMOUS\c1'
+     if anon = 'y' & access = sysop | anon = 'Y' & access = sysop then poster = '\c2*\c5'||poster
+     transmit "\c1"message
+     transmit "\c3Date: \c5"datecreate "\>f\>f \c3From: \c5"poster
+     transmit "\c4----------------------------------------------------------------------------\q1"
+     return
+
+     readwall:
+     bufferflush
+     call open(file2,path1,'R')
+     message = readln(file2)
+     poster = readln(file2)
+     anon = readln(file2)
+     datecreate = readln(file2)
+     creday = left(datecreate,2)
+     cremonth = substr(datecreate,4,3)
+     creyear = right(datecreate,4)
+     call convert
+     do while ~ eof(file2)
+     /*if thismonth > lastmonth then call displaywall else nop
+     if credayc >= lastdayc & thismonth >= lastmonth then call displaywall else nop*/
+     lasttotal = lastdayc + lastmonth
+     thistotal = thismonth + credayc
+     if thistotal >= lasttotal then call displaywall else nop
+     message = readln(file2)
+     poster = readln(file2)
+     anon = readln(file2)
+     datecreate = readln(file2)
+     creday = left(datecreate,2)
+     cremonth = substr(datecreate,4,3)
+     creyear = right(datecreate,4)
+     call convert
+     end
+     call close(file2)
+     return
+
+     writewall:
+     transmit " "
+     sendstring "\c3Would you like to add to the Wall\c3? (y/N) \q1"
+     getchar
+     ans = result
+     transmit ans
+     if ans = '###PANIC' then call death else nop
+     if ans = 'y' | ans = 'Y' then do
+     sendstring "\c1Is this an \c2ANONYMOUS \c1message? "
+     getchar
+     wimpy = result
+     if wimpy = '###PANIC' then call death else nop
+     transmit wimpy
+     transmit "\c5\n1Enter a 1 line Notice (70 chars max)\q1"
+     query "\c2>\c1 "
+     notice = result
+     if notice = '###PANIC' then call death else nop
+     if notice = '' then call death else nop
+     if notice = ' ' then call death else nop
+     call open(file3,path1,'A')
+     signal off error
+     writeln(file3,notice)
+     writeln(file3,handle)
+     writeln(file3,wimpy)
+     writeln(file3,sysdate)
+     signal on error
+     call close(file3)
+     transmit " "
+     transmit "\c2It is written!\q1"
+     end
+     else do
+     nop
+     end
+     return
+
+     convert:
+     credayc = c2d(creday)
+     creyearc = c2d(creyear)
+     if cremonth = 'Jan' then thismonth = 100000
+     if cremonth = 'Feb' then thismonth = 200000
+     if cremonth = 'Mar' then thismonth = 300000
+     if cremonth = 'Apr' then thismonth = 400000
+     if cremonth = 'May' then thismonth = 500000
+     if cremonth = 'Jun' then thismonth = 600000
+     if cremonth = 'Jul' then thismonth = 700000
+     if cremonth = 'Aug' then thismonth = 800000
+     if cremonth = 'Sep' then thismonth = 900000
+     if cremonth = 'Oct' then thismonth = 1000000
+     if cremonth = 'Nov' then thismonth = 1100000
+     if cremonth = 'Dec' then thismonth = 1200000
+     return
+
+     convert2:
+     lastdayc = c2d(day)
+     lastyearc = c2d(year)
+     if month = 'Jan' then lastmonth = 100000
+     if month = 'Feb' then lastmonth = 200000
+     if month = 'Mar' then lastmonth = 300000
+     if month = 'Apr' then lastmonth = 400000
+     if month = 'May' then lastmonth = 500000
+     if month = 'Jun' then lastmonth = 600000
+     if month = 'Jul' then lastmonth = 700000
+     if month = 'Aug' then lastmonth = 800000
+     if month = 'Sep' then lastmonth = 900000
+     if month = 'Oct' then lastmonth = 1000000
+     if month = 'Nov' then lastmonth = 1100000
+     if month = 'Dec' then lastmonth = 1200000
+     return
+
+     fileexist:
+     if ~exists(path) then do
+     signal off error
+     transmit "\n1\c2Wall not found, Creating a new one!\n1"
+     call open(file1,path,'W')
+     writeln(file1,'Wall Started on \v0')
+     writeln(file1,bigcheese)
+     writeln(file1,'N')
+     writeln(file1,sysdate)
+     call close(file1)
+     signal on error
+     end
+     return
+
+     syntax:
+     bufferflush
+     transmit "Syntax error in line: " SIGL " Severity: " RC
+     transmit "Notify Clipper"
+     bufferflush
+     shutdown
+     exit
+
+     error:
+     bufferflush
+     transmit "An ERROR has occured on line: "SIGL
+     logentry 'Error in Wall; Line: 'SIGL
+     exit
+
+
+     death:
+     bufferflush
+     shutdown
+     exit

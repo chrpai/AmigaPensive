@@ -1,0 +1,107 @@
+
+
+
+   =====( Attention V1.10 )===========================================
+
+
+        Trion 'Attention' System.
+
+        (c) Copyright Paul Spijkerman, '98-'98. All rights reserved.
+
+        Written for use with the Trion BBS package.
+
+
+   ===================================================================
+
+
+    Some sysops really want to see what is going on in their
+    scripts. You can add "echo" lines to scripts so that you
+    can look at a shell window what is going on but that isn't
+    very convenient.
+    So I made a program which shows a list of lines (AttViewer)
+    that are send to the list by a shell program (Attention).
+
+    The program can be used in two ways:
+
+    You can start the Viewer manually by for instance clicking
+    on a button in MiscGui (see further in this doc).
+    You then call:
+    Attenttion "This is a test"
+    in scripts to make text appear in the list.
+    In this way you can see what is going on as long if you have
+    the Viewer program running.
+
+
+
+
+    The other way is to have Attention start and stop the Viewer in a
+    script. Attention has 3 options:
+        
+    Trion Attention V1.00 (c)1998 Paul Spijkerman.
+    Use : <-options> "Text"
+
+    Options:
+      -O   = Open the Trion Attention Viewer.
+      -Q   = Quit the Trion Attention Viewer.
+      -C   = Clear the Trion Attention Viewer.
+
+
+    Note that the 'AttViewer' has a -L flag which 'locks' it so it can't
+    be quited by 'Attention -Q'.
+    This is usefull if you start AttViewer manual instead of
+    by script. With this flag the Attviewer won't disappear
+    when the script is ready. But you can still use the -Q
+    flag at the end of the script so the AttViewer will
+    pop up if the script was started and you didn't start
+    it manually.
+
+
+    So if you want the viewer to "pop up" during a mail script
+    for instance you would use something like this:
+
+    (If you want to use it manually just remove the -o and -q flags)
+
+
+
+;;;  Script to proces mail and .TIC files.
+
+;quit
+wait 2
+
+avail flush >nil:
+
+Attention -o "Mail: script started"
+trion  -max  "Mail processor is started, system can be a little slower"
+
+trion:utils/CheckInbound -q
+
+if WARN
+   Attention  "Mail: processor in PACK mode"
+   trion:utils/tmp P -d
+else
+
+   ;;;  process  .TIC files
+
+   Attention  "Mail: Processing tick files"
+   trion:utils/TrionTick  -p -b   -d
+
+   ;CD trion:inbound       ;;; to enable unpacking ARC and ARJ archives
+
+   Attention  "Mail: processor in UNpack mode"
+   trion:utils/tmp  U -c -b -f   -d
+
+   ;CD trion:              ;;; to enable unpacking ARC and ARJ archives
+
+   Attention  "Mail: Areafix started"
+   trion:utils/areafix   F -d
+
+   Attention  "Mail: processor in PACK mode"
+   trion:utils/tmp  P    -d
+
+endif
+
+Attention "Mail: script finished" -q
+trion  -m -a -x  "Mail processor is Finished !"
+
+
+

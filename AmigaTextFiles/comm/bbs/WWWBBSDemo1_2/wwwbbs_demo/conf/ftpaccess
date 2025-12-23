@@ -1,0 +1,64 @@
+# maximum number of invalid logins before disconnection
+loginfails 2
+
+# user classes
+class   local   real,guest,anonymous *.±{Domain} 0.0.0.0
+class   remote  real,guest,anonymous *
+
+# maximum number of users
+limit   local   2   Any                 AmiTCP:db/limit.msg
+limit   remote  4   SaSu|Any1800-0600   AmiTCP:db/limit.msg
+limit   remote  2   Any                 AmiTCP:db/limit.msg
+
+# displayed before login
+banner  AmiTCP:db/welcome.msg
+
+# readme messages
+readme  README  login
+readme  README  cwd=*
+
+# login messages
+message .message  login
+message .message  cwd=*
+
+# online compression and archiving
+compress        yes             local remote
+tar             yes             local remote
+
+# passwd-check  <none|trivial|rfc822>  [<enforce|warn>]
+passwd-check    none
+
+# logging
+log commands real
+log transfers anonymous,guest,real inbound,outbound
+
+# where to put the shutdown message
+shutdown AmiTCP:db/shutdown.msg
+
+# all the following default to "yes" for everybody
+delete          no      guest,anonymous         # delete permission?
+overwrite       no      guest,anonymous         # overwrite permission?
+rename          no      guest,anonymous         # rename permission?
+chmod           no      guest,anonymous         # chmod permission?
+umask           no      guest,anonymous         # umask permission?
+
+# specify the upload directory information
+upload ±{FTPDrawer} * no   nodirs
+
+# path-filter...
+path-filter  anonymous  AmiTCP:db/path.msg  ^[-A-Za-z0-9_\.]*$  ^\.  ^-
+path-filter  guest      AmiTCP:db/path.msg  ^[-A-Za-z0-9_\.]*$  ^\.  ^-
+
+# archive maintainer e-mail address
+email sysop
+
+# sessions with users from this group are setup like anonymous logins
+guestgroup guest
+
+# directories to which access is explicitly allowed
+±{FTPAllowCDAccess}allowdir CD0:       *			# allow access to CD-ROM for all users
+#allowdir Work:Text  (guest1|guest2)	# allow access to our text directory only to guest1 and guest2
+
+# no access is allowed to this directories
+#denydir SYS: ~(blaz)			# disallow access to system partition for everyone but sysop
+#denydir Work:Archive/private ftp	# disallow access to private directory by anonymous users

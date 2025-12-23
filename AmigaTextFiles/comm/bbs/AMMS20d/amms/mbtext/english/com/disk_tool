@@ -1,0 +1,545 @@
+;
+;	$VER: AMMS DISK TOOL 2.04 [English] / 01-04-1995
+;
+;	Translation by The Terminator
+;
+
+
+
+;	Known variables in the requester :
+;
+;	Var18: Number of files
+;	Var19: Number of directories
+;	Var21: Name of path
+;	Var22: ZONE req-window
+;	Var23: ZONE comment-window
+;	Var24: SETLINE infoline
+;	Var25: SETPOS infoline (col 40)
+;	Var26: SETLINE comment-window
+
+;
+; Screen of disk tool
+; -------------------
+*
+#EOFF##RESET##RELOFF##ZONEOFF##HOME##CLS#
+Files: {var18 6}Dirs: {var19 12}#FARBE 1,7# DISK TOOL V{VERSION}.{REVISION} #RESET#
+{tab 24}[h=Help]#RESET##HOME#^J
+#FARBE 7,4##INVERS# X Filename                      Length  Date    Comment                         {var24}
+                                                                                {var25}
+{limspaceon}{var21 40}#RESET#{limspaceoff}{var22}
+*
+;
+; Help: Page 1 of 4
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 1 of 4                       #RESET#^J#CLB#
+u: upload file              r: rename file         p: back to parent-directory^J
+CTRL-U: resume upload       e: change comment     CR: go into sub-directory^J
+S: search from cursor       F: search from top     d: mark file for download^J
+s: search again             f: search again        D: start download
+{var22}
+*
+; >>UP: 2.0
+; Help: Page 2 of 4
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 2 of 4                       #RESET#^J#CLB#
+t: show textfile      a: show size of all files   v: view archives^J
+T: show raw textfile  l: show transfer time       C: check archives^J
+H: show hex dump      i: show fileinfo          1-8: execute special functions^J
+h: next helppage
+{var22}
+*
+; >>UP: 2.0
+; Help: Page 3 of 4
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 3 of 4                       #RESET#^J#CLB#
+CTRL-A: toggle alpha/date sort        CTRL-T/B: first/last page^J
+CTRL-O: toggle dir/file sort          CTRL-N/L: fol./pre. page^J
+CTRL-Y: refresh screen                CTRL-XC : refresh window^J
+CTRL-D: delete file
+{var22}
+*
+;
+; Help: Page 4 of 4
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 4 of 4                       #RESET#^J#CLB#
+c: copy file                       m: move file^J
+W: save fastdir                    R: rescan directory^J
+w: save settings                 x,q: exit
+{var22}
+*
+;
+; Lines above the Requester-Window
+; -----------------------------------
+*
+3
+*
+;
+; Transfertime for Download
+; -------------------------
+;	Var8 : Size of files (bytes)
+;	Var9 : Size of files (Mbytes)
+;	Var27: Number of files
+;	Var28: Expected transfertime
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Time to transfer downloads              #RESET#^J#CLB#^J
+Number of files : {var27}^J
+Expected time   : {var28} min.^J
+Size of files   : {var9} Mbyte [{var8} bytes]
+{var22}
+*
+;
+; Dattyp: whole line
+; ------------------
+;	Var1 : X-Flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Date (xx-xx-xx)
+;	Var6 : Date (x-xx-xx)
+;	Var7 : Comment
+*
+^M#CL# {var1} {var2 28} {var3 8}{var5 9}{var7}
+*
+;
+; Dattyp2: whole line
+; -------------------
+;	Var1 : X-Flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Date (xx-xx-xx)
+;	Var6 : Date (x-xx-xx)
+;	Var7 : Comment
+*
+^M#CL#   #vfarbe 2#{var2 28}  Drawer {var5 9}{var7}#reset#
+*
+;
+; Dattyp3: whole line (delete)
+; ----------------------------
+*
+^M#CL#    <<DELETED>>
+*
+;
+; Dattyp3: whole line (no files)
+; ------------------------------
+*
+^M#CL#    N o   f i l e s
+*
+;
+; Dattyp: small line (refresh XX-flags)
+; ---------------------------------------
+;	Var1 : X-Flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Date (xx-xx-xx)
+;	Var6 : Date (x-xx-xx)
+;	Var7 : Comment
+*
+ {Var1}
+*
+;
+; Cursor
+; ------
+*
+>#LEFT#
+*
+;
+; Delete cursor
+; -------------
+*
+ 
+*
+;
+; Dateformat (Var 6)
+; ------------------
+*
+1-4-5
+*
+;
+; Dateformat (Var 7)
+; ----------------
+*
+1-3-6
+*
+;
+; Search filename
+; ---------------
+*
+#FARBE 7,4##INVERS#{var25}
+Search :                                #HFARBE 1#{var24}#RIGHT 49#
+*
+;
+; Refresh boardname
+; -----------------
+*
+#FARBE 7,4##INVERS#{var25}{limspaceon}{var21 40}#RESET#{limspaceoff}
+*
+;
+; Status (search) : FILE NOT FOUND
+; --------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File not found !                        #RESET#
+*
+;
+; Set position (edit comment)
+; ---------------------------
+*
+#VFARBE 2#^M#RIGHT 49#
+*
+;
+; Enter filename
+; --------------
+*
+#FARBE 7,4##INVERS#{var25}Name :                                  #HFARBE 1#
+{var24}#RIGHT 47#
+*
+;
+; Enter Subject
+; -------------
+*
+#FARBE 7,4##INVERS#{var25}Comment:                                #HFARBE 1#
+{var24}#RIGHT 49#
+*
+;
+; Status (import) : FILE NOT FOUND
+; --------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File not found !                        #RESET#
+*
+;
+; Leave DISK TOOL
+; ---------------
+*
+#ZONEOFF##RESET##HOME##CLS#
+*
+;
+; Question: delete file ?
+; -----------------------
+*
+#FARBE 7,4##INVERS#{var25}Delete file (y/n) ?                     {var24}#RIGHT 60#
+*
+;
+; Question: delete directory ?
+; ----------------------------
+*
+#FARBE 7,4##INVERS#{var25}Delete directory (y/n) ?                {var24}#RIGHT 65#
+*
+;
+; Start download
+; --------------
+*
+#FARBE 7,5##INVERS#{var24}Download with {limspaceon}
+{protocol 26}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Start upload
+; ------------
+*
+#FARBE 7,5##INVERS#{var24}Upload with {limspaceon}
+{protocol 28}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Start resume upload
+; -------------------
+*
+#FARBE 7,5##INVERS#{var24}Resume upload with {limspaceon}
+{protocol 21}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Status (upload,download) : FILE TRANSFERED
+; ------------------------------------------
+*
+#FARBE 7,5##INVERS#{var24}File transferred !                      #RESET#{var22}
+*
+;
+; Status (upload,download) : XPR-LIB NOT FOUND
+; --------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}XPR-library not found !                 #RESET#{var22}
+*
+;
+; Status (upload) : UPLOAD ABORTED
+; --------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Upload aborted !                        #RESET#{var22}
+*
+;
+; Status (upload) : FILE ALREADY EXISTS
+; -------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File exists !                           #RESET#{var22}
+*
+;
+; Set position (rename filename)
+; ---------------------------------
+*
+#VFARBE 5#^M#RIGHT 3#
+*
+;
+; Status : DISK ERROR
+; -------------------
+*
+#FARBE 7,1##INVERS#{var24}Error on disk ! Please contact sysop !  #RESET#
+*
+;
+; Clear output
+; ------------
+*
+#ZONEOFF##FARBE 7,1##INVERS#{var24}                                        #RESET#
+^J#CLB#{var22}
+*
+;
+; Status (download) : NO DOWNLOADS FREE
+; -------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}No downloads free !                     #RESET#
+*
+;
+; Status (download) : DOWNLOAD SKIPED
+; -----------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Downloads skipped (not enougth time) !  #RESET#
+*
+;
+; Status (download) : DOWNLOAD ABORTED
+; ------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Download aborted !                      #RESET#
+*
+;
+; Show raw text (clear screen)
+; ----------------------------
+*
+#RESET##ZONEOFF##HOME##CLS#
+*
+;
+; Show text (clear screen)
+; ------------------------
+*
+#RESET##ZONEOFF##HOME##CLS#{moreon}
+*
+;
+; Show text (wait for key)
+; ------------------------
+*
+^J^J#RESET##VFARBE 2#Press SPACE or RETURN to continue !
+*
+;
+; Size of all files
+; -----------------
+;	Var8: Size of all file (bytes)
+;	Var9: Size of all file (Mbytes)
+*
+#ZONEOFF##FARBE 7,5##INVERS#
+{var24}Size of all files ...                   #RESET#^J#CLB#^J
+Size of all files : {var9} MByte [{var8} Bytes]{var22}
+*
+;
+; Question : Keys for NO
+; ----------------------
+*
+Nn
+*
+;
+; Question : Keys for YES
+; -----------------------
+*
+YyJj
+*
+;
+; Path: Filelist
+; --------------
+*
+mbbatch:filelist/
+*
+; >>UP: 2.0
+; RunFileBatch: Clear Screen
+; --------------------------
+*
+#ZONEOFF##RESET##HOME##CLS#
+*
+; >>UP: 2.0
+; RunFileBatch: Can not find batch file
+; -------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Can't find batch file                   #RESET#
+*
+;
+; Path: Upload
+; ------------
+*
+mbbatch:upload/
+*
+; >>UP: 2.0
+; Path: Filebatch 1
+; -----------------
+*
+mbbatch:filebatch1/
+*
+;
+; Path: Filebatch 2
+; -----------------
+*
+mbbatch:filebatch2/
+*
+; >>UP: 2.0
+; Path: Filebatch 3
+; -----------------
+*
+mbbatch:filebatch3/
+*
+; >>UP: 2.0
+; Path: Filebatch 4
+; -----------------
+*
+mbbatch:filebatch4/
+*
+; >>UP: 2.0
+; RunFileBatch: STATUS OK
+; -----------------------
+*
+#FARBE 7,5##INVERS#{var24}Status : OK                             #RESET#
+*
+; >>UP: 2.0
+; RunFileBatch: STATUS ERROR
+; --------------------------
+*
+#FARBE 7,1##INVERS#{var24}Status : ERROR                          #RESET#
+*
+;
+; Path: Checkpath
+; ---------------
+*
+mbbatch:filecheck/
+*
+; >>UP: 2.0
+; Path: Filebatch 5
+; -----------------
+*
+mbbatch:filebatch5/
+*
+; >>UP: 2.0
+; Path: Filebatch 6
+; -----------------
+*
+mbbatch:filebatch6/
+*
+; >>UP: 2.0
+; Path: Filebatch 7
+; -----------------
+*
+mbbatch:filebatch7/
+*
+; >>UP: 2.0
+; Path: Filebatch 8
+; -----------------
+*
+mbbatch:filebatch8/
+*
+;
+; Name of configuration-file
+; --------------------------
+*
+{userdir}/disk_tool.cfg
+*
+;
+; Status : SAVE SETTINGS
+; ----------------------
+*
+#FARBE 7,5##INVERS#{var24}Saving settings ...                     #RESET#
+*
+;
+; Name of fastdir file
+; --------------------
+*
+.DISKTOOL
+*
+;
+; Status : SAVE FASTDIR FILE
+; --------------------------
+*
+#FARBE 7,1##INVERS#{var24}Saving FASTDIR-File ...                 #RESET#
+*
+;
+; Name of download file
+; ---------------------
+*
+{userdir}/download.dat
+*
+;
+; File-Info
+; ---------
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Date (xx-xx-xx)
+;	Var6 : Date (x-xx-xx)
+;	Var7 : Comment (max. 116 bytes)
+;	Var10: Time
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Info for file ...                       #RESET#^J#CLB#
+Filename : {var2}^J
+Length   : {var4}^J
+Date     : {var5} / {var10}^J
+Comment  : {var7}
+{var22}
+*
+;
+; COPY FILE or PATH: Enter target path
+; ------------------------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Copy file or path ...                   #RESET#^J#CLB#
+^J
+Enter target path :^J
+*
+;
+; MOVE FILE : Enter target path
+; -----------------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Moving file ...                         #RESET#^J#CLB#
+^J
+Enter target path :^J
+*
+;
+; Scanning directory
+; ------------------
+*
+#FARBE 7,1##INVERS#{var24}Scanning directory ...                  #RESET#
+*
+;
+; Question: Scan directory ?
+; --------------------------
+*
+#FARBE 7,4##INVERS#{var25}Scan directory (y/n) ?                  {var24}#RIGHT 63#
+*
+; >>ADD: 2.0
+; Prompt: Directory
+; -----------------
+*
+Directory : 
+*
+; >>ADD: 2.0
+; RENAME: File already exists
+; ---------------------------
+*
+#FARBE 7,1##INVERS#{var24}RENAME: file already exists             #RESET#
+*
+; >>ADD: 2.0
+; Path: Download
+; --------------
+*
+mbbatch:download/
+*

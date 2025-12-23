@@ -1,0 +1,170 @@
+;
+; Installer-Script Connectline
+;
+; $VER: Connectline-Install 2.0 (05.11.95)
+;
+
+(set #clexists
+(cat	"Connectline ist bereits auf Ihrem System installiert.\n\n"
+		"Möchten Sie die bestehende Installation Updaten oder "
+		"Connectline komplett neu installieren?\n\n"
+		"ACHTUNG!\n\n"
+		"Bei einer Neuinstallation gehen Ihre bestehenden Daten "
+		"komplett verloren, wenn Sie Connectline in demselben "
+		"Verzeichnis wie die alte Version installieren!"
+))
+
+(set #install-hd-msg
+(cat	"Wohin soll das Connectline-Verzeichnis "
+		"installiert werden?"
+))
+
+(set #install-hd-help
+(cat	"\nHier müssen Sie angeben, wo auf Ihrer "
+		"Festplatte das Connectline-Verzeichnis installiert werden "
+		"soll.\n\n"
+		"Das Installationsprogramm erzeugt dann in dem von Ihnen "
+		"angegebenen Verzeichnis eine neue Schublade mit dem "
+		"Namen \"Connectline\".\n\n"
+))
+
+(set #copying-setpatch
+(cat	"Fnr den ordnungsgemäßen Betrieb von Connectline ist "
+		"die Installation von SetPatch 40.16 notwendig."
+))
+
+(set #autostart
+(cat	"Soll Connectline beim Booten des Systems automatisch gestartet werden?"
+))
+
+(set #autostart-help
+(cat	"Es wird in die Datei \"S:User-Startup\" ein Assign \"CONNECTLINE:\" und das Kommando \"RUN >NIL: Connectline:CL eingefügt."
+))
+
+(set #autostart-norun
+(cat	"Es wird in die Datei \"S:User-Startup\" ein Assign \"CONNECTLINE:\" eingefügt."
+))
+
+(set #conv_pmbs
+(cat	"Möchten Sie die Daten Ihrer Prometheus-Installation konvertieren? \n"
+		"Die alten Datensätze bleiben bei der Konvertierung erhalten."
+))
+
+
+(procedure copy-setpatch
+	(copylib
+		(prompt #copying-setpatch)
+		(help @copylib-help)
+		(source "installstuff/SetPatch")
+		(dest "C:")
+		(confirm)
+	)
+)
+
+(procedure askcldir
+	(if (exists ("CONNECTLINE:" ) )
+		(if (askbool
+				(prompt #clexists)
+				(help #clexists)
+				(default 0)
+				(choices "Update" "Neuinstallation" )
+			)
+			(set update_mode 1)
+		)
+	)
+	(if (= 0 update_mode )
+		(
+			(set default-dest
+				(askdir
+					(prompt #install-hd-msg)
+					(help #install-hd-help)
+					(default @default-dest)
+				)
+			)
+			(set @default-dest
+				(tackon default-dest "Connectline")
+			)
+			(makedir @default-dest
+				(infos)
+			)
+		)
+		(set @default-dest "Connectline:")
+	)
+)
+
+(procedure copycl
+	(copyfiles
+		(source "Connectline/")
+		(dest @default-dest)
+		(pattern "~(Prefs|Online|Log)")
+		(prompt "Kopiere Connectline-Module" )
+		(help @copyfiles-help)
+		(confirm)
+		(infos)
+	)
+	(complete 80)
+	(if (= 0 update_mode )
+		(copyfiles
+			(source "Connectline/")
+			(dest @default-dest)
+			(pattern "(Prefs|Online)")
+			(prompt "Kopiere Connectline-Beispielkonfiguration" )
+			(help @copyfiles-help)
+			(confirm)
+			(infos)
+		)
+	)
+)
+
+(procedure askautostart
+	(if (askbool
+			(prompt #autostart)
+			(help #autostart-help)
+			(default 0)
+			(choices "Automatisch starten" "Nicht automatisch starten" )
+		)
+		(startup "Connectline" 
+			(prompt #autostart-help)
+			(help #autostart-help)
+			(command ("Assign Connectline: \"%s\"\nRun >NIL: Connectline:CL" @default-dest ) ) 
+		)
+		(startup "Connectline"
+			(prompt #autostart-norun)
+			(help #autostart-help)
+			(command ("Assign Connectline: \"%s\"" @default-dest ) )
+		)
+	)
+)
+
+(procedure checkprometheus
+	(if (exists ("PROMETHEUS:" ) )
+		(if (askbool
+				(prompt #conv_pmbs)
+				(help #conv_pmbs)
+				(default 0)
+				(choices "Konvertieren" "Nicht konvertieren" )
+			)
+		)
+		(
+			(makeassign "Connectline" @default-dir)
+			(run "installstuff/pmbs2cl")
+		)
+	)
+)
+
+
+;
+;
+; GO!
+;
+;
+
+(complete 0)
+(askcldir)
+(complete 1)
+(copycl)
+(complete 85)
+(askautostart)
+(complete 90)
+(copy-setpatch)
+(complete 100)

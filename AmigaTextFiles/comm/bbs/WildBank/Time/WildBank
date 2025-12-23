@@ -1,0 +1,728 @@
+/************************************************************************/
+/*                      WILD-BANK v1.5                                  */
+/*                      (c) Copyright 1990  Party Master                */
+/*                      BBS: Amiga Wildlife - 519-743-3640              */
+/************************************************************************/
+
+options results
+signal on error
+signal on syntax
+signal on ioerr
+signal on halt
+
+if ~show('L','rexxsupport.library') then address command 'c:loadlib libs:rexxsupport.library'
+if ~show('l','rexxsupport.library') then call addlib('rexxsupport.library',0,-30)
+
+getuser 1
+e.1=result
+getuser 41
+e.2=result
+getuser 12
+e.3=left(result,15)
+getuser 17
+e.5=result
+getuser 15
+e.7=result
+version = "v1.5 (c) 1990 Party Master"
+acc=e.7
+config='Doors:Time/WildBankUser'acc'.config'
+
+p.1=100
+p.2=30
+p.3=30
+p.4=10
+p.5=30
+p.6=5
+p.7='Y'
+p.8=''
+g.1='Doors:Time/Time/'
+g.2='Doors:Time/WildBank.LOG'
+g.3='EA'
+g.4='Doors:Time/WildBankGames/'
+g.5='NONE'g.6='60'g.7=''
+l.1='Y'
+l.2='Y'
+l.3='Y'
+l.4='Y'
+l.5='Y'
+l.6='Y'
+l.7='Y'
+l.8='Y'
+l.9='Y'
+l.10='Y'
+l.11='Y'
+l.12='Y'
+l.13='Y'
+l.14=''
+
+if ~exists(config) then acc=''
+if ~exists('Doors:Time/WildBankUser.config') then call USERSETUP
+if ~exists('Doors:Time/WildBankSys.config') then call SYSSETUP
+if ~exists('Doors:Time/WildBankLog.config') then call LOGSETUP
+config='Doors:Time/WildBankUser'||acc||'.config'
+
+call open(file,config,'R')
+do x=1 until EOF(file)
+ p.x=readln(file)
+end
+call close(file)
+
+call open(file,'Doors:Time/WildBankSys.config','R')
+do x=1 until EOF(file)
+ g.x=readln(file)
+end
+call close(file)
+if g.5="" then g.5="NONE"
+if g.6="Y" | g.6="N" | g.6="" then g.6="60"
+
+call open(file,'Doors:Time/WildBankLog.config','R')
+do x=1 until EOF(file)
+ l.x=readln(file)
+end
+call close(file)
+if l.13='' then l.13='Y'
+
+e.4=g.1||e.2||'.BANK'
+
+if ~EXISTS(g.1) then call makedir(left(g.1,length(g.1)-1))
+
+if ~EXISTS(e.4) then do
+ transmit "A new account! Please wait while I get you setup...\w2"
+ u.1=e.3
+ do x=2 to 5
+  u.x=0
+ end
+ mess="A new account was started for:" e.1 "("e.2")"
+if l.1='Y' then call LG
+ call STORETIME
+end
+
+mess=e.1 "("e.2") entered the Wild-Bank."
+if l.2='Y' then call LG
+call OPEN(file,e.4,'R')
+do x=1 to 5
+ u.x = readln(file)
+end
+call CLOSE(file)
+
+if u.1~=e.3 then do x=3 to 5
+ u.x = 0
+end
+
+if ~EXISTS(g.4) then call makedir(left(g.4,length(g.4)-1))
+files=showdir(g.4,'F')
+do f=1 until file.f=''
+ parse var files file.f files
+end
+f=f-1
+
+MAINMENU:
+do forever
+ getuser 7
+ e.6=result
+ if e.6<p.6 & u.2=0 then do
+  transmit "\C2You only have\C7" e.6 "\C2minutes left. You may not continue using Wild-Bank.\Q1"
+  call BYEBYE
+ end
+ transmit "\F1\C7\N1   \\    /\n1    \\/\\/\C2ILD-BANK "version"\n2       \C4Main Menu\n1\Q1"
+ if e.6>p.6 & p.1-u.2>0 & p.2-u.3>0 then do
+  sendstring "\C2 D \C4= \C7Deposit time \Q1"
+  if p.1-u.2 > p.2-u.3 then do
+   if e.6-p.6 > p.2-u.3 then transmit "\C3(max\C4" p.2-u.3"\C3)\Q1"
+   if e.6-p.6 ~> p.2-u.3 then transmit "\C3(max\C4" e.6-p.6"\C3)\Q1"
+  end
+  if p.1-u.2 ~> p.2-u.3 then do
+   if e.6-p.6 > p.1-u.2 then transmit "\C3(max\C4" p.1-u.2"\C3)\Q1"
+   if e.6-p.6 ~> p.1-u.2 then transmit "\C3(max\C4" e.6-p.6"\C3)\Q1"
+  end
+ end
+ if u.2>0 & p.3-u.4>0 then do
+  sendstring "\C2 W \C4=\C7 Withdraw time \Q1"
+  if u.2 > p.3-u.4 then transmit "\C3(max\C4" p.3-u.4"\C3)\Q1"
+  if u.2 ~> p.3-u.4 then transmit "\C3(max\C4" u.2"\C3)\Q1"
+ end
+ if u.5 < p.5 & e.6-p.6>0 then do
+  if p.7='Y' then transmit "\C2 G \C4= \C7Gamble your online time\Q1"
+ end
+ transmit "\C2 V \C4= \C7View your account\Q1"
+ if e.7=23 then transmit "\C2 M \C4= \C7Maintenance\Q1"
+ transmit "\C2 Q \C4= \C7Quit Wild-Bank\Q1"
+ sendstring "\C3\n1Choice: \Q1" 
+ getchar 
+ choice = upper(result)
+ if choice = "###PANIC" then exit
+ if choice = 'Q' then call BYEBYE
+ if e.6>p.6 & p.1-u.2 > 0 & p.2-u.3 > 0 & choice = 'D' then do
+  transmit "Deposit"
+  call ADDTIME
+ end
+ if u.2 > 0 & p.3-u.4>0 & choice = 'W' then do
+  transmit "Withdraw"
+  call GETTIME
+ end
+ if u.5 < p.5 & p.7='Y' & choice = 'G' & e.6-p.6>0 then do
+  transmit "Gamble"
+  call GAMBLE
+ end
+ if choice = 'V' then do
+  transmit "View Account"
+  call VIEWACC
+ end
+ if choice = 'M' & e.7 = 23 then do
+  transmit "Maintenance"
+  call MAINTENANCE
+ end
+end
+
+BYEBYE:
+transmit "Quit"
+mess=e.1 "("e.2") left the Wild-Bank."
+if l.3='Y' then call LG
+call STORETIME
+exit
+
+LG:
+if upper(g.2)='NONE' then return
+signal off error
+if ~exists(g.2) then do
+ call open(logfile,g.2,'W')
+ call close(logfile)
+end
+call open(logfile,g.2,'A')
+getuser 12
+dt=" "||substr(result,5,6)||substr(result,16,7)
+call writeln(logfile,dt": "mess)
+call close(logfile)
+signal on error
+return
+
+MAINTENANCE:
+if g.5~="NONE" then do
+ Query "\C2Password:\C7 "
+ if upper(result)~=g.5 then do
+  mess=e.1 "("e.2") entered an incorrect maintenance password."
+if l.9='Y' then call LG
+  return
+ end
+end
+do forever
+ transmit "\F1\C7\N1   \\    /\n1    \\/\\/\C2ILD-BANK "version"\n2       \C4Maintenance\n1\Q1"
+ transmit "\C2 E \C4= \C7Edit a Bank account\Q1"
+ transmit "\C2 B \C4= \C7Edit a BBS account\Q1"
+ transmit "\C2 P \C4= \C7Purge inactive accounts\Q1"
+ transmit "\C2 S \C4= \C7System Configuration setup\Q1"
+ transmit "\C2 U \C4= \C7User Configuration setup\Q1"
+ transmit "\C2 L \C4= \C7Log Configuration setup\Q1"
+ transmit "\C2 V \C4= \C7View transaction log\Q1"
+ transmit "\C2 Q \C4= \C7Quit to Main menu\Q1"
+ sendstring "\n1\C3Choice:\Q1 "
+ getchar
+ choice=result
+ select
+  when choice='###PANIC' then exit
+  when choice='E' then do
+   transmit "Edit Bank Account"
+   call EDIT
+  end
+  when choice='B' then do
+   transmit "Edit BBS Account"
+   call EDITBBS
+  end
+  when choice='P' then do
+   sendstring "Purge accounts.\n2Users who have not used their account in the last" g.6 "days will be deleted.\n1Your current system date is \v0.\n2Go ahead with operation (y/N)? "
+   getchar
+   if upper(result)='Y' then call PURGE
+  end
+  when choice='S' then do
+   transmit "System Setup"
+   call SYSSETUP
+  end
+  when choice='U' then do a=1
+   transmit "User Setup"
+   do until acc~<0 & acc~>23
+    Query "\n2\c2User Configuration access level to edit \C4(\C3Q\C4=\C3Quit\C4) \C4(\C30\C4-\C323\C4,\C3D\C4=\C3Default\C4)\C2:\Q1 "
+    acc=result
+    if acc="###PANIC" then exit
+    if upper(acc)='D' then leave
+    if upper(acc)='Q' then leave a
+   end
+   if upper(acc)='D' then acc=''
+   call USERSETUP
+  end
+  when choice='L' then do
+   transmit "Log Setup"
+   call LOGSETUP
+  end
+  when choice='V' then do
+   transmit "Bank Log"
+   call LOG
+  end
+  when choice='Q' then do
+   transmit "Quit"
+   return
+  end
+  otherwise
+ end
+end
+
+PURGE:
+transmit "\n1"
+files=showdir(g.1,'F')
+do until files=""
+ do until right(account,5)=".BANK"
+  parse var files account files
+ end
+ ID=translate(account,' ','.')
+ ID=subword(ID,1,1)
+ call open(file,g.1||account,'R')
+ lastuse=readln(file)
+ call close(file)
+ day=substr(lastuse,5,2)
+ day=translate(day,0," ")
+ month=substr(lastuse,8,3)
+ year=substr(lastuse,12,4)
+ if month='Jan' then month=01
+ if month='Feb' then month=02
+ if month='Mar' then month=03
+ if month='Apr' then month=04
+ if month='May' then month=05
+ if month='Jun' then month=06
+ if month='Jul' then month=07
+ if month='Aug' then month=08
+ if month='Sep' then month=09
+ if month='Oct' then month=10
+ if month='Nov' then month=11
+ if month='Dec' then month=12
+ lastuse=year||month||day
+ lastuse=date('b',lastuse,'S')
+ now=date('B',date('s'),'S')
+ if now-lastuse>g.6 then do
+  mess="Account "ID" was purged using Maintenance."
+if l.13='Y' then call LG
+  transmit "Account "ID" was purged."
+  call delete(g.1||account)
+ end
+end
+transmit "\n1Hit enter: \g1"
+return
+
+EDIT:
+do a=1
+ Query "\n2\C2User's serial ID number to edit:\Q1 "
+ ID=result
+ if ID="###PANIC" then exit
+ editfile=g.1||ID||'.BANK'
+ if exists(editfile) then leave
+ if ID='' then return
+ Query "\n1\C7That user does not have an account! \C2Do you wish to open one \C3(\C4y\C3/\C4N\C3)\C2?\Q1 "
+ if upper(result)='Y' then do
+  mess=e.1 "("e.2") opened a new account ("ID") using Maintenance."
+if l.4='Y' then call LG
+  signal off error
+  call OPEN(file,editfile,'W')
+  writeln(file,e.3)
+  do x=2 to 5
+   writeln(file,'0')
+  end
+  call CLOSE(file)
+  signal on error
+  leave a
+ end
+ return
+end
+call open(file,editfile,'R')
+do x=1 to 5
+ eu.x = readln(file)
+end
+call close(file)
+do forever
+ transmit "\f1     \C7User ID:\C5" ID
+ transmit "\n1 \C21 \C4= \C7Last use                  :\C5" eu.1
+ transmit " \C22 \C4= \C7Time in bank              :\C5" eu.2
+ transmit " \C23 \C4= \C7Time deposited on last use:\C5" eu.3
+ transmit " \C24 \C4= \C7Time withdrawn on last use:\C5" eu.4
+ transmit " \C25 \C4= \C7Time won on last use      :\C5" eu.5
+ transmit "\n1 \C2S \C4= \C7Save the changes\Q1"
+ transmit " \C2Q \C4= \C7Quit the editing\Q1"
+ sendstring "\n1\C3Choice:\Q1 "
+ getchar
+ choice=upper(result)
+ if choice = "###PANIC" then exit
+ if choice='1' then do
+  sendstring "\n2\C2Change last use date to today's date \C3(\C4y\C3/\C4N\C3)\C2?\Q1 "
+  getchar
+  if result='Y' then eu.1=e.3
+ end
+ if choice='2' then do
+  Query "\n2\C2Time in bank \C3(\C4"eu.2"\C3)\C2:\Q1 "
+  if result~="" & datatype(result)='NUM' then eu.2=result
+ end
+ if choice='3' then do
+  Query "\n2\C2Time deposited on last use \C3(\C4"eu.3"\C3)\C2:\Q1 "
+  if result~="" & datatype(result)='NUM' then eu.3=result
+ end
+ if choice='4' then do
+  Query "\n2\C2Time withdrawn on last use \C3(\C4"eu.4"\C3)\C2:\Q1 "
+  if result~="" & datatype(result)='NUM' then eu.4=result
+ end
+ if choice='5' then do
+  Query "\n2\C2Time won on last use \C3(\C4"eu.5"\C3)\C2:\Q1 "
+  if result~="" & datatype(result)='NUM' then eu.5=result
+ end
+ if choice='S' then do
+  transmit "Save"
+  mess=e.1 "("e.2") changed an account ("ID") using Maintenance."
+if l.5='Y' then call LG
+  signal off error
+  call OPEN(file,editfile,'W')
+  do x=1 to 5
+   writeln(file,eu.x)
+   if ID=e.2 then u.x=eu.x
+  end
+  call CLOSE(file)
+  signal on error
+ end
+ if choice='Q' then do
+  transmit "Quit"
+  return
+ end
+end
+
+EDITBBS:
+sendstring "\n1"
+bbscommand g.3
+return
+
+
+LOG:
+if ~exists(g.2) then do
+ sendstring "\n2(log is empty)  Hit enter:\g1"
+ return
+end
+transmit "\f1"
+sendfile g.2
+sendstring "\n1Restart log? "
+getchar
+if upper(result)='Y' then do
+ transmit "Yes"
+ call delete(g.2)
+end
+else transmit "No"
+return
+
+VIEWACC:
+getuser 7
+e.6=result
+transmit "\F1\C2BANK ACCOUNT FOR \C7\v2 \C2- AS OF \C3\v0\n1\Q1"
+transmit "\C5Time remaining this call: \C4\vc minutes\Q1"
+transmit "\C5            Time in bank:\C4" u.2 "minutes\Q1"
+transmit "\C5         Maximum in bank:\C4" p.1 "minutes\Q1"
+sendstring "\C5             May deposit:\C4 "
+select
+ when p.1-u.2>p.2-u.3 then do
+  if e.6-p.6 > p.2-u.3 then transmit p.2-u.3 "minutes\Q1"
+  if e.6-p.6 ~> p.2-u.3 then transmit e.6-p.6 "minutes\Q1"
+ end
+ when p.1-u.2~>p.2-u.3 then do
+  if e.6-p.6 > p.1-u.2 then transmit p.1-u.2 "minutes\Q1"
+  if e.6-p.6 ~> p.1-u.2 then transmit e.6-p.6 "minutes\Q1"
+ end
+ otherwise
+end
+sendstring "\C5            May withdraw:\C4 "
+select
+ when p.3-u.4~<u.2 then do
+  if u.2>0 then transmit u.2 "minutes.\Q1"
+  if u.2<1 then transmit "0 minutes\Q1"
+ end
+ when p.3-u.4<u.2 then do
+  if p.3-u.4>0 then transmit p.3 - u.4 "minutes.\Q1"
+  if p.3-u.4<1 then transmit "0 minutes\Q1"
+ end
+ otherwise
+end
+if p.7='Y' then do
+ sendstring "\C5         Gambling status:\C4"
+ if u.5>p.5 & e.6-p.6>0 then transmit " May not gamble again today."
+ if u.5~>p.5 & e.6-p.6>0 then transmit " May gamble today."
+ if e.6-p.6~>0 then transmit " Not enough time left to Gamble."
+end
+sendstring "\C2\n1Hit RETURN:\Q1\g1"
+return
+
+ADDTIME:
+do a=1
+ getuser 7
+ e.6=result
+ if e.6<p.6 then return
+ query "\C2\n2How much time (Q=Quit)? \Q1"
+ amounttoadd=upper(result)
+ getuser 7
+ e.6=result
+ select
+  when amounttoadd="###PANIC" then exit
+  when amounttoadd='Q' then return
+  when amounttoadd>e.6-p.6 then transmit "\C7\n2You only have enough time left to deposit\C4" e.6-p.6 "\C7minutes.\Q1"
+  when p.1-u.2~>p.2-u.3 & amounttoadd>p.1-u.2 then do
+   if p.1-u.2>0 then transmit "\C7\n2Your bank account can only hold\C4" p.1-u.2 "\C7more minutes!\Q1"
+   if p.1-u.2<1 then transmit "\C7\n2Your bank account is full!\Q1"
+  end
+  when p.1-u.2>p.2-u.3 & amounttoadd>p.2-u.3 then do
+   if p.2-u.3>0 then transmit "\C7\n2You may only deposit\C4" p.2-u.3 "\C7more minutes today!\Q1"
+   if p.2-u.3<1 then transmit "\C7\n2You may not deposit any more time today.\Q1"
+  end
+  when amounttoadd<1 then transmit "\C7\n2Please enter a positive amount.\Q1"
+  otherwise leave a
+ end
+end
+addtime 0-amounttoadd
+u.2=u.2+amounttoadd
+u.3=u.3+amounttoadd
+u.4=u.4-amounttoadd
+if u.4<0 then u.4=0
+mess=e.1 "("e.2") deposited" amounttoadd" minutes." u.2 "total in bank."
+if l.6='Y' then call LG
+call STORETIME
+return
+
+GETTIME:
+do a=1
+ Query "\C2\n2How much time (Q=quit)? \Q1";amounttoget=upper(result)
+ select
+  when amounttoget="###PANIC" then exit
+  when amounttoget='Q' then return
+  when p.3-u.4~<u.2 & amounttoget>u.2 then do
+   if u.2>0 then transmit "\C7\n2You only have\C4" u.2 "\C7minutes in the bank!\Q1"
+   if u.2<1 then transmit "\C7\n2You don't have any time in the bank!\Q1"
+  end
+  when p.3-u.4<u.2 & amounttoget>p.3-u.4 then do
+   if p.3-u.4>0 then transmit "\C7\n2You may only withdraw\C4" p.3 - u.4 "\C7minutes today!\Q1"
+   if p.3-u.4<1 then transmit "\C7\n2You may not withdraw anymore time today!\Q1"
+  end
+  when amounttoget<1 then transmit "\C7\n2Please enter a positive amount.\Q1"
+  otherwise leave a
+ end
+end
+addtime amounttoget
+u.2=u.2-amounttoget
+u.3=u.3-amounttoget
+u.4=u.4+amounttoget
+mess=e.1 "("e.2") withdrew" amounttoget" minutes." u.2 "total in bank.";if l.7='Y' then call LG
+call STORETIME
+return
+
+GAMBLE:
+do forever
+ getuser 7;e.6 = result
+ if e.6<p.6 then return
+ if u.5>p.5 then do
+  sendstring "\F1\C2\n2You have won too much already. Hit enter to go back to the Main menu:\Q1\g1"
+  return
+ end
+ transmit "\F1\C7\N1   \\    /\n1    \\/\\/\C2ILD-BANK "version"\n2       \C4Gambling!!\n1\Q1"
+ do x=1 to f
+  transmit "\C2" x "\C4= \C7"||file.x||"\Q1"
+ end
+ transmit "\C2 Q \C4= \C7Quit to Main Menu\Q1"
+ sendstring "\C3\n1Choice: \Q1" ; getchar ; choice = result
+ if choice = "###PANIC" then exit
+ if choice = 'Q' then do
+  transmit "Quit"
+  return
+ end
+ if choice~<1 & choice~>f then do forever
+  transmit "\F1\C2\n1                             ***** \C7"file.choice "\C2*****\n1\Q1"
+  call BET
+  if bet='Q' then leave
+  call setclip('bet',bet)
+  mess=e.1 "("e.2") bet" bet" on" file.choice "and ...";if l.8='Y' then call LG
+  call setclip('gameresult','')
+  spawn g.4||file.choice
+  do until getclip('gameresult')~=""
+   call delay(150)
+  end
+  winlose=getclip('gameresult')
+  if winlose='error' then exit
+  call GAMBLEEND
+  if choice="Q" then return
+  getuser 7;e.6 = result
+  if e.6<p.6 then leave
+  sendstring "\C3\n2Continue" file.choice "\C2(\C7Y\C2/\C7n\C2)\C3?\Q1 "
+  getchar
+  if upper(result)='N' then leave
+ end
+end
+
+BET:
+getuser 7 ; e.6 = result
+if e.6 < p.6 then return
+do a=1
+ if e.6-p.6<p.4 then Query "\C3How many minutes do you wish to bet (Q=quit) (max\C7" e.6-p.6"\C3)? \Q1"
+ if e.6-p.6~<p.4 then Query "\C3How many minutes do you wish to bet (Q=quit) (max\C7" p.4"\C3)? \Q1"
+ bet=upper(result)
+ if bet="###PANIC" then exit
+ getuser 7;e.6 = result
+ select
+  when bet="" then nop
+  when bet='Q' then leave a
+  when bet>p.4 then transmit "\C7\n2You may only bet a maximum of\C4" p.4 "\C7minutes.\n2\Q1"
+  when bet>e.6-p.6 then transmit "\C7\n2You may only bet a maximum of\C4" e.6-p.6 "\C7minutes.\n2\Q1"
+  when bet<1 then transmit "\C7\n2Please make a positive bet.\n2\Q1"
+  otherwise leave a
+ end
+end
+return
+
+GAMBLEEND:
+if winlose = 'loser' then do
+ mess=" ... Lost!";if l.8='Y' then call LG
+ if bet = 1 then transmit "\C7\n2You lose \C41\C7 minute!!!\Q1"
+ if bet > 1 then transmit "\C7\n2You lose\C4" bet "\C7minutes!!!\Q1"
+ addtime 0-bet
+ u.5=u.5-bet
+ if u.5<0 then u.5=0
+end
+if winlose = 'winner' then do
+ mess=" ... Won!";if l.8='Y' then call LG
+ if bet = 1 then transmit "\C7\n2You win \C41\C7 minute!\Q1"
+ if bet > 1 then transmit "\C7\n2You win\C4" bet "\C7minutes!\Q1"
+ if p.5<bet+u.5 then do
+  mess=e.1 "("e.2") Won too much time!";if l.8='Y' then call LG
+  transmit "\C3\n2The management is suspicious of your winning streak. They kick you out of the Casino. You may not gamble again today. Hit enter.\Q1\g1"
+  u.5 = p.5+1
+  call STORETIME
+  choice="Q"
+  return
+ end
+ addtime bet
+ u.5 = u.5 + bet
+end
+call STORETIME
+return
+
+STORETIME:
+signal off error
+call OPEN(file,e.4,'W')
+writeln(file,e.3)
+do x=2 to 5
+ writeln(file,u.x)
+end
+call CLOSE(file)
+signal on error
+return
+
+USERSETUP:
+if e.7~=23 then do
+ transmit "Please ask the SYSOP to create the user configuration file."
+ exit
+end
+sendstring "\n2USER CONFIGURATION SETUP FOR ACCESS LEVEL: "
+if acc='' then transmit "Default\n1"
+else transmit acc "\n1"
+config='Doors:Time/WildBankUser'||acc||'.config'
+if exists(config) then do
+ call open(file,config,'R')
+ do x=1 until EOF(file)
+  ep.x=readln(file)
+ end
+ call close(file)
+end
+if ~exists(config) then do
+ ep.1=100;ep.2=30;ep.3=30;ep.4=10;ep.5=30;ep.6=5;ep.7='Y';ep.8=''
+end
+Query "Maximum minutes allowed in the bank for each user ("ep.1"): "
+if datatype(result,'N')=1 then ep.1=result
+Query "Maximum minutes a user can deposit per day ("ep.2"): "
+if datatype(result,'N')=1 then ep.2=result
+Query "Maximum minutes a user can withdraw per day ("ep.3"): "
+if datatype(result,'N')=1 then ep.3=result
+Query "Maximum minutes a user can bet at one time ("ep.4"): "
+if datatype(result,'N')=1 then ep.4=result
+Query "Maximum minutes a user can win from gambling per day ("ep.5"): "
+if datatype(result,'N')=1 then ep.5=result
+Query "Minimum online time remaining a user needs to use the bank ("ep.6"): "
+if datatype(result,'N')=1 then ep.6=result
+sendstring "Allow Gambling ("ep.7")? ";getchar;select;when result<0 then nop;when upper(result)="Y" then ep.7="Y";otherwise ep.7="N";end
+call open(file,config,'W')
+do x=1 until p.x=''
+ call writeln(file,ep.x)
+end
+call close(file)
+if acc='' then do;mess=e.1 "("e.2") setup user config for level: default.";if l.10='Y' then call LG;end
+else do;mess=e.1 "("e.2") setup user config for level:" acc".";if l.10='Y' then call LG;end
+return
+
+SYSSETUP:
+if e.7~=23 then do
+ transmit "Please ask the SYSOP to create the system configuration file."
+ exit
+end
+transmit "\n2SYSTEM CONFIGURATION SETUP\n1"
+Query "Pathname for time data files ("g.1")? "
+if result~="" then g.1=result
+Query "Pathname for transaction log ('none'=disable log) ("g.2")? "
+if result~="" then g.2=result
+Query "BBS Command for Editing a User's Account ("g.3")? "
+if result~="" then g.3=result
+Query "Pathname for external gambling games ("g.4")? "
+if result~="" then g.4=result
+Query "Password for Maintenance ('none'=no password) ("g.5")? "
+if result~="" then g.5=upper(result)
+Query "Number of inactive days before accounts are purged ("g.6"): "
+if result~="" then g.6=upper(result)
+call open(file,'Doors:Time/WildBankSys.config','W')
+do x=1 until g.x=''
+ call writeln(file,g.x)
+end
+call close(file)
+mess=e.1 "("e.2") setup system config.";if l.11='Y' then call LG
+return
+
+LOGSETUP:
+if e.7~=23 then do
+ transmit "Please ask the SYSOP to create the log configuration file."
+ exit
+end
+transmit "\n2LOG CONFIGURATION SETUP\n1"
+sendstring "Log New Accounts ("l.1")? "                                ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.1 ="Y";otherwise l.1 ="N";end
+sendstring "\n1Log Users Entering Wild-Bank ("l.2")? "                 ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.2 ="Y";otherwise l.2 ="N";end
+sendstring "\n1Log Users Leaving Wild-Bank ("l.3")? "                  ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.3 ="Y";otherwise l.3 ="N";end
+sendstring "\n1Log Maintenance - Opening a new account ("l.4")? "      ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.4 ="Y";otherwise l.4 ="N";end
+sendstring "\n1Log Maintenance - Editing a bank account ("l.5")? "     ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.5 ="Y";otherwise l.5 ="N";end
+sendstring "\n1Log Depositing Time ("l.6")? "                          ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.6 ="Y";otherwise l.6 ="N";end
+sendstring "\n1Log Withdrawing Time ("l.7")? "                         ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.7 ="Y";otherwise l.7 ="N";end
+sendstring "\n1Log Gambling (Wins, Losses, Games Played etc) ("l.8")? ";getchar;select;when result<0 then nop;when upper(result)="Y" then l.8 ="Y";otherwise l.8 ="N";end
+sendstring "\n1Log Wrong Maintenance Passwords ("l.9")? "              ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.9 ="Y";otherwise l.9 ="N";end
+sendstring "\n1Log Maintenance - Setup User Config ("l.10")? "         ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.10="Y";otherwise l.10="N";end
+sendstring "\n1Log Maintenance - Setup System Config ("l.11")? "       ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.11="Y";otherwise l.11="N";end
+sendstring "\n1Log Maintenance - Setup Log Config ("l.12")? "          ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.12="Y";otherwise l.12="N";end
+sendstring "\n1Log Maintenance - User purging ("l.13")? "              ;getchar;select;when result<0 then nop;when upper(result)="Y" then l.13="Y";otherwise l.13="N";end
+call open(file,'Doors:Time/WildBankLog.config','W')
+do x=1 until l.x=''
+ call writeln(file,l.x)
+end
+call close(file)
+mess=e.1 "("e.2") setup log config.";if l.12='Y' then call LG
+return
+
+HALT:
+transmit '\n1AREXX HALT issued by Sysop, Wild-Bank aborted...\n1'
+exit
+IOERR:
+transmit 'An I/O Error has occured.  Please inform the Sysop.'
+transmit 'Line:' SIGL
+logentry '\C2IO Error occured in \C7Wild-Bank\Q1'
+logentry '      \C4Line:\C3' SIGL '\Q1'
+exit
+ERROR:
+transmit 'An Error has occured.  Please inform the Sysop.'
+transmit 'Line:' SIGL '   Severity:' RC
+logentry '\C2Error occured in \C7Wild-Bank\Q1' 
+logentry '      \C4Line:\C3' SIGL '\C4   Severity:\C3' RC '\Q1'
+exit
+SYNTAX:
+transmit 'A Syntax Error has occured.  Please inform the Sysop.'
+transmit 'Line:' SIGL '   Severity:' RC
+logentry '\C2Syntax Error occured in \C7Wild-Bank\Q1'
+logentry '      \C4Line:\C3' SIGL '\C4   Error Code:\C3' RC '\Q1'
+exit

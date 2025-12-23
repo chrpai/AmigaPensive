@@ -1,0 +1,191 @@
+CNet PRO 3.05C	10-February-1994
+
+This release consists primarily of fixes for reported bugs.  There are
+several new and important features, however.
+
+Bugs reported and removed:
+==========================
+
+.	Pfiles were unable to turn off word wrapping or More?
+.	A problem with "short dates" in FIDO messages was fixed.  The
+	Fido specs dictate a 20 character date field.  Some mailers
+	(eg DLG) produce 16 or 18 character dates.
+.	CNet didn't ask for a subject when feedback was routed to the
+	sysop's mailbox.
+.	After using the "local mode" pull down menu option, the history
+	buffer (cursor up and down) was not cleared.
+.	In Join, after receiving an OLM, the next text was indented.
+.	When quoting in the editor, changing the response number, and
+	quoting again, CNet would read from the "new" response number
+	even when you asked for the original.
+.	Uploading to a direct exchange subboard would result in a GURU
+	crash (sometimes).
+.	Toss AREAFIX response messages contained incorrect formatting,
+	resulting in "blank" messages on the reader side.
+.	"Browse" in local mode used the screen-height as reported by ET
+	instead of the auto-calculated screen height.
+.	The subboard MOVE command allowed sub-operators to see ALL
+	subboards regardless of access.
+.	Carrier was not checked during draw-ed play-back.  A potential
+	crash problem was also removed with draw-ed.
+.	If BBS was ran too soon after control was ran, a GURU was
+	encountered when BBS was shut down.
+.	"No MCI" subboards now strip MCI from signatures.
+.	A crash problem with network aliases was resolved.
+.	If a user connected with CallerID, but did not logon to the BBS,
+	the sysop would inherit the user's phone number if he did a TAB
+	logon.
+.	IUUMAIL did not strip MCI from titles, to, or from fields.
+.	It was possible to launch multiple instances of TOSS.
+.	Setting access restrictions on BBSMENU commands failed to reset
+	the command for the "unknown command" warning.
+.	Users were allowed to MV mail which was already received.
+.	TermLink's input field was too small for 115,200 baud.
+.	Zone gate routed messages did not contain the gate's address
+	in the header.
+.	ANSI scrolling did not work from mail read.
+.	After using "local mode" and changing the screen size or colors,
+	local mode was ghosted.
+.	After a user used the EP command to change his DATA phone number,
+	the user "pointers" became corrupted.
+.	User pointers may have become corrupted or corrupt other memory
+	if the maximum number of user accounts was reached.
+.	When killing a VOTE topic, the subdirectory of the vote item was
+	not killed.
+.	IUUNEWS did not import new messages unless there were two or more.
+.	The spelling checker had trouble with lines beginning with non-
+	alphabetic characters.
+.	It was possible to recurse several commands which should not
+	have been recursable.
+.	From feedback at logoff, using the "WHO" bbs command would only
+	display the WHO header.
+.	From feedback at re-logon, using ANY bbs command would cancel the
+	re-logon, and simply log you off.
+.	On the CONFIG "events..." screen, the TAB key would not move
+	through the fields in order.
+.	The .E and .K line editor commands would not accept '.' at the
+	first column.
+.	The "G" command from mail-read would only accept groups 0-23.
+.	A bug was removed with the replacement of mispelled words with
+	other mispelled words.
+.	When editing mail using the MV command, and using MCI read
+	(or Preview) header information from other messages was sometimes
+	shown.
+ 
+Other bugs reported:
+====================
+
+.	When sending mail to one network, another network's tag lines
+	and address were used instead.  This was caused by overlapping
+	ZONES in the CONFIG "Fido-Net..." screen.  Make sure each domain's
+	set of ZONES do not intersect.
+.	After selecting files, SS reports different descriptions.  The
+	download counters of different items are incremented.  Reply
+	from mail is unable to locate an item.  Download notification
+	mail had the wrong filename or filesize.  These are all related,
+	and are caused when the subboard "last item" counter (on the EL
+	screen) becomes	re-set to a lower value than was previously used.
+	This could be caused by keeping SYSDATA: in RAM:, for example,
+	and having the system GURU or reset before saving it to disk.  It
+	could also occur if you must RESTORE SYSDATA: from a backup, and
+	have NEWER messages posted.  The subboard RR command has been
+	changed to RECOGNIZE duplicate item numbers, and to correct this
+	problem.
+.	When changing a user's access group and expiration date at the
+	same time, the expiration date change is lost.  This occurs because
+	CNet first detects the change in access group, and sets the user's
+	expiration date to match the new group's expiration date default.
+	There is no fix for this conflict at this time.
+.	CNet will not recognize network aliases when using the MAIL
+	command.  This is because there is a typo in the manual.  You
+	must follow the network alias with a "@" symbol.  MAIL KEN@
+	will first search your network aliases for KEN.
+.	If you cover the "CNet License" window with another, and then
+	reveal it, the information is "gone."  CNet does not have time to
+	respond to window update requests while it is busy loading your
+	configuration files.  If you want to read it, leave the window
+	where it is.
+
+New Features:
+=============
+
+.	"Trapwake" has been renamed to "bbswake."  In addition, a third
+	method for answering FidoNet calls has been added. CNet itself
+	is now capable of detecting FidoNet calls and transferring control
+	to TrapDoor, instead of the other way around.  Two new fields
+	found on the CONFIG "modems..." screen are provided to enable and
+	control this feature.  The first field, "trap hours" determines
+	the hours during which a port will accept FidoNet calls. The second
+	field "mail hours" determines the hours during which CNet will
+	accept FidoNet calls EXCLUSIVELY.  Use the standard CNet RANGE
+	convention for these fields (0-23, for example, denotes the
+	entire 24 hour day).  Depending on how you set these fields, one
+	of four conditions may exist for a caller:
+
+	Neither a trap hour, nor a mail hour.  CNet will behave exactly
+	like 3.04.  "Press RETURN to enter the BBS."
+
+	A trap hour, but not a mail hour.  CNet will prompt the user with
+	"Press ESC or / twice to enter the BBS."  Upon doing so, the user
+	may enter the BBS as expected.  If, however, CNet detects EMSI,
+	TSYNC, or YOOHOO characters, CNet will run a script according to
+	line 231 of BBSTEXT.  By default, it will execute S:TRAP-SEQUENCEx,
+	where 'x' is the current PORT number.  For example, on port 1,
+	CNet will attempt to execute S:TRAP-SEQUENCE1.  This file should
+	run your TrapDoor in "answer immediate" mode, and then perform
+	your "after session" routines.
+
+	A trap hour, AND a mail hour.  CNet will inform the user the port
+	is accepting FidoNet calls only, wait one minute, and then clear
+	the line.  If the caller is a FidoNet mailer, S:TRAP-SEQUENCEx
+	will be executed.
+
+	A mail hour, but not a trap hour.  This may seem like the least
+	useful combination, but it CAN be useful.  The user will receive
+	the note about this being a FidoNet mail hour only, and will be
+	IMMEDIATELY disconnected.  May be useful for informing users that
+	a particular port is just DOWN.
+
+.	All CNet executables now automatically allocate their minimum
+	stack sizes.  Yes, you heard it right!  It is now SAFE to
+	"run control" with a stack size of 4000.  CNet will take care of
+	the necessary details.  What you now have to be concerned about is
+	NON-CNet executables.  Programs like LHA, ZOO, etc., if they
+	themselves do not do automatic stack allocation, they obtain their
+	default stack size from the CLI stack size with which CNet was
+	ran.  You also have to be concerned about C program-file games
+	and other doors.  Do these programs have minimum stack sizes?
+	If so, it might be wise to create scripts containing STACK
+	commands which you run instead of the pfiles themselves.  A
+	future version of CNet may provide an automated way of doing this,
+	where the stack size is specified on the "AT" screen.
+
+.	When using QWK to yank carbon-copied mail, a line is now added
+	informing the user from which subboard the message came.
+
+.	A new privilege flag controls "BROADCAST" OLM's.  You will want to
+	set this as necessary from the EG screen and then TRANSPOSE users.
+
+.	QWK now uses "All" when a message isn't addressed to any particular
+	user.  This prevents your mail-reader from showing blank lines.
+
+.	The new user program prompts users to use the visual editor as
+	their default editor (only if they have selected to use ANSI).
+
+.	When CNet sends modem commands, it now inserts a short pause
+	between each character.  In addition, the special characters
+	~ and ` may be used to insert a 0.5 second pause and a carriage
+	return, respectively.
+
+.	CNet's terminal now responds with CPR (the ANSI cursor position)
+	when it receives ESC[6n.  This is often used to auto-detect ANSI
+	terminals.  The term now also supports 115200 baud.
+
+.	.RSP packets are now imported along with .PKT packets from TOSS.
+
+.	TOSS now tosses one packet at a time, instead of all packets
+	simultaneously.  This provides more SECURE saves, and uses less
+	RAM.
+
+.	If you use MCI in subboard titles, YANK will now the MCI from
+	them.

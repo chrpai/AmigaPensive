@@ -1,0 +1,556 @@
+     Program: FAX-IT V3.0                  CNet Version: FAX-IT V3.0
+      Author: Glenn J. Schworak                          Malcolm Anderson
+              1710 Lee Street SE                         --???--
+              Salem, Oregon 97302 USA                    Stocton, California USA
+         BBS: (503) 581-6524                             (209) 464-0219
+       Voice: (503) 399-7518                             (???) ???-????
+        Fido: 1:3406/32                                  1:208/217
+ 
+        Date: 04/26/1994
+
+     Purpose: Allow Excelsior BBS to send FAX message through GPFax program
+
+       Usage: Call FAX-IT as an ARexx door from Excelsior/CNet BBS
+
+        NOTE: Read the CNet.Readme file for more information on setting up
+              this program on your CNet system. This version is for CNet only!
+
+
+This program was written to make more use of the FAX front door I am 
+running on my Excelsior BBS. I had another version that was never released 
+for general use when I was running a Falcon BBS, but it didn't convert over
+so I totaly re-wrote the programs and support files to make them easy to 
+use and Excelsior frendly.
+
+I spent a lot of time figuring this stuff out and making it as easy as I 
+could to install and operate. If you like it, please make a donation as 
+mentioned at the bottom of this DOC file.
+
+
+** NOTE **
+            If you are upgrading from V1.0 you will need to replace
+            all the files in the FAX-IT directory with the new ones and
+            redo all your changes you made.
+                                                    Sorry!
+
+
+
+Special Note on GPFax
+=====================
+
+GPFax has a little problem with reporting the true baud rate when it is
+locked at any given rate. Although you might use &W2 to get your modem to
+report the true connect rate, GPFax will not report that in any way to the
+outside world. It will display it when it connects but only to the screen
+if the GPFax screen is open.
+
+Here is what you MUST do if you want GPFax to give the true baud rate to
+Excelsior when it passes control. There is no way around this and still get
+the real connection baud rate from GPFax. Sorry, I didn't write that program.
+
+    1) You must start GPFax with the -B14400 option
+       (assuming you are using a 14400 or higher modem)
+       No other value will work accept maybe -B9600 for 9600 baud modems.
+       
+       IE: GPFax -B14400 -X600 -Y2 -Q
+
+    2) You must NEVER try to lock the baud rate. Not with the -L option or
+       with the LOCKBAUD ARexx command. Once you lock the baud rate, you
+       have lost the ability to get GPFax to tell the truth.
+    
+    3) You must add the \N1 option to the modem INIT command. Best to be
+       placed near the end of the string. This will tell the modem to 
+       follow the computer's baud rate. So if the user connects at 2400 baud,
+       the modem will also talk to your computer at 2400 baud. This is what 
+       you want!!! If the modem was locked at 14400 or higher and GPFax tells
+       Excelsior that the user is calling at 2400 baud, Excelsior will send
+       trash to the modem at 2400 even though the modem is still at 14400.
+       See?
+    
+    4) If you attempt to set the -B option to anything other than 14400 or
+       9600, GPFax will assume you are locking the serial port and will not
+       give the correct baud rate. 
+
+Personaly, I lock my baud rate at 57600 and I get users of high speed modems
+hitting speeds of 1900cps when downloading .LZH files. I have had users hit
+3950cps on strait text files. So for me, unlocking my serial port is not a
+good option. But at least the true baud rate will be given and users will 
+get a fairly good estimate of the download time.
+
+
+
+
+Changes to FAX-IT
+=================
+
+V1.0   No version number was given in the program or documents but
+       the first version was 1.0 in case you didn't know.
+
+V1.2   I have added the ability to allow users to FORCE a FAX.
+       This will give users the ability to try to send a FAX outside of the
+       normal FAX hours and days that you have specified. You can turn this
+       feature on or off to suit your needs/desires.
+       
+       A new file FAX-Times has been added. This is where you will make
+       your changes to the days and hours that your system will dial out.
+       
+       If you are upgrading from an V1.0 you will need to replace the old
+       FAX-IT and AutoFAX files with the new ones and update the FAX-Times
+       files only. No other changes will need to be made to your existing
+       system. I would suggest replacing the FAX-Stat program too, but there
+       is only a little pause change so it doesn't make any functional 
+       differance.
+
+V2.0   Improved routines to allow FAX-IT to run on the same line as TrapDoor
+       and not falsly attempt to send FAX Mail while GPFax is not running.
+
+       Several new files and manu new user friendly features have been added
+       to make this package more powerful and easier to work with.
+
+V2.1   Small bug fixed dealing with some systems not wanting to properly
+       force FAX mail through outside the FAXing hours.
+
+V2.5   Small bug fixed that caused some FAX messages to get stuck in the 
+       out going directory.
+
+       Added FAX number tracking.... Every time a FAX is successfully sent
+       out, a new directory "NUMBERS" will be checked for the number dialed.
+       If it exists, the message in the file is added to the status report
+       other wise this new number is added to the list. 
+
+V2.8   Added the ability to display the list of FAX numbers known to the
+       system to any user who wants to see it.
+
+       Cleaned up the HELP file to make it a bit more clear to the reader.
+
+       Allowed the user to re-enter the phone number if it was entered
+       incorrectly or was not local (on a local only/limited system)
+       or if they used the HELP or LIST command.
+
+       Several other little tweeks to make things work more smoothly.
+
+V3.0   Created a CONFIG file named FAX-IT.cfg to make setting this system
+       up a bit easier. And reduce the chance of damaging the main program.
+       This also opens the way for me to rewrite the entire program into C.
+
+       Added the ability for a user to enter the NAME of the location they
+       are faxing when asked for the number. If the NAME is known to the
+       system, then the phone number will automaticaly be used.
+
+
+Future Trying to figure out a way to allow your system to automaticaly
+       route in coming FAX mail to your users. This is going to be a
+       really hard one so don't hold your breath...
+
+
+
+
+Setting Up GPFax
+================
+
+These things must be set in order for GPFax to work properly as a FrontDoor
+and interface with FAX-IT and Excelsior....
+
+1) You MUST be running a version of GPFax between 2.00 and 2.30. The versions
+   after 2.30 don't seem to work quite correctly as a FrontDoor to the BBS
+   systems I have tried them on.
+   
+2) In the envoronment settings you need to have these settings...
+   a. Shared must be checked (selected)
+   b. The "Modem Init" must be "AAT &F2 +FAA=1 S2=27 &K3 E0 W2 L1 N1 SC8=16"
+      (this is for SupraFAX modems only! Others are on their own)
+   c. Retry SHOULD be set to 4 or 5 to give the FAX a fair chance.
+   d. Redial Delay should be set to 1 to prevent callers from sneeking in
+   NOTE: If you are using a version lower than 2.30 remove the SC8 from
+         the "Modem Init" and make the redial delay larger (20 is good)
+
+3) In the option settings you need to have these settings...
+   a. AutoAnswer
+   b. FAX/DATA
+   c. ARexx DATA
+   NOTE: Any other settings are just extra and have no effect on the
+         FrontDoor as far as I can tell. So set them as you like.
+
+
+
+Installing The Program
+======================
+
+Installing this program is quite simple. (or maybe not)
+Simply place ALL the files in the archive into a directory named "FAX-IT" 
+within your normal Doors directory.
+
+If you would like to make use of the help file from the help command on the
+BBS, place a COPY of the Help.FAX file in your Text/English directory. The
+FAX-IT program will look for this help file in the FAX-IT directory so
+don't delete it from there. But the BBS can access any file named HELP. if
+it is in the proper TEXT directory.
+
+You should also copy/move the RunBack program to your C: directory. It will
+allow most any program to run in background. It is required for proper
+operation of this program.
+
+NOTE: I did not write RunBack... I am not even sure where I got it from. I
+      am sure it came off of one of the ShareWare collections, but it didn't
+	  have any docs with it. This is not the same as the DOS 1.3 version. This
+	  is for use with DOS 2.0 or higher only.
+
+
+You can either run this program from your normal DOORS area or make it a
+normal command or both. If you make it a normal command, I sugest you make 
+it a Global command and make an entry in your EX.BBSMenus file like this...
+
+        675,    FAX,    0,   "1-32",   "\#0Doors:FAX-IT/FAX-IT\"
+
+...also, in your TEXT.WELCOME.USER file, add this...
+
+        \#0Doors:FAX-IT/FAX-Stat\
+
+...of course, the paths listed here would depend on what you call your 
+DOORS path. And the access levels would be up to you to determine as well. 
+But this would give all users access to the FAX messaging program.
+
+
+If you are leaving the FAX modem just sit there and it is not a front door,
+you are done at this point. Well at least it will work. (Customize it!)
+
+If you are like me and use the FAX modem as a front door program, you need
+to add four (4) lines to your DataCall.gpf file in the GPFax: directory. 
+They are as follows...
+
+  1.  Shell Command 'C:Echo >T:FAXnode ""'
+  2.  Shell Command 'delete t:FAXnode'
+  3.  Shell Command 'Run RX Doors:Fax-It/AutoFAX.gpf'
+  
+Line 1 MUST be placed just after the OPTIONS RESULTS line.
+
+Lines 2 and 3 must be the last two lines of the script. If you have
+placed the files in another directory, line 3 may need to be altered. 
+
+DO NOT ALTER LINES 1 or 2! The program may malfunction if you do! These
+two lines keep the other modules of the FAX-IT program from accessing the 
+GPFax while it is already in use.
+
+
+NOTE: I have included a complete and ready to use DataCall.gpf script in
+      this archive. If you want to use it that is fine and it should not
+      require any alterations. But double check it before using it.
+      
+      
+      
+
+
+Customization
+=============
+
+There are several files in the FAX-IT directory that you will need to alter
+to fit your BBS and your personal tastes. Here I will explain what files 
+need to be changed and what to change.
+
+  1. FAX-IT           (The main program interface with the BBS)
+     AutoFAX.gpf      (The program that converts & sends the FAX)
+
+         ---- DO NOT CHANGE ANY PART OF THESE TWO FILES!!! ----
+  
+
+  2. FAX-Times
+
+     a. Change the first line to reflect the actual hours you will
+        be attempting to send the FAX messages out. This is not going to
+        limit the times the users can enter their FAX messages, simply
+        limit the hours your system will try to dial out to send the FAX.
+        
+     b. Change the second line to reflect the actual days of the week 
+        you will be attempting to send the FAX messages. This is the same
+        idea as the HOURS variable. 
+        
+        (Personaly, I only send FAX messages from 8am-5pm Mon-Fri)
+     
+        Your users will be able to write FAX mail any time of the day or
+        night on any day of the week. The FAX-Times file only keeps the
+        AutoFAX.gpf program from dialing out. The FAX mail will be sent
+        at the first available FAX time.
+        
+        
+
+  3. FAX-IT.cfg      (The configuration file for FAX-IT)
+  
+     a. Change the ForceFAX variable. This can be set to YES or NO.
+        If you say YES, then the user can ellect to try to send the FAX
+        outside of the normal FAX times. If you are actualy turning GPFax
+        off at some time during the day, DO NOT set this to YES. A system
+        crash could be encountered or at least no FAX will be sent. Only
+        set this to YES if you leave GPFax running 24 hours a day.
+
+     b. Change the LOCALONLY variable. This can be set to YES or NO.
+        If you say YES, then only local numbers found in the LOCALPREFIX
+        variable will be allowed to be entered.
+        
+     c. LOCALPREFIX needs to contain EVERY prefix that can be dialed from
+        your location without requiring a 1 to be dialed first. This is
+        used to keep people from calling long distance numbers and lets 
+        the program identify when and when not to place a 1 in front of
+        the phone number.
+
+     d. ALLOWLONG will hold the access group numbers for any access level
+        you want to be able to over ride the local only setting. Each
+        level must be seperated by the - character.
+        
+     e. TIMEMSG is a simple message that will notify the users of the 
+        actual times that you allow FAX messages to be sent out. This is
+        just a message. It will not force any messages to be sent or not
+        to be sent at any time.
+        
+     f. SAREA should hold the area code you are calling from. This will
+        allow the program to remove this number from any number that is
+        trying to be dialed. If you live in a location like Oregon where
+        every long distance number even within the same area code must
+        have the area code listed when dialing, make this SAREA = "###"
+        to force the area code to be included with the phone number.
+        
+     g. SPICT should be the full file path and name of a 2 color IFF image
+        you want attached to the top of EVERY cover page sent out. If you
+        don't want any picture attached to the cover page, make this
+        SPICT = "" and no image will be included. REMEMBER, the first two
+        characters in this variable MUST BE \G or the path and file name
+        will be added to the cover not the picture.
+        
+     h. SNUM, SNAME, and SLOCAL should reflect your BBS name, phone number,
+        and location. You can add some extra text to these if you like too.
+        
+     i. SMESSAGE is a SHORT little message that is added to each cover page
+        to give a little information about your BBS. KEEP IT SHORT! This
+        must fit on one line in your text editor or it may not all get used.
+        
+     
+  4. FAX-IT.Welcome  (A text file that is displayed to all users)
+
+     a. You can totaly re-write this file. It will be displayed to every
+        user that accesses the FAX-IT program. It is displayed at the
+        start of the program.
+  
+  
+  5. GW.IFF            (This is a 2 color IFF picture)
+  
+     a. This should be replaced totaly! Place your own 2 color INTERLACED
+        IFF image in here. You should use something like DPAINT to create
+        this image. It must be a BLACK image on a WHITE background for the
+        best result. You should make your image no larger than 1/2 the 
+        screen height to keep from forcing your cover onto 2 pages. Also,
+        if you save the image as a BRUSH not a full screen you will be much
+        better off. The image will be automaticaly centered at the top of
+        the cover page. You are free to rename the file to anything you 
+        like as long as it matches the name you selected for the SPICT 
+        variable in the FAX-IT script.
+
+
+  6. TryFAX            (This is a DOS script to KICK the 1st FAX out)
+  
+     a. You should only need to alter the WAIT UNTIL command to match
+        the time of your first available FAX message transmition. This file
+        will sit in memory and every day at this time call the AutoFAX.gpf
+        program to see if any FAX messages need to be sent. It is simply
+        a way to kick start the process each morning. If it calls AutoFAX.gpf
+        and it is not a day for FAXing, no harm is done. No FAX will be
+        sent.
+        
+        
+  7. S:User-Startup  or S:Startup-Sequence or S:BBS-Startup
+  
+     a. The file you change depends on what file you are calling Excelsior
+        from each time you boot the system. Make this addition just after
+        you make the call to Excelsior...
+        
+           RunBack Execute Doors:FAX-IT/TryFAX
+
+        This will place the TryFAX in memory and let it do it's thing 
+        without you needing to mess with it any more.
+
+
+  8. This is something you may need to keep editing...
+
+     Each time a new FAX number is dialed and a FAX is properly sent, a file
+     will be created in the FAX-IT/Numbers directory. The file name will be
+     the phone number dialed. You may edit the file that is created to hold
+     any information you would like added to the user's status report the
+     next time that number is successfully FAXed to. Once you edit any one
+     you don't need to edit it again. Heck, you never really NEED to edit it
+     at all, but that is up to you. This just turned out to be a great
+     feature and I think you will like it too. It will help your users
+     who the phone number belongs to and more importantly, it helps you
+     track your calls out.
+
+
+
+NOTE:   If you have decided to make the FAX-IT program a command and not
+        a DOOR, you may want to go through some of your menu files and add
+        information about the FAX command. This is up to you though.
+        
+        
+  *** NO MORE FILES TO ALTER ***
+
+          ---- I know it is a lot, but this is really a very complex
+               task to pull off. Especialy if you are running a multi-node
+               system. This program is tested and running on a 3 node 
+               BBS right now so there should be no problems.
+
+
+
+Sharing With TrapDoor
+=====================
+
+Three things you should know about first...
+
+First:  if you have two high speed lines, make life easy and use one for
+        TrapDoor and one for GPFax. You will be much happier.
+
+Second: You MUST be using some type of CRON program to schedule events.
+
+Third:  GPFax and TrapDoor MUST NOT be on at the exact same time!!! 
+
+
+
+Now that that is said, there are two sample scripts included in this archive
+named Start.FAX and Start.TD and they actualy DOS scripts. You will need them
+to start the right program at the right time. There is also an ARexx script
+named FAX-Trap for starting the right program at the right time in the case
+of a reboot. Here is how you use these programs.
+
+
+1) Modify the variables StartFAX and StartTD in the FAX-Trap script.
+   These two variables will determine what program is launched at BOOT time.
+   
+   StartFAX is the first moment of the day that you want to allow FAX mail to
+   come IN to your system from another location. StartTD is the time that the
+   last FAX would be received and GPFax would be closed down to make room for
+   TrapDoor.
+   
+
+2) User-Startup, Startup-Sequence, or BBS-Startup 
+   (same script used above to start Excelsior and TryFAX)
+   
+   RX Doors:FAX-IT/Start.FAX
+   
+   This should be one of the last commands in your script to allow the other
+   programs a chance to get set up. Personaly, I recommend a small WAIT
+   just before this command is executed.
+   
+
+3) In your CRON you will need to call each of the scripts Start.FAX and 
+   Start.TD at the proper time. You will need to refer to your CRON documents
+   to determine the correct methode for setting it up. I am using DCRON
+   since it came with Excelsior. My entries look like this...
+   
+   0  4  *  *  *  Execute Doors:FAX-IT/Start.FAX
+   0 20  *  *  *  Execute Doors:FAX-IT/Start.TD
+   
+   This allows GPFax to be online to answer FAX calls and BBS calls from 4am
+   to 8pm every day. You may if you like reduce these hours to match your
+   FAX dial out hours. I like my system to be able to receive FAX mail longer
+   than it can send. You MUST keep GPFax on line as long as you are allowing
+   out going FAX mail to be sent off your system. The programs won't crash, but
+   it is not a good idea to have the programs trying to access a program that 
+   isn't there. and your users won't like it either.
+
+
+4) Modify Start.FAX if you need to. 
+   If you have instructed TrapDoor to use any port name other than "TrapDoor" 
+   you will need to modify Start.FAX so it knows the correct port name. The 
+   modification would be in the first. Replace TrapDoor with the correct
+   port name. If you have not changed the port name in TrapDoor, don't worry 
+   about this step.
+
+
+5) As usual, if your paths are not set up like mine are, you will need to 
+   modify the paths used in each of the three scripts Start.FAX, Start.TD,
+   and FAX-Trap. They are quite easy to modify.
+   
+
+6) Enjoy your system! You are done! (fingers crossed)
+
+
+NOTE: As far as the FIDO node list is conserned, if you are running FAX-IT
+      and TrapDoor on the same line you will need to be a Non-CrashMail system
+      since TrapDoor is not going to be running 24 hours. So it is just as
+      well to leave GPFax on line all the time accept for during the
+      Zone Mail Hours. You might give TrapDoor and extra 1/2 hour on either
+      side of this time if you like, but no systems will be sending CrashMail
+      to you. So you can now see why a seperate line for TrapDoor would be
+      the best way to go.
+
+
+Added Information on TrapDoor
+=============================
+
+If you are having problems with your system hanging on you, you should set
+the "SLOWMODEM" setting in your TrapDoor.cfg file to 10 or 15. Maynbe even a
+little higher. This will slow down the information being sent to the modem
+and keep it from being over run.
+
+
+Added information on NetMail
+============================
+
+If you are confused about how to send NetMail to someone through Excelsior,
+don't worry, the manual doesn't tell you what you need to know.
+
+NetMail is a private message sent from one system to another. You and your
+users would send it as EMail on the BBS. The format is like so...
+
+           {send to name} >{FIDO address}
+  -demo-   Glenn Schworak >1:3406/32
+
+This will send a message directly to me. But remember, this is not an ECHO.
+It is sent as EMail. (usualy SM on a stock Excelsior system)
+
+	  
+
+
+**************************************************************************
+
+
+
+Distribution
+============
+
+This program may be freely distributed as long as the files are not 
+altered in any way other than the methode of archival. There must be no 
+fees charged for this program other than the minimal copying fee normaly 
+charged by user groups. This program may be added to any disk collections 
+such as Fred Fish.
+
+ --- NO WARRANTY EXPRESSED OR IMPLIED. USE THIS AT YOUR OWN RISK ---
+
+
+
+    Distribution: ShareWare
+             Fee: $20.00
+
+
+Any of my programs will be accessable in their latest versions on
+your first call to my BBS.
+
+
+         Send the fee and any other items to:    Glenn J. Schworak
+                                                 1710 Lee Street SE
+         / US Funds prefered \                   Salem, Oregon 97302 USA
+         \ Canadian accepted /         FAX/BBS   (503) 581-6524
+                                           Voice (503) 399-7518
+
+
+
+
+
+**************************************************************************
+
+
+
+NOTE: If you are going to rewrite this set of scripts for another BBS
+      program (such as CNet or DLG for example) DO NOT DO NOT DO NOT
+      distribute it until you re-archive all the required files and send
+      me a copy. You may take credit for any changes you make, but please
+      make sure I get the original credit.
+      
+      Also, please document your changes clearly. I would like to see
+      an addition to this file or a seperate text file with all the
+      changes mentioned. Thanks!

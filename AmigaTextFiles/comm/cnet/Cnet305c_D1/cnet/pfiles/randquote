@@ -1,0 +1,53 @@
+/******************************************************/
+/* Random Quotation Generator 2  for CNet AMIGA v2    */
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~                       */
+/* By Jim Selleck © 1992 Beverly James Products       */
+/*                                                    */
+/* Installation:                                      */
+/*                                                    */
+/* Stick this Arexx program and the QUOTATIONS file   */
+/* in your PFILES: directory.  			      */
+/*                                                    */
+/******************************************************/
+
+   options results
+   filename = "pfiles:quotations"
+
+   if ~exists(filename) then
+
+      do
+         transmit " "
+         transmit " "
+         transmit "The Quotations could not be found!  Please inform"
+         transmit "the Sysop !!!"
+         transmit " "
+         transmit " "
+         logentry "Quote: `"||filename||"' not found!"
+         exit
+      end
+
+   call open quote,filename,"R"
+
+      max = readln(quote)          /* Get maximum number of entries */
+      num = random(0,max-1,time('s'))
+      ctr = 0
+
+      if num > 0 then
+         do until ctr = num*5
+            line = readln(quote)
+            ctr = ctr+1
+         end
+
+      transmit " "
+      transmit " "
+      ctr = 0
+
+      do until ctr = 5
+         line = readln(quote)
+         if length(line) > 1 then transmit center(strip(line),76)
+         ctr = ctr+1
+      end
+
+   call close quote
+   exit
+

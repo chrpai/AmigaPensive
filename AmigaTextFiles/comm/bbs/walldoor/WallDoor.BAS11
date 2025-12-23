@@ -1,0 +1,1185 @@
+REM -- The Wall v1.1
+REM --  A Door Program Written For Use
+REM -- With Percy Broadnax's Metro BBS
+REM -- By: Craig Jackson
+REM -- All Code Copyright (c) 1991
+REM -- 02/07/91 <- Version 1.0
+REM -- 03/13/91 <- Version 1.1
+
+REM $OPTION Y+,FWallDoor
+
+InitStuff:
+    DEFINT A-Z
+    REM -- Assign The Broken Line Pattern To li$
+    FOR i = 1 TO 70
+        IF i/5 = FIX(i/5) THEN
+            li$ = li$ + " "
+        ELSE
+            li$ = li$+CHR$(220)
+        END IF
+    NEXT i
+    REM -- Open File And Grab Info
+    IF NOT FEXISTS ("RAM:USERDATA") THEN CLEAR:END 'Some snazzy error handling
+    OPEN "RAM:USERDATA" FOR INPUT AS #2
+    LINE INPUT #2, rtime$   'Remaining TIME
+    LINE INPUT #2, uname$   'User NAME
+    LINE INPUT #2, id$      'user ID number
+    LINE INPUT #2, lev$     'user access LEVel
+    LINE INPUT #2, bd$      'user BauD
+    LINE INPUT #2, ring$    'RING status (0 = Local/1 = Remote)
+    LINE INPUT #2, path$    'PATH for doors ans support files
+    CLOSE #2
+    REM -- Convert Grabbed Info To Integer Expressions
+    rtime  = VAL(rtime$)
+    id     = VAL(id$)
+    lev    = VAL(lev$)
+    ring   = VAL(ring$)
+    REM -- Neaten Up id$
+    WHILE LEFT$(id$, 1) = " "
+        id$ = RIGHT$(id$, LEN(id$)-1)
+    WEND
+    REM -- Put Status Into title$
+    title$ = "The Wall v1.1        "+uname$+" ("+id$+")       "+"Level:"+lev$
+    title$ = title$ + SPACE$(7)
+    IF ring = 0 THEN
+        title$ = title$ + "Local"
+    ELSE
+        title$ = title$ + "Remote"
+    END IF
+    REM -- Open The Necessary Screen And Window
+    GOSUB ScreenStart
+    REM -- Open Serial Port If User Is Remote
+    modem$ = "com1:"+bd$+",n,8,1"
+    IF ring = 1 THEN OPEN modem$ AS #1 LEN = 4096
+    REM -- Open Some Libraries And Define Some Functions For Disk Fonts
+    LIBRARY "graphics"
+    LIBRARY "diskfont"
+    DECLARE FUNCTION OpenDiskFont& LIBRARY
+    GOSUB LoadDiskFont
+    REM -- Stay Iconified If BBS Was, Otherwise Proceed
+    OPEN path$+"//BBSFILES/icon" FOR INPUT AS #255
+    icon$ = INPUT$(2,255)
+    icon = 0
+    CLOSE 255
+    IF icon$ = " 1" THEN GOSUB IconTest
+    acces = -1
+    IF FEXISTS (path$+"WallDat.Access") THEN
+        OPEN path$+"WallDat.Access" FOR INPUT AS #5
+        LINE INPUT #5, dumb$
+        IF dumb$ <> "" THEN acces = CVI(dumb$)
+        CLOSE #5
+    END IF
+    minkey = 1
+    IF ring = 1 THEN
+        MPrint CHR$(13)
+        MPrint "               Does your terminal software support ANSI?                        "
+        GOSUB ModemINKEY
+        IF UCASE$(LEFT$(xx$,1)) <> "Y" THEN
+                MPrint CHR$(13)
+                MPrint "             I'm sorry but TheWallDoor v1.1 REQUIRES ANSI Emulation.              "
+                KILL "RAM:USERDATA"
+                IF icon = 1 THEN
+                        WINDOW CLOSE 3
+                ELSE
+                        WINDOW CLOSE 1
+                        SCREEN CLOSE 1
+                END IF
+                LIBRARY CLOSE
+                IF ring = 1 THEN CLOSE #1
+                CLEAR
+                END
+        END IF
+    END IF
+    GOSUB MCLS
+    REM -- Ask If Dude Wants To Enter Editor If He's Local/Has Access
+    REM -- *TEMPORARY* NEEDS Improvement
+    IF acces = 0 OR acces = id OR lev >= 8 OR ring = 0 THEN 'SysOp Or Priviledged Or Just Local
+        MPrint "           Do you wish to enter TheWall's integrated level editor?"
+        IF ring = 1 THEN
+                GOSUB ModemINKEY
+        ELSE
+                xx$ = INKEY$
+                WHILE xx$ = ""
+                        xx$ = INKEY$
+                WEND
+        END IF
+        IF xx$ == "Y" THEN edit = 1
+        GOSUB MCLS
+    END IF
+    MPrint "           TheWall v1.1  -- Copyright (c) 1991 Craig Jackson"
+    GOSUB MCLS
+    REM -- Numeric Variables Automatically Become One This Is Just Clarifying
+    level = 0                 'Starting Game Level
+    score& = 0                'Long For Player's Score
+    chat = 0                  'OneWayChat OFF
+    quit = 0                  'Quit Prompt OFF
+    balls = 5                 'Subtract 1 for each pass. Total 5 with 0 equaling a "grace" ball.
+    stime! = TIMER            'Minute Incrementor Start Position
+
+InitMoreStuff:
+    REDIM blocks(5,14)        'Set ALL blocks ON
+    INCR level                'Increment Level
+    GOSUB FileBunk            'Read Level Data
+    timeb! = ftime1!          'Acceloration Point Reset
+    curcount = 0              'Ditto
+    count = 0                 'Number Of Bricks Destroyed For Level
+    x = 39                    'Starting X Position Of Paddle
+
+ScreenDraw:
+    REM -- Draw All The Stills On Both Ends
+    REM -- Draw The Border
+    GOSUB MCLS
+    MLocate 1,4:MColor 1,0
+    MPrint CHR$(218)+STRING$(71, 196)+CHR$(191)
+    FOR i = 2 TO 20
+        MLocate i,4:MPrint CHR$(179)
+        MLocate i,76:MPrint CHR$(179)
+    NEXT i
+    MLocate 21,4
+    MPrint CHR$(195)
+    FOR i = 5 TO 75
+        MPrint CHR$(196)
+    NEXT i
+    MPrint CHR$(180)
+    MLocate 22,4
+    MPrint CHR$(179)
+    MLocate 22,76
+    MPrint CHR$(179)
+    MLocate 23,4
+    MPrint CHR$(192)+STRING$(71, 196)+CHR$(217)
+    GOSUB BottomStuff
+    GOSUB BrickFill
+    MColor 1,0
+    MLocate 15,4:MPrint CHR$(195)+STRING$(71,196)+CHR$(180)
+    MLocate 15,39:MPrint CHR$(194)
+    FOR i = 16 TO 20
+        MLocate i,39:MPrint CHR$(179)
+    NEXT i
+    MLocate 21,39:MPrint CHR$(193)
+    REM -- TitleStuff
+    MLocate 16,44:MPrint "   ⁄¬ø  ⁄¬ø  ⁄¬ø  ⁄¬ø  ⁄¬ø  "
+    MLocate 17,44:MPrint "   √≈¥⁄ø√≈¥⁄¬≈¡≈¬ø√≈¥  √≈¥  "
+    MLocate 18,44:MPrint "   ¿≈≈≈≈≈≈Ÿ√≈≈ƒ≈≈¥√≈≈¬ø√≈≈¬ø"
+    MLocate 19,44:MPrint " The¿¡Ÿ¿¡Ÿ ¿¡Ÿ ¿¡Ÿ¿¡¡¡Ÿ¿¡¡¡Ÿ"
+    MLocate 20,44:MPrint "      By: Craig Jackson     "
+    GOSUB Status
+    REM -- From Iconify Or A DEL Key Press At Beginning
+    IF quio = 1 THEN
+        LOCATE 1,77
+        PRINT "*"
+    END IF
+    minkey = 0
+    GOSUB Refresh   'Update Destroyed On NonExistant Bricks
+    IF icon = -1 THEN RETURN
+    IF edit = 1 THEN EdInit
+
+MainInit:
+    MColor 4,0
+    MLocate 14,x-2:MPrint "*===*"'CHR$(127)+CHR$(223)+CHR$(223)+CHR$(223)+CHR$(127)
+    GOSUB NewBall
+
+Main:
+    DO
+        GOSUB TimeTest
+        t! = TIMER
+        WHILE TIMER < t! + timeb!
+            GOSUB MovePaddle
+        WEND
+        GOSUB MoveBall
+    LOOP
+
+ScreenStart:
+    SCREEN 1,640,200,3,2
+    WINDOW 1,title$,,0,1
+    PALETTE 0,0,0,0 'Black
+    PALETTE 1,1,0,0 'Red
+    PALETTE 2,0,1,0 'Green
+    PALETTE 3,1,1,0 'Yellow
+    PALETTE 4,0,0,1 'Blue
+    PALETTE 5,1,0,1 'Magenta
+    PALETTE 6,0,1,1 'Cyan
+    PALETTE 7,1,1,1 'White
+    RETURN
+
+TimeTest:
+    time! = TIMER - stime!
+    IF FIX(time!) >= 60 THEN
+        stime! = TIMER
+        rtime = rtime - 1
+        REM -- Solves The Midnight RollOver Problem
+        IF FIX(stime!) > 86340 THEN
+            rtime = rtime - 1
+            stime! = 0
+        END IF
+        IF rtime <= 0 THEN
+            IF edit = 1 THEN
+                GOTO Exiter2
+            ELSE
+                GOTO GraceFullExit
+            END IF
+        END IF
+        IF chat <> 1 AND minkey <> 1 THEN GOSUB BottomStuff
+    END IF
+    RETURN
+
+MovePaddle:
+    IF ring = 1 THEN
+        qq$ = INKEY$
+        cd = PEEKL(12570624&):cd = cd AND 8192 'Ooo... a PEEKL (Dangerous)
+        IF cd<>0 THEN GraceFullExit 'Oops... Somebody Lost CARRIER
+        IF LOC(1) THEN xx$ = INPUT$(1,1)
+        IF qq$ = "" THEN qq$ = INKEY$
+        IF qq$ <> "" THEN
+            IF qq$ = CHR$(9) THEN
+                quio = 0
+                babs = 0:GOSUB IconTest
+            ELSEIF qq$ = CHR$(127) THEN  'DEL
+                IF quio = 1 THEN
+                    LOCATE 1,77
+                    PRINT " "
+                    quio = 0
+                ELSE
+                    LOCATE 1,77
+                    PRINT "*"
+                    quio = 1
+                END IF
+            ELSEIF qq$ = CHR$(139) AND quio = 1 THEN  'HELP
+                GOSUB MCLS
+                MPrint "                      *** SYSOP ENDING DOOR ***"
+                GOSUB GraceFullExit
+            ELSEIF icon = 1 THEN
+                REM -- Dummy Case To Stop Trapping
+            ELSEIF chat = 1 THEN
+                GOSUB ChatBox
+            ELSEIF qq$ = CHR$(27) THEN
+                chat = 1:chat$ = CHR$(13)
+                GOSUB ChatBoxLvl2
+            END IF
+        END IF
+    ELSE
+        xx$ = INKEY$
+    END IF
+    IF xx$ <> "" THEN
+        IF xx$ = "." AND x < 72 THEN
+            MLocate 14,x-2
+            MPrint SPACE$(5)
+            INCR x
+            MLocate 14,x-2
+            piece$ = ""
+            MPrint "*===*"'CHR$(127)+STRING$(3,223)+CHR$(127)
+        ELSEIF xx$ = "," AND x > 8 THEN
+            MLocate 14, x-2
+            MPrint SPACE$(5)
+            DECR x
+            MLocate 14,x-2
+            piece$ = ""
+            MPrint "*===*"'CHR$(127)+STRING$(3,223)+CHR$(127)
+        ELSEIF xx$ == "Q" OR quit = 1 THEN
+            GOSUB QuitPrompt
+        END IF
+    xx$ = ""
+    END IF
+    RETURN
+
+NewBall:
+    DECR balls
+    IF balls < 0 THEN
+        GOSUB GraceFullExit
+    END IF
+    curcount = 0
+    timeb! = ftime1!
+    GOSUB BallStat
+    MLocate 12,36
+    MColor 5,0
+    MPrint "<SPACE>"
+    FunkDrum:
+    xx$ = ""
+    WHILE xx$ <> " "
+        IF ring = 1 THEN
+            qq$ = INKEY$
+            cd = PEEKL(12570624&):cd = cd AND 8192 'Ooo... a PEEKL (Dangerous)
+            IF cd<>0 THEN GraceFullExit            'Oops... Somebody Lost CARRIER
+            IF LOC(1) THEN xx$ = INPUT$(1,1)
+            IF qq$ = "" THEN qq$ = INKEY$
+            IF qq$ <> "" THEN
+                IF qq$ = CHR$(9) THEN
+                    quio = 0
+                    babs = 1
+                    GOSUB IconTest
+                ELSEIF qq$ = CHR$(127) THEN  'DEL
+                    IF quio = 1 THEN
+                        LOCATE 1,77
+                        PRINT " "
+                        quio = 0
+                    ELSE
+                        LOCATE 1,77
+                        PRINT "*"
+                        quio = 1
+                    END IF
+                ELSEIF qq$ = CHR$(139) AND quio = 1 THEN  'HELP
+                    GOSUB MCLS
+                    MPrint "                      *** SYSOP ENDING DOOR ***"
+                    GOSUB GraceFullExit
+                ELSEIF icon = 1 THEN
+                    REM -- Dummy Case To Stop Trapping
+                ELSEIF chat = 1 THEN
+                    GOSUB ChatBox
+                ELSEIF qq$ = CHR$(27) THEN
+                    chat = 1:chat$ = CHR$(13)
+                    GOSUB ChatBoxLvl2
+                END IF
+            END IF
+        ELSE
+            xx$ = INKEY$
+        END IF
+        GOSUB TimeTest
+    WEND
+    MLocate 12,36
+    MPrint SPACE$(7)
+    bally = 9
+    RANDOMIZE TIMER
+    IF INT(RND(1)-.225) = 1 THEN
+        ballx = x - 15
+        vx = 1
+        GOSUB XBounds
+    ELSE
+        ballx = x + 15
+        vx = -1
+        GOSUB XBounds
+    END IF
+    vy = 1
+    MLocate bally, ballx
+    MColor 6,0
+    MPrint CHR$(249)
+    MColor 4,0
+    RETURN
+
+IconTest:
+    IF icon = 1 THEN
+        icon = -1
+        WINDOW CLOSE 3
+        GOSUB ScreenStart
+        GOSUB LoadDiskFont
+        GOSUB ScreenDraw
+        GOSUB Refresh
+        MLocate 14,x-2
+        MPrint "*===*"'CHR$(127)+STRING$(3,223)+CHR$(127)
+        IF babs = 1 THEN
+            MLocate 12,36
+            MColor 5,0
+            MPrint "<SPACE>"
+        END IF
+        icon = 0
+        KILL path$+"//BBSFILES/icon"
+        OPEN path$+"//BBSFILES/icon" FOR OUTPUT AS 255
+        PRINT #255, " 0"
+        CLOSE 255
+    ELSE
+        SCREEN CLOSE 1
+        WINDOW CLOSE 1
+        WINDOW 3,"TheWallDoor 1.1",(1,1)-(128,10),434,-1
+        icon = 1
+        chat = 0
+        KILL path$+"//BBSFILES/icon"
+        OPEN path$+"//BBSFILES/icon" FOR OUTPUT AS 255
+        PRINT #255, " 1"
+        CLOSE 255
+    END IF
+    babs = 0
+    RETURN
+
+Refresh:
+    REM -- Print Wherever Spaces Should Go
+    FOR i = 0 TO 5
+        FOR j = 1 TO 14
+            IF blocks(i,j) THEN
+                MLocate i+3, j*5
+                MPrint SPACE$(5)
+            END IF
+        NEXT j
+    NEXT i
+    RETURN
+
+MoveBall:
+    IF piece$ <> "" THEN
+        MLocate bally,ballx
+        MColor 4,0
+        MPrint piece$
+        piece$ = ""
+    END IF
+    IF bally < 14 THEN
+        MLocate bally,ballx
+        MPrint " "
+    END IF
+    ballx = ballx + vx
+    bally = bally + vy
+    GOSUB XBounds
+    IF (bally = 14) AND (x-2 <= ballx) AND (x+2 >= ballx) THEN
+        IF (vx + ballx - x) <> 0 THEN
+            vx = vx + ballx - x
+        ELSE
+            vx = -vx
+        END IF
+        IF vx < 0 THEN
+            vx = -1
+        ELSEIF vx > 0 THEN
+            vx = 1
+        END IF
+        vy = -1
+        MLocate bally,ballx
+        MColor 1,0
+        IF (x-2 = ballx) OR (x+2 = ballx) THEN
+            piece$ = "*"
+        ELSE
+            piece$ = "="
+        END IF
+        MPrint piece$
+        MColor 4,0
+    ELSEIF bally <= 2 THEN
+        vy = 1
+    ELSEIF bally > 14 THEN
+        MPrint CHR$(7)
+        GOSUB NewBall
+    END IF
+    IF bally < 14 THEN
+        IF bally > 2 AND bally < 9 THEN
+                funkx = INT(ballx/5)
+                funky = bally - 3
+                IF blocks(funky, funkx) = 0 THEN
+                        MLocate bally, funkx*5  'Already Indented Two Spaces For No (funkx*5)-2
+                        MPrint SPACE$(5)
+                        score& = score& + (level*10)
+                        INCR count
+                        INCR curcount
+                        IF curcount = 10 THEN
+                                timeb! = ftime2!
+                        END IF
+                        vx = vx + (ballx MOD 5 - 2)
+                        IF vx < 0 THEN
+                            vx = -1
+                        ELSEIF vx > 0 THEN
+                            vx = 1
+                        ELSEIF vx = 0 THEN
+                            RANDOMIZE TIMER
+                            bobo = RND(1)
+                            IF bobo <= .04 THEN
+                                bobo = 0
+                            ELSEIF bobo >= .53 THEN
+                                bobo = 1
+                            ELSE
+                                bobo = -1
+                            END IF
+                        END IF
+                        vy = -vy
+                        blocks(funky, funkx) = 1
+                        GOSUB ScoreStat
+                        GOSUB BrickStat
+                        IF count = acount THEN
+                            REDIM blocks(5,14)
+                            INCR level
+                            GOSUB FileBunk
+                            count = 0
+                            curcount = 0
+                            timeb! = ftime1!
+                            GOSUB BrickStat
+                            GOSUB LevelStat
+                            GOSUB BrickFill
+                            GOSUB Refresh
+                            MLocate 14, x-2
+                            MPrint SPACE$(5)
+                            x = 39
+                            MLocate 14,x-2
+                            piece$ = ""
+                            MPrint "*===*"'CHR$(127)+STRING$(3,223)++CHR$(127)
+                        END IF
+                END IF
+        END IF
+        GOSUB BallPrt
+    END IF
+    RETURN
+
+XBounds:
+    REM -- Round Of X Coord If Excels PlayField Boarder
+    IF ballx <= 6 THEN
+        ballx = 6
+        vx = -vx
+    ELSEIF ballx >= 74 THEN
+        ballx = 74
+        vx = -vx
+    END IF
+    RETURN
+
+BallPrt:
+    MLocate bally, ballx
+    MColor 6,0
+    MPrint CHR$(249)
+    MColor 4,0
+    RETURN
+
+BottomStuff:
+    REM -- Print Some "MiniInstructions" On The Last Line
+    MColor 3,0
+    MLocate 22,5
+    MPrint " < = Left                                                    > = Right "
+    rtime$ = STR$(rtime)
+    rtime$ = RIGHT$(rtime$, LEN(rtime$)-1)
+    MLocate 22,37-INT(LEN(time$)/2)
+    MPrint "MinutesLeft:"+rtime$
+    MColor 4,0
+    RETURN
+
+BrickFill:
+    REM -- Fill In The Bricks
+    ypos = 3
+    Jubunga3:
+    FOR i = 1 TO 6
+        MColor i,0
+        MLocate ypos,6
+        MPrint li$
+        INCR ypos
+    NEXT i
+    IF ypos = 8 THEN Jubunga3
+    RETURN
+
+Status:
+    GOSUB NameStat
+    GOSUB ScoreStat
+    GOSUB BallStat
+    GOSUB BrickStat
+    GOSUB LevelStat
+    MColor 4,0
+    RETURN
+
+NameStat:
+    MLocate 16,6
+    MColor 2,0
+    MPrint "Name  : "
+    MColor 6,0
+    MPrint uname$ + " (" + id$ + ")"
+    RETURN
+
+ScoreStat:
+    MLocate 17,6
+    MColor 2,0
+    MPrint "Score :"
+    MColor 6,0
+    MPrint STR$(score&)
+    MPrint "    "
+    RETURN
+
+BallStat:
+    MLocate 18,6
+    MColor 2,0
+    MPrint "Balls :"
+    MColor 6,0
+    MPrint STR$(balls)
+    MPrint "    "
+    RETURN
+
+BrickStat:
+    MLocate 19,6
+    MColor 2,0
+    MPrint "Bricks:"
+    MColor 6,0
+    MPrint STR$(acount-count)
+    MPrint "    "
+    RETURN
+
+LevelStat:
+    MLocate 20,6
+    MColor 2,0
+    MPrint "Level :"
+    MColor 6,0
+    MPrint STR$(Level)
+    MPrint "    "
+    RETURN
+
+FileBunk:
+    REM -- Read In Current Level Data
+    fp = level
+    IF FEXISTS (path$+"WallDat"+STR$(fp)) THEN
+        OPEN path$+"WallDat"+STR$(fp) FOR INPUT AS #2
+    ELSEIF FEXISTS (path$+"WallDat"+STR$(1)) AND edit <> 1 THEN
+        fp = 1
+        OPEN path$+"WallDat"+STR$(fp) FOR INPUT AS #2
+    ELSE
+        REM When No Level Files Are Present
+        REDIM blocks(5,14)
+        acount = 84
+        ftime1! = .525
+        ftime2! = .45
+        RETURN
+    END IF
+    acount = 0
+    LINE INPUT #2, dumb$
+    FOR dumby = 0 TO 5
+        FOR dumbx = 1 TO 14
+            blocks(dumby, dumbx) = VAL(MID$(dumb$, (dumby*14)+dumbx, 1))
+            IF blocks(dumby, dumbx) = 0 THEN INCR acount
+        NEXT dumbx
+    NEXT dumby
+    ftime1! = .525
+    ftime2! = .45
+    LINE INPUT #2, dumb$
+    IF dumb$ <> "" THEN ftime1! = CVFFP(dumb$)
+    LINE INPUT #2, dumb$
+    IF dumb$ <> "" THEN ftime2! = CVFFP(dumb$)
+    CLOSE #2
+    RETURN
+
+SaveBunk:
+    REM -- Save Current Level To Disk File
+    fp = level
+    OPEN path$+"WallDat"+STR$(fp) FOR OUTPUT AS #2
+    dumb$ = ""
+    FOR dumby = 0 TO 5
+        FOR dumbx = 1 TO 14
+            IF blocks(dumby, dumbx) = 1 THEN
+                dumb$ = dumb$ + "1"
+            ELSEIF blocks(dumby, dumbx) = 0 THEN
+                dumb$ = dumb$ + "0"
+            END IF
+        NEXT dumbx
+    NEXT dumby
+    PRINT #2, dumb$
+    PRINT #2, MKFFP$(ftime1!)
+    PRINT #2, MKFFP$(ftime2!)
+    CLOSE #2
+    KILL path$+"WallDat"+STR$(fp)+".info" ' Safer Than PEEK/POKE/SYSTAB
+    RETURN
+
+ChatBox:
+    chat$ = qq$
+    ChatBoxLvl2:        'For Special Circumstances
+    IF chat$ = CHR$(13) THEN
+        ful$ = SPACE$(55)
+    ELSEIF chat$ = CHR$(27) THEN
+        GOSUB BottomStuff
+        ful$ = ""
+        chat = 0
+        RETURN
+    ELSEIF chat$ = CHR$(8) THEN
+        IF ful$ <> "" OR LEN(ful$) > 54 THEN
+            IF LEN(ful$) > 1 THEN
+                ful$ = LEFT$(ful$, LEN(ful$)-1)
+            ELSE
+                ful$ = ""
+            END IF
+            MLocate 22,6
+            MColor 1,0
+            MPrint "One Way Chat: "
+            MColor 5,0
+            MPrint ful$+de$+"  "
+        END IF
+    ELSE
+        ful$ = ful$ + chat$
+    END IF
+    IF LEN(ful$) > 55 AND ful$ <> SPACE$(55) THEN ful$ = RIGHT$(ful$, 55)
+    MLocate 22,6
+    MColor 1,0
+    MPrint "One Way Chat: "
+    MColor 5,0
+    MPrint ful$
+    IF ful$ = SPACE$(55) THEN ful$ = ""
+    chat$ = ""
+    MColor 4,0
+    RETURN
+
+QuitPrompt:
+    IF chat = 1 THEN
+        quit = 0        'Don't Interrupt My Chat Friend!
+    ELSEIF quit = 1 AND LEFT$(UCASE$(xx$),1) = "Y" THEN
+        chat = 0
+        GOSUB BottomStuff
+        GOTO GraceFullExit
+    ELSEIF quit = 1 THEN
+        IF chat = 0 THEN
+                GOSUB BottomStuff
+        ELSE
+                GOSUB ChatBox
+        END IF
+        quit = 0
+    ELSE
+        MColor 7,0
+        MLocate 22,5
+        MPrint SPACE$(70)
+        MLocate 22,35
+        MPrint "QUIT (Y/N)"
+        quit = 1
+        MColor 4,0
+    END IF
+    RETURN
+
+LoadDiskFont:
+    font.name$   = "IBM.font"+CHR$(0)
+    font.height% = 8
+    font.stil%   = 0
+    font.prefs%  = 0
+    font.old&    = PEEKL(WINDOW(8)+52)
+    textAttr&(0) = SADD(font.name$)
+    textAttr&(1) = font.height%*2^16+font.stil%*2^4+font.prefs%
+    font.new& = OpenDiskFont&(VARPTR(textAttr&(0)))
+    IF font.new&<>0 THEN
+       CALL CloseFont(font.old&)
+       CALL SetFont(WINDOW(8),font.new&)
+    END IF
+    RETURN
+
+GraceFullExit:
+    GOSUB MCLS
+    IF NOT FEXISTS(path$+"TheWall.Scores") THEN
+        GOSUB OpenScore
+        LSET fame$  = ""
+        LSET fscore$ = MKL$(0)
+        FOR s = 1 TO 10
+                PUT #3,s
+        NEXT s
+        CLOSE #3
+        KILL path$+"TheWall.Scores.info"
+    END IF
+    GOSUB OpenScore
+    REDIM scores&(10), name$(10)
+    FOR i = 1 TO 10
+        GET #3,i
+        name$(i)   = RIGHT$(fame$, 15)    'Subtract Buffer Space
+        scores&(i) = CVL(fscore$)
+        SS name$(i)
+        name$(i)   = som$
+    NEXT i
+    FOR i = 1 TO 10
+        IF score& > scores&(i) THEN
+            REDIM thing&(10)
+            REDIM thing$(10)
+            REM -- Grab Higher Bounds (Higher Pos Than Pos Scored)
+            FOR j = i+1 TO 10
+                thing&(j) = scores&(j-1)
+                thing$(j) = name$(j-1)
+            NEXT j
+            REM -- Get Lower Bounds (Less Pos Than Pos Scored)
+            FOR j = 1 TO (i-1)
+                thing&(j) = scores&(j)
+                thing$(j) = name$(j)
+            NEXT j
+            REM -- Get Current Pos Scored
+            thing&(i) = score&
+            IF LEN(uname$) > 15 THEN
+                thing$(i) = LEFT$(uname$, 15)
+            ELSE
+                thing$(i) = uname$
+            END IF
+            REM -- Read It All Back In
+            FOR d = 1 TO 10
+                scores&(d) = thing&(d)
+                name$(d)   = thing$(d)
+            NEXT d
+            boguspos = i            'Save Pos Scored On Chart
+            ERASE thing&, thing$    'CleanUp Temporary Arrays
+            REM -- PUT Updated HighScore List Into File
+            FOR r = 1 TO 10
+                LSET fame$   = SPACE$(5)+name$(r) 'Add Buffer Space
+                LSET fscore$ = MKL$(scores&(r))
+                PUT #3, r
+            NEXT r
+            CLOSE #3                'Close The HighScores File When Done
+            GOTO OtherStuff
+        END IF
+    NEXT i
+    OtherStuff:
+    IF rtime <= 0 THEN
+        MColor 7,1
+        MPrint "*** TIME LIMIT EXCEEDED ***"
+        MColor 7,0
+        MLocate 2,1
+        MPrint "Score:      "+STR$(score&)
+        MLocate 3,1
+        MPrint "BricksLeft: "+STR$(84-count)
+        MLocate 4,1
+        MPrint "BallsLeft:  "+STR$(balls)
+        MLocate 5,1
+        MPrint "LevelNumber:"+STR$(level)
+        IF place > 0 THEN
+                MLocate 6,1
+                MPrint "PlaceNumber:"+STR$(boguspos)
+        END IF
+    ELSE
+        GOSUB HSPrint
+    END IF
+    Exiter2:
+    MColor 1,0
+    MLocate 18,30
+    MPrint "Returning to BBS ..."
+    MColor 7,0  'Color Reset
+    LIBRARY CLOSE
+    KILL "RAM:USERDATA"
+    IF icon = 1 THEN
+        WINDOW CLOSE 3
+    ELSE
+        WINDOW CLOSE 1
+        SCREEN CLOSE 1
+    END IF
+    IF ring = 1 THEN CLOSE #1
+    CLEAR
+    END
+
+HSPrint:
+    MColor 4,0
+    MLocate  2,33:MPrint "÷ƒƒƒƒƒƒƒƒƒƒƒƒ∑"
+    MLocate  3,18:MPrint "…ÕÕÕÕÕÕÕÕÕÕÕÕÕÕπ HighScores ÃÕÕÕÕÕÕÕÕÕÕÕÕÕÕª"
+    MLocate  4,18:MPrint "∫              ”ƒƒƒƒƒƒƒƒƒƒƒƒΩ              ∫"
+    MLocate  5,18:MPrint "∫ 1                                        ∫"
+    MLocate  6,18:MPrint "∫ 2                                        ∫"
+    MLocate  7,18:MPrint "∫ 3                                        ∫"
+    MLocate  8,18:MPrint "∫ 4                                        ∫"
+    MLocate  9,18:MPrint "∫ 5                                        ∫"
+    MLocate 10,18:MPrint "∫ 6                                        ∫"
+    MLocate 11,18:MPrint "∫ 7                                        ∫"
+    MLocate 12,18:MPrint "∫ 8                                        ∫"
+    MLocate 13,18:MPrint "∫ 9                                        ∫"
+    MLocate 14,18:MPrint "∫ 0                                        ∫"
+    MLocate 15,18:MPrint "»ÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕº"
+    MColor 1,0
+    FOR i = 5 TO 14
+        MLocate i,23
+        IF (i-4) = boguspos THEN
+            MColor 1,4
+            MPrint name$(i-4)
+            MLocate i,44
+            MColor 1,0
+            MPrint STR$(scores&(i-4))
+        ELSE
+            MPrint name$(i-4)
+            MLocate i,44
+            MPrint STR$(scores&(i-4))
+        END IF
+    NEXT i
+    time! = TIMER
+    xx$ = ""
+    WHILE xx$ = ""
+        IF ring = 1 THEN
+            cd = PEEKL(12570624&):cd = cd AND 8192 'Ooo... a PEEKL (Dangerous)
+            IF cd<>0 THEN xx$ = "o"                'Oops... Somebody Lost CARRIER
+            IF LOC(1) THEN xx$ = INPUT$(1,1)
+        ELSE
+            xx$ = INKEY$
+        END IF
+        IF TIMER - time! >= 10 THEN xx$ = "t"
+    WEND
+    RETURN
+
+OpenScore:
+    OPEN path$+"TheWall.Scores" FOR RANDOM AS #3 LEN = 24
+    FIELD #3, 20 AS fame$   '1st 5 Are Buffer Space (So I Skimped A Bug:)
+    FIELD #3, 4 AS fscore$
+    RETURN
+
+MCLS:
+    REM -- Clear Screen Remotely & Locally
+    IF ring = 1 AND icon <> -1 THEN PRINT #1, CHR$(27);"[2J";
+    IF icon <> 1 THEN CLS
+    RETURN
+
+EdInit:
+    REM -- Assign Some Variables And Stuff For Editor
+    edx = 1
+    edy = 0
+    GOSUB EdCursor
+    GOSUB EdDraw
+    GOTO EdMain
+
+EdDraw:
+    REM -- Draw All The WallEditor Jazz
+    MColor 1,0
+    MLocate 10,4 :MPrint CHR$(195)+STRING$(71,196)+CHR$(180)
+    MLocate 11,19:MPrint " +  Next Level  |     8     |  N  Bricks ON"
+    MLocate 12,19:MPrint " -  Prev Level  |   4 * 6   |  F  Bricks OFF"
+    MLocate 13,19:MPrint " S  Ball Speed  |     2     |  "
+    IF lev >= 8 THEN MPrint "A  Access Ed"
+    MLocate 14,19:MPrint "  <SPACE> Brick OFF/ON    <ESC> Exit/Save"
+    MColor 6,0                  '\
+    MLocate 17,14:MPrint "NA"   '|- Lock Non-Editor Related
+    MLocate 18,14:MPrint "NA"   '|- Status Displays w/ "NA"
+    MLocate 19,14:MPrint "NA"   '/
+    RETURN
+
+EdMain:
+    REM -- Main WallEditor Control
+    GOSUB TimeTest
+    IF ring = 1 THEN
+        GOSUB ModemINKEY
+    ELSE
+        xx$ = INKEY$
+    END IF
+    IF xx$ <> "" THEN
+        IF xx$ = "8" THEN
+            GOSUB EdCurRef
+            IF edy = 0 THEN
+                edy = 5
+            ELSE
+                DECR edy
+            END IF
+            GOSUB EdCursor
+        ELSEIF xx$ = "2" THEN
+            GOSUB EdCurRef
+            IF edy = 5 THEN
+                edy = 0
+            ELSE
+                INCR edy
+            END IF
+            GOSUB EdCursor
+        ELSEIF xx$ = "4" THEN
+            GOSUB EdCurRef
+            IF edx = 1 THEN
+                edx = 14
+            ELSE
+                DECR edx
+            END IF
+            GOSUB EdCursor
+        ELSEIF xx$ = "6" THEN
+            GOSUB EdCurRef
+            IF edx = 14 THEN
+                edx = 1
+            ELSE
+                INCR edx
+            END IF
+            GOSUB EdCursor
+        ELSEIF xx$ = "+" OR xx$ = "=" THEN
+            GOSUB SaveBunk
+            INCR level      'ONLY the dimension of an interger (c. 32000) levels :)
+            GOSUB FileBunk
+            GOSUB BrickFill
+            GOSUB Refresh
+            GOSUB EdCursor
+            GOSUB LevelStat
+        ELSEIF xx$ = "-" OR xx$ = "_" THEN
+            GOSUB SaveBunk
+            IF level <> 1 THEN
+                DECR level
+                GOSUB FileBunk
+                GOSUB BrickFill
+                GOSUB Refresh
+                GOSUB EdCursor
+                GOSUB LevelStat
+            END IF
+        ELSEIF xx$ = CHR$(27) THEN
+            GOSUB SaveBunk
+            GOSUB MCLS
+            GOTO Exiter2
+        ELSEIF xx$ = " " THEN
+            MLocate edy+3, edx*5+1
+            IF blocks(edy,edx) = 0 THEN
+                blocks(edy,edx) = 1
+                MPrint SPACE$(5)
+            ELSE
+                blocks(edy,edx) = 0
+                MColor edy+1,0  'Don't really want BLACK/BLACK bricks
+                MPrint STRING$(4,220)
+            END IF
+            GOSUB EdCursor
+        ELSEIF xx$ == "N" THEN
+            REDIM blocks(5,14)
+            GOSUB BrickFill
+            GOSUB EdCursor
+        ELSEIF xx$ == "F" THEN
+            FOR i = 0 TO 6
+                FOR j = 1 TO 14
+                        blocks(i,j) = 1
+                NEXT j
+            NEXT i
+            GOSUB Refresh
+            GOSUB EdCursor
+        ELSEIF xx$ == "A" THEN
+            IF lev < 8 THEN MPrint CHR$(7):GOTO EdMain
+            MColor 1,0
+            MLocate 2,6:MPrint "Enter User ID/Zero For All To Access The WallEditor: "
+            MColor 5,0
+            IF FEXISTS (path$+"WallDat.Access") THEN
+                OPEN path$+"WallDat.Access" FOR INPUT AS #5
+                LINE INPUT #5, dumb$
+                CLOSE #5
+                IF dumb$ <> "" THEN
+                        dumb$ = STR$(CVI(dumb$))
+                        IF LEFT$(dumb$,1) = " " THEN dumb$ = RIGHT$(dumb$, LEN(dumb$)-1)
+                        MLocate 2,58:MPrint dumb$
+                END IF
+            ELSE
+                dumb$ = ""
+            END IF
+            Bob:
+            IF ring = 1 THEN
+                GOSUB ModemINKEY
+            ELSE
+                xx$ = INKEY$
+            END IF
+            IF xx$ = "" THEN
+                GOTO Bob
+            ELSEIF ASC(xx$) = 13 THEN
+                MLocate 2,6:MPrint SPACE$(70)
+                IF dumb$ = "" THEN KILL path$+"WallDat.Access":GOTO EdMain
+                dumb$ = MKI$(VAL(dumb$))
+                OPEN path$+"WallDat.Access" FOR OUTPUT AS #5
+                PRINT #5, dumb$
+                CLOSE #5
+                GOTO EdMain
+            ELSEIF ASC(xx$) = 8 OR ASC(xx$) = 127 THEN
+                IF dumb$ = "" THEN Bob
+                dumb$ = LEFT$(dumb$,LEN(dumb$)-1)
+                MLocate 2,58:MPrint SPACE$(6)
+                MLocate 2,58:MPrint dumb$
+            ELSEIF ASC(xx$) > 47 AND ASC(xx$) < 58 AND LEN(dumb$) < 5 THEN
+                dumb$ = dumb$+xx$
+                MLocate 2,58:MPrint dumb$
+            ELSE
+                MPrint CHR$(7)
+            END IF
+            GOTO Bob
+        ELSEIF xx$ == "S" THEN
+            tire = 0
+            MColor 1,0
+            MLocate 2,6:MPrint "Enter The Initial Ball Speed (SLOW 1-8 FAST): "
+            MColor 5,0
+            Flo:
+            IF ring = 1 THEN
+                GOSUB ModemINKEY
+            ELSE
+                xx$ = INKEY$
+            END IF
+            IF xx$ = "" THEN
+                GOTO Flo
+            ELSEIF ASC(xx$) < 58 AND ASC(xx$) > 48 OR ASC(xx$) = 13 THEN
+                IF tire = 0 THEN
+                    IF xx$ = "9" THEN MPrint CHR$(7):GOTO Flo
+                    tire = 1
+                    IF ASC(xx$) = 13 THEN Flo
+                    MLocate 2,51:MPrint xx$
+                    ftime1! = 3.55/VAL(xx$)
+                    MColor 1,0
+                    MLocate 2,6:MPrint "Enter The Accelerated Speed  (SLOW 1-9 FAST): "
+                    MColor 5,0
+                    GOTO Flo
+                ELSE
+                    REM -- Accelorate Speed & Normal Speed CAN BE Equal
+                    IF ASC(xx$) = 13 THEN
+                        IF ftime1! < ftime2! THEN MPrint CHR$(7):GOTO Flo
+                        GOTO Harry
+                    END IF
+                    IF ftime1! < 3.55/VAL(xx$) THEN MPrint CHR$(7):GOTO Flo
+                    MLocate 2,51:MPrint xx$
+                    Harry:
+                    MLocate 2,6:MPrint SPACE$(70)
+                    IF ASC(xx$) = 13 THEN EXIT IF
+                    ftime2! = 3.55/VAL(xx$)
+                END IF
+            ELSE
+                MPrint CHR$(7)
+                GOTO Flo
+            END IF
+        END IF
+    END IF
+    GOTO EdMain
+
+EdCursor:
+    REM -- Put []'s Around Current Brick For Editing
+    MColor 7,0
+    MLocate edy+3,edx*5
+    MPrint "."
+    MLocate edy+3,edx*5+5
+    MPrint "."
+    RETURN
+
+EdCurRef:
+    REM -- Put Those Spaces Back (It's Late And My Comments Are Sad :(
+    MColor 7,0
+    MLocate edy+3,edx*5
+    MPrint " "
+    MLocate edy+3,edx*5+5
+    MPrint " "
+    RETURN
+
+ModemINKEY:
+    REM -- Get Character From The Remote User w/ SysOp Exit Enabled
+    xx$ = ""
+    WHILE xx$ =""
+        GOSUB TimeTest
+        qq$ = INKEY$
+        cd = PEEKL(12570624&):cd = cd AND 8192 'Ooo... a PEEKL (Dangerous)
+        IF cd<>0 THEN GraceFullExit            'Oops... Somebody Lost CARRIER
+        IF LOC(1) THEN xx$ = INPUT$(1,1)
+        IF qq$ = "" THEN qq$ = INKEY$
+        IF qq$ = CHR$(127) THEN  'DEL
+            IF quio = 1 THEN
+                LOCATE 1,77
+                PRINT " "
+                quio = 0
+            ELSE
+                LOCATE 1,77
+                PRINT "*"
+                quio = 1
+            END IF
+        ELSEIF qq$ = CHR$(139) AND quio = 1 THEN  'HELP
+            GOSUB MCLS
+            MPrint "                      *** SYSOP ENDING DOOR ***"
+            IF edit = 1 THEN Exiter2
+            GOSUB GraceFullExit
+        ELSEIF icon = 1 THEN
+            REM -- Dummy Case To Stop Trapping
+        ELSEIF chat = 1 THEN
+            GOSUB ChatBox
+        ELSEIF qq$ = CHR$(27) THEN
+            chat = 1:chat$ = CHR$(13)
+            GOSUB ChatBoxLvl2
+        END IF
+    WEND
+    RETURN
+
+SUB SS (some$)
+    REM -- Strip White Space From End Of String
+    SHARED som$
+    som$ = some$
+    WHILE LEN(som$) > 1 AND RIGHT$(som$, 1) = " "
+                som$ = LEFT$(som$, LEN(som$)-1)
+    WEND
+EXIT SUB
+END SUB
+
+SUB MLocate (mx,my)
+    REM -- Usage: MLocate ypos, xpos
+    REM -- Changes ANSI Cursor Position Over Modem & Locally
+    SHARED ring, icon
+    LOCAL mx$, my$
+    IF ring = 1 AND icon <> -1 THEN
+        mx$ = STR$(mx)
+        my$ = STR$(my)
+        mx$ = RIGHT$(mx$, LEN(mx$)-1)
+        my$ = RIGHT$(my$, LEN(my$)-1)
+        PRINT #1, CHR$(27);"[";mx$;";";my$;"H";
+    END IF
+    IF icon <> 1 THEN LOCATE mx,my
+EXIT SUB
+END SUB
+
+SUB MColor (mf,mb)
+    REM -- Usage: MColor foregroundcolor, backgroundcolor
+    REM -- Changes ANSI Over The Modem For User & Locally
+    SHARED ring, icon
+    LOCAL mf$, mb$
+    IF ring = 1 AND icon <> -1 THEN
+        mf$ = STR$(mf+30)
+        mb$ = STR$(mb+40)
+        mb$ = RIGHT$(mb$, LEN(mb$)-1)
+        mf$ = RIGHT$(mf$, LEN(mf$)-1)
+        PRINT #1, CHR$(27);"[";mf$;";";mb$;"m";
+    END IF
+    IF icon <> 1 THEN COLOR mf,mb
+EXIT SUB
+END SUB
+
+SUB MPrint (something$)
+    REM -- Usage: MPrint string
+    REM -- Prints A String Remotely & Locally
+    SHARED ring, icon
+    IF ring = 1 AND icon <> -1 THEN
+        PRINT #1, something$;
+    END IF
+    IF icon <> 1 THEN PRINT something$;
+EXIT SUB
+END SUB

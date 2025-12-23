@@ -1,0 +1,374 @@
+
+                          CNet Upload Check v2.2
+                     By: Shawn McNeece aka Powerslave
+                     © Feb 23, 1992 --- For CNet 2.08
+                  First in a series of Arexx Eradication
+                   Utilitiys written for CNet Amiga BBS.
+
+Re read the whole docs for changes, sorry, I will get more organized
+next release.. But this is a rush job..
+
+What this archive contains:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Check2.............The actual "C" upload checking Pfile.
+Check2.docs........Hmm maybe something useful.
+Check2.cfg.........Config file. Place in same dir as Check2.
+Append.............DOS program that appends one file to another.
+Sys.validation.....Example of my Sys.Validation.
+7 Conv???..........Some scripts for converting archives. Or just
+                   adding text to  Zip, Zoo, Arc, and Lzh/Lha. files.
+
+
+Introduction.
+~~~~~~~~~~~~~
+
+Well here it is folks, the long awaited "C" Upload checking utility. 
+This is a beta version and still has much work needed to be done to it. 
+This program will check the following archive types:
+
+DMS, Warp, Zoom, Zoo, Zip, Arc, Zoo, Lzh, Lha.
+
+It will also add/append ASCII/ANSI text to any file uploaded.
+With the exceptions of zoom, arj, and future sit support.
+It can also convert or just add text to Zip, zoo, and arc
+files. You will still have to adopt orphans to put them online.
+This will be one of my next goals is automatic adoption
+of the new archive, and deleting of the old.
+
+
+The major improvment this version provides over earlier versions
+is SPEED... No longer does the upload checking utilitly need to read
+or write to the upload log. All information on newly uploaded
+files is extracted right from memory. This will also make things
+safer for bbs's running multi-lines.
+  
+
+Copyright - Disclaimer
+~~~~~~~~~~~~~~~~~~~~~~
+LIKE ANYTHING ELSE THAT'S SHAREWARE, "Check2" AND ITS ASSOCIATED 
+UTILITIES ARE PROVIDED AS IS, AND COME WITH NO WARRANTY OF ANY
+KIND, EITHER EXPRESSED OR IMPLIED. IN NO EVENT WILL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY DAMAGES RESULTING FROM
+THE USE OR MIS-USE OF THIS SOFTWARE. THE AUTHOR WILL MAKE AN
+ATTEMPT TO FIX BUGS. YOU MAY NOT MODIFY ANY SECTIONS OF THIS
+PROGRAM, OR ITS SUPPORT PROGRAMS, EXCEPT WHERE NOTED BY THIS
+DOCUMENTAION, OR WHERE NOTED IN THE PROGRAM. 
+
+In English: If it crashes.. Too bad. Let me know,
+and I will do my best to try and fix the problem.
+
+Installing Check2
+~~~~~~~~~~~~~~~~~
+If you are upgrading from a Previous Arexx version, you should delete
+pretty much everything related to it..
+
+Step 1    -- Making sure PIPE is ready.
+~~~~~~
+Make sure PIPE: is mounted in your startup sequence. 
+And also 'in' your MountList, which is located in DEVS:.
+Also DO NOT USE ARP's 'MOUNT' command. 
+The PIPE: handlers are included with Amiga-DOS 1.3/2.0
+
+Step 2    -- Copying - Editing sys.validation.
+~~~~~~
+Copy my "sys.validation" to your "SYSTEXT:" directory.
+Or create your own. But it must contain an MCI command
+to run Check2. See mine as an example.
+
+Step 3    --  Installing the checker itself.
+~~~~~~
+Copy Check2 to your CNET: directory. Note you can edit
+the sys.validation file to change where Check2 is
+searched for.
+
+Step 4   -- What your "C:" dir should contain.
+~~~~~~
+All the paths for these are editable in Check2.cfg
+
+Using any versions other than those listed
+may produce invalid checking rusults. Or possibly
+crashing your bbs.
+
+RUN.........TESTED WITH AMIGA DOS'S ONLY!
+Warpck......WarpCheck v1.4 by © Mike Thomas. 
+HSCHK.......High Speed DMS check V4.02 © By Vince
+Zoom........v5.3 © MXM - Olaf 'Olsen' Barthel
+LhA.........LhA V1.11 - Copyright 1991,92 Stefan Boberg.
+Append......Appends text to Text files, faster than using join,
+            delete, and rename.. (Included in this archive)
+Pkax........v1.0 © PKWARE To quickly test/extract ARC files.
+Zoo.........AmigaZoo V2.1 beta Copyright 1991 Rahul Dhesi & J. Brian Waters
+Unzip.......v4.1 of 5-13-91 (C) 1989 Samuel H. Smith
+Unarj.......V0.5 - Copyright (c) 1991 Peer Hasselmeyer
+Zip.........V 0.92 - AMIGA version  by Ross Martin & Steve Lewis
+
+Most of the above were, or are on Future World, or any good bbs.
+(PS if you have newer versions of any of these please upload to
+Future World).
+
+Step 5    -- What your S: directory MIGHT contain.
+~~~~~~
+These are the ascii/ansi texts you may need in your S: dir.
+
+
+HSC.TXT......Text to be added to DMS files, 20k or smaller.
+             I suggest using a text file only a few K.
+             10k added to each DMS uploaded is quite a
+             bit of wasted disk space. Its all in
+             what your willing to sacrifice.
+
+Now for the conversion scripts.. (Delete any old
+Conv??? scripts from Arexx versions).
+
+There are 7 conversion scripts included in this archive.. 
+Grouped into 2 catagories.
+
+Catagory 1:
+The 3 scripts, ConvArc, ConvZip, and ConvZoo will 
+actually convert archives to an LHA file.
+(you will still have to 'AO' to get them online,
+automatic adoption is next on the list, but will
+be a item only in registered versions)
+
+Catagory 2:
+The other 4 scripts ConvArc2, ConvZip2, and ConvZoo2, and 
+ConvLzh will ADD text to these archives. And will do no 
+conversion. If you wish to use any of these scripts, you 
+must rename them, and remove the "2". (if needed)
+
+You may use either group, none (set Check2.cfg to 0), or you may
+mix the two groups. Thus you could convert Zoo, and Arc, and just
+add text to Zip files, which have decent compression.
+
+Now if you have the flag set to 1 in Check2.cfg this
+will tell the upload checker to execute these scripts.
+Otherwise NOTHING will be done to ANY of these archives.
+
+You may also edit these conversion scripts to change default
+path to something other than RAM: if you are low on memory.
+
+More on the scripts, there are three items passed to each
+script file.. The name and location of the actual file.
+The name and location if the file is to be converted to LHA.
+And the filename without any extensions..
+Lets say the uploaded file name is 'TEST.ZOO'.
+Check2 will send a command to dos looking something like:
+
+run execute s:convzoo udbase0:uploads/test.lha udbase0:uploads/test.zoo test
+
+
+
+Step 6  -- Setting UD/Message bases up to run the checker.
+~~~~~~
+You MUST set your udbases to validate uploads...Use the EL
+commmand and then enter "$" for option flags, and when it asks
+'Validate Uploads' enter yes. This text will then be displayed
+to ANY user that uploads. Depending on how your bbs is set up,
+you may want to edit access groups so that users uploads are
+auto-validated, and can be downloaded. In either case, this
+program will do the job. Also this will mean the program is run
+after any upload. 
+If you want new uploads to NOT be seen, then do not change user
+groups access to Autovalidate..But if you want new uploads to
+be available for immediate download, then set all your users
+to autovalidate.. The sys.validation file will be displayed
+no matter what the users access is. 
+
+
+Step 7   -- Adding a command to BBSMENU.
+~~~~~~
+For local/manual testing You must add a command to BBSMENU. 
+The best place to add this is section 4, ud/base commmands. 
+Add the following line to the end of the commands listed. 
+
+	CU, Check Uploads `23 |\#2Check2\
+
+When you type CU ,it will run Check2 from the CNET: dir.
+And will check any "selected" files.
+
+
+Step 8    -- Editing the Config
+~~~~~~
+Copy the file Check2.cfg to your "sysdata:" Directory.
+Load your favorite text editor and edit each line
+as needed. Following is the example config, with
+explanations for each line. Future versions will
+support the abiltiy to comment the config file.
+SO for now do not add any lines, and be careful
+editing this.. Appending spaces to lines may
+screw this program up severely.
+
+******* Example Config file:
+
+0				;(0 or 1) 1 = execute conv??? scripts. See step 5
+s:convlzh			;Path/name of Lzh/LHA script
+s:append.txt			;Text File to be Appended to Text Uploads
+c2:HSCHK			;Path/name of DMS checker HSCHK
+c:LHA				;Path/name of LHA
+c:append			;Path/name of APPEND
+c:warpck			;Path/name of WarpCheck
+c:unzip				;Path/name of UnZip
+c:zoo				;Path/name of Zoo 
+c:pkax				;Path/name of PKAX
+c:unarj				;Path/name of Unarj
+c:zoom				;Path/name of Zoom 5.3
+\n2\c4Checking :\c7 %s\n2	
+ Failed Integrity Check		;Actual DOS & BBS File Comment.
+\n1\c3Failed, Commenting file.\n2
+\n1\c6Passed!\n2
+\n1\c5Be Patient\c6 %s \c5files take a minute.
+\n2\c1%d \c4Files Uploaded\n
+\c6\n2Unfinished cannot test : %s\n2
+\w1				;The pause before reading pipe.
+s:convarc			;Path/name of ARC script
+s:convzip			;Path/name of ZIP script
+s:convzoo			;Path/name of ZOO script
+
+
+
+
+
+A quick note about the pause.. On my A3000 It did not need the
+pause, but on slower machines it seems necesarry. :(
+The \W1 has been tested on an Amiga 2000 with a 68000.
+ 
+20 Lines total in the config file, this is checked for
+by "Check2".
+
+Make sure you are running the correct versions of those
+programs as stated in step 4.
+
+Step 9   -- Manual - Local testing.
+~~~~~~
+
+Manually test this program out by selecting a few archives
+in an upload directory. And then using the CU command to
+start the upload checker.
+
+NOTE: Check2 will not check files on different partitions.. 
+This is not a bug! If a user uploads, all of his uploads will 
+go to ONE partition. CNet does not split upload sessions
+between partitions.
+
+Make sure you test every archive which you allow as uploads.
+
+
+KNOWN PROBLEMS:
+~~~~~~~~~~~~~~
+
+None really, this is my third release! And those earlier
+problems seem to be fixed.
+
+I would not suggest this program for BIG multiline bbs's. Four 
+lines or so on a 68030 with A2232, would probably be no problem. 
+The main reason being those 'c' executbles are quite the CPU hog. 
+Espically when testing an LHA..
+I am running 2 9600 nodes with no problems on an Amiga 3000 with 
+an A2232 serial card..
+
+If you notice this program locking up, your CPU may not be 'crashed' 
+type in a Shell or CLI:
+ 
+TYPE >PIPE:ctstX             X is the port # which seems to be crashed.
+
+
+******************************************************************
+*  I also do not use sub-dirs with spaces in them. Commodore	 *
+*  even recommends you NOT use spaces in directory names	 *
+*  and filenames. In other words DONT USE SPACES!		 *
+*  Cnet supports different SUB names, and DOS names so use it!	 *
+******************************************************************
+
+Registration
+~~~~~~~~~~~~
+
+"Check2" is no longer Public Domain. If you like this program then
+you are encouraged to send a $10.00 (US) shareware registration.
+USA Currency (CASH), Or Money Orders only! Sorry, 
+I myself dont like checking accounts and deal with Cash or Plastic.
+
+This program has taken MANY hours of work. And In my opinion the 
+most useful pfile available for C-Net. What good is a bbs with bunk
+uploads! And look at all the advertising your bbs gets by having an
+advertisment added to every upload. Also future versions will save 
+you valuble diskspace. If this is not worth $10.00 to you, then you 
+can live without my future support. If you like a program, buy it!
+Otherwise dont use it, and dont keep it. 
+
+
+Send all shareware registrations to:
+
+Shawn McNeece
+P.O. Box 72
+Wheatridge, CO
+80034-0072
+
+Please include a note with your real name, handle, address.
+And any other information you wish to include.
+By registering, you will recieve an account on my bbs. Where
+you can download future versions. You must include a password
+with your registration. 9600 baud only. (Unless you send me
+a password for pre-registering). Or you can be mailed any future
+major revisions. The $10.00 registration registers you for
+the 2.xx series of updates. I reserve the right to
+ask for a SMALL re-registration for versions 3.xx. And so on.
+You may also FREQ the latest public release of Check2 at
+303-745-0297. You can use 1:104/535 as my fido address.
+This is my NEW node number, and has not been added
+to the nodelist.
+
+Use the MAGIC "CHECK2". No password needed. You must
+be a listed node to freq. 
+ 
+Heres some things that will be in future REGISTERED versions. 
+
+68010/20/30 Versions. For maximum speed, compatibilty.
+
+Virus checking/removing on ".exe" files. (integrating
+it to work with Virus Checker V6.00 by John Veldthuis.)
+
+Expanding the config file so that any  archivers can 
+be fairly easily added by you. 
+
+Archiving of text files which were uploaded. Saving you
+atleast 30% of disk space for each text file.
+
+Different 'advertising' texts for different ud sections.
+
+Checking of Adopted files that the sysop has "uploaded". (maybe,
+this one might be a hard one.)
+
+When a file fails upload checking, mark it unvalidated, and 
+holding credits until the file is validated by a sysop/subop.
+
+Conversion of DMS "simple" compression modes to "deep".
+Done quietly in the background. Again saving you much disk space.
+
+Removal of other dms texts, warp texts, etc. Thus saving you
+MUCH disk space. Figure a dms text added by other bbs's
+using HSCHK, could be as much as 20k, or more added per file. Think
+about 20k times 10 files is 200k of wasted disk space. Disk
+space wasted advertising other bbs's.
+
+Correcting of bbs data files, if a dms text, etc is added,
+the bbs data files will show the file being smaller
+than it actually is. I plan on writing a routine
+to update bbs data files to reflect any changes to a
+file. Ie you wont have to ADOPT converted files.
+
+
+
+<<<-----Your ideas here.
+
+I would like to thank the following:
+
+---Rick Crawford for writing the Append program.
+   Source code to Append is available upon request.
+
+---Shawn Brixey for getting me motivated on this again.
+
+---Pepsi, for the caffeine fix's.
+
+---USRobotics for making the HST.. Anything less in just
+   an overpriced 2400 modem with compression.
+

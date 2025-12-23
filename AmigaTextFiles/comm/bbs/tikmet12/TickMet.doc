@@ -1,0 +1,326 @@
+
+************************************************************************
+
+                                TickMet
+
+                                (c) 1994
+
+                             by Peter Deane
+
+                              Version 1.2
+
+                             Date 09-Dec-94
+
+                      Written in GFA-BASIC V3.51E
+
+************************************************************************
+
+
+Description
+~~~~~~~~~~~
+
+TickMet is a small program written to add files to a Metro file listing
+from the command line.  It is envisaged the program will be run from a
+Tick program.  'Atick' by Russel Miranda and 'FoozleTick' by Peer
+Hasselmeyer are two programs the program has been tested with.
+
+FoozleTick is particularly recommended because of its 4-D addressing
+abilities, and AKAs for different file areas.
+
+TickMet will also keep a short list of the last XX files received via
+the Tick program, in reverse chronological order (most recent first),
+which can be run without the Metro 'FileList_X' file option, making it
+somewhat useful for any systems that use a Tick program.
+
+
+Update notes
+~~~~~~~~~~~~
+V1.2  (09 Dec 94) few minor changes for public release for the OzMetro
+      package.  You can now keep a record of to the last 500 files
+      passing through your system.
+
+V1.1  (30 Oct 94) Changed for the new OzMetro FileList_X files rather
+      than the old "df X" files.  No longer needs to update the hdf X
+      files either - they are no longer in existence!
+
+(hmm, where are the changes between 0.85 and 1.1 ????)
+
+V0.85 (16 Feb 92) Fixed a rather stupid bug where I was intentionally
+      chopping the last character of the description. It now only does
+      this if it's an ascii value less than 31.
+
+V0.84 (13 Feb 92) First public release.
+
+
+Usage - from CLI
+~~~~~
+
+I suggest you copy the program into your c:  directory, or in a path
+otherwise in your search path.
+
+You then may run the program from CLI:
+
+    TickMet <name> <path> <area> <length> <desc>
+
+where:
+
+<name>   Filename of file to add to an area
+<path>   Directory for this file area (as in udfiles/file.areas)
+<area>   The ADS/Tick File area TagName
+<length> Size of the file
+<desc>   Description, which will be truncated to 76 characters.
+
+
+NO INVERTED COMMAS SHOULD BE USED IN THE COMMAND LINE!
+
+By the same token, no spaces are allowed in any parameter, except for
+the description (where there can be as many as you like).
+
+
+For example:
+
+  TickMet  TICKMET082.LHA DH4:METRO/ METROUTES 99999 This very program!
+
+Would add the file to a metro file areaname which had a directory
+specified as 'DH4:Metro/'
+
+(Incidentally, in this program, it's optional to include a trailing
+slash after the pathname. If the pathname does not end in either ':' or
+'/', then a trailing '/' will be appended. It figures that if you need
+the directory to be a volume name (eg DF0:, BBS:) then you must include
+the colon ':'.)
+
+
+Use from the CLI would only be for the masochist, though, but has been
+handy if you know what you're doing.
+
+
+Usage - from Tick.cfg
+~~~~~
+
+Add a line to your Tick.cfg that says:
+
+   EXECUTE "TickMet %n %p %a %l %d"
+
+That's all! Feeling better now?
+
+
+What it does
+~~~~~~~~~~~~
+
+The program reads in the filename and directory name given to it by the
+tick program. The most important piece of information is the directory
+name the file is destined for.
+
+If the directory name should match anything listed in your
+UDFILES/File.areas file, it will be added to the file listings for that
+directory.
+
+EG say your Tick.cfg had these file areas:
+
+
+FILEECHO FIDONEWS DF0:Fidonews/
+TO 3:622/490 *
+TO 3:622/491.1 HNX 
+TO 3:622/491.2 HNX
+TO 3:622/491.3 HNX
+
+FILEECHO BBSLIST DH4:visitor/
+TO 3:622/490 *
+TO 3:622/491.1 HNX
+TO 3:622/491.2 HNX
+TO 3:622/491.3 HNX
+
+Then you should have the corresponding directories in file.areas:
+
+1
+1
+7
+7 - OTHER Fido News
+DF0:FidoNews/
+1
+1
+9
+9 - INQUESTOR BBS Files
+DH4:Visitor/
+
+
+If any file is ticked in bound for DF0:FidoNews/, say, then an entry in
+the file area '7 - OTHER Fido News' will be added!
+
+You just have to play around with the directory names so they match up
+in your file areas, and your Tick.cfg file (a necessary evil in any
+case!). The matching of directory names is not case sensitive at all.
+
+One word of warning, if two file areas should share the same directory,
+then TickMet will add the file to the first match in file.areas it
+finds.  This practice (sharing one file directory among many areas) is
+inconvenient in practice anyway.
+
+Another word of warning: make sure the device names match up.  If you
+have MAIL: assigned to DH8: (like I do) then make sure you use the SAME
+device name in both Tick.cfg and the File.areas file.  It doesn't matter
+which, but for TickMet to find the area the device name Tick tells it
+has to be found in the File.areas file.  If not, then it won't add it to
+a file area.
+
+
+Config File
+~~~~~~~~~~~
+
+TickMet will run fine without a config file to add the files into your
+Metro BBS file listings.  However, it also has a second function:  to
+keep a record of the most recent files that were ticked in.
+
+Having a file called 'TickMet.cfg' in your MAIL: directory will enable
+this feature.
+
+The config file is a real simple one - two lines only! I was
+disappointed about having to use a config, but due to the fact the
+command line is basically out, I reluctantly decided the config was a
+necessary evil.
+
+The format of the config is:
+
+line 1  Number of files
+line 2  Name of output file
+
+As in:
+
+50
+BBS:TickList
+
+would keep a list of the last 50 files received via TickMet in the file
+'BBS:TickList'
+
+It's also imperative to add a carriage return or two after typing the
+second line.
+
+I recommend you actually use an OzMetro textfile (eg BBS:Textfiles1/Text503
+as the output file because you can then have the info displayed on the
+BBS from some textfile command.
+
+The list TickMet produces is very simple but is quickly sent to a BBS
+user's screen. This was intentional! It looks like this:
+
+----
+File: 17.FILE
+Size: 9999 
+Date: 13-Feb-92
+Area: FUNNY-NAME 
+Desc: Here starts the description for this file. Here it ends..
+----
+File: 16.FILE
+Size: 9999 
+Date: 13-Feb-92
+Area: FUNNY-NAME 
+Desc: Here starts the description for this file. Here it ends..
+----
+File: 15.FILE
+Size: 9999 
+Date: 13-Feb-92
+Area: FUNNY-NAME 
+Desc: Here starts the description for this file. Here it ends..
+----
+File: 14.FILE
+Size: 9999 
+Date: 13-Feb-92
+Area: FUNNY-NAME 
+Desc: Here starts the description for this file. Here it ends..
+
+
+If you ever need to adjust the number of files you keep record of, then
+just change the number in the config.  The old file will be adjusted to
+the new format automatically, the next time the program is run.
+
+You can keep the records of up to the last 500 files added by TickMet.
+Any larger amount (or smaller than 1) of records will simply result in
+this part of the program being by-passed.
+
+
+Command Line Errors
+~~~~~~~~~~~~~~~~~~~
+
+Things can go wrong while TickMet is being run:
+
+* Command line missing or truncated.
+
+Basically, this indicates there was no command line given, so we give up
+now.
+
+* Insufficient arguments.
+
+Didn't get enough info from the command line.  Can't carry on.
+
+In these two cases the usage details are output, and execution ceases.
+
+
+Metro Errors
+~~~~~~~~~~~~
+
+* Udfiles/File.areas not found.
+
+* Number of items in 'file.areas' not a multiple of 5.
+
+These two are pretty self-explanatory.  The Metro file config wasn't
+found, or was in the incorrect format (Metro wouldn't run in either of
+these cases as well!).  Execution jumps to the next stage without making
+an addition to a file list anywhere!
+
+* No area found for this file.
+
+We couldn't find a match for the directory name in file.areas.
+Execution ceases at this point, and no attempt is made to update the
+Last 'XX' files list.
+
+* Over 495 files already in this area!
+
+Metro has a 500 file limit per area.  I err on the side of safety here.
+The file will not be added to the Metro file list, but maybe the Last XX
+Files list can be updated.
+
+
+Output File Errors
+~~~~~~~~~~~~~~~~~~
+
+The file is self-maintaining, and if it doesn't exist, it will be
+created.  One thing I don't check for is an invalid filename, so please
+ensure that the path can be set to it, and it's not a device, directory
+or something equally as silly.
+
+I imagine a very definite name will be used to get the textfile
+displayable on your BBS.  Such as 'BUL:Bulletin1.txt' or
+'BBS:Textfiles1/Text_534' and what-have-you.  Anything is permissable as
+far as the program is concerned.  It would be nice if DOS liked it too!
+
+
+
+Distribution
+~~~~~~~~~~~~
+The program is NOT in the public domain.  A license is granted to all
+persons to copy the file as much as possible provided no profit is made
+from distribution.
+
+Bug reports MUST be forwarded at the earliest opportunity.
+
+Source in GFA is included, however no person may distribute modified
+copies of this program.  Any mod you make is for your OWN use only!
+
+
+Contact
+~~~~~~~
+
+For questions, donations, bug reports, comments, etc...
+
+Peter Deane
+
+FidoNet:   3:622/401        Postal: PO Box 228
+GlobalNet: 54:6101/401              Swansea  NSW  2281
+AmigaNet:  41:200/401               AUSTRALIA
+
+Internet: peter.deane@p0.f401.n622.z3.fido.zeta.org.au
+          (okay, I cheated, but the gate works really well)
+
+BBS:    from O/S   +61-49-72-1647
+(24hrs) from Aust  (049) 72-1647
+

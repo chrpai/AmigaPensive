@@ -1,0 +1,255 @@
+;
+;	Install Script for dRE!WhO v1.2
+; ©1996 Bodo Hoffmann
+; 
+; $VER: dRE!WhO.install v1.2 (12-Sep-96)
+;
+
+(complete 0)
+
+(if (= @language "deutsch")
+	(
+		(set	#welcome						(cat	"\nWillkommen zur Installation von\n"
+																		"dRE!WhO v1.2 (fiM) for FAME BBS\n"
+																		"Dieses Script installiert dRE!WhO\n"
+																		"auf ihrem AMIGA, so das Sie das DOOR\n"
+																		"direkt in Benutzung nehmen könnenn\n\n\n"
+																		"Dieses Program ist REGISTERWARE\n"
+																		"Um eine volle Version zu bekommen sollten\n"
+																		"Sie sich bei mir registrieren lassen, bitte\n"
+																		"lesen Sie in dem Amigaguide Document wo und\n"
+																		"wie Sie dieses tuen können\n"
+															)
+		)
+
+		(set	#regdir-prompt			(cat	"Selektieren Sie jetzt bitte das Verzeichnis, in der die registrierten Hauptprogramme liegen"))
+
+		(set	#getinstdir-prompt	(cat	"Bitte wählen sie jetzt das Verzeichnis in dem dRE!WhO installiert werden soll, eine Schublade wird erzeugt"))
+	
+		(set	#doorname-prompt		(cat "\n\nBitte wählen Sie jetzt den Name unterdem das Door in der BBS aufzurufen ist"))
+
+		(set	#cfgdoorname-prompt		(cat "\n\nBitte wählen Sie jetzt den Name unterdem das Config-Door in W/14 aufzurufen ist"))
+
+		(set	#level-prompt				(cat "\n\nBitte wählen Sie jetzt den Accesslevel unterdem das Door in der BBS abrufbar ist"))
+
+		(set	#cfglevel-prompt		(cat "\n\nBitte wählen Sie jetzt den Accesslevel unterdem das Config-Door in der BBS abrufbar ist"))
+
+		(set	#config-prompt			(cat	"Bitte wählen Sie die mitgelieferten configfiles aus die Sie installieren möchten"))
+
+		(set	#doorfiles					(cat	"\n\n\nNun werden die door-files erstellt\n"
+																		"das heißt Sie brauchen keine files mit\n"
+																		"dem System-Editor zu creieren um die\n"
+																		"dRE!WhO-Door in Ihr System einzubinden\n\n"
+																		"Viel Spass beim erstellen von eigenen\n"
+																		"Configfiles..."
+															)
+		)
+	)
+)
+
+(if	(=	@language "english")
+	(
+
+		(set	#welcome						(cat	"\nWelcome to the Installation of\n"
+																		"dRE!WhO v1.2\n"
+																		"This program will install dRE!WhO\n"
+																		"on your AMIGA, so it is ready to use after\n"
+																		"this procedure\n\n\n"
+																		"This program is REGISTERWARE\n"
+																		"To become a full version you should register\n"
+																		"my programs, please refer to the AmigaGuide\n"
+																		"Document for more informations how and where\n"
+																		"you can do this...\n"
+															)
+		)
+
+		(set	#regdir-prompt			(cat	"Please select now the the drawer, where the registered mainfiles are located"))
+
+		(set	#getinstdir-prompt	(cat	"Please select the drawer where dRE!WhO should be installed, a drawer will be created"))
+
+		(set	#doorname-prompt		(cat "\n\nPlease choose now the name for the door"))
+
+		(set	#cfgdoorname-prompt		(cat "\n\nPlease choose now the name for the config-door"))
+
+		(set	#level-prompt				(cat "\n\nPlease choose now the access-level for the door"))
+
+		(set	#cfglevel-prompt				(cat "\n\nPlease choose now the access-level for the config-door"))
+
+		(set	#config-prompt			(	"Please choose now the supplied confogfiles you like to install"))
+
+		(set	#doorfiles					(cat	"\n\n\n\nNow the needed door-files are created\n"
+																		"This means you don`t need to create it by\n"
+																		"your System-Editor to run dRE!WhO\n"
+																		"successfull...\n\n"
+																		"Have phun while creating own configfiles"
+															)
+		)
+
+	)
+)
+
+(complete 0)
+
+	(message	#welcome)
+
+	(set doors		(askdir		(prompt #getinstdir-prompt)
+													(help @askdir-help)
+													(default	"DOORS:")
+								)
+	)
+
+	(set	destdir		(tackon doors		"dRE!WhO"))
+	(set	guidedir	(tackon destdir	"Guides"))
+	(set	cfgdir		(tackon destdir	"Configs"))
+
+	(makedir	destdir		(infos))
+	(makedir	guidedir	(infos))
+	(makedir	cfgdir		(infos))
+
+	(copyfiles		(source	"/files/dRE!WhO")
+								(dest		destdir)
+								(optional nofail askuser)
+								(confirm)
+	)
+
+	(copyfiles		(source	"/files/dRE!WHO-CONfiG")
+								(dest		destdir)
+								(optional nofail askuser)
+								(confirm)
+	)
+
+
+	(copyfiles		(source	"/guides")
+								(dest		guidedir)
+								(infos)
+								(all)
+								(optional nofail askuser)
+								(confirm)
+	)
+
+	(set configs
+		(	askoptions	(prompt #config-prompt)
+									(help	@askoptions-help)
+									(choices
+										"Art style"
+										"Compact Style"
+										"Future Style"
+										"Blue/White"
+										"FAME Standard"
+										"Acid Style"
+										"Old dRE!WhO style"
+										"Ami-Express Style"
+										"frontend style #1"
+										"frontend style #2"
+									)
+									(default -1)
+		)
+	)
+
+	(if	(OR (> configs	0))
+		(
+			(set	mincfg	0)
+			(set	maxcfg	10)
+			
+			(while	(< mincfg	maxcfg)
+				(
+					(if (IN	configs	mincfg)
+						(
+							(set	copycfg
+								(select	mincfg
+									"who.0"
+									"who.1"
+									"who.2"
+									"who.3"
+									"who.4"
+									"who.5"
+									"who.6"
+									"who.7"
+									"who.frontend"
+									"who.frontend1"
+								)
+							)
+							(copyfiles
+								(prompt ("/configs/%s" copycfg))
+								(source	("/configs/%s" copycfg))
+								(dest	cfgdir)
+								(optional nofail askuser)
+								(confirm)
+							)
+						)
+					)
+				(set mincfg (+ mincfg 1))
+				)
+			)
+		)
+	)
+
+	(copylib      (prompt "DRE.library")
+				        (source "/Libs/DRE.library")
+				        (dest   "LIBS:")
+        				(confirm)
+								(help @copylib-help)
+	)
+
+	(copylib      (prompt "FAME.library")
+				        (source "/Libs/FAME.library")
+				        (dest   "LIBS:")
+        				(confirm)
+								(help @copylib-help)
+	)
+
+	(set	doorname	(askstring	(prompt #doorname-prompt)
+															(help		@askstring-help)
+															(default	"WHO")
+									)
+	)
+
+	(set level	(asknumber	(prompt		#level-prompt)
+													(help			@asknumber-help)
+													(range		10 255)
+													(default	50)
+							)
+	)
+
+	(set	cfgname		(askstring	(prompt #doorcfgname-prompt)
+															(help		@askstring-help)
+															(default	"WHO-Config")
+									)
+	)
+
+	(set cfglevel	(asknumber	(prompt		#cfglevel-prompt)
+													(help			@asknumber-help)
+													(range		10 255)
+													(default	50)
+							)
+	)
+
+	(message	#doorfiles)
+
+	(set confdir	("FAME:SETTINGS/DOORS/BBSCMD"))
+	(set cmd (tackon destdir "dRE!WhO"))
+	(set cfgcmd (tackon destdir "dRE!WhO-Config"))
+
+	(set make	("/Files/MakeCMD NAME=\"%s\" PATH=\"%s\" SERVERNAME=\"dRE!WhO v1.2\" STACK=4096 ACSLEVEL=%ld CMDTYPE=-1 MULTINODE PRI=0 DOORTYPE=0 NR NC CF SR SC AR AC RD" doorname cmd level))
+	(run make)
+
+	(if	(askbool	(prompt 
+				"\n\n\nDo you like to install dRE!WhO as FRONTEND as well?\n"
+				"It will display the who.fontend as a\n"
+				"seperate style of course free configable")
+				(choices	"Install" "Skip")
+				(default	0)
+				(help	@askbool-help)
+			)
+		(
+			(set make ("/Files/MakeCMD NAME=FRONTEND PATH=\"%s\" SERVERNAME=\"dRE!fRONt\" STACK=4096 ACSLEVEL=0 CMDTYPE=-2 MULTINODE PRI=0 DOORTYPE=0 NR NC CF SR SC AR AC RD" cmd))
+			(run make)
+		)
+	)
+
+	(set make	("/Files/MAKEDOORCFG NAME=\"%s\" PATH=\"%s\" STACK=4096 PRI=0 ACSLEVEL=%ld NUMBER=1 VERSION=1 NR NC CF SR SC AR AC RD" cfgname cfgcmd cfglevel))
+	(run make)
+
+	(complete 100)
+
+	(run	"SYS:Utilities/MultiView /Guides/dRE!WhO_Eng.guide")

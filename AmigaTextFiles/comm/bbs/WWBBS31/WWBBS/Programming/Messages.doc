@@ -1,0 +1,235 @@
+Using message functions in wwbbs.library
+---
+To access a message database, you must first open the database with the
+function:
+
+     APTR OpenMessageGroup(BYTE *path,BYTE *name,LONG type)
+
+For the path and name fields, put in the path and name of the message base
+you wish to access, prepending the path with "MessageBases", and optionally
+including a slash.  For the type field, this will be either SHARED_LOCK or
+EXCLUSIVE_LOCK, which is defined in one of the dos header files.
+SHARED_LOCK means that you only want to read data from the database, while
+EXCLUSIVE_LOCK means that you want to read and/or write data from the
+database.  You must not try to write to a group that you only have a
+SHARED_LOCK on.  The functions returns a pointer to the group which you
+will use when calling the other functions.
+
+You can also open the email database by giving a NULL for path and name.
+
+Some examples:
+
+     If you wish to open the message area "The Jungle" with a shared lock,
+     use:
+
+          APTR group;
+          group=OpenMessageGroup("MessageBases","The Jungle",SHARED_LOCK);
+
+     If you wish to open the message area "Amiga/Programming" with an
+     exclusive lock use:
+
+          APTR group;
+          group=OpenMessageGroup("MessageBases/Amiga","Programming",
+               EXCLUSIVE_LOCK);
+
+     If you wish to open the email area with a shared lock use:
+
+          APTR group;
+          group=OpenMessageGroup(NULL,NULL,SHARED_LOCK);
+
+Just to be on the safe side, you should only open one group at a time in a
+program.
+
+After you are done with a database, call the function:
+
+     void CloseMessageGroup(APTR group);
+
+For example, "CloseMessageGroup(group);".
+
+---
+
+After opening a database, there are four functions you can call to access
+the information in the database.  They are tag based:
+
+     ULONG GetMessageTags(APTR group,Tag tag,...); /* gets message info */
+     ULONG SetMessageTags(APTR group,Tag tag,...); /* sets message info */
+     ULONG AddMessageTags(APTR group,Tag tag,...); /* adds a new message
+          record */
+     ULONG RemMessageTags(APTR group,Tag tag,...); /* removes a message
+          record */
+
+Note that a companion function exists for each of these:
+
+     ULONG GetMessage(APTR group,struct TagItem *tags);
+     ULONG SetMessage(APTR group,struct TagItem *tags);
+     ULONG AddMessage(APTR group,struct TagItem *tags);
+     BOOL RemMessage(APTR group,struct TagItem *tags);
+
+Each message record in a database has a unique ID number which is a ULONG.
+
+---
+
+ULONG GetMessageTags(APTR group,Tag tag,...); /* gets message info */
+
+GetMessage() gets message information.  It returns the number of tags that
+were successfully processed.
+
+These are the tags you can use:
+
+     MSGTAG_ID
+          This tag must be present.  Here you specify the message id number
+          of the message you want to get information about.
+     MSGTAG_Exists
+          Use this tag when you want to know whether a message record
+          exists for the MSGTAG_ID that you specify, and when this is the
+          only tag you want to specify.  You must set it to TRUE.
+     MSGTAG_Thread
+          Use this tag to get the number of the thread to which this
+          message belongs.  Pass a (ULONG *), a pointer to a ULONG.
+     MSGTAG_From
+          Use this tag to get the name of the user who wrote the message.
+          Pass a (BYTE **), a pointer to a string.  You get a
+          null-terminated string with a maximum of 32 chars.  The pointer
+          you get back is valid until you call CloseMessageGroup().
+     MSGTAG_To
+          Use this tag to get the name of the user that the message is
+          addressed to.  Usage is the same as MSGTAG_From.
+     MSGTAG_Subject
+          Use this tag to get the subject of the message.  Usage is the
+          same as MSGTAG_From, except that this string has a maximum size
+          of 64 chars.
+     MSGTAG_Date
+          Use this tag to get the date that this message was written.  Pass
+          a (struct DateStamp **), a pointer to a pointer of a struct
+          DateStamp.  The pointer you get back is valid until you call
+          CloseMessageGroup().
+     MSGTAG_Text
+          Use this tag to get the message text.  Pass a (BYTE **), a
+          pointer to a string.  What you get is a pointer to a string of
+          the entire message text, with lines being separated by '\n', and
+          the entire string terminated by a NULL.  The pointer you get back
+          is valid until you call CloseMessageGroup().  If you get back a
+          NULL, then that means there is no message text.
+
+---
+
+ULONG SetMessageTags(APTR group,Tag tag,...); /* sets message info */
+
+SetMessage() sets message information.  It returns the number of tags that
+were successfully processed.
+
+These are the tags you can use:
+
+     MSGTAG_ID
+          This tag must be present.  Here you specify the message id number
+          of the message you want to "set".
+     MSGTAG_ForceSave
+          Use this tag when you want to force the system to save the
+          current database to file.  Note that whenever a change is made to
+          a database file, it is automatically saved to disk, so when you
+          use this tag it should be the only one present.  You must set it
+          to TRUE.
+     MSGTAG_DontSave
+          Use this tag when you want to postpone saving of the current
+          database.  You would want to do this if you are performing
+          several changes to a database, and instead of saving after each
+          action, it would be better to wait until you are done and then
+          "force a save" with MSGTAG_ForceSave.  You must set it to TRUE.
+     MSGTAG_Thread
+          Use this tag to set the number of the thread that this message
+          belongs to.  Pass a ULONG.  Normally you would not want to set
+          the thread number as it is automatically set by AddMessage().
+     MSGTAG_From
+          Use this tag to set the name of the user who wrote the message.
+          Pass a null-terminated string, max 32 chars long.
+     MSGTAG_To
+          Use this tag to set the name of the user to whom this message is
+          addressed.  Pass a null-terminated string, max 32 chars long.
+     MSGTAG_Subject
+          Use this tag to set the subject of the message.  Pass a
+          null-terminated string, max 64 chars long.
+     MSGTAG_Date
+          Use this tag to set the date of the message.  Pass a (struct
+          DateStamp *).  Normally you would not want to set the date, as it
+          is automatically set by AddMessage().
+     MSGTAG_Text
+          Use this tag to set the message text.  Pass a (BYTE *), a
+          null-terminated string.  In that string, you can separate lines
+          with a '\n'.
+
+---
+
+ULONG AddMessageTags(APTR group,Tag tag,...); /* adds a message record */
+
+AddMessage() adds a new message record.  It returns the message id number
+so you can make a subsequent call to SetMessageTags() and easily pass along
+the id in MSGTAG_ID.
+
+Note that when a new message record is added, the MSGTAG_Thread and
+MSGTAG_Date are automatically set while everything else is initialized to
+NULL.
+
+These are the tags you can use:
+
+     MSGTAG_DontSave
+          Use this tag when to want to postpone saving of the current
+          database.  You would want to do this if you are performing
+          several changes to a database, and instead of saving after each
+          action, it would be better to wait until you are done and then
+          "force a save" with MSGTAG_ForceSave.  You must set it to TRUE.
+     MSGTAG_ReplyTo
+          Use this tag when you want this message to belong to the same
+          thread as another message.  Pass the message id number (a ULONG).
+
+---
+
+BOOL RemMessageTags(APTR group,Tag tag,...); /* removes a message record */
+
+RemMessage() removes a message record.  It returns either TRUE or FALSE,
+depending on whether or not the operation was successful.
+
+These are the tags you can use:
+
+     MSGTAG_ID
+          This must be present.  Here you specify the message id number.
+     MSGTAG_DontSave
+          Use this tag when to want to postpone saving of the current
+          database.  You would want to do this if you are performing
+          several changes to a database, and instead of saving after each
+          action, it would be better to wait until you are done and then
+          "force a save" with MSGTAG_ForceSave.  You must set it to TRUE.
+
+---
+
+There are two more functions that you may find useful.  They are:
+
+ULONG GetNextMessage(APTR group,ULONG message_id);
+ULONG GetPreviousMessage(APTR group,ULONG message_id);
+
+Simply pass any number of message_id, and it will look for the
+next/previous message that exists, and it will return its message_id.  The
+message_id that you pass does not have to exist.
+
+For example,
+
+     To get the message id that comes after message #10:
+
+          {
+            ULONG id;
+            id=GetNextMessage(group,10);
+           }
+
+     To get the id of the first message in the database:
+
+          {
+            ULONG id;
+            id=GetNextMessage(group,0);
+           }
+
+     To get the id of the last message in the database:
+
+          {
+            ULONG id;
+            id=GetPreviousMessage(group,~0);
+           }
+

@@ -1,0 +1,198 @@
+
+/*
+
+Shows a list of commonly needed files that callers can mark (or DL)
+just by typing "QuickDL" from any prompt.
+
+>        Quick-DL of Commonly Used Files
+>
+> [A] CNet-BBS Demo (disk 1 of 2)
+> [B] CNet-BBS Demo (disk 2 of 2)
+> [C] CNet-BBS HELP files
+> [D] Commonly asked questions about this BBS
+> [E] Info on compressing/uncompress files
+> [F] List of all files U/Led during 1995
+> [G] Rules of this BBS
+> [H] External 14k4 v.32 Fax/Modems $99
+> [I] External 28k8 V.Fast/v.34 Fax/Modems $159
+> [J] Latest Virus-Checker by John Veldthuis
+> [K] Frequently asked questions about the Amiga
+> [L] 101 questions to ask a BBS author BEFORE you buy his software
+> [M] May'94 AmigaWorld Magazine review of CNet-BBS v3.05c
+> [N] June 1994 questionnaire regarding new update for Arexx.  Mail this in!!!
+>     Select:
+
+Or users type certain cmds and D/L certain files:
+"HELP" will get them your BBS-help-files.
+"APP"  will get them your BBS-application file.
+"DEMO" will get them the CNet demo-disks.  <***** Add this one to your BBS ****
+
+Installation:
+1) Copy QuickDL.rexx TO pfiles:QuickDL.rexx
+
+2) Add the following lines onto the END of the CNet:BBSmenu list
+   marked as "2; Available everywhere:"
+   DLHelp  | {#0 pfiles:QuickDL.rexx  CNet3:CNetHelp.lha}
+   DEMo    | {#0 pfiles:QuickDL.rexx "CNet3:CNet305c_d1.DMS CNet3:CNet305c_d2.DMS"}
+   QUICkdl | {#0 pfiles:QuickDL.rexx}
+
+3) Edit the lines below marked "user-editable variables".
+   Enter your own choices for:
+      "Filenames"    (Which files will the users be able to QuickDL?)
+      "Descriptions" (What will the descriptions in the menu be?)
+
+If QuickDL.rexx is passed a parameters (in double-quotes), users will
+only be allowed to DL those files.  (See DLHelp cmd.)
+
+If QuickDL.rexx is NOT passed a parameter, users will be shown a menu
+list of choices. (See QuickDL cmd.)
+
+$VER: QuickDL.rexx v1.5 Fri 27-Oct-95 08:23:06
+   Updated menu.
+   Checked for compatibility with CNet v3.05c.
+   Released into Aminet ftp.wustl.edu comm/cnet dir.
+
+$VER: QuickDL.rexx v1.4 Sun 01-May-94 16:33:15
+   Added 'ChangeWhere' string.
+
+$VER: QuickDL.rexx v1.3 Mon 07-Feb-94 17:17:58
+   Added "DEMO" cmd info and example.
+   Can now pass more than 1 file via BBSmenu.  (Must be in double-quotes.)
+
+$VER: QuickDL.rexx v1.2 Mon 24-Jan-94 01:12:44
+   Added choice "[H] Frequently asked questions about the Amiga"
+   Added choice "[A] CNet-BBS Demo (disk #1 of 2)"
+   Added choice "[B] CNet-BBS Demo (disk #2 of 2)"
+
+$VER: QuickDL.rexx v1.1 Sat 25-Dec-93 20:05:03
+   Added choice "[G] Virus-Checker by John Veldthuis"
+
+$VER: QuickDL.rexx v1.0 Thu 02-Dec-93 10:52:26
+   Written/tested with CNet v2.94beta
+
+Author Info:
+   Bill Beogelein (ag775@detroit.freenet.org)
+   Box 530441
+   Livonia, MI 48153
+   BBS 810-473-2020, 28k8, Fido 1:2410/207
+
+Future Plans:
+   Write to DLs to dloads log.
+   Please report all bugs, and make suggestions for new features.
+
+Ignore:
+   lz u CNet3:QuickDL.LHA pfiles:rexx/QuickDL.rexx R:QuickDL.readme a:zzzBBSad Help:BB_CMDS
+   Copy CNet3:QuickDL.LHA UP:
+
+********************** End of docs *******************************/
+
+/***************** Top of user-editable variables **************************/
+/*   Full path/filename         Description as shown to the caller   */
+
+f.1 ="CNet3:CNet305c_d1.DMS       CNet-BBS Demo (disk 1 of 2)"
+f.2 ="CNet3:CNet305c_d2.DMS       CNet-BBS Demo (disk 2 of 2)"
+f.3 ="CNet3:CNetHelp.lha          CNet-BBS HELP files"
+f.4 ="UDBase3:1.1/CommQuest.lha   Commonly asked questions about this BBS"
+f.5 ="UDBase6:6.3/ARCHIVRS.PAK    Info on compressing/uncompress files"
+f.6 ="UDBase3:1.1/files1995.lha   List of all files U/Led during 1995"
+f.7 ="UDBase3:1.1/SWHQbul.lzh     Rules of this BBS"
+f.8 ="UDBase3:7.2/LineLink.lha    External 14k4 v.32 Fax/Modems $99"
+f.9 ="UDBase3:7.2/SupraSysOp2.lha External 28k8 V.Fast/v.34 Fax/Modems $159"
+f.10="UDBase5:21.18/Vchk718.lha   Latest Virus-Checker by John Veldthuis"
+f.11="UDBase5:9.2/AmyFAQ.lha      Frequently asked questions about the Amiga"
+f.12="UDBase3:1.1/BBSQues.LHA     101 questions to ask a BBS author BEFORE you buy his software"
+f.13="UDBase3:7.3/CNetArt.lha     May'94 AmigaWorld Magazine review of CNet-BBS v3.05c"
+f.14="UDBase3:13.6/ArexxQ.lha     June 1994 questionnaire regarding new update for Arexx.  Mail this in!!!"
+f.15=""
+f.16=""
+f.17=""
+f.18=""
+f.19=""
+f.20=""                            /* NULL string must mark end of list */
+/******************* End of user-editable variables *************************/
+
+LF='0a'x
+QU='22'x
+
+options results
+parse arg fnames
+
+'ChangeWhere' "QuickDL.rexx"
+if(fnames~="") then      /* Passed filename, use it */
+do
+   desc=""
+   'transmit' ""
+   call NowOrLater()
+   exit
+end
+
+do i=1 to 26                     /* Count (and check for) all filenames */
+   w=subword(f.i, 1, 1)
+   if(w="") then leave
+   if(~exists(w)) then
+   do
+      str=" *** Pfiles:QuickDL.rexx can't find" w
+      'transmit' LF str
+      'logEntry' str
+   end
+end
+count=i-1
+
+do forever                    /* NOT passed filename, show menu */
+   'transmit' LF LF "    Quick-DL of Commonly Used Files" LF
+   do i=1 to count
+      w=subword(f.i, 2)             /* Display menu */
+      'transmit' " [" || d2c(i+64) || "]" w
+   end
+
+   'sendString' LF || " Selection: "
+   'getChar'
+   ans=RESULT
+
+   if(ans<'A' | ans>'Z') then
+   do
+      'transmit' "n2 Returning to the BBS.  (Download selected files with the DS cmd.)n1"
+      exit
+   end
+
+   'sendString' " [" || ans || "]"
+   ans=c2d(ans)-64
+   if(ans>count) then      /* User pick is out of range */
+   do
+      'transmit' "n2 *** Choice not available.n1"
+      iterate
+   end
+
+   fnames=subword(f.ans, 1, 1)
+   desc  =subword(f.ans, 2)
+   call NowOrLater()
+end
+exit        /****** End of main ******/
+
+NowOrLater:
+   fnamecount = words(fnames)
+   if(fnamecount>1) then 'transmit' " There are" fnamecount "files in this set."
+   do i=1 to fnamecount
+      each.i=word(fnames, i)
+      if(each.i="") then return
+      'transmit' "n2" QU || each.i || QU desc
+      'sendString' " [D]ownload now, [S]elect for later download: "
+      'getChar'
+      ans=RESULT
+      if(ans='D') then           /* D/L now, or later? */
+      do
+         'logEntry' "Pfiles:QuickDL.rexx used to DL" each.i
+         'transmit' " Download now"
+         'SetProtocol' ""
+         'XDN' each.i
+      end
+      if(ans='S') then
+      do
+         'logEntry' "Pfiles:QuickDL.rexx used to DL" each.i
+         'transmit' " Selected n2 (Selected files can be downloaded later with the DS cmd.)"
+         'selectFile' each.i
+      end
+   end
+return
+
+/*** EOF QuickDL.rexx 810-473-2020 ***/

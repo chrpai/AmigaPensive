@@ -1,0 +1,108 @@
+; Installer Script für PROMETHEUS 
+
+(user 2)
+(set MainPath "PROMETHEUS:")
+(set SourcePath "PROMETHEUS")
+
+(set destpath
+ (askdir
+  (prompt "Wo soll das Prometheus-Verzeichnis erzeugt werden?")
+  (help "In dem gewählten Directory wird Prometheus installiert")
+  (default "work:")
+ )
+)
+
+(set @default-dest
+ (tackon destpath "Prometheus")
+)
+
+(set result
+ (makedir @default-dest
+  (prompt "Lege Prometheus Directory an")
+  (infos)
+  (safe)
+ )
+)
+
+(set result
+ (copyfiles
+  (prompt "Kopiere alle Libraries")
+  (help "Kopiere die Prometheus Libraries")
+  (source "libs/")
+  (dest "libs:")
+  (all)
+  (infos)
+  (optional fail)
+  (safe)
+ )
+)
+(set result
+ (copyfiles
+  (prompt "Kopiere alle Befehle")
+  (help "Kopiere die Prometheus Befehle")
+  (source "c/")
+  (dest "c:")
+  (all)
+  (infos)
+  (optional fail)
+  (safe)
+ )
+)
+(set result
+ (copyfiles
+  (prompt "Kopiere alle Devices")
+  (help "Kopiere die Prometheus Devices")
+  (source "devs/")
+  (dest "devs:")
+  (all)
+  (infos)
+  (optional fail)
+  (safe)
+ )
+)
+(set result
+ (copyfiles
+  (prompt "Kopiere das L Directory")
+  (help "Kopiere das L Directory")
+  (source "l/")
+  (dest "l:")
+  (all)
+  (infos)
+  (optional fail)
+  (safe)
+ )
+)
+(set result
+ (copyfiles
+  (prompt "Kopiere das S Directory")
+  (help "Kopiere das S Directory")
+  (source "s/")
+  (dest "s:")
+  (all)
+  (infos)
+  (optional fail)
+  (safe)
+ )
+)
+(set result
+ (copyfiles
+  (prompt "Kopiere den Prometheuspfad")
+  (help "Kopiere den Prometheuspfad")
+  (source "prometheus/")
+  (dest @default-dest)
+  (all)
+  (infos)
+  (optional fail)
+  (safe)
+ )
+)
+(set forstartup ("assign prometheus: \"%s\"" @default-dest))
+
+(set result
+	(startup "Prometheus-Hauptprogramm"
+		(prompt "Es wird das Prometheus-Assign in Ihre User-Startup eingefügt")
+		(help "Das Assign wird von Prometheus benötigt, um die nötigen Datenfiles zu finden")
+		(command forstartup)
+	)
+)
+(makeassign "prometheus" @default-dest)

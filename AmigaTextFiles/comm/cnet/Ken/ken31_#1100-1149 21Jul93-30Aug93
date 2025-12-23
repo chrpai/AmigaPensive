@@ -1,0 +1,1322 @@
+
+Thursday 22-Jul-93 00:32:16
+
+--1100--
+
+P> this new version is a tad slower.. Previous versions
+P> would import 1.3 messages per second. Tests so far have
+P> resulted in .67 and .79 messages per second imported.
+
+I'd love to see CNet also write a "tally-line" to SysData:logs/maint...
+> 14-Jul  7:30a  IMPORTED:     298 msgs overall in 206 secs (1.4/sec)
+> 14-Jul  7:30a  EXPORTED:     298 msgs overall in 206 secs (1.4/sec)
+
+P> This wont be so bad when the tosser is complete.
+
+Ken, are we talking days, weeks or months until this is available?
+No hurry, I'll just hold off on the DOS/Arexx scripts I plan on writing if the
+CNet tosser isn't too far off.
+
+--1101--
+
+Does anyone else get callers that reply to my mail with things like:
+
+Bill> You didn't describe your last UL at all.
+
+Them> Right before I UL'ed, CNet said:
+Them> "Describing your uploads now is OPTIONAL:"
+Them> so decided not to.
+
+Or do I just get them?
+
+Could that prompt be worded better/differently?
+
+--1102--
+
+Any plans on having cleanfido use calls to DeleteFile() instead of
+many calls to the DOS c:delete cmd?  I don't know how much of a speed
+improvement this would be for systems with 200+ subs.
+
+Am I correct in assuming all CleanFido does is:  delete all the msgs in
+my tmp dirs?
+
+In my case, can I replace it with "Delete TmpMail:#?/#?.MSG"?
+
+--1103--
+
+> the separate "allfiles" and "newfiles" structures.  The FIND command
+> now uses the subboard header structures, in which is stored the first
+> 9 characters of each filename.
+> The BAD news is that the match-string must appear in the first 9
+> characters of a filename in order for it to be "found."  This MAY
+> be increased to 12 characters before 3.0 ... working on it.
+
+Whatever the final char-limit ends up being, the input the user gives should
+also be chopped to this #.
+So that "FIND MyFileNameExactly.LHA" will still work.
+
+
+BB> Bill, what about pattern matching??  I think we need to give MORE input
+BB> space!!  You would do things like
+BB> (test#?|what#?) to find aything beginning test or what ...
+
+I didn't know you were (or currently) going to support (|).  That's great!
+
+Well, I've (once again) lost track of what is "current done" VS "will be done"
+VS "suggestions".  So I'll just post the what I'd consider to be ideal....
+
+1) FIND will search the full 30 (or whatever) char filenames.
+
+2) If this is going to slow things down (or cost too much memory) then "only
+the 1st x chars" get searched.
+
+Depending on which of the above you go with, it will effect the following
+ideas...
+
+*FULL* wildcard searching.
+Average Amiga users can use ? and #?.
+Average IBM users can use ? and *.
+Pro users can use the full pattern matching ? #? * | ~ () % #() (|) ~() and so
+forth.  (I often need to do 2-4 searches because I'm not exactly certain under
+what name something might be.  "OR" and "AND" support would cover this in 1
+search.)  (If FULL pattern matching is going to slow things down too much,
+maybe partial-full?)
+
+If a user's input contains wildcards they are used.
+If a user's input does NOT contain wildcards then a "substring search" is
+done.  (If his string appears ANYWHERE in the filename, a match is shown.)
+
+No file is listed more than once, regardless of how many times a pattern match
+is found.  (Don't laugh,  CNet's "Z" cmd still does this.  Do a "Z" for "DOS"
+and if it is found 3 times in a line, the same line is listed over and over
+again.  I read it the 1st time.  If I'm already going to get 1 bazillion
+matches, I don't need each one listed again and again so that I get 3
+bazillion.)
+
+A user should NEVER run into things like "FIND MyExactFileName.LHA" isn't
+found because "you entered TOO MUCH info, and only the 1st x chars were needed
+and searched for".  Here at FW, do "FIND lastcaller.lha".  It'll never show a
+match.  But the file does exist.  If the user's input is chopped to only
+allowed x chars to be entered, then a match would be found.  (An unfortunate
+limitation of #2.)  (Wildcard chars should NOT be counted as "chars" during
+this "chop".)  Maybe "chopping" isn't the answering.  But "FIND
+lastcaller.lha" should definitely show matches some how.  It is ironic that an
+EXACT, CHAR-FOR-CHAR FULL match is shown as "file not found".
+
+If FIND is going to search for something other than what the user entered, it
+should say so:
+> FIND lastcaller.lha
+> Searching for "lastcalle*"...   (or "*lastcall*" or whatever)
+Just so that he knows what's really happening.
+
+And maybe most important, exactly how many prompts are we now NOT going to be
+able to run FIND from?  I REALLY found this handy as a global cmd.  I used it
+everywhere.
+
+--1104--
+
+A> 1) Have multiple netmail areas.  You could set up an area for netmail
+A>    that would be configured as being a specific net.  To send/read
+A>    TrumpNet netmail, I would go to the trumpnet base, etc...etc...
+
+I'd love this, but for another reason.  Just to keep a copy of all the netmail
+I (and others) $end.  Search, sort, purge, scan, browse, read, date/time
+stamps, etc.
+
+Currently, users tell me "store it off-line in 1 (or 1000s) of plain ascii
+text files" or "print it all out on tons of paper".  Hardly good "solutions".
+
+--1105--
+
+RB> And also, I know OFF is not common, but how
+RB> can I automatically have it log them off??  I tried {&nOFF!} and it
+RB> doesn't work..  I tried OFF, BYE, O! ect.  Whats the deal?
+
+In arexx it should be 'DropCarrier'.
+
+{&n} only works with cmds in BBSMENU "2; Available everywhere".
+I sure wish it worked with the others.  (If the MCI text-file was called at a
+type n menu, then all type n BBSMENU cmds would work.)
+
+I was suprised to see that OFF wasn't a type #2 cmd.  It is common enough to
+warrant such.  Maybe done as it was for "safety puposes".
+
+Try {%0 31-12-99} to dropcarrier.  (But it'll only work until 31Dec99)
+
+--1106--
+J> Is it possible to make a vote topic mandatory ?
+
+And then, of course, a new per-user flag has to be added.  Determining which
+users do/don't have post-mandatory-vote access.
+
+I think bugging them with "Vote on new topics [Yes]?" during every log-in
+takes care of this.  They basically get the idea:
+
+> If you vote now, you won't be asked over and over again.
+> Vote on new topics [Yes]?
+
+But I WOULD like to see something exactly the opposite of your suggestion.
+When anyone posts a vote-topic, they would also be asked:
+> Inform users of this topic during log-in [No]?
+
+It couldn't be any worse than the existing "ALL new vote topics are flagged
+during log-in".
+
+I'd gladly allow 100 vote-topics to be posted.
+(As long as most, or all, aren't going to bother the user during this next 100
+calls.)
+
+Removing {#2 Pfiles:bbs/Vote} entirely, isn't a "solution".
+
+As a 'partial solution' I've changed that line in systext:sys.welcome to:
+{T15 #5} {JL 99} {T22 #3} {JL 99}     {#2 Pfiles:bbs/Vote}     {99}
+
+Level 0-4, (new) callers aren't bothered with it.
+And no one (regardless of level) is bothered until after their 3rd call.
+(A lengthy new-user questionairre, tons of news files, etc.  They don't need
+to immediately start answering tons of vote topics, too.)
+
+--1107--
+
+> Geez, how long have you been running CNET?  An hour?
+
+Does that matter?  Many hours.
+
+There's a trillion other little things that I don't know about CNet.  They
+just aren't mentioned anywhere and the system is far too big to assume "you
+should just know it already".
+
+Can you explain how AG works?  An extremely busy 10-line system can show LOWER
+graphs than a little used 2-line system.
+
+Or:
+
+Here on FW, I often see all lines in use.  Yet the HIGHEST the graph ever gets
+is about 50%.
+
+And before you ask, I rarely reset it.  It just takes too many days to
+'build-up' to a reasonable average again.
+
+I wish it had some kind of a "continuous reset" function.  At any given hour,
+the graph would show THAT HOUR'S most recent setting.  The whole graph would
+always reflect the last 24 hrs (or maybe 2-3 days).  You could TRULY see if
+your system is being used more (or less) than before.  (This is NOT
+the same as:  a full, manual (ugh) reset every x days, setting
+everything back to absolute 0, and then waiting x days for the graph
+to show some decent values again, at which point, you just reset to
+all 0s again.)
+
+Maybe do something like...
+If it's 10pm now, the 8pm line shows 8PM TODAY only.  Not the last 134
+8pm settings averaged together, where big increases or big decreases
+are just averaged in and never even get noticed.
+
+Again, I'm just guessing at how this whole thing works.
+
+Also very handy would be "maximum peak level" indicators.  A "-" char
+high above each bar would show the "highest value ever".  Did your 4-
+line system *EVER* hit 100% at 8pm?  Or was 75% the alltime max?
+(Even though the overall average only shows 30%.)  It would be an
+excellent way to tell if/when you need to add more lines.  It would
+also help inform users of things like, "Call at 9am.  There has
+N-E-V-E-R been 100% usage (all lines busy) at 9am".
+
+Also handy would be (optional) graphs for each line ("AG 4")
+independantly.  Is your ONLY 14.4k line swamped with 100% usage?  Or
+are more 2400bps modems need instead?  Should more of the lines be
+moved over to 'paying-only' lines?  Or are the 'public-open' lines
+swamped?  More HSTs?  More v32bis lines?
+
+(It's not uncommon for 6-20 lines systems to have only a few 14.4k
+modems and the rest 2400bps.)
+
+Each per-node graph would only use <600 bytes of disk space.
+
+--1108--
+
+Ken, please consider changing the default from "[NONE]" into "[The
+Most Likely Match]", whenever the input entered by the user only
+matches the first x chars of a single user's name.
+
+> FI Jim S
+>
+> 1.  Jim Mulhearn
+> 2.  Jim Rainey
+> 3.  Jim Ridge
+> 4.  Jim Selleck
+> 5.  Jim Weatherwax
+> 6.  Jimbo
+>
+> Enter number, name, +, - or [Jim Selleck]:
+
+The only name matching my "Jim S" is "Jim Selleck".  It is probably
+more likely that I'm looking for him, instead of the current default
+of "[NONE]".
+
+
+D> And what happens on the system that also has a Jim Smith, Jim Sanderson,
+D> Jim Schulenkle, etc.
+
+Then, and only then, would CNet work as it does now, providing no "most likely
+guess".  Of course, "FINGER Jim Sa" would hit correctly EVERY TIME.
+
+Anything is better than CNet's current method:
+USER> FI Bill Allen Beogelei      (<- left off 1 last letter "n")
+CNET> Gee, I don't know, which of these 6 users did you mean?
+Chances are, the user meant "Bill Allen Beogelein".
+
+S> Don't forget SOME sort of quit or abort option is needed...
+
+Hmmmm.  I haven't thought of that.  Maybe "0" == abort.
+
+BA> Enter number, name, +, - or [Jim Selleck]:
+
+UP and DOWN cursor-keys would be handy and intuitive, alternates in
+addition to allowing "-" and SHIFT (ugh) "+".
+
+--1109--
+
+H> An ARexx command called "WRITEMESSAGE {n}" where it will enter the editor,
+H> asking for a subject and such, and place it in physical subboard N.
+
+I'd use this one heavily.  But since we can already use Arexx to get variables
+for name/subject/etc, and call the editor, the syntax really only needs to be
+"WRITEMESSAGE {textfile} {phy sub #}"
+(Or I'll take docs on how to do it in C.)
+
+H> Have CNet keep track of, in GETUSERS:
+H>   A> Last sytem reboot.
+H>   B> Number of calls since last reboot.
+
+I always wondered why "calls" were left out of "AM" for
+Last/Setup/Period/Total/Current.  Keeping an eye on # of calls your system
+gets has to be at least as important as some of the other 75 values that are
+already track there.
+
+H> Perhaps a fancy area where people can plug in their OWN MCI commands. Sort
+H> of a plug-in bucket where you could drop scripts for new MCI commands
+H> into. I dunno, a thought.
+
+Maybe something like {V 100} displays ENV variable CNET100.
+You can set/change these via DOS scripts, MCI gets/displays them in real-time.
+Maybe V100-V110, or so.  Of course, {L 100} would set them, too.
+
+--1110--
+
+D>    screens, and it would be a HECK of a lot nicer if I could simply do a
+D>    double double click to EXIT, then SAVE that stuff. Presently, the SAVE
+D>    line appears one line LOWER than the EXIT.
+
+This might have been done on purpose.  To avoid "accidently" saving or
+aborting.  You have to physically, consciously move and choose.
+
+I would like to see the save or abort appear OVER (not next-to) each other.
+Try saving/aborting in a 2-color screen.  It can be tricky seeing exact where
+the cursor is positioned.  Also, the cursor should NOT "cycle-around".  It
+should move Left (or up) and stop.  It should move Right (or down) and stop.
+Currently "left" can move it back to the "right".
+(All of the above is regarding the VDE's save/abort screens only.)
+
+D> 3: Is it now possible to have 32 Computer Types as well? I've played
+
+This is needed.  There're 15, or so, Amiga models alone.  Doesn't take much to
+hit the 24 mark.
+
+D>    to upload a QWK packet from ANYWHERE on the BBS, simply by typing
+D> "QWK".
+
+Heck, UPLOAD itself should be a global cmd.  A CONFIG variable could specify
+the physical sub # to toss non-sub uploads into.  If that var was set to 0,
+this feature would be disabled.  User's could never again say they can't
+figure out how or where to upload.  Heck, with Zmodem auto-send/receive, you
+wouldn't even need to enter "U".  Just tell'em: "It's a CNet-BBS.  Just start
+sending at anytime, any prompt.  Everything is taken care of automatically."
+
+D>    contain all text file reads OTHER than GFILES, but we REALLY DO need a
+D>    way of finding out WHICH GFiles have been read, WITHOUT all the NEWS
+
+Would anyone like to have elements within the gfiles/news/pfiles items
+themselves that would track "times used"?   MCI {V XT#####} in the displays
+could (optional) show run-counts.
+##    Description
+== == ===============================================================
+ 1 74 My Gfile Title
+ 2 12 My Gfile Title
+ 3  3 My Gfile Title
+
+--1111--
+
+During WHO "doing-strings" like "Global text sear" are too long for the
+display and get chopped.  But changing to "Glob. txt search" would fit.
+
+--1112--
+
+> 252.   Setting an item's "purge status" has just become simpler.  The
+>  "purge at download," "Purge at amaint," and "Protected" flags on
+>  the item AT screen have been combined into one variable "purge
+> 	status."  The only drawback is that previous "protected" status
+>  of items will be lost.
+
+I still haven't upgraded past v2.79 for the above reason.  With 20,000
+msgs and files online, and 500 of them meticulously set as "protected",
+I can't afford to lose them.  (400 of them would all get purge during
+my 1st non-2.79 amaint run.)
+
+I've written an Arexx script that opens each "data/_Items3" file and
+checks for "Protect-Bit == 1" and sets "OnlyOnce-Bit == 4" instead.
+Should this preserve all my protected-flag settings?
+
+Do I have to do anything special with any other data in _Items3?
+Or anything with _Free _Headers3 _Message3 _Text?
+
+--1113--
+
+ What if you set his "msgs per call" to 0?  (Or does this include ULs,
+ feedbacks, mail, or other items you do not wish to limit?)
+
+ I would like to see a quick way to stop each user from posting all Fidonet
+ posts. Or all Usenet posts.  Those go out to 1000s of systems.
+
+ Perhaps each item listed under CONFIG/FIDONET could be assigned a #.  And each
+ user could have the similar # appear in his account flags.  This would
+ disallow posting on a "per network basis and on a per-user basis" for upto 32
+ networks.
+
+--1114--
+
+How is the old Amiga ser:port (or other add-on cards) going to handle
+the new load of 28.8k?  Errors?  Slowdown?  Bogdown?  Flawlessly?
+
+J.P. Hillenburg (jph@anaconda.bloomington.in.us) claims GVP's I/O
+board supports upto 614,400 baud.
+
+Of course, if you dial into 407-631-3253, they claim to already have
+v.fast on one of their lines...
+
+>            THIS  NODE IS V32bis 14400 / V.FAST US-ROBOTICS
+>                           TESTING NEW ROMS
+>                    Authorized  USROBOTICS DEALER
+
+--1115--
+
+E> Keep the logon sequence to a minimum.  Nothing bothers a user more
+E> having to return through a bunch of junk before they can start using
+E> your system.  I once spent 5 minutes on a BBS hitting return countless
+E> times just to get thru Today in Histories, Famous Quotes, Newsflashes,
+E> Voting Topics, Top Ten utilties, AutoPosts, a Grafitti Wall, etc......
+E> I never called again.
+
+This is VERY true.  I've seen systems that allow each user to config which of
+these he wishes to view/skip during future log-ins.  I highly recommend using
+this.  (And if a SysOp notices that 99% of the callers are answering NO to
+"View this too?", it should tell the SysOp something.)
+
+Another biggie is that "every log-in check":
+>Enter your phone # for verification:
+>Enter your state for verification:
+>Enter your address for verification:
+It's OK to ask this during a callers 1st few calls, but chances are if he's
+called 27 times and answered it correctly 27 times, do you really need to
+re-verify it a 28th time?
+
+It's pretty easy to fix.  If you are running a pfile in your
+systext:sys.welcome file, change it to:
+> {T22 #5} {JG 99}   {#2 Pfiles:MyPfile}   {99}
+        ^
+        ^
+This pfile will NOT be run after the caller has called >5 times.
+
+--1116--
+
+This post is directed towards everyone who is using Fidonet and has
+a tear line like:
+
+>---
+> * Origin: Freq us! 700 MBytes of Amiga Stuff on CD-ROM (2:245/6805.0)
+>---
+> * Origin: Tierra-Miga (SanDiego) 619.292.0754-V32.bis (1:202/638)
+>---
+> * Origin: Terminal Paradise BBS * Adults Only * (1:270/611.0)
+>---
+> * Origin: Alpha Complex -> 307/266-3758 (1:303/13.0)
+>---
+> * Origin: Gates Systems Adult.215-755-6052 14.4 AMI/ADS/SAN (1:273/934)
+>---
+> * Origin: ReFLex Point-Pasadena, CA. 818-792-5622/3477/3938 (1:102/962.0)
+>---
+> * Origin: The Liquid Sky!  ALL AMIGA! 1.3 Gigz/V.32bis 24hrs (1:267/131)
+>---
+> * Origin: Admiral Amiga CD ROM San Diego Ca 619-222-4247 (1:202/914)
+>---
+> * Origin: The Aquarium/AWE, Buffalo,NY,USA (716)885-8369 (1:260/118.0)
+>---
+> * Origin: Terminal Paradise BBS * Adults Only * (1:270/611.0)
+>---
+> * Origin: Mega-City -- (1:104/535)
+>---
+> * Origin: PILOT BBS CNet Amiga 32-2-647-3713 Belgium (2:291/715)
+
+
+but instead wants:
+>--- CNet XFIDO 2.63
+> * Origin: .......
+
+If you are using Trapdoor/TrapToss, add a line like "TearLine LEAVE"
+to your "Fido.CFG" file.
+
+Many times the comments/questions you are asking might pertain only to
+certain releases of CNet, so the version # you are using can be very
+important.
+
+It is also great free advertising for CNet in EVERY msg that EVERY
+user posts to EVERY Fidonet echo in the world.
+
+--1117--
+
+How would you like to see some of this done?
+
+AF> 4) Must have a better way to update finger so as to change one or two
+AF>    enteries, without effecting the others, but NOT using a text editor.
+
+Maybe have the old entries become the defaults.  Hitting RETURN keeps them
+as-is.  Or you can cursor-around to edit.  Or clear and re-enter text.
+
+AF> 5) Last 10 commands curor search should be increased
+
+I believe it is currently 10-lines of 80-chars each.  I don't enter too many
+80-char cmd lines.  I think 20-lines of 40-chars each, is more 'real-world'.
+Of course, the PERFECT way to do it would be to allow any caller to fill his
+800-char cmd-history buffer in 'real-time'.
+If you enter short 10-char lines, you can have a history of 80-lines.
+Or 160-lines of 5-chars each.  Or 20x40 or 40x20 or 15x53 or 25x32 or
+whatever.  All use 0 bytes of more memory then the current method.
+
+AF> 8) Have a message save feature for users that are logged off due to call
+AF>    waiting or idle timer, so they can continue when they log back on.
+
+Perhaps saved x days in a Mail:Users/#/_dead.letter file.  (UNIX style).
+
+AF> 10)The 100-float-vote should not be fractions of 100.  Ask user to vote
+AF> for all choices applicable, not decide percentages of which they like
+AF> best.
+
+"Percentages" are the whole idea here.  You can "weight" your opinion as you
+see fit.
+
+Are you saying users should be able to vote for 4 of 9 different choices, all
+equally?
+
+--1118--
+
+AF>    Exactly...  I do not like the text editor idea...  In fact I took it
+AF> out of the possible choices
+
+I removed mine also.  Just too much room for abuse.  "Edit your answers, edit
+the questions, add/remove questions entirely, delete the whole file,
+anything."
+
+AF> the previous...  But would still like to see equal distribution as in the
+AF> case of Q: "What sports are you in?" A: "Basketball, Hockey, and Skiing."
+
+Sounds like a good idea for a new 3rd type of voting.  (NOT changing or
+removing the current 1-2).
+1) floats
+2) 1-vote
+3) multi-selection
+
+I HATE THE WORD "FLOATS"!
+
+AF> 12) Just like Z-Modem has an automatic receive function on term programs,
+AF>     CNet should have an automatic receive function as well for uploads.
+AF>     Users could log on, and just start sending the file they want to
+
+This has already been suggested.  I never heard any word from Ken about it.
+
+AF>     upload(s) should be placed in.  If the user hangs up and doesn't place
+AF>     them, they will stay in the temporary uploads base
+
+How would CNet know about this sub?
+Maybe a new CONFIG/DEFAULT "Physical sub #" entry?
+I'd also like users to UL and NOT even have to pick a sub.  These ULs would
+also go to my CONFIG/DEFAULT designation.
+
+When users ask "how/where do I upload?"
+Just tell them, "Just start sending anywhere/anytime.  It's a CNet
+`Smart-System'".
+
+--1119--
+
+E> 6)  Keep the logon sequence to a minimum.  Nothing bothers a user more
+E> than
+E>     having to return through a bunch of junk before they can start using
+E>     your system.  I once spent 5 minutes on a BBS hitting return countless
+E>     times just to get thru Today in Histories, Famous Quotes, Newsflashes,
+E>     Voting Topics, Top Ten utilties, AutoPosts, a Grafitti Wall, etc......
+E>     I never called again.
+
+This is VERY true.  I've seen systems that allow each user to config which of
+these he wishes to view/skip during future log-ins.  I highly recommend using
+this.  (And if a SysOp notices that 99% of the callers are answering NO to
+"View this too?", it should tell the SysOp something.)
+
+Another biggie is that "every log-in check":
+>Enter your phone # for verification:
+>Enter your state for verification:
+>Enter your address for verification:
+It's OK to ask this during a callers 1st few calls, but chances are if he's
+called 27 times and answered it correctly 27 times, do you really need to
+re-verify it a 28th time?
+
+It's pretty easy to fix.  If you are running a pfile in your
+systext:sys.welcome file, change it to:
+> {T22 #5} {JG 99}   {#2 Pfiles:MyPfile}   {99}
+        ^
+        ^
+This pfile will NOT be run after the caller has called >5 times.
+
+--1120--
+
+BA> It's pretty easy to fix.  If you are running a pfile in your
+BA> systext:sys.welcome file, change it to:
+BA> > {T22 #5} {JG 99}   {#2 Pfiles:MyPfile}   {99}
+BA>         ^
+BA>         ^
+BA> This pfile will NOT be run after the caller has called >5 times.
+
+E>     Hummmm......I like this!  I never even knew this option existed.
+E> Oh boy!!.....The fun I'm going to have now!  Thanx Bill, excellent idea!
+
+Another handy thing...
+If a new-user goes through a lengthy questionairre and registration process,
+the last thing he needs to do is also have 10-20 vote topics forced upon him.
+
+You can do the same modification:
+{T22 #3} {JL 99}   {#2 Pfiles:bbs/vote}   {99}
+      ^
+      ^
+He won't have to vote until his 2nd or 3rd (or whatever) call.
+(He can still "manually" move into [V]ote.)
+
+Or maybe hold-off until he's a level 5 or greater user:
+>{T15 #5}{JL 99}   {#2 Pfiles:bbs/Vote}     {99}
+       ^
+       ^
+Or whatever access level.
+
+(I hope I typed in all my codes correctly.)
+
+--1121--
+
+>     etc will most likely structure their BBS so you think that you're
+>     in a
+>     sailing ship or a prison ward using message base names like, The
+>     Gallery
+>     and The Crow's Nest.....The Cell Block, the Torture Chamber, etc,.
+>     This is too comical
+
+I find some of these systems extremely hard to understand.
+
+"Feedback/file-areas/msg-areas/news-files/doors/post/read/write" I can
+understand.
+But when the cmds are "Move to the brig, the galley, write parchments, read
+scrolls, move to the crows nest, down periscope, visit the hall of records,
+load torpedo tubes, bombs away" it can get quite confusing.
+
+Sorry, I'm not a knight, a railroad engineer, a submarine captain, or war
+hero, and their terminology isn't familiar to me.
+
+Reminds me of Letterman's:
+Top 10 Expressions that Sound Dirty but Really Aren't - February 3, 1986
+     10.   "Frosting the pastry"
+      9.   "Shooting hoops"
+      8.   "Jumping the turnstile"
+      7.   "Checking your oil"
+      6.   "Tethering the blimp"
+      5.   "Sending out for sushi"
+      4.   "Picnic on the grass"
+      3.   "Quarter-pounder at the Golden Arches"
+      2.   "Shaking hands with Abraham Lincoln"
+      1.   "Windsurfing on Mount Baldy"
+
+--1122--
+
+I love the formatting power of the new MCI "{V999 %2.2s}", but I believe
+the additional "%s" is causing conflicts in BBSTEXT lines that already have
+other "%" formatting codes in them.
+
+Try changing #A into #B:
+1> Is %s correct [Yes]?
+2> {V1 %12s}, is %s correct [Yes]?
+It won't work as planned.
+
+1st choice fix:  CNet correctly allows and checks for "%s" inside MCI "{}"
+                 and prevents conflicts with existing "%s" codes.
+2nd choice fix:  Change MCI "%s" codes into "#s" or some other escape char.
+3rd choice fix:  Add to the manual:  "You can never use MCI "%s" codes on
+                 BBSTEXT lines that already have "%s" codes in them." (ugh)
+
+> 1st choice fix:  CNet correctly allows and checks for "%s" inside MCI
+> "{}" and prevents conflicts with existing "%s" codes.
+
+TB> I don't know if this is something that CNet can 'fix'.  % codes are
+TB> handlded by the language.
+
+CNet's MCI parser couldn't scan the contents of {}, and handle all the "%s"
+correctly.  As well as scan/handle all the "%s" codes OUTSIDE of {}, too?
+I don't see why not.
+
+Very little in the way of "parsing routines" is "impossible" or "unfixable"
+these days.  It's just a matter of "speed-costs" and "complexity"
+considerations.  Both of which I think can be covered.
+
+--1123--
+
+I'm putting my money on the bug being in the 'text search' routines.
+(Or 'searching' while 'amaintenancing'.)
+
+Here on FW, this same WHO output has been present for the last 5hrs.
+All the other lines are ringing but not answering.
+
+Port User name            Logon  Spd From                     Where
+==== ==================== ====== === ======================== ================
+ 0     (no one)                    0                          Maintenance
+ 1 m Data                  9:52p  96 Fulton, NY           USA Global text sear
+                                     One of many C-Net owners........
+ 2 m Motor                11:17p 144 Travis Afb, CA       USA Global text sear
+                                     Be nice to me, I'm new! :)
+ 3 m Chainsaw              7:06p 144 Edmond, OK           USA Text search
+                                     Clubland-100 megs, 14.4, CNet, Expanding!
+ 4 m Bill Allen            5:44a 144 Livonia, MI          USA Base
+                                     313-473-2020 2-line 14.4k Fido 1:2410/207
+
+Do I win something?
+
+--1124--
+
+1)  Place a 79 char DOS filenote on a file.
+2)  Let AO drag it into 1 of your file areas.
+3)  It appears online with the full 79 chars.
+4)  CNet chops the orginal DOS filenote to the first 77 chars.
+
+I don't know if it's been fixed in v2.90, but earlier releases do this.
+
+--1125--
+
+> Get PCPursuit, it's great, it's cheap...
+
+I used PCP for several years before dropping it recently.
+
+Some things to check into before getting PCPursuit:
+1)  Is there a phone # local to you that gets you into PCPpursuit?
+If not, it is kind of pointless to pay a LD charge to reach a point, that you
+can then then make local calls from.
+
+2)  Many areas are limited to 2400.  (I was limited to 1200bps here in Livonia,
+Michigan)
+
+With so many people running 14.4K/16.8K and soon 28.8K, I couldn't live on
+1200bps.  I dropped my PCP account last month.
+
+With 14.4K modems costing only $170, I can't imagine PCP (a part of
+the giant Sprint co.) sticking with 1200/2400.
+
+PCP can save you money.  But not if you have to stay online *12 TIMES*
+longer due to slower speeds.
+
+Call a BBS and ask the SysOp:
+"Hey, can you raise my time-limit up 3-4 HOURS per call because I want to
+tie-up your lines using 1200bps.  OK?"
+
+Let me know what he says.
+
+--1126--
+
+With the # of systems that modify their BBSTEXT files, trying (by various
+means) to squeeze full-menus in, YES, something should be built into CNet to
+support this automatically.
+
+But how?
+
+Maybe something like:
+
+Display "SysText:Menu.x.y.z" at each prompt.
+x=Prompt # as it appears in BBSMENU.
+y=Graphics set # (ANSI, IBM, Amiga, etc)
+z=Help level # (Novice, Intermediate, Expert)
+If a matching ".x.y.z" file isn't found, then display the ".x.y" menu.  If
+that isn't found, then display the ".x" menu, if that isn't found, display the
+prompt-line as found in BBSTEXT.
+
+--1127--
+
+Alan, regarding your FindFish v2.2 door...
+
+>4 - INSTRUCTIONS: Information on usage
+
+[H]elp would be a better choice.  More like CNet's default:  H=Help.
+(Keeping all 3 listed menu items for "search types".)
+
+>Enter.. #)number to change, [S]earch, [H]elp, [Abort]:
+
+Also, is there a way for me to remove:
+> "Would you like instructions [y,N]?"
+presented to every user, during every run?
+
+I think users needing help can pick it from the menu.
+(Although, the whole prg is pretty straight-forward to use.)
+
+Also, it might be better to include some 1993 Fred Fish Data files in
+the main archive, and not old 1980's stuff.  Maybe disks 800-900?  I
+think it is more likely to be what users want.
+
+> The # character is reserved as an indexing marker and can only appear
+> as the identifier preceding the disk number.  You must scan any text
+> that you add to the database files and change any # characters to some
+> other character or delete them.  If there are any stray # characters
+> in the file, you are asking for trouble.
+
+Please consider have FishFind search for "\n#*\n", instead of just "#".
+This WOULD then allow "#" to occur safely in the body of FF-data text.
+(Just not as "\n#*\n".)
+
+> current disk number display changed to dots during searches
+
+Dot's tell the user:
+"It's searching something, somewhere.  An unknown amount searched, and
+an unknown amount left to go".
+
+But,
+Displaying "(#_of_disks_searched / #_of_disks_overall) * 100" as:
+> Searched 10% \r
+> Searched 20% \r
+> Searched 30% \r
+> Searched 40% \r
+Tells the user exactly where he stands at all times.
+
+Please consider moving all the strings into an external FindFishText
+file, like BBStext.  Quite simple to code.  Read/load 20-lines of text
+into a simple array.  Display as needed.
+
+And, calls to CNet's "char GetKey()" for hot-key input would really make
+moving around FindFish fast and handy.
+
+--1128--
+
+> "Workbench" iconifies the console to an ICON (Not an icon in a window)
+> on the main Workbench screen.
+
+What are a handful of advantages for doing this, instead of the
+current window-method?  I love the current ability to move it in front
+or behind other stuff (like we can now).  And you can still put it on
+a WB screen if you like.
+
+> Note, the control panel is its OWN screen, NOT a workbench window.
+
+That does this gain?  Screens use big memory.  Especially if I already
+have another screen open, and can just use a window on it, instead.
+
+--1129--
+
+PB> has anyone found a way to move subboards into a subdir without deleting
+PB> them and adopting them back in?
+
+I don't believe this is currently possible.  Perhaps Ken would consider adding
+it.  I'd use it, on certain occasions.
+
+But how would you like this done?
+Perhaps...
+If you enter "ML" with only 1 arg (instead of 2) then you get the same
+sub-list to pick from that "MOVE" gives you.  (You could move subs
+in/out/around any subdirs, even move subs between base: and udbase:.)
+
+--1130--
+
+You think we can get Ken to add to the log-in:
+> It's now  Tue 10-Aug-1993  3:37a; port #2
+> Last call Tue 10-Aug-1993  3:21a; port #4
+                                    ^^^^^^^
+--1131--
+
+Perhaps Ken will consider squeezing 2 preliminary RIP support items into
+CNet v3.0.
+1) Give "ET" a "RIP" choice.
+2) A new-user question:
+   "Does your term support RIP [No] ?"
+
+(These will be needed eventually anyway.  Why not be ready for it?)
+
+SysOps will be able to create their own RIP-bbstext and RIP-menus TODAY.
+(CNet just needs to send the RIP codes as-is.)
+As soon as an Amiga RIP-term is available *IT* can correctly read/
+display these codes.  The very DAY a RIP-term is released, CNet will
+already support 90% of the stuff.
+
+This will NOT allow full-RIP point/click/query stuff, but graphics/
+colors/draw/fills/fonts/windows/cursor moving/display icons/etc
+(anything that is going to be read/interpreted by the TERM) should
+would.
+
+I hope I'm correctly assuming how RIP works.  It is the responsibility
+of the user's term (NOT the BBS) to do MOST of the work?
+
+S> Could someone please upload documentation of this protocol? I'd like to
+S> see how it works and what it's capable of...
+
+I UL'ed it months ago.  Type "FIND *RIP*".
+
+S> Bill, I don't know the specifics, but I doubt a "does your term support
+S> RIP" question would be needed. Most likely, there is some way to
+S> auto-detect RIP, just like there is with ANSI...
+
+There is.  But *I* (as caller) would rather control whether or not I want to
+start receiving RIP codes.  It is far too much power to automatically start
+sending gadgets/window/etc.  RIP can even load/save stuff off of a caller's HD
+without him even knowing about it.   (But I hope term authors are going to let
+us control which DIRS to save/load to.)
+
+It is frightfully simple:
+!|C506040
+  ^ ^ ^ ^
+  | | |  40 pixels in diameter
+  | | Position at 50x60
+  Draw a circle
+
+You can even set a bunch of variables for your name, address, city, state,
+sex, bday, phone, etc on your HD.  A BBS can inquire and make these the
+answers to the new-user questions without ever even asking you the questions.
+
+ON YOUR FIRST CALL to a system you've never called before in your life, you'll
+see:
+ 1) Handle  :  Mr. BBS                   2) Name    :  Bill Beogelein
+ 3) Address :  Box 530441                4) City    :  Livonia, MI
+ 5) ZipCode :  48153                     6) Country :  USA
+ 7) Voice#  :  313-5555555               8) Data#   :  313-4732020
+ 9) Hi baud :  14400                    10) BirthDay:  Wed 29-Jul-1967
+11) Gender  :  Male                     12) Organiz.:  SysOp of SWHQ
+BEFORE you even log-in.  (Or course, you won't really need to "log-in". The
+BBS and TERM will exchange "name and password" info without even bothering to
+ask you.)
+
+Once again, *I* (as caller) would like to be asked and control whether or not
+RIP is active.
+
+--1132--
+
+file: CFN.lha (17967 bytes, 0m 13s, 0 xfers, 3111 cps best)
+from: Bill Beogelein
+to  : Big Brother  (Ken Pletzer)
+on  : Sat 14-Aug-1993  7:57p
+info: Completes filenames in shell when TAB is hit.  v1.0 Andreas Gunther 21Jun93
+
+CFN works only from a DOS shell.
+
+But, this is the kind of automation I spoke of last month regarding CNet.
+
+Perhaps CNet could adopt something similar:
+CNET> FI <TAB>
+Would expand to "FINGER ".  (the only choice available.)
+
+Continuing...
+CNET> FINGER Jim Se <TAB>
+Would expand to "Jim Selleck".   (the only "Jim Se" online here)
+
+In either case, BACKSPACE or DELETE would undo what <TAB> had expanded and
+displayed.  (In case that's NOT the choice the user wanted.)
+
+It would be VERY handy for SCAN/READ/KILL 'foo' usage too.
+CNET  SCAN 'fo <TAB>
+
+--1133--
+
+Ken, did you find the "byme" bug I reported earlier?
+I'm often told by Cnet that I'm NOT the ULer of a file, when I really am.
+
+And today, (1st time I noticed) I'm now told I AM the ULer of files I did NOT
+UL.
+
+> (3) Amiga Telecommunications> s byme
+>  # Upload Rsp File           Size De
+>  4 10-Aug   0 PopModems  LHA   2K
+>  6  6-Aug   0 term34tr   LHA   3K
+>  7  6-Aug   0 term34rx   LHA   1K
+>  8  6-Aug   0 term34lo   LHA  15K
+>  9  6-Aug   0 term34ld   LHA  53K
+> 10  6-Aug   0 term34gd   LHA  83K
+> 11  6-Aug  12 term3400   LHA 236K
+> 27  2-Jul   0 QwkSpecs   LHA   5K
+> 28 29-Jun   0 foyers16   LHA  13K
+> 31 22-Jun   2 amigANSI   LHA  13K
+> 33  7-Jun   0 AmiTCP     LHA   3K
+> 48 27-Mar   2 ParaBit    LHA   6K
+> 49 17-Mar   0 hydrakit   LZH 246K
+> 55 31-Jan   0 abberexx   LHA   5K
+
+I did NOT UL many of the above files.
+
+--1134--
+
+RC> What I would like to do is record the conference in a buffer or drive so I
+RC> can put it in the Gfiles area for those that may wish to see it but were
+RC> unable to get in on it.
+
+I mentioned this feature to Ken ages ago.  He didn't show any real interest.
+I'd love it.  We can only imagine how many 1000s of lines of discussion occur
+in confs and jointlink sessions all over the world.  Maybe 100s of top-notch
+Amiga users were discussing a solution to a problem that you might be having.
+Talk of new hardware, software, whatever, etc.
+
+And it is all instantly lost forever as soon as it scrolls off the top of the
+screen.  :-(
+
+RC> If this is not too difficult can someone write an ARexx prg to handle
+RC> this?
+
+I don't think it would be too easy to do this in Arexx or any other language,
+either.  (I hope someone proves me wrong.)  The text that users type in conf
+all goes from directly from their port to all the other ports.  I don't know
+how an outside program can wedge in and "grab it" and save it.  (I assume this
+is what would need to be done.)
+
+Now, maybe, if some enterprising young programmer decides to REPLACE the
+entire pfiles:bbs/join cmd, it could have this new feature and 100 others.
+But that sounds like a ton of work.
+
+I wonder if Ken would part with portions of the source code for
+pfiles:bbs/join.
+
+Ken, what are the odds of getting you to release some source code
+samples from "Pfiles:BBS/Join"?  I REALLY need to add a "save text to
+a file" option.  I'm missing tons of great talk during confs that I
+don't attend.
+
+(It would also be a great example for users wishing to write multi-node
+interactive game pfiles.  They're far too few.)
+
+--1135--
+
+Using an Arexx pfile I can prompt the user for an account #, and then
+feed it into 'LoadScratch/GetScratch' to get certain info about that
+account.
+
+But I feel users more often think in terms of "name" or "handle", than
+memorizing "account numbers".
+
+If I prompt the user for a "name or handle" I can't do anything with it.
+(or can I?)
+
+I basically need a means to move between an "Account<-->Real Name<-->Handle"
+lookup.
+
+Given any 1 of the 3, arexx will get me the other 2.
+
+Any ideas on doing this?
+
+It has to be in arexx, and it would be far too slow to read/search
+all names or handles 1-by-1.
+
+Ken, any future plans to allow 'LoadScratch' to be fed names/handles
+in addition to (NOT instead of) its current "account #"?
+
+--1136--
+
+I noticed the new version of the FIND command doesn't search in subs that
+you have DROPPED.
+Anyway to force it to?
+
+It's difficult to:
+1)  Write down dozens of dropped/joined settings.
+2)  Do the FIND.
+3)  Re-set all your dropped/joined settings.
+every time you need to FIND if something is REALLY online some place.
+(Regardless of your current dropped/joined settings.)
+
+Maybe FIND could get a new "ALL" option?
+CNet> FIND ALL rip*
+
+--1137--
+
+What kind of control will BBSes need for RIP in the future?
+
+Can't any caller post a ton of ASCII RIP codes in a Usenet/Fidonet msg and
+have 1000s of RIP terminals all over the world go wacko?  Opening/closing
+string requesters, windows, drawing colored lines, circles, boxes, creating
+mouse-sensitive gadgets, changing fonts, etc.
+
+And it's not fair to tell all callers to turn their term's RIP setting OFF all
+the time "just to be safe".
+
+Actually, all of the above mischief can be done TODAY, regardless of whether
+or not your BBS supports it.
+
+So maybe CNet will also need a per-sub "Allow RIP" flag.
+Checking/allowing/stripping "!|" in column #1.
+(I believe that's the RIP inducer code.)
+
+--1138--
+
+Does it matter which ORDER I use when changing the foreground and
+background colors?  On a four-color screen, line #B and line #D end up
+as different colors, even though exactly the same MCI codes appear in
+lines #A and #C.  (But in a different order.)
+
+Start test...
+
+A) \c5 \z7 foreground changed 1st \c7 \z0
+
+B) What color should this line be?
+
+C) \z7 \c5 foreground changed 2nd \z0 \c7
+
+D) What color should this line be?
+
+End test.
+
+--1139--
+
+> --- version 2.82 16-July-1993
+> 256.	Several bugs and inconsistencies with the FIND command have motivated
+> 	its re-creation.  The previous FIND command would show private
+> 	and unvalidated files.  The previous FIND command would only show the
+> 	first 80 characters of a file's short description.
+
+Ken, any plans on having "SS" also show the full filenotes?
+
+Or do we specifically want them chopped?
+
+--1140--
+
+Does anyone know why many of CNet's SysText:help/* files end with an ASCII 26
+character?  (ctrl-z).
+
+Offline I use an editor that doesn't display control-codes, so I never
+knew those characters were there.
+
+It was driving me crazy.  I kept adding text onto the end of those
+files, and CNet would never display it.
+
+If all these "26"s aren't needed, they should be removed.
+
+--1141--
+
+RP> make sure you test if result equals ###PANIC after ANY and ALL requests
+RP> for input (i.e getchar, query, etc)  Good Luck!
+
+There is a 2nd method that is even simpler.
+
+If your arexx (or C or DOS or whatever) pfile exits (immediately or
+eventually) if the user hits RETURN repeatedly, then no need to check for
+###PANIC at all.
+
+This method is fully sanctioned by Ken in writing.
+
+Might as well keep Arexx scripts as small and simple as possible.
+
+--1142--
+
+TE> Someone may have already answered this, but find the ASCII code for
+TE> carrage return in DECIMAL value (I think it's 12, but that might be form
+TE> feed).
+
+line feed :       10
+form feed :       12
+carriage return : 13
+
+Whenever you type "ASCII" on my BBS, you get a full 0-127 DEC, HEX, OCT,
+BINARY, ASCII character chart.  I got tired of searching the back of books
+for this info.
+
+--1143--
+
+I have an arexx-pfile that I call MyCode.rexx.
+I want it to work in normal CNet fashion, like FINGER or MAIL SEND, etc.
+I want to allow users to run it online with ANY of the following:
+> MYCODE Bill Beogelein
+> MYCODE Bill
+> MYCOD 1
+> MYCO1
+> MY1
+
+How will my arexx script be able to grab the parameter(s) passed?
+Might be a word, or a number, might have 0 or more spaces before it,
+might have 0 or more spaces between the parameters, might have 0 or
+more spaces after it, the cmd might be abbreviated in any of several
+ways.
+
+I need to cover ALL of the above possibilities.  (FINGER and MS do.)
+
+Just using the normal arexx "parse arg vars" would be great, but CNet
+doesn't support that.  (ugh)
+
+I'd like to stay away from using "GetUser XT#####" codes too.
+They change far to often to remain compatible.
+
+A specific, fixed, 0-100 'GetUser' value would be ideal.
+(but I'll take a XT##### if that's all that is possible.)
+
+--1144--
+
+D> Me too. I also have a quick MCI Chart file, quick Arexx run file, TEST
+D> program file, and a bunch of other little hacks to make work easier.
+
+I started to add so many new cmds to CNet that I started to lose track of what
+they were.  I added to BBSMENU:
+> ??             | {*0 SysText:Help/BB_cmds}
+
+So that all users can hit "??" and see a list of *SOME* of the "SysOp Added
+Cmds":
+
+--- cut here ---
+
+In addition to CNet's regular cmds, the following have been added by the
+SysOp:
+
+Available from ALL menus...
+AMV        :  Activity Monitor.  (Display 70+ system variables)
+AREacode   :  Shows city/state for any areacodes.
+ASCii      :  Shows a 0-127 ASCII character chart.
+AVail      :  Check available free memory.
+BPS        :  Which modem-speeds are most popular worldwide?
+CPS        :  See what char-per-sec transfers you should be getting.
+DATe       :  Local date/time.
+DM         :  Date Math.  "DM 123" shows the date 123 days ago.
+DOS        :  Access to certain DOS cmds available to all users.
+EDIt       :  Edit your terminal/account/preference settings.
+EVEnts     :  List upcoming system-events.
+FISH       :  (Or "FF")  Fred Fish disk searching.
+FREQ       :  List files that can be File Request'ed from SWHQ.
+GRAph      :  Same as above, but in bar-graph format.
+GROwth     :  See how this BBS has grown over the years.
+MC         :  Your [M]ail [C]heck info.
+MODerators :  See a list of Fidonet Echo Moderators.
+NL         :  Fidonet [N]ode[L]ist searcher.
+PLan       :  See public info-file about any user.
+SIG        :  Display or swap your various SIGNATURE files.
+SPell      :  Check correct spelling of 1 word.
+STOck      :  Commodore stock market data.
+TOTals     :  See system totals.  (Msgs, calls, files, etc.)
+TRAck      :  Display your "Track-Record Of Usage" for your last few calls.
+VER        :  Display various version #s for libraries, executables, devices.
+!V         :  See the current CNet-BBS version # and my serial #.
+???        :  Display version #s for these cmds.
+
+Available only from FILE/MSG menus...
+FREE       :  List 'free' DLs.  (NOT counting areas that are ALL free DLs)
+NOTify     :  Notify UL'er each time current file is DL'ed.
+PROtect    :  Current file/msg CAN'T be purged. (SysOp only)
+UNProtect  :  Current file/msg CAN   be purged. (SysOp only)
+WD         :  Check [W]ho [D]ownloaded certain files.  (Not functional yet)
+WEEK       :  List all files ULed this week. (or TODAY/YESTERDAY/MONTH/YEAR)
+
+--- cut here ---
+
+SysOp, if you have heavily expanded CNet, please consider adding a line like:
+> ??             | {*0 SysText:Help/BB_cmds}
+
+--1145--
+
+BB> Can't any caller post a ton of ASCII RIP codes in a Usenet/Fidonet
+BB> msg and have 1000s of RIP terminals all over the world go wacko? 
+BB> Opening/closing string requesters, windows, drawing colored lines,
+BB> circles, boxes, creating mouse-sensitive gadgets, changing fonts,
+
+MM> Probably.  And it's something that needs to be addressed, but unless
+MM> someone has a program to generate the strings, it's probably too much of a
+MM> pain for anyone to bother doing--the RIP strings are longer than ANSI
+MM> strings, and are not in the LEAST intuitive (the developers are up-front
+MM> about that).
+
+There ARE paint programs that generate the strings.
+1-2 on the Amiga.  (Several more on the way.)
+Many on the IBM or other machines.  (Many more on the way.)
+
+BB> Actually, all of the above mischief can be done TODAY, regardless of
+BB> whether or not your BBS supports it.
+
+MM> Again, true, but I'm hoping nobody will have that much patience!
+
+A few 5-10 char strings can't be that much work to key-in manually.
+(Some people spend MONTHS writing viruses in machine-language.  I
+can't imagine those same folks not have the the "patience" to key-in a
+few RIP-codes to cause trouble.)
+
+I am NOT "hoping" nobody will do it.
+I am hoping BBS authors will support RIP allowances/restrictions.
+
+All any BBS author needs to do is give EACH msg base a sysop-settable flag:
+1)  "!|" is allowed on column #1
+    (Full RIP permitted.)
+2)  "!|" is allowed, but stripped-off before net msgs are send out.
+    (Full RIP on local-screens, but not networked.)
+3)  "!|" is forbidden on column #1.
+    (No RIP allowed.)
+(You could probably get away with just 1 and 3.)
+
+I haven't had time to study the RIP-docs, but that appears to be all
+that is needed.
+
+BBS authors,
+  Will YOUR software be the first to support RIP on the Amiga?
+
+--1146--
+
+D>Actually, I'm using the ?? to display my "Mini Main Menu" which lists most
+D>commands the user can use all on one screen.
+D>For my Maint Commands, I added the @? command(which is what Excelsior
+D>uses) to display my SysOp Commands Menu.
+
+It would be nice if Ken could suggest a 'standard' for these.
+(Every sysop has them set to something different. The "help/menu/info"
+keystrokes are the last ones I want to have to "search" for on each system 
+I call.)
+
+My suggestions would be:
+1) "?"        Display a list of cmds (like CNet does now.)
+2) "??"       Display a list of just global cmds.
+              (So that they aren't buried/lost in #1.)
+3) "@?"       Display a list of maint cmds.
+4) "+?"       Display a list of cmds added by the SysOp.
+              (A quick, separate list of "hey, what's different on this BBS?")
+4) "[RETURN]" Display the full-menu, even for totally lost callers.
+              (We need to be able to use BBSMENU to trap keys 0-127.)
+5) "H"        Enter HELP sub-system.  (like CNet does now.)
+
+--1147--
+       
+BA> I'm NOT running v2.91 yet, but am I correct in assuming that only
+BA> callers with netmail access can ever reach this "node search prompt"?
+
+DS> Yes...
+
+Then I'd like to ask Ken to please make this "node search" available as a
+separate bbsmenu cmd, also.  It is a shame to spend the time/effort on coding
+something and then let just a very small % of the callers with netmail access
+ever use (or even see) it.
+
+I often like to find out info about a certain node, but don't necessary want
+to netmail it.  I'm sure a few of my callers (without netmail access) would
+too.
+  
+--1148--
+
+I feel that addressing a Fidonet post to "SysOp" should only be
+allowed by those with Sysop-maint access.
+
+Currently any CNet caller can address a msg to "sysop" (accidentally
+or deliberately) and have it appear as "waiting mail" in 1000+ CNet
+(and other BBSes) sysop's mailboxes.  Each will think it was specifically
+addressed to THEM.
+
+--1149--
+I think CNet should have a global-option called
+> "add purged filenames to list".
+  
+If turned ON, each time you (or amaint) purged a file, that filename is added
+to a list of "can't be re-uploaded files".  It would work like
+SysText:BadNames, but instead of "users", it would work on "ULs".
+
+--EOF--
+
+Monday 30-Aug-93 19:28:26
+
+-Bill "Mr. BBS" Beogelein, 810-473-2020, 2-line HST 14.4k USR-DS, 1:2410/207
+

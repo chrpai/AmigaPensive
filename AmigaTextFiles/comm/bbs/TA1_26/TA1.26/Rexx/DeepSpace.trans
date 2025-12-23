@@ -1,0 +1,33 @@
+/* DeepSpace.trans - example for standard I/O (CLI) doors */
+
+OPTIONS FAILAT 999          /* Keeps users out of the shell! */
+OPTIONS RESULTS
+
+CALL PRAGMA('stack',50000)
+
+USERINFO A ; name = UPPER(RESULT)
+sname=word(name,1)
+nname=word(name,2)
+SYSTEMINFO M ; time = RESULT
+SYSTEMINFO 8 ; line = RESULT
+id=time(s)
+
+CLS
+transmit "Loading Deep Space..."
+
+SetNodeLocation Name' is playing Deep Space'
+
+path='t:ds-'||sname||nname||id||'.'line   /* change this to reflect your directory path */
+
+OPEN(temp,path,'W')
+WRITELN(temp,'FailAt 99999')
+WRITELN(temp,'CD BBS:Extras/DeepSpace')
+WRITELN(temp,'DeepSpace '||name||' T='||time||' D=60000 ECHO')
+WRITELN(temp,'endcli')
+CLOSE(temp)
+
+ADDRESS COMMAND 'NewShell FIFO:ds'id'/rwkes from 'path
+ADDRESS COMMAND 'BBS:Bin/TrShell -n'line' -d -e -fds'id 
+ADDRESS COMMAND 'Delete 'path' quiet'
+
+EXIT 0

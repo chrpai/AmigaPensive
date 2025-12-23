@@ -1,0 +1,99 @@
+; $VER: systeminfo installscript 1.2
+;
+
+(complete 0)
+
+(set prg-version "1.2")
+
+;====================================================================
+; Einige Initialisierungen
+;====================================================================
+
+
+(set _prg				"systeminfo")
+
+(set _text			"systeminfo.guide")
+
+(set #intro
+(cat " Willkommen zum Installationsprogramm von systeminfo "prg-version". Dieses Script kopiert die einzelenen Dateien des Packets auf ihre Festplatte."
+))
+
+
+(set #select_Hadir_help
+(cat "In diesem Menu koennen sie das Verzeichniss auswählen in das das programm systeminfo kopiert werden soll."
+))
+
+(set #select1_help
+(cat "In diesem Menu koennen sie wählen, ob sie die jeweilige version des programmteiles installieren wollen"
+))
+
+(message #intro)
+
+(complete 20)
+
+(set destdir
+	(askdir
+		(prompt "Wo soll das programm systeminfo Installiert werden?\n(pfad bitte ohne / am ende schreiben!)")
+		(help #select_hadir_help)
+		(default "prometheus:")
+	)
+)
+
+(complete 30)
+
+(copyfiles
+          (prompt "SystemInfo v1.2 kopieren?")
+          (help #select1_help)
+          (source _prg)
+          (dest destdir)
+          (confirm)
+)
+
+(complete 40)
+
+(copyfiles
+          (source _text)
+          (dest destdir)
+)
+
+(complete 50)
+
+
+(complete 60)
+
+
+(textfile
+ (append "/* */\nif ~exists('prometheus:batches/login.bat') then call open btwrite,'prometheus:batches/login.bat','W';else call open btwrite,'prometheus:batches/login.bat','A';writeln(btwrite,'#RUN "destdir"/systeminfo $PO');call close btwrite\n")
+ (dest "t:login.rexx")
+)
+
+(complete 70)
+
+(rexx ("t:login.rexx")
+ (prompt "Soll nun die #RUN Zeile in die datei prometheus:batches/login.bat eingefügt werden? (nicht bei einem Update ;)")
+ (help "Zeigt dem User einige Daten und den kommentar an")
+
+ (confirm)
+)
+
+(run ("delete t:login.rexx"))
+
+(complete 80)
+
+(textfile
+ (append "/* */\nif ~exists('prometheus:batches/prelogoff.bat') then call open btwrite,'prometheus:batches/prelogoff.bat','W';else call open btwrite,'prometheus:batches/prelogoff.bat','A';writeln(btwrite,'#RUN "destdir"/systeminfo $PO C');call close btwrite\n")
+ (dest "t:login.rexx")
+)
+
+(complete 90)
+
+(rexx ("t:login.rexx")
+ (prompt "Soll nun die #RUN Zeile in die datei prometheus:batches/prelogoff.bat eingefügt werden? (nicht bei einem Update ;)")
+ (help "Der User kann einen Kommentar eingeben")
+
+ (confirm)
+)
+
+(run ("delete t:login.rexx"))
+
+(complete 100)

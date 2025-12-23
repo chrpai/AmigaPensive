@@ -1,0 +1,91 @@
+/*
+**  $VER: CL-SetPointuserProxy.clrexx 1.2 (05 Feb 1996)
+**
+**        © 1995-96 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-SetPointuserProxy.clrexx
+**
+**  FUNCTION:
+**     Demonstrationsskript zur cl_rexx.library, Connectline 5.0
+**
+**     Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**     cl_rexx.library © 1995 Mathias Mischler
+**
+**     Dieses Skript setzt rücksichtslos sämtliche Vertreter der User,
+**     die im System einen Point haben, auf username@pointname. Hier-
+**     durch wird vermieden, daß Nachrichtenverluste entstehen, weil
+**     ein User am Vertreter herumgespielt hat und mittlerweile der
+**     Cruncher wieder zuschlug - das Skript ist also auch für den Auf-
+**     ruf per Cron geeignet.
+**
+*/
+
+param=arg(1)
+
+/* Libs öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then exit 10
+    end
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*50
+windowheight=Fontsize*15
+windowY=Fontsize+1
+WindowX=Fontsize
+
+
+
+/* Standard-IO umleiten */
+
+screen=CLGET_FrontScreenName()
+
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-SetPointuserProxy/SCREEN'screen,'W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+
+/* Hauptroutine */
+
+
+anzahl=CLGET_UserNumberOf()                       /* Userzahl ermitteln */
+
+do x=1 to anzahl
+    user=CLGET_Username(x)                        /* Username ermitteln */
+    pointname=CLGET_UserPointName(user)           /* Pointname ermitteln */
+    if pointname~='' then do                      /* User ist Pointuser */
+                                                  /* Vertreter setzen */
+        vertreter=user||'@'||pointname
+        say 'Setze Vertreter von 'user' auf 'vertreter'.'
+        call CLSET_UserCopyTo(user,vertreter)
+        end
+    end
+
+call CL_LogAdd(0,'SETPPROXY','Vertreter der Points korrigiert')
+
+/* Programm beenden */
+
+if param='' then do
+    options prompt "<Bitte drücken Sie RETURN>"
+    pull dummy
+    end
+
+call close STDOUT
+call close STDIN
+exit

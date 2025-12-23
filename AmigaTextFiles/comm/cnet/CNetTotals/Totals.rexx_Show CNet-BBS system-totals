@@ -1,0 +1,380 @@
+
+/*
+
+CNet-BBS users can type "TOTALS" at any prompt and see just how big
+and impressive your system really is...
+
+> Amiga ShareWare HeadQuarters BBS, 1-810-473-2020, 1:2410/207 ...
+>
+> Totals v1.7 : As of Sun, Jan 07, 1996      Total System Calls:  10,679
+>
+> Total Users :    808                       Public Msgs Posted: 556,239
+> Active Users:    250                       Public Msgs Online:  98,345
+>
+> Doors Run   :  3,562                       Email Msgs Sent   :  11,119
+> Doors Online:     34                       Email Msgs Online :     878
+>
+> Files U/Led :  8,258 @ 477 megs            Text Items Read   :   3,606
+> Files D/Led : 14,099 @ 837 megs            Text Items Online :     361
+>
+> Files Online:  9,303 @ 526 megs            Phone Lines       :       2
+> Space Remain:  8,471 @ 479 megs (47%)      File and Msg Areas:     450
+
+Aligns all columns and inserts all commas.
+(Regardless of whether you have 0 or 1 billion msgs/files online.)
+
+Shows approximate space (and files) that can be U/Led before all HD
+partitions are full.
+
+Can be run from the CLI.
+(You can re-director output to a file for creating valuable,
+informative zzzBBSads, for a change.)
+
+Can also be run online.
+
+Add your own custom header/footer lines.
+
+If the numbers displayed by totals.rexx do not seem accurate, you
+might need to run CNet's "Pfiles:Maintenance/Count" program or
+"Repair_Sub". "Repair_sub" should be run from the pfile-menu (NOT from
+a subboard).
+
+CLI installation:
+   1) Copy Totals.rexx TO Rexx:
+   2) Edit the variables marked as "SysOp-settable", shown below.
+   3) Add "alias tot rx rexx:Totals.rexx 0" to your s:shell-startup file.
+                                         ^
+                 This should be a port # that is already loaded.
+CLI> tot
+CLI> tot >t:zzzTotals        (A valuable, informative BBSad for a change)
+CLI> rx  >t:zzzBBS rexx:Totals.rexx 0
+   (You might want to run that as a nightly CONFIG/EVENT DOS-CMD event.)
+
+Online installation:
+   1) Copy Totals.rexx TO Rexx:
+   2) Edit the variables marked as "SysOp-settable", shown below.
+   3) Add the following line onto the END of the list in CNet:BBSMENU marked
+      as "2; Available Everwhere":
+         TOTals, TS, Total Stats | {#0 Rexx:Totals.rexx}
+
+If you wish to automatically show your system-totals to all callers,
+add the line "{#0 rexx:Totals.rexx}" into the files called
+"SysText:sys.info" and "SysText:sys.start".
+
+History:      (Bill, remember to also update "vers" variable in code.)
+
+$VER: Totals.rexx v1.7 Sun 31-Dec-95 18:04:54
+   Allows additional direct-access and CD-ROM files and megs to also be
+   shown.
+
+$VER: Totals.rexx v1.6 Mon 05-Sep-94 15:04:34
+   Added the words "As of" before the date.
+
+$VER: Totals.rexx v1.5 Sun 13-Mar-94 07:45:29
+   Renamed show() to prt() to avoid conflict.
+   Now needs "libs:rexxsupport.library" file.
+   Also displays total # of subboards.
+   Percent-free now aligned.
+
+$VER: Totals.rexx v1.4 Fri 11-Mar-94 16:28:48
+   "Overall U/L space" variable changed to "free space" variable.
+   (Optionally) can check free HD-space remaining (in real-time).
+
+$VER: Totals.rexx v1.3 Tue 15-Feb-94 22:05:30
+   Columns expand/contract in real-time.  (No need to user-set.)
+   If this program ever fails to correct align columns, please send a
+   copy of your totals.rexx output text to 1:2410/207.  (As well as pointing
+   out the errors.)
+
+$VER: Totals.rexx v1.2 Tue 15-Feb-94 02:13:25
+   Shows Total.rexx version in header.
+   Made default columns wider.  (Tweeking col1 col2 vars.)
+   Added "File Space Remaining" display.
+   (Predicts how many more ULs (and megs) you have room for.)
+
+$VER: Totals.rexx v1.1 Sun 06-Feb-94 18:25:03
+   Use 'getUser' 95 instead of 2400100 for better future compatibility.
+   Added "Total users" stat.
+
+$VER: Totals.rexx v1.0 Mon 24-Jan-94 22:12:54
+   First public release.
+   Written/tested with CNet-BBS v3.01beta.
+   Sent to user #520.  And/or #5.
+
+Bill Beogelein
+Box 530441
+Livonia, MI 48153
+BBS 1-810-473-2020, Fido 1:2410/207
+
+Ignore:
+   tot >t:MyTotals.txt
+   lz u CNet3:CNetTotals.lha pfiles:rexx/Totals.rexx a:zzzBBS t:MyTotals.txt
+   lz u CNet3:CNetTotals.lha CNet2:Totals.rules SysText:sys.start SysText:sys.info
+   lz u CNet3:CNetTotals.lha r:CNetTotals.readme
+   Copy CNet3:CNetTotals.lha UP:
+
+Future Plans:
+   Send updates to Todd Knight@1:246/90 to beta-test.
+   If "remaining space" drops below x%, that line is higlighted in reverse-text.
+   Make sure port x exists.
+   Allow hiding of free-space line.
+   Add makeK() for kilos/megs/gigs displays.
+   Change "2.95126654E+9" output, if over 999,999,999.  (Needed???)
+   Show total overall HD space for files.
+
+*/
+
+/********* Start of SysOp-settable variables **********/
+
+indent     = 3    /* Indent whole display by x spaces                */
+
+kilo       = 1024 /* Compute megabytes based on K=1000 or K=1024?    */
+PhoneLines = 2    /* Number of phone lines installed (0-99)          */
+
+                  /* Total free megabytes of HD-space that   */
+FreeMegs   = 0    /* you want shown for future U/L space.    */
+                  /* (Or set to "0" for real-time checking.) */
+
+                              /* If "FreeMegs" space is set to 0, then */
+parts = "dh3: dh4: dh5: dh6:" /* check these partitions for free-space */
+                              /* that is available for future U/Ls.    */
+
+da_files  = 0   /* Number of files in all direct-access subs */
+da_megs   = 0   /* Total size (in megs) of files in all direct-access subs */
+
+         /* Text to display before and after showing totals from CLI */
+CLIheader = "Amiga ShareWare HeadQuarters BBS, 1-810-473-2020, 1:2410/207 ..."
+CLIfooter = "*** EOF (Now running CNet-BBS) ***"
+
+          /* Text to display before and after showing totals while online */
+BBSheader = ""
+BBSfooter = ""
+
+/********** End of SysOp-settable variables *********/
+
+subboardSize = 488      /* Do NOT edit.  CNet v3.05c needs "488" here. */
+
+options results
+parse arg port
+
+YES  = (1==1)
+NO   = (1==0)
+vers = "v1.7"              /* !!! Bill, remember to update this variable !!! xxx */
+
+if( port ="" ) then        /* Run from online w/o port #  */
+do
+   cli = NO
+   LF  = "n1"
+end
+else
+do                          /* Run from CLI using port #n */
+   cli = YES
+   LF  = '0a'x
+   address value "CNETREXX" || port
+end
+
+if( ~show('LIBRARY', "rexxsupport.library") ) then
+   if( ~addlib('rexxsupport.library', 0, -30) ) then     /* add to library list */
+   do
+      call prt(LF "*** libs:rexxsupport.library is unavailable." LF)
+      exit
+   end
+
+if( freeMegs<1 ) then freeMegs=GetFree()     /* Get actual free HD-space */
+
+'getUser' 2400092; ActUsers       = commas(RESULT)
+'getUser' 2400096; TotalUsers     = commas(RESULT)
+
+'getUser'      95; TotalCalls     = commas(RESULT) /* or 2400100 */
+
+'getUser' 2400888; DoorsRun       = commas(RESULT)
+'getUser' 2400948; DoorsOnline    = commas(RESULT)
+
+'getUser'      96; FilesULed      = commas(RESULT)
+'getUser'      97; MegsULed       = commas(RESULT%kilo)
+
+'getUser'      98; FilesDLed      = commas(RESULT)
+'getUser'      99; MegsDLed       = commas(RESULT%kilo)
+
+'getUser' 2400956; fol= (RESULT+ da_files    )       ; FilesOnline = commas(fol)
+'getUser' 2400960; mol= (RESULT+(da_megs*kilo)) %kilo; MegsOnline  = commas(mol)
+
+'getUser' 2400876; a=RESULT
+'getUser' 2400880; PubMsgsPost    = commas(a+RESULT)
+'getUser' 2400936; a=RESULT
+'getUser' 2400940; PubMsgsOnline  = commas(a+RESULT)
+
+'getUser' 2400868; EmailsSent     = commas(RESULT)
+'getUser' 2400928; EmailsOnline   = commas(RESULT)
+
+'getUser' 2400884; TextItemsRead  = commas(RESULT)
+'getUser' 2400944; TextItemsOnline= commas(RESULT)
+
+avgMsize  = (mol-da_megs) / (fol-da_files)
+FilesRoom = commas(freeMegs%avgMsize)                 /* Room for x more U/Ls  */
+MegsRoom  = commas(freeMegs)                          /* Room for x more megs  */
+PercRoom  = trunc( (freeMegs*100) / (mol-da_megs+freeMegs) )  /* Wow, what great math! */
+SubCount  = CountSubs()
+
+col1 = MaxLen(ActUsers, TotalUsers, DoorsRun, DoorsOnline, FilesULed, FilesDLed, FilesOnline, FilesRoom)
+col2 = MaxLen(MegsULed, MegsDLed, MegsOnline, MegsRoom)
+col3 = MaxLen(TotalCalls, PubMsgsPost, PubMsgsOnline, EmailsSent, EmailsOnline, TextItemsRead, TextItemsOnline, PhoneLines, SubCount)
+
+ActUsers       = right(ActUsers       , col1)
+TotalUsers     = right(TotalUsers     , col1)
+TotalCalls     = right(TotalCalls     , col3)
+
+DoorsRun       = right(DoorsRun       , col1)
+DoorsOnline    = right(DoorsOnline    , col1)
+
+FilesULed      = right(FilesULed      , col1)
+MegsULed       = right(MegsULed       , col2)
+
+FilesDLed      = right(FilesDLed      , col1)
+MegsDLed       = right(MegsDLed       , col2)
+
+FilesOnline    = right(FilesOnline    , col1)
+MegsOnline     = right(MegsOnline     , col2)
+
+PubMsgsPost    = right(PubMsgsPost    , col3)
+PubMsgsOnline  = right(PubMsgsOnline  , col3)
+
+EmailsSent     = right(EmailsSent     , col3)
+EmailsOnline   = right(EmailsOnline   , col3)
+
+TextItemsRead  = right(TextItemsRead  , col3)
+TextItemsOnline= right(TextItemsOnline, col3)
+
+PhoneLines     = right(PhoneLines     , col3)
+SubCount       = right(SubCount       , col3)
+
+FilesRoom      = right(FilesRoom      , col1)
+MegsRoom       = right(MegsRoom       , col2)
+
+/******************** Not yet in use **********************************
+loport  =  0     /* The lowest  port # that should be counted (0)  */
+hiport  = 30     /* The highest port # that should be counted (99) */
+
+TDlines = 1      /* Increase the port-count by X.                      */
+                 /* (For lines that are loaded/unloaded with TrapDoor) */
+loaded=TDlines; used=0; freeports=0;
+do port=loport to hiport
+   address value "CNETREXX" || port
+   if() then loaded=loaded+1
+   if() then used  =used+1
+   if() then freeports  =freeports+1
+end
+**********************************************************************/
+
+if(cli) then
+do
+   call prt(" ")
+   if( CLIheader~="" ) then call prt(CLIheader LF)
+end
+else
+do
+   call prt("@4")           /* Turn off "MORE?" prompts */
+   if( BBSheader~="" ) then call prt(BBSheader LF)
+end
+
+dat = left(date('WEEKDAY'), 3) || "," left(date('MONTH'), 3) left(date(), 2) || "," left(date('SORTED'), 4)
+call prt("Totals" vers ": As of" dat Spc3() "Total System Calls:" TotalCalls LF)
+
+call prt("Total Users :" TotalUsers Spc1() "Public Msgs Posted:" PubMsgsPost)
+call prt("Active Users:" ActUsers   Spc1() "Public Msgs Online:" PubMsgsOnline LF)
+
+call prt("Doors Run   :" DoorsRun    Spc1() "Email Msgs Sent   :" EmailsSent)
+call prt("Doors Online:" DoorsOnline Spc1() "Email Msgs Online :" EmailsOnline LF)
+
+call prt("Files U/Led :" FilesULed   "@" MegsULed   "megs" Spc2() "Text Items Read   :" TextItemsRead)
+call prt("Files D/Led :" FilesDLed   "@" MegsDLed   "megs" Spc2() "Text Items Online :" TextItemsOnline LF)
+call prt("Files Online:" FilesOnline "@" MegsOnline "megs" Spc2() "Phone Lines       :" PhoneLines)
+
+call prt("Space Remain:" FilesRoom   "@" MegsRoom   "megs" "(" || right(PercRoom,2) || "%)" Spc4() "File and Msg Areas:" SubCount)
+
+if(cli) then
+do
+   call prt(" ")
+   if( CLIfooter~="" ) then call prt(CLIfooter LF)
+end
+else
+do
+   if( BBSfooter ~="" ) then do; call prt(" "); call prt(BBSfooter); end
+end
+
+exit     /******** End of main ********/
+
+Commas:     PROCEDURE
+   parse arg num
+   num = right(num, 30)    /* pad the left with spaces to inc of 3 */
+   str = ""
+
+   len=length(num)
+   do i=len-2 to 1 by -3             /* 94577 94,577 */
+      a = substr(num, i, 3)          /* 12345        */
+      if(a="") then leave
+      str = a || "," || str
+   end
+return strip(left(str, length(str)-1))   /* remove trailing "," */
+
+Spc0: return copies(" ", indent)
+Spc1: return copies(" ", 27-col1)
+Spc2: return copies(" ", 19-col1-col2)
+Spc3: return copies(" ", 4)
+Spc4: return copies(" ", 19-col1-col2-6)
+
+Prt:
+   parse arg str
+   if(cli) then
+      say        Spc0() || str
+   else
+      'transmit' Spc0() || str
+return
+
+MaxLen:  PROCEDURE         /* How many chars in the longest variable? */
+   parse arg v.1, v.2, v.3, v.4, v.5, v.6, v.7, v.8 .
+   len=0
+   do i=1 to 8
+      l=length(v.i)
+      if( l>len ) then len=l
+   end
+return len
+
+CountSubs:         /* Check size of SysData:Subboards3 */
+   subCount = word(statef("SysData:Subboards3"), 2) / subboardSize
+return commas(SubCount)
+
+GetFree:
+   freeMegs=0
+   parts=upper(parts)
+   tmpfname   = "t:Totals" || pragma('ID') || ".tmp"   /* A temporary filename */
+   address command "Info >" || tmpfname
+   if( open(fp, tmpfname, 'READ') ) then
+   do
+      dummy=readLN(fp); dummy=readLN(fp); dummy=readLN(fp)
+      w=words(parts)
+      do i=1 to 40         /* Check each line of c:Info's output */
+         buf = readLN(fp)
+         if( buf="" ) then leave
+         w1  = upper(word(buf, 1))   /* Look at first word for part name */
+         do j=1 to w                 /* See if match is found anywhere   */
+            w2=subword(parts, j, 1)
+            if( w1=w2 ) then         /* Found match */
+            do
+               freeMegs = freeMegs+(word(buf,4)*512/kilo/kilo)
+               /* 'transmit' xxx w1 xxx w2 xxx freeMegs xxx */
+            end
+         end
+      end
+      call close(fp)
+      address command "Delete >nil: <nil:" tmpfname
+   end
+   else
+   do
+      call prt(LF "*** Can't open" tmpfname "for reading." LF)
+      exit
+   end
+   if( freeMegs<1 ) then freeMegs=1
+return trunc(freeMegs)
+
+/*** EOF pfiles:rexx/Totals.rexx 1-810-473-2020 ***/

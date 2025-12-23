@@ -1,0 +1,139 @@
+
+
+				Tricks!
+				-------
+
+	Some ideas and hints when using the FilePather programs.
+
+ Index
+ -----
+
+  1. Archivers
+  2. Save RAM
+  3. Using the Notify mode
+ 
+ 1. Archivers
+ ------------
+
+    Since FilePather has such a flexible way of configuration, it's
+ possible to detect and process all types of files which have a specific
+ suffix. However, some archivers are unable to extract/update the archive
+ in the same easy way LhA does.
+
+ Since it from version 1.2 of FilePather is possible to execute more than
+ one command from the environment variable string, some new interesting
+ ways opens up. Some examples:
+
+ A.  The 'Shrink' archiver adds the temporary directory where in
+ FilePath.lst resides. Solution:
+ ------------------------------------------------------------------------
+ Set Arc `List "%f" LFORMAT %%f%%s`
+ Cd "%t/"
+ Shrink -q -p -d aa "$Arc" FilePath.lst
+ ------------------------------------------------------------------------
+ 1. Remember the full searchpath for the archive under processing.
+     '%%' is used since FilePather tries to convert percent signs to
+     strings! The command inside `` is executed before the real command
+     line and the output is placed as input in its place.
+ 2. Change directory to the temporary one.
+ 3. Update the archive which path $Arc contain, with the FilePath.lst file
+     which is in our current directory.
+
+ B.  'Zoo' can't extract to a directory. Solution:
+ ------------------------------------------------------------------------
+ Set Arc `List "%f" LFORMAT %%f%%s`
+ Cd "%t/"
+ Zoo x "$Arc" FilePath.lst
+ ------------------------------------------------------------------------
+ 1. Remember full searchpath.
+ 2. Change to temporary directory.
+ 3. Extract to current directory.
+
+
+ This way it's possible to use any archiver who can extract and update
+ an archive. An golden exception is DMS/FMS which in it's impossible to
+ delete or overwrite an existing file! All versions I have tested only
+ adds the file without testing whether the file already exists in the
+ archive or not! Lousy programming I might say.
+
+
+ NOTE! Some archivers supports that a custom configuration is stored in
+ NOTE! an environment variable. LhA for example looks for the variable
+ NOTE! 'LHAOPTS'. Please make sure that no commands or options in this
+ NOTE! variable interferes with those in the extract/update variable for
+ NOTE! that archiver! Ie, if you have set LHAOPTS to '-r' (Collect files
+ NOTE! recursively) when you must disable this in the the update variable
+ NOTE! for .lha, adding '-r0'!   (BTW, this one is already fixed.)
+
+
+ 2. Save RAM
+ -----------
+
+    Since FilePather stores all it's preferences as environment variables
+ the memory usage can be awful big. My FilePather directory takes up a
+ chocking 48kb! Although the files are small occupies each file atleast
+ 2kb of memory.
+
+ The solution? Well, there are two ways. Either you assign ENV: to an
+ empty directory early in the startup procedure, which will save LOTS
+ of RAM, or you move ENVARC:FilePather/#? to another directory and
+ notifies FilePather and FPBase by setting a singel environment
+ variable, 'FP_PrefsDir', with the path to the directory. Ie:
+
+  Makedir S:FilePather
+  Copy ENVARC:FilePather/#? S:FilePather
+  SetEnv ENVARC:FP_PrefsDir S:FilePather/
+  Delete ENVARC:FilePather/#?
+  Delete ENVARC:FilePather
+
+ NOTE! If you perform the above description, the installer script will not
+ be able to locate your prefsfiles! Sorry about that! Maybe I fix this
+ later, but unfortunately there are some obstacles. :(
+
+ BTW: there is another possiblity: the system first check if it exists
+ a local variable, before it have a go at the global ones. Local
+ variables are set through the 'Set' command, unlike the global ditos
+ which are set by 'SetEnv'. The local variable uses much less memory,
+ but might be hard to use when some programs, DiskMaster among others,
+ somehow manage to 'forget' all local variables, paths etc.
+
+
+ 3. Using the Notify mode
+ ------------------------
+
+    The notify mode can be used if no other alternatives exists, ie it's
+ not possible to autoprocess up- or downloaded files in any other way.
+
+ To use Notify mode you just specify a directory name together with the
+ switch 'NOTIFY' on the commandline:
+ 
+  FilePather DATA:Tmp_DL/ Notify
+
+ BUT! Since the file will only be processed by FilePather, not moved
+ anywhere, will the file be processed each time a file is up- or downloaded!
+ The result is a huge FilePath.lst. If you instead specifies this:
+
+  FilePather DATA:Tmp_DL/ Notify NextCommand 'Rename "%f" DATA:Download/'
+
+ This way will the file be moved after the processing by FilePather.
+ You can't ofcourse rename across devices, that is a limitation of the OS.
+ However, if you are in the possession of a Move command, consider using
+ that instead.
+
+ There is one drawback using this method: neither Rename or any Move command
+ will over-write an existing file! And the result will be just what we wanted
+ to aviod: a huge FilePath.lst. So? What to do?! Here's a simple trick:
+ Use the environment variable 'NextCommand' to specifying the above command
+ line together with this:
+
+ -8<------------------------------------------------------------------
+ FailAt 21
+ Rename "%f" DATA:Download/ >NIL:
+ If ERROR
+    Rename "%f" DATA:Dupes/ >NIL:
+ Endif
+ -8<------------------------------------------------------------------
+
+ This will ofcourse not protect against a THIRD file with the same name,
+ but the possibility for this is ofcourse quite small.
+

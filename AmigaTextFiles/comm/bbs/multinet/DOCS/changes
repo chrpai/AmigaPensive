@@ -1,0 +1,211 @@
+Changes V0.98
+--------------
+
+ - Bezugsversion. Netzroutinen laufen jetzt korrekt
+
+Changes V0.98b
+--------------
+
+ Bugfixes:
+
+ o Fehlerbehandlung: Bei Error -51 wird jetzt die richtige Datei angezeigt ;-)
+ o Protokolleintrag auch bei anrufenden Boxen, die nichts uploaden
+ o Eintraege in Netzbretter werden auch im Protokoll korrekt angezeigt
+   
+ Neuerungen:
+
+ - Fileliste-Funktion um zwei Optionen erweitert. Es wird die letzte
+   gepackte Fileliste in ein Dir namens BBS:Fileliste kopiert
+   und kann direkt gesaugt werden (nur am gleichen Tag)
+   Ausserdem kann die Liste auch noch ungepackt downgeloadet werden
+
+ - Bei Menueauswahl "Dialog anfordern" wird nicht mehr der Umweg
+   ueber die "Bimmelei" gemacht :-) (Idee vom Sebastian)
+
+ - Mehrere Origins moeglich, die per ZUfalls-Funktion eingesetzt werden
+
+ - Wait-Routine auch in Eingabeschleife eingebaut.
+
+Changes V0.98c
+
+ Bugfixes:
+ 
+ o Es traten "^" im nachrichten-File auf :-).. eliminiert
+
+Changes V1.0819
+
+ - Der Sorter kann jetzt auch nach der Netzzeit zu einer vorgegebenen
+   Zeit aufgerufen werden.. Dazu das File systemdaten/sorterzeiten erstellen
+   Format: Erste Zeile: "05:00-06:00" (Beispiel).. 
+   dann wird der sorter im Zeitraum von 5:00 bis 6:00 gestartet, falls ein
+   <Node>.IN fuer die Box existiert... Es wird ein Systemreset gemacht, der
+   Sorter gestartet und nach dem Einsortieren und Reset die Box wieder
+   hochgefahren
+
+Changes V1.0820
+
+ - Die Netzverwaltung ist flexibler geworden, der Netzwerkname steht
+   getrennt in einem File namens "systemdaten/netz.config"
+   z.B. wenn die Box ans Amnet angeschlossen ist, muss dort "AMNET" in 
+   der ersten Zeile stehen, ansonsten darunter (bei mehreren Netzen)
+   FIDO, SMBX etc etc..
+
+Changes V1.0905
+
+ Bugfixes:
+
+ Neuerungen:
+
+ - Bitte folgende neue Befehle einbauen:
+
+   +,-,BOXinfo und ZUgriff
+
+ - Es koennen sog. "Ersatzbefehle" definiert werden. um zum Beispiel
+   auch denn Befehl DIALOG oder OPERATOR benutzen zu koennen, muss man
+   die Befehlsdatei hinter dem Befehl CHAT folgendermassen abaendern:
+   .
+   .
+   Chat|Dialog|Operator
+   0
+   .
+   usw.
+
+ - Up/Download-Ratio eingebaut!
+   Fuer jeden User kann ein individuelles Ratio bestimmt werden 1:1 bis 1:99
+   sowie die Anzahl der KB, die er gutgeschrieben bekommt, wenn er einen
+   Textbeitrag liefert (in ein oeffentliches Brett)
+   Die Anzahl der freien Downloadbytes reicht von 0 - 99999999
+
+   !!! Achtung !!! Das Format der user.rel hat sich geaendert!! Anstatt 170
+   Spalten ist die Anzahl auf 182 angestiegen. Folgende Daten sollten noch
+   bei JEDEM User eingefuegt werden (hinter den Userflags)
+
+    Userflags
+    V
+   0001+<Up/download-Ratio 1:x (2 Zeichen)>
+       +<KB-Verguetung bei Textupload (2 Z.)>
+        <Bytes free zum Download>
+
+   das sieht dann z.B. so aus:
+
+       ab hier neu
+       |
+   00011 1 99999999
+   |  |\|\|\_______\__freie Download-Bytes (0-99999999)
+   | /  | |
+   |/   |  KB-Verguetung fuer Messageuploads(1-99)
+   |   ud-Ratio (1-99)
+   Userflags
+
+   Wichtig: Die Zahl der freien Bytes MUSS immer 8 Bytes lang sein!
+            Wenn noetig, mit Spaces bis zum Ende auffuellen!
+
+   Kontrolle: wenn der Cursor bei Cygnus-ED ganz am Ende der Zeile
+              steht, muss die Zeilenlaenge 182 betragen (col 182) !!
+
+   EIn GAST sollte Byteanzahl=0 haben...
+
+   Files, die download-free sein sollen, muessen in der Beschreibung
+   ein "/" am Anfang stehen haben, dann kann auch ein GAST dieses File
+   ziehen..
+
+   Darueber hinaus kann noch ein Text ausgegeben werden, wenn ein
+   Downloadversuch an der Ratio scheitert... File: systemtexte/ratiohinweis
+
+ - Plus/Minus-Scanner
+
+   Der tut nichts anderes, als ab dem aktuell angewaehlten Brett/Area
+   nach Brettern mit neuen Nachrichten zu suchen. hat er was gefunden,
+   wird in das Brett verzweigt.. Danach kann man ganz bequem mit den
+   Befehlen "I" und "L" z.B. die neuen Sachen anzeigen lassen und lesen..
+   Dieser Befehl soll als Alternative fuer den "NEUESLesen"-Befehl gelten,
+   ihn jedoch nicht ersetzen... 
+
+ - Brettanzeige: Bretter mit neuen Nachrichten werden gelb anstatt gruen
+   dargestellt
+
+ - Zugriff fuer bestimmte User auf bestimmte Bretter:
+
+   UNBEDINGT beachten! Ab dieser Version haben die Userflags keinen Einfluss
+   mehr auf den Zugriff auf die einzelnen Bretter!!
+
+   Um ein Brett fuer bestimmte User zu sperren bzw. freizugeben, bitte das
+   betreffende Brett anwaehlen und den Befehl "ZUGRIFF" anwenden..
+   Der Rest erklaert sich selbst, es wird je nach Zugriffsart in dem Brett
+   eine Datei namens "zugriff.dat" oder "sperr.dat" erstellt, in der die
+   Usernamen untereinander drinstehen. Das uebernimmt aber alles
+   der Befehl ZUGRIFF
+
+ - Points:
+
+   im Pointname.config (systemdaten) muss als viertes die Kennung "POINT" stehen
+   z.B.
+ 
+   lz a
+   lz e
+   GATEWAY
+   POINT
+
+   der Pointname muss dann aber der selbe wie der Name des Users in der Box sein
+   (auf 8 Zeichen gekuerzt)... das Passwort ist dann das selbe wie der
+   User in der Box verwendet... PM werden immer zu SYSOP;POINTNAME geschickt
+   andersherum wird zu Name;Boxnode konvertiert
+
+   Wenns nicht funktioniert, lasst es wie bisher (ohne Kennung POINT)
+
+Changes V1.1010
+
+ Bugfixes:
+
+ - Bug bei Zmodem-Text-Upload draussen (Text mit CR+LF wird korrekt gewandelt)
+
+ - Kein vershentlicher PM-Eintrag mehr in der Box fuer einen User, der
+   Pointstatus hat. Routing nur zum Point.
+
+ Neuerungen:
+   
+ - Meldung bei ASCII-Upload, wenn 500 Zeilen ueberschritten
+
+ - Umlautkonvertierung auch bei .ul von der Console
+
+ - Keine "RE:"-Ketten mehr bei Replies, max. 1 RE:
+
+ - Files werden nun mit Filenamen in den Filearea-Brettern abgespeichert,
+   nicht mehr mit Nummern. Umsteiger von installierten frueheren Versionen
+   muessen Ihre Fileareas mit dem beigelegten Tool "fileareakonverter"
+   bearbeiten!
+
+ - Login im Originate-Modus moeglich: im CONNECT-Prompt am Anfang ESC tippen
+   und "ORIGINATE" hinter dem Prompt eintippen, danach RETURN
+   Die Box legt kurz auf und nimmt dann sofort wieder ab, jedoch anstatt mit
+   "ata" mit "ATD"! Der Anrufer kann fuer die Zeit des Hochfahrens 
+   die Verbindung halten, indem er kurz den Hoerer abnimmt. Danach "ATA"
+   zum Connecten eingeben.
+   (Wer jetzt immer noch nich weiss, wie das geht, sollte sein Modem besser
+    kennenlernen! ;-)) )
+
+
+ - systemdaten/sorterzeiten jetzt in folgendem Format:
+
+   HH:MM-HH:MM-HH:MM
+   ^     ^     ^
+   1     2     3
+
+   Von Zeit 1 bis Zeit 2 wird der Sorter nicht gestartet, wenn ein
+   netdaten/<NODE>.IN fuer die eigene Box existiert.
+
+   Von Zeit 2 bis Zeit 3 wird der Sorter sofort nach einem Reset gestartet
+   wennein WSB.IN anliegt
+
+   in der uebrigen Zeit startet der Sorter normal, d.h. wenn ein Point
+   anruft oder die Box einen Servercall ausserhalb der Zeiten macht.
+
+ - Packertest beim Upload eingebaut. Es werden alle gaengigen Packer-
+   formate nach einemn Fileupload automatisch erkannt und eine moeglicher-
+   weise falsch eingegebene Endung (.LZH , .ZOO etc.) korrigiert.
+   Bei unbekannten Packformaten wird der vom User definierte Filename
+   uebernommen.
+
+ - QUPLOAD-Befehl: Files koennen direkt auf die Platte upgeloadet werden
+   Bitte entsprechend das File systemdaten/befehle aendern. Kann auf Level
+   0 gesetzt werden, weil die Abfrage gleich der von Quickdown funktioniert

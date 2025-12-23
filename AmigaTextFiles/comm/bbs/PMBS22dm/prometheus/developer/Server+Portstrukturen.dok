@@ -1,0 +1,572 @@
+Revision 3
+
+
+           Dokumentation zur Port-Portstruktur von Prometheus
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+FCPort Port 'rexx_PMBSx'
+(x ist eine Zahl von 0-19)
+b=Byte
+w=Word
+l=Long
+c()=Char(0-terminiert) in Klammern steht die max. Länge
+
+Adresse bekommt man per FindPort() (Offset -390 der exec.library)
+
+Offset
+
+236	l	Screenadresse des Ports (0 wenn Iconify)
+240	w	Änderungsmitteilung an den Server (1=Änderung/0=nichts)
+244	c(71)	String (0 terminiert) der auf dem Serverbildschirm bei
+                dem Port angezeigt wird (also Username z.b)
+350	l	Flags (Bit 0 - Hide User an / nicht an)
+                      (Bit 1 - User wartet auf Multichat)
+ab 400 Daten des eingeloggten Users (Name aus 244 ermitteln)
+
+400	l	erster Login
+404	l	letzter Login
+408	l	letzte Paßwortänderung
+412	l	Anrufe
+416	l	Flags des Users (siehe Userdatendokumentation)
+420	l	Downloadfreiraum
+424	l	binäre Uploads
+428	l	binäre Downloads
+432	l	Ascii Uploads
+436	l	Ascii Downloads
+440	l	Konto
+444	l	Baudrate
+448	l	Boxanrufzahl beim letzten Login des Users
+452	w	Zeitlimit
+454	w	wieviel Zeit steht im für diesen Login zur Verfügung
+456	w	Top UploadCPS
+458	w	Top DownloadCPS
+460	b	Emulation (0 Keine/1 Ansi Farbe/2 Ansi Mono/3 Rip)
+461	b	Zeilenanzahl
+462	b	Tarifzone
+463	b	UpDoRate
+464	b	Modus (0 Geonet / 1 Menue / 2 Cursor)
+465	b	Packer
+466	b	Protokoll
+467	b	Sprache
+468	l	Bezugsdatum
+482	l	Transfernote (wenn <>0, steht hier die Adresse der
+                Transfernote der MEtaxpr.library... nähere Erläuterungen
+                in der Anleitung der Metaxpr.library
+486	w	Anzahl der Downloads während des aktuellen Logins
+488	w	Anzahl der Uploads während des aktuellen Logins
+
+500	b	intern
+502	b	Port für Arexx bereit (1 nicht bereit/0 bereit)
+
+
+
+
+           Dokumentation zur Server Portstruktur von Prometheus
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+                        Was fehlt noch in der Dok?
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Onlineflags
+- Protokollflags
+- Brettflags
+- Befelsflags
+- Gruppenflags
+
+                        Erklärung des Datumformats
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dieses Datumformat wird benutzt bei
+
+*Userdaten
+- Letzter Login
+- Bezugsdatum
+- letzte Paßwortänderung
+
+*Brettliste
+- letzter Eintrag
+
+Wie bekomme ich:
+(L bedeutet Langwort.. bin zu faul)
+(AND ist die logische UND Operation)
+
+- Stunden : das L 12 Bits nach rechts schieben und dann AND mit 31 machen
+- Minuten : das L 6  Bits nach rechts schieben und dann AND mit 63 machen
+- Sekunden: einfach AND 63 mit dem L
+
+- Tage    : das L 17 Bits nach rechts schieben und dann AND mit 31 machen
+- Monate  : das L 22 Bits nach rechts schieben und dann AND mit 15 machen
+- Jahre   : das L 26 Bits nach rechts schieben und dann 1980 addieren
+
+
+                            Benutzte Feldtypen
+                           ~~~~~~~~~~~~~~~~~~~~
+
+Wenn von LIST-Strukturen geredet wird, sind die ORIGINAL Amiga
+LISTSTRUKTUREN mit LISTHEADERN gemeint (im Header steht noch kein
+Namenfeld!).
+
+Dann gibt es noch ein eigenes Listen-Format... ich nenne es jetzt nur
+DIM-FELD.
+
+Man hole sich die Adresse eines DIM-FELDES. Dann holt man sich die Adresse
+die an dem Langwort steht. Nun hat man den Zeiger auf das eigentliche Feld.
+
+Beispiel in Assembler für den Brettnamen (in A6 ist die Serveradresse)
+
+move.l 174(a6),a4
+move.l (a4),a4
+
+Jetzt steht an: (als Offset zum erhaltenen Langwort)
+
+0	l	Grösse des Feldes (wäre hier gleich (max Bretter))
+ab 4 kommt jetzt das Feld (Typen c=char/l=Long/W=Word/B=Byte)
+
+Beipiel Bytefeld:
+4	1.Byte
+5	2.Byte
+6	3.Byte
+...
+
+Beispiel Wordfeld:
+4	1.Word
+6	2.Word
+8	3.Word
+...
+
+Beispiel Longfeld:
+4	1.Long
+8	2.Long
+12	3.Long
+...
+
+Ein Charfeld ist ein Longfeld das Adressen zu C-Strings (0-terminiert)
+beinhaltet.
+Beispiel (Brettname)
+
+4	1.Long = $ef302434
+
+an $ef302434 liegt jetzt ein C-String (aus GFA-BASIC einfach
+auslesen mit CHAR{} oder aus BLITZ-BASIC mit PEEK$())
+
+                 Wie bekomme ich Prometheus zum Speichern?
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Hierzu benutzen wir das Aktionslangwort (+396), indem wir bestimmte Bits
+setzen.
+
+Bit 0 Bretter speichern
+Bit 1 Userliste
+Bit 2 Boxen
+Bit 3 Gruppen
+Bit 4 Anrufe+Auslastung
+Bit 5 Preferences
+
+Der Server speichert dann von selbst, sobald er bereit ist
+
+                        Multiport Inhaltsverwaltung
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Diese Informationen sind eigentlich sehr gefährlich, da sie sehr
+schwierig zu realisieren sind. Bitte auf JEDEN FALL Rücksprache mit mir
+nehmen, wenn man etwas mit der Multiport-Fileverwaltung macht, damit es
+hinterher keine Probleme gibt (02104 / 12796)
+
+Man darf bei Prometheus auf gar keinen Fall ohne weiteres Indexfiles laden
+oder speichern.
+
+Bei 20400 bekommt man die Adresse eines STRING DIM FELDs mit 100 Elementen.
+In den Strings steht entweder nichts, oder der Pfad zu einem Indexfile
+(komplett!) z.B.
+
+"prometheus:bretter/amiga/dfue/°inx" (nicht CASE-SENSITIVE überprüfen!!)
+
+Man weiß nun, ob der Index schon im Ram ist oder nicht, und welche Nummer
+er hat.
+
+nun rechnet man: Adresse: 20404 (Beginn der Zusatzfelder) + Nummer*10 
+(Nummer fängt bei 0 an!)
+
+jetzt steht an
+
+Adresse+0 WORD wieviele Tasks benutzen diesen Index?
+       +2 WORD wieviele Einträge hat der Index
+       +4 LONG Adresse der Liststruktur
+
+Prometheus verwaltet INDEXLISTEN im RAM als Liststruktur (mit Listheader).
+Ab nodeadresse+14 ist dann der INDEX wie auf Platte (ohne Längenwort am
+Anfang). Das ganze Eintrag ist mit 0 abgeschlossen.
+
+also char{nodeadr%+14} liefert einen Inhaltseintrag
+
+Index komplett einlesen
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Index ist schon im RAM:
+Wollen wir jetzt einen Index einlesen, erhöhen wir zuerst den Taskzähler
+um 1, damit kein anderer Task den Index im Ram löscht.
+Dann können wir die Eintragsanzahl und die Liststruktur einfach benutzen.
+
+Index ist nicht im RAM:
+Index in eine LISTSTRUKTUR (HEADER 14 BYTES) lesen. Wie die NODES aufgebaut
+sind bitte bei INDEX SCHLIEßEN lesen. Jeder Nodeeintrag repräsentiert einen
+Inhaltseintrag!
+Der Pfad wird bei einem freien Eintrag im DimFeld eingetragen. Und die
+Liststruktur etc wird dann im Adressenfeld (Offset beachten) eingetragen.
+20404 + (Nummer im DIM-FELD)*10. Taskzugriffe ist dann natürlich 1.
+
+Bei jedem Nodeeintrag die Länge des Nodes im Wort vor der Adresse speichern
+(siehe Index schließen)
+
+Index schließen
+~~~~~~~~~~~~~~~
+
+Wir speichern zuerst den Index auf Platte.
+Wir ziehen 1 von den Taskzugriffen ab.
+Sollte die Anzahl nun 0 sein, löschen wir den Indexstring im DIMFELD und
+die 8 Bytes im dazugehörigen Adressenfeld. Danach geben wir die gesamte
+Listenstruktur frei (mit Listenkopf)
+
+Der Listenkopf hat 14 BYTES. Die Länge der Listenelemente steht im Langwort
+davor.
+
+Wenn wir also eine Nodeadresse haben, geben wir ihn so frei
+
+FREEMEM(nodeadr%-4,long{nodeadr%-4}+4)
+
+Eintrag anhängen
+~~~~~~~~~~~~~~~~
+
+Dies ist noch das einfachste. Wir schauen, ob das Indexfile schonmal im RAM
+ist,
+
+wenn ja: neuen Nodeeintrag anhängen (ADDTAIL aus der exec.library)
+
+danach einfach im APPEND Modus den INDEXeintrag ans INX File auf der Platte
+anhängen.
+
+
+
+
+
+                            Offsets zum Server
+                           ~~~~~~~~~~~~~~~~~~~~
+
+FCSERVER Port 'rexx_PXServer'
+
+b=Byte
+w=Word
+l=Long
+c()=Char(0-terminiert) ind Klammern steht die max. Länge
+
+Adresse bekommt man per FindPort() (Offset -390 der exec.library 
+                                    als Parameter in a1 den Namen angeben)
+
+Offset
+
+150	w	max Teilnehmer -1
+152	w	max Bretter -1
+156	w	max Pm
+158	w	max Text
+160	w	max Netzboxen
+162	w	Brettanzahl
+164	w	Netzboxen
+166	w	Teilnehmeranzahl
+
+Anmerkung zu Brettern:
+
+Die Bretter sind unsortiert, wenn der Brettname "" ist, ist das Brett nicht
+existent, trotzdem kann im nächsten Feld wieder ein Brett sein. Die
+Sortierung erfolgt über das Sortierfeld. 
+In Feld 0 des Sortierfeldes steht die Nummer des Brettes mit dem im
+Alphabet am niedrigsten stehenden Namen. Das geht dann nach unten weiter.
+
+Nummern gelten immer ab 0 aufwärts
+
+Das gleiche gilt auch für Netzboxen!
+
+
+170	l	DIM-FELD(l) Sortierung der Bretter
+174	l	DIM-FELD(c) Brettname
+178	l	DIM-FELD(l) Letzter Eintrag
+182	l	DIM-FELD(c) Pfad
+186	l	DIM-FELD(c) ganzer Name des Brettes
+190	l	DIM-FELD(c) Verteiler (Boxen durch '|' getrennt)
+194	l	DIM-FELD(c) Gruppen
+                            60 Bytes(LGruppe(c20)+SGruppe(c20)+IGruppe(20))
+                            Zwischenräume mit 1-BYTES (nicht 0!) gefüllt
+198	l	DIM-FELD(c) ganzer Name, aber ohne Netzoberbrett
+                            (für maximalen Speed beim Sorter)
+202	l	DIM-FELD(l) Sortierung der Bretter ohne Netzoberbrett
+210	l	DIM-FELD(w) max. Rout
+214	l	DIM-FELD(w) max. Inhalt
+218	l	DIM-FELD(w) Brettkopf (da feste Offsets einfach
+                            Brettnummer)
+222	l	DIM-FELD(l) Brettflags
+		Bit 1	Marke
+                Bit 2	L.Kommentar
+                Bit 3	       
+
+weitere Brettfelder ab 15000
+
+
+
+
+226	l	DIM-FELD(c) Teilnehmer (sortiert)
+
+230	l	DIM-FELD(l) Sortierung der Netzboxen
+234	l	DIM-FELD(c) Boxname
+238	l	DIM-FELD(c) PM-Route
+242	l	DIM-FELD(c) Paßwort
+246	l	DIM-FELD(c) Telefonnummer (evtl. mehrere durch '|'
+                            getrennt)
+250	l	DIM-FELD(c) ModemInit
+258	l	DIM-DELD(w) Packernummer
+262	l	DIM-FELD(b) Protokollnummer
+266	l	DIM-FELD(l) Netzflags
+274	l	DIM-FELD(w) Eilmail PF/KB
+278	l	DIM-FLED(b) Netztyp
+282	l	DIM-FELD(c) Domain
+
+
+
+
+300	l	Servermem
+304	l	Portmem
+308	l	Sortermem
+312	l	Puffermem
+316	l	-frei-
+320	l	Readbuffer
+324	l	Writebuffer
+328	l	Adresse der PROMETHEUS.LIBRARY
+332	l	Adresse der GADTOOLS.LIBRARY
+336	l	Adresse der ASL.LIBRARY
+340	l	Windowadresse des Servers
+344	l	Screenadresse des Servers
+348	l	-nicht öffentlich-
+352	l	-nicht öffentlich-
+356	l	-nicht öffentlich-
+360	w	Fonthöhe (Oberfläche)
+362	w	Fonthöhe (Text)
+364	l	Adresse der DISKFONT.LIBRARY
+368	l	Fontadresse (Oberfläche)
+
+376	l	Screenbreite (Port+Server)
+380	l	Screenhöhe (Port+Server)
+384	l	-nicht öffentlich-
+388	l	Screenid (Port+Server)
+392	w	Serverprioritaet (+100)
+394	w	Sorterprioritaet (+100)
+396	l	Aktionslangwort (siehe spätere Beschreibung)
+400	w	Portbits (welche Ports sind offen?)
+402	l	10 Langwörter folgen (Adressen der Arexxports der Ports)
+
+620	l	DIM-FELD(c) Name des Befehls
+624	l	DIM-FELD(c) Aufrufzeile des Befehls
+628	l	DIM-FELD(l) Parameter dafür
+636	l	DIM-FELD(c) Kommentar zum Befehl)
+
+640	w	Anzahl der Befehle
+
+644	l	DIM-FELD(b) Shortcut (Befehl)
+648	l	DIM-FELD(c) Gruppe (Befehl)
+
+
+660	l	DIM-FELD(c) Gruppennamen
+664	l	DIM-FELD(l) Zeiger auf LIST-Strukture mit Teilnehmernamen
+                für die jeweilige Gruppe. User ist ein Space vorangestellt,
+		Netzboxen ein '*'
+668	l	DIM-Feld(b) Gruppenflags
+
+
+672	w	Gruppenanzahl
+680	l	Globale Bits (Bit 0 Sysop rufbereit)
+                             (Bit 1 Sorter aktiv)
+                             (Bit 2 Cruncher aktiv)
+                             (Bit 3 Prepack aktiv)
+                             (Bit 4 Sysopoberfläche aktiv)
+                             (Bit 10 Debugmodus)
+                             (Bit 20-29 Netzsperre für Port gesetzt?)
+                  
+                             (Bit 31 Schloß aktiv)
+684	l	Bubblehelp
+688	l	Bubbleanzahl
+1000	c30	Sysopname
+1030	c30	Boxname
+1060	c80	Chatzwangsmessage
+1140	c30	Ripfontpfad
+1170	c30	Showprogramm
+1200	c30	Externer Editor
+1230	c20	Oberflächenfont
+1250	c20	Textfont
+1330	c30	Uploadpfad
+1360	c30	Downloadpfad
+1390	c30	Asciipfad
+1420	c30	Ripiconpfad
+1450	c10	Quotezeichen
+1460	l	Mindestplatz auf HD
+1464	w	Logoff nach Minuten
+1466	w	max. Kommentarzeilen
+
+1994	l	Onlineflags
+1998	w	Portprioritaet +100
+
+2000	w	Zeit für eine Telefoneinheit im Nahtarif (Normaltarif)
+2002	w	Zeit für eine Telefoneinheit im Nahtarif (Billigtarif)
+2004	w	Zeit für eine Telefoneinheit im Regionaltarif (Normaltarif)
+2006	w	Zeit für eine Telefoneinheit im Regionaltarif (Billigtarif)
+2008	w	Zeit für eine Telefoneinheit im Ferntarif (Normaltarif)
+2010	w	Zeit für eine Telefoneinheit im Ferntarif (Billigtarif)
+2012	w	Kosten (in PF) für eine Telefoneinheit
+
+3000-4600	Packerfeld (10*) (160 Bytes je Feld)
+
+		0	c10	Packername
+		10	c40	Packstring
+		50	c40	Entpackstring
+		90	c40	Inhaltsstring
+		130	c10	Packerendung
+		140	c20	10 Byte Kennung
+4600-5400	F-Tasten (10 a 80 Bytes)
+5400-5500	-reserviert-
+
+5500	l	PortScreenID
+5504	l	Portbreite
+5508	l	Porthoehe
+
+
+6200-6400	Sprachen (10 a 20 Bytes)
+6400-6448	Boxauslastung (24 Worte, jedes Wort beinhaltet wieviele
+		Minuten in der jeweiligen Stunde User drin waren)
+
+6800	c40	Pfad für neue Netzbretter
+6840	c20	Netzgruppe
+6860	c40	ZMAPSabsender
+6900	c40	-frei-
+6940	w	max Kopienanzahl
+6942	l	Domainserver
+6946	w	Kosten Routpm pf/kb
+6948	w	Kosten Domainpm pf/kb
+6950	l	welche Headzeilen übernehmen
+		Bit 0 Mailer
+		Bit 1 OAB
+		Bit 2 OEM
+		Bit 3 ORG
+		Bit 4 POST
+		Bit 5 ROT
+		Bit 6 Telefon
+7000-7600	10* Formatname(c20)+Kennung(c20)+Directory(c20)
+7600-7900	5*Boxdomains(c60)
+7900	c20	Netzboxname
+7920	c10	Zeitzone
+7930	l	max Brieflänge
+7934	w	Wahlversuche
+7936	w	Wahldelay (Sekunden)
+7938	l	MsgId Haltezeit
+7942	l	Packtimeout
+7946	w       Neuversuche
+7948	w	max. MsgAlter
+7950	c5	Winterzeit
+7955	c5	Sommerzeit
+7960	c6	Anfang Winterzeit TT:MM
+7966	c6	Anfang Sommerzeit TT:MM
+
+
+8010-8018	OS3 Farben (4 Wörter)
+8018-8034	Ansifarben (8 Wörter)
+8034-8066	Ripfarben (16 Wörter)
+8100-13100	Modemfeld (10*) (500 Bytes je Feld)
+
+		0	c20	Connect
+		20	c20	Endconnect
+		40	c20	Faxconnect
+		60	c30	Device
+		90	c30	Terminalprogramm
+		120	c30	Faxprogramm
+		150	c10	Modemreset
+		160	c10	Auflegen
+		170	c10	Ring
+		180	c10	Antworten
+		190	c10	Wählen
+		200	c10	Besetzen
+		210	c10	Init
+		250	l	Baudrate
+		254	l	Lamerbaud
+		258	b	Esccode
+		259	b	Unit
+		260	b	Flags (Bit 0 feste DTE / Bit 1 RTS/CTS/ Bit
+                                      2 Frontdoorbetrieb)
+		300	c100	Faxprogramm
+		400	c100	Frontdoorprogramm
+
+14000	l	Zähler wieviele Messages bis jetzt geschrieben wurden
+14004	l	Boxanrufe
+14008	l	Netzanrufe
+14012	l	Netzanrufe heute
+14016	l	neue Boxen heute
+14048	l	Uploads
+14052	l	Downloads
+14056	l	Tagesanrufe
+14060	l	neue Bretter heute
+14064	l	neue User heute
+14068	l	Uploads heute
+14072	l	Downloads heute
+14076	l	Box Online (gesamt in Minuten)
+14120	l	Box Online (heute in Minuten)
+14124   w       Sysoppost
+14126   w       Sysoppost heute
+14128	b	Nummer des Sysopports
+
+14896	l	Textfontadr
+
+15000	l	DIM-FELD(w) Max Alter
+15004	l	DIM-FELD(w) Max KB
+15008	l	DIM-FELD(l) letzte Aktualisierung (in Sekunden seit
+                1.1.1978)
+15012	l	DIM-FELD(c) Verwalter
+15016	l	DIM-FELD(c) Paßwort
+15020	l	DIM-FELD(c) Kommentar
+15024	l	DIM-FELD(b) Ratio (100=Userratio)
+
+
+15500	l	Adresse des Domainroutingfeldes im Speicher
+15504	w	Anzahl der Einträge im Domainroutingfeld
+
+Im Domainroutingfeld ist jeder Eintrag 80 BYTES lang:
+Gesamtlaenge ist also Anzahl der Einträge (15504)*80 Bytes
+
+von 0-59 steht die Domain, oder die Box mit Domain oder * (Smarthost)
+(Rest mit 0 Bytes aufgefüllt!)
+von 60-79 steht die Routbox (ohne Domain) dafür (auch mit 0 Bytes
+aufgefüllt)
+
+
+15506	l	Basis der 'METAXPR.LIBRARY'
+15510	l	Adresse des Zeitplanfeldes
+15514	w	Anzahl der Einträge im Zeitplanfeld
+
+15516	l	Soviel Freiraum bekommt ein Gast nach dem Antrag
+15520	w	Rate für neue User
+15522	l	Zeit für neue User
+15526	l	Zeiger auf LIST-Struktur mit Gruppennamen, die ein
+                User nach dem Antrag bekommt
+
+15530	l	ScreenID für RIP
+15534	l	ScreenBreite für RIP
+15538	l	ScreenHöhe für RIP
+
+15542	l	Bais der 'muimaster.library'
+15546	l	Adresse des Application Objekts von PMBS (MUI)
+15560	l	GLOBALBITS2
+18000-20340	Protokollfeld (10*) (234 Bytes je Feld)
+		
+		0	c30	Protokollname
+		30	c100	Sendestring
+		130	c100	Receivestring
+		230	l	Flags
+
+20340   c60     Skipfilename
+20400	l	Zeiger auf DIM-Feld für die Multiport-Inhaltsverwaltung
+20404-21404 die Buffer dafür
+22000-27000     2. Modemfeld (wieder 10 Ports)

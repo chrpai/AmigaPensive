@@ -1,0 +1,470 @@
+
+                 _____.  __________.  __________. __ _____
+                /     |_/    __    |_/    __    | \//    /
+                |     ||      /    ||      /    |  /    /
+                |     ||           ||           | /    /__
+                |____/¯|__________/¯|__________/¯ \___/ \/
+                ==========================================
+                Name: C/VDEd            Author: Devil/1oo%
+                Type: CNet door        Release: 02-Jul-98
+                Vers: 0.87
+
+
+                                                    ...READ THIS FIRST! --.
+- - ----------------------------------------------------------------------'
+This is just another piece of software which took really long finishing it.
+I worked *many* hours to make this door what it is now, like I did with any
+other  of  my CNet doors. I'm kind of frustrated because I haven't received
+much  feedback about my other projects until now. To be precise, I have not
+received  one  damn single message. I don't know what's wrong with you guys
+out  there,  but please send me a message if you think this program is kind
+of  useful,  good, bad, whatever, just please write *something*. If I don't
+receive  at  least  a  single  message,  I'll probably stop developing CNet
+doors!
+
+
+                                                        ...introduction --.
+- - ----------------------------------------------------------------------'
+C/VDEd  is  the  first (public?) editor for CNet's VDE (Visual Data Editor)
+Files.   The  idea for this nifty tool arose while I started programming my
+first  huge  CNet door, which should handle a large number of configuration
+possibilities.   But reading/writing/parsing plain text configs came out to
+be  not  exactly  what  I  wanted.  Hence I decided to learn a little about
+CNet's  VDE.   After  hours of testing (thanks to missing developer support
+for  CNet!)  and  help from Fate I figured out how the elements of VDE work
+together.   When  I  was  about to create my own VDE mask I recognized that
+this is really a lot of hard hand-work.  At that point, it was clear that I
+had  to  write an editor for VDE datafiles - you're about to see the result
+now:  C/VDEd!
+
+
+                                                             ...credits --.
+- - ----------------------------------------------------------------------'
+ * Tomato Kid
+
+   > He came up with the really good suggestions for the design and
+     the user interface
+
+ * Fate
+
+   > He helped me with the special bits & pieces of the VDE datatype,
+     especially the "ghosted" member. Even though I'm not sure if
+     I really understood that! ;)
+
+ * Neurodancer
+
+   > For being the most charming asshole in the universe, and for
+     constant resistance against mails from someone whom everybody
+     hates. (hehe!)
+
+
+                                                        ...installation --.
+- - ----------------------------------------------------------------------'
+The archiv should, amongst various ads, at least contain these files:
+
+o "VDEd"                    - main program (CNetC)
+
+o "V2T"                     - small tool to convert VDE to Ascii
+
+o "VDEd.doc"                - guess what...
+
+o "Systext/VDE/VDEd-item"   - VDE Datafile
+
+o "Sources/AccED"           - simple replacement for CNet's "EA"
+
+o "Sources/AccED.C"         - sourcecode of "AccED", meant as demo
+
+o "Sources/DataBase"        - little database with own VDE file
+
+o "Sources/DataBase.C"      - sourcecode of "DataBase", meant as demo
+
+o "Sources/MyDataBase.vde"  - VDE file for "DataBase"
+
+o "Sources/CNetFunctions.C" - all required CNet functions for the
+                              demo sourcecodes
+
+o "Sources/General.h"       - general header file
+
+o "Sources/SCOPTIONS"       - options file for SAS/C
+
+
+Copy  the  main  program  "VDEd"  to any directory you wish (something like
+"PFiles:1oo/VDEd/").  Copy the datafile "VDEd-item" to "Systext:VDE/".
+
+Load CNet's BBSMENU into an editor and add the following command to the END
+of the "1; Maintenance menu ..":
+
+	VDEd			|#2PFiles:1oo/VDEd/VDEd}|
+
+If  you want to have a look at the sourcecodes, copy them anywhere you like
+and keep them, learn from them, laugh about them...  :)
+
+
+                                                               ...usage --.
+- - ----------------------------------------------------------------------'
+Basics:
+
+o The cursor should ALWAYS be at the position of the item you want to
+  change or create.
+
+o ALL options except "Preview" can be reached via CTRL-X (just like
+  in CNet's VisEd you should be familiar with)
+
+
+The "Status-Line":
+
+  File: <filename>                   screen: 0   item: 0    xpos/ypos 01/01
+
+Shown  is  the  file  that  is  currently  being edited, the actual "screen
+number"  of the VDE file (you know, VDE masks may have multiple "screens"!)
+and the X/Y position of the cursor.
+
+
+The options that can be reached via CTRL-X:
+
+o Save, Load, eXit
+
+  Should be clear, eh?
+
+o New
+
+  Removes all currently displayed items from memory and initializes a
+  new VDE file with 3 standard items:
+
+  "Save changes" (Exit Screen)
+  "Exit without saving" (Exit Screen)
+
+  "<< Exit" (Main Screen)
+
+o Jump2scr
+
+  Jumps to the screen you specify in the current VDE list/file
+
+o Rename
+
+  Renames item fields. This functions allows you to have leading spaces!
+
+o Edit
+
+  Starts CNet's VDE (hehe) with all data of the item under the cursor
+  in order to allow you to change these
+
+o Add
+  
+  Appends a new item at the cursor position and starts VDE (like
+  "Edit") to configure the data of the item.
+
+o deF. Items
+
+  If the current screen is "empty" (no items created), this function
+  will add the "standard" items to it, those being "<< Exit" and
+  "<< Previous screen"
+
+o Copy
+
+  Copies an item (really, ha-ha). Move the cursor to the item you want
+  to copy, select the copy-function (CTRL-X C) and move the cursor to
+  the position you want the item to be copied to. Press RETURN to
+  stamp the item to the new location.
+
+o Move
+
+  Works the same as copy, but moves the item under the cursor from one
+  position to the other.
+
+o Delete
+
+  Will remove the item under the cursor from the VDE list. It won't
+  be really deleted, it's just not shown anymore. As soon as you add
+  a NEW item, old "deleted" items will be overwritten.
+
+
+                                                         ...visual data --.
+- - ----------------------------------------------------------------------'
+Now some introducing words about the Visual Data Editor (VDE, did you guess
+that?  good!) and the data format.
+
+VDE is an interface to view AND edit data in a more "graphical" way.  Every
+CNet  sysop will be familiar with the VDE concept.  If you edit an account,
+create  a  new  subboard,  edit  the group settings or whatever - each time
+you'll work with the VDE.
+
+o The VDE structure:
+
+  struct VDEentry
+  {
+    char          text[ 48 ];        //   0 (Offset)
+    
+    short         xpos,              //  48
+                  ypos;              //  50
+
+    LONG          min,               //  52
+                  max;               //  56
+
+    short         lenght,            //  60
+                  type;              //  62
+
+    LONG          offset;            //  64
+
+    short         screen0,           //  68
+                  screen2;           //  70
+
+    short         goup,              //  72
+                  godown,            //  74
+                  goleft,            //  76
+                  goright;           //  78
+
+    UWORD         ghost;             //  80
+                                     // ---
+                                     //  82 bytes length
+  };
+
+o The elements of the VDEentry structure:
+
+  * text                 (char [48])
+
+    The field name of the item
+
+  * xpos, ypos           (short)
+
+    The x/y ANSI coordinates of the item. x is the row, y is the
+    column. "1/1" means: first line, first column
+
+  * min, max             (LONG)
+
+    These variables have different meanings:
+
+    - if the element "type" is numeric (BYTE, short, LONG etc.), those
+      vars define the two extremes the item may have. If min=4 and
+      max=10, only numbers between 4 and 10 may be entered.
+
+    - if the element "type" is "ordered BBSTEXT list (UBYTE)", they
+      describe the FIRST position of a list from CNet's BBSTEXT
+      (z -> bm[ x ]), and the NUMBER of lines on from the FIRST
+      position the list will contain.
+
+      Counting of BBSText lines starts from "0", so remember: if you
+      want the first line in BBSTEXT to be the FIRST in the list, the
+      min-value must be "0", because the first element in the C-List
+      of the C-Pointer (z -> bm[ x ]) is always NULL and not ONE.
+
+  * length               (short)
+
+    This variable also has different meanings:
+
+    - if "type" is "Text (char *)", "length" defines the length of
+      the string, thus how many bytes the input structure will
+      preserve for the "char entry".
+
+    - otherwise, "length" defines the maximum *chars* of the item.
+
+    - if "type" is "ULONG BIT 0/1", "length" describes which BIT will
+      be changed (from right to left in the bit field)
+
+    - if "type" is "UBYTE 0/1" length *must* be NULL!
+
+  * type                 (short)
+
+    This field may have the following values:
+
+    -1 - "UNDEFINED!"
+
+         All items that don't have a "real" sense should be set to
+         this type, plus items that jump to another VDE screens etc.
+
+     0 - "UBYTE 0/1"
+
+         Logic NO/YES or FALSE/TRUE
+
+
+     1 - "ULONG BIT 0/1"
+
+         Logic NO/YES or FALSE/TRUE, however, bits are cleared/set.
+         The "length" entry defines with bit will be used.
+
+     2 - "Text (char *)
+
+         Simple text input
+
+     3 - "BYTE numeric"
+     4 - "short numeric"
+     5 - "USHORT numeric"
+     6 - "LONG numeric"
+
+         Numeric entries. Depending on the "type", 1, 2, 2 (unsigned!)
+         or 4 bytes will be used. The "min" and "max" elements define
+         the limits.
+
+     7 - "struct IsDate"
+
+         A date with time, following the CNet format. Important: must
+         point to an IsDate structure and NOT to the pointer to an
+         IsDate structure! (Confused?)
+
+     8 - "Flags"
+
+         Will clear/set the bits for access groups (or whatever) in
+         one LONG (32 bits).
+
+     9 - "ordered BBSTEXT list (UBYTE)"
+
+         This is a "switch type" that will use lines from BBSTEXT for
+         the entry. The elements "min" and "max" define the START of
+         the list and its LENGTH (see above).
+
+    10 - "ordered BBSMENU list (UBYTE)"
+
+         I'm not sure yet which elements hold information for this
+         type, sorry.
+
+    11 - "char **"
+
+         Unclear at present, too. Possibly this type is similar to the
+         "ordered  BBSTEXT list (UBYTE)", with the difference that a
+         user defined string array will be used instead of lines from
+         BBSTEXT.
+
+
+    12 - "UBYTE BIT 0/1"
+
+         Works *exactly* like "ULONG BIT 0/1", except that only one
+         byte (8 bits) will be used.
+
+  * offset               (LONG)
+
+    Describes the offset (position) of the item in the input
+    structure.
+
+  * screen0              (short)
+
+    Defines to which "screen" the item belongs (0=the main screen)
+
+  * screen2              (short)
+
+    Defines to which "screen" the item will jump if it is activated,
+    -10 means QUIT.
+
+  o goup, godown, goleft, goright (short)
+
+    Describes the logic "VDE Item" that follows the item if the cursor
+    is moved up, down, left or right.
+
+    However, "goup" has a second usage: if you set "goup" to -1, the
+    item is used only for displaying of variables. VDE will lock the
+    item, making it inaccessible via cursor or mouse!
+
+
+
+                                                             ...history --.
+- - ----------------------------------------------------------------------'
+       Changes/Fixes                                             Date:
+
+v0.1   Haven't got the foggiest idea what I built in or removed ~27-Feb-97
+-0.46  during that time/versions... but it definitely doesn't
+       matter anymore. :)
+
+v0.47  The first running version, even with some options already 26-Feb-98
+       working.
+
+v0.48  Added the "move" function, fixed some bugs in "add"       02-Mar-98
+
+v0.5   Existing VDE items will be edited on own VDE screen       04-Mar-98
+       instead of a dull ANSI "window".
+
+v0.6   Added "rename" function since CNet's VDE strings leading  05-Mar-98
+       spaces from the string; some bugfixes.
+
+v0.61  Removed a nasty bug in the "edit" routine. Empty field    08-Mar-98
+       names are not allowed anymore; little fix in the display
+       for cursor positions etc.
+
+v0.7   Added the "delete" function, see above for details        17-Mar-98
+
+v0.71  Removed a deadly bug from the "add" function              19-May-98
+
+v0.72  Added "preview" and squashed many bugs!                   20-May-98
+-0.81                                                            25-May-98
+
+v0.82  The "type" member can now have the "UNDEFINED (-1)"       02-Jun-98
+       state. Fixed some little bugs in the "preview", "save"
+       and "edit" functions.
+
+v0.83  Some cosmetical changes and fixes. Added "deF. items"     03-Jun-98
+-0.85  
+
+v0.86  Final fixes (mostly internal) and changes.                09-Jun-98
+-0.87  Add some more info-texts.                                 02-Jul-98
+
+
+
+         _                    ...how the hell can I contact this Devil? --.
+.--- - --\/-- - ----------------------------------------------------------'
+|                                 <devil@p-lost.franken.de>         (email)
+|                                      <Devil@99:4909/30.0>      (coco-net)
+|                                                 <7091602>   _       (ICQ)
+`------ - - "http://p-lost.home.ml.org" - - -------------- --\/-- --- - -
+
+
+
+                                               ...get in touch with 1oo% --.
+- - -----------------------------------------------------------------------'
+If  you  like and use this program, or if you have suggestions of what could
+be  added  or  done better, send email, call us, just please don't keep your
+feedback a secret!  It motivates like nothing else to hear it from YOU!
+
+
+Area BBS                Hosted by               Number(s)       Modem       
+==== ================== ======================= =============== ============
+
+AUS: Verbal Verbatim    Veg                     +61-7-3396-4054      [v.34 ]
+==== (telnet) ========= <verbal.apana.org.au:23> ============== ============
+
+DEN: The 4th Dimension  Daze                    +45-7592-7385        [v.34+]
+==== ================== ======================= =============== ============
+
+GER: Aurora Borealis    Neurodancer             +49-8621-64260  [v.34+/x.75]
+                                                +49-8621-979551   [x.75 16k]
+     (email)            <neurodancer@timewarp.insider.org>
+==== ================== ======================= =============== ============
+
+     Dan's House        Count Dan               +49-34298-35720       [v.34]
+                                                +49-34298-35729       [x.75]
+==== ================== ======================= =============== ============
+
+     Digital Dungeons   Fate                    +49-6192-910718      [v.34+]
+==== (email) ========== <fate@iname.com> ====== =============== ============
+
+     Paradise Lost      Devil                   +49-9131-66661       [v.34+]
+==== (email) ========== <devil@p-lost.franken.de> ============= ============
+
+     The Crypt          Hellhound               +49-6102-328626      [v.34 ]
+                                                +49-6102-328726      [v.34+]
+==== ================== ======================= +49-6102-733403 ==== [x.75 ]
+
+USA: Ill Communication  Adolescent              +1-310-329-2283      [v.34+]
+==== (email) ========== <add@dpacbell.net> ==== +1-310-329-2591 ==== [v.34+]
+
+
+Page                            URL
+------------------------------- --------------------------------------------
+1oo% Homepage - files, info...  http://1oo.home.ml.org
+C/Base - everything around CNet http://cnetbbs.home.ml.org
+------------------------------- --------------------------------------------
+
+If  you want to become a distribution site of 1oo% products in your country,
+please  do  contact us.  We are hatching new files thru "Coconet" and can of
+course send files via email or our internal mailinglist to you.
+
+We  are  currently  covering  Ansi/Ascii,  CNet,  Tempest  and term/bbs/comm
+related  stuff.   If you think you are doing nice doors for *your* preferred
+BBS package and seem to have the same approach as we have, maybe you want to
+join us?
+
+Do  NOT  add  our  addresses  to  any  mailing  list without express written
+permission.    Unsolicited   commercial  email  will  be  proofread  at  our
+consulting rate of $75/hour, 4 hour minimum.
+
+
+
+
+                   «« b a r i n g · a n y · s e n s e »»

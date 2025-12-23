@@ -1,0 +1,76 @@
+/*
+** PostLogonIEMSI.zeus -- Post Logon script for IEMSI callers
+**/
+Options Results
+Parse Arg Line
+
+/*
+**	First check if the user is running out of time...
+**/
+SetAccLimit
+IF RC = 5 THEN DO
+	Display 'Logon/TimeLimit'
+	WaitReturn
+END
+
+/*
+**	Read users XData to see what logo we should display.
+**/
+CallScript 'Logon/DisplayLogo'
+
+/*
+** Get the users IEMSI requests
+**/
+GetIEMSIInfo Requests
+Reqs = RESULT
+
+/*
+** Show the latest news
+**/
+IF Find(Reqs, "NEWS") ~= 0 THEN DO
+	ClrScr
+	SetStatus '"Displaying News"'
+	Display 'Logon/NewsLogo'
+	Display 'Logon/News'
+	Write '"\n"'
+	WaitReturn
+	IF RC ~= 0 THEN Exit
+END
+
+/*
+**	Last caller utility
+**/
+CallScript 'Doors:ZLastCallers/ZLastCallers'
+WaitReturn
+
+/*
+**	Display to the user, 'Wedlock System Info'.
+**/
+IF Find(Reqs, "MAIL") ~= 0 THEN DO
+   ClrScr
+	SetStatus '"Checking for new mail"'
+	Display 'Logon/SysCheck'
+	PushInput '"Y"'
+	CallScript 'Msg/CheckWaitMail'
+END
+
+/*
+**	Check for new files..
+**/
+Write '"\n[0;37mDo you wish to scan for new files? "'
+GetYesNo 'No'
+IF RC = 10 THEN Exit
+
+IF RESULT = 'Y' THEN DO
+   PushInput '"\r"'
+   CallScript 'File/GlobalNew'
+END
+ELSE DO
+   Write '"\n"'
+   WaitReturn
+END   
+
+/*
+**	Goto main...
+**/
+NextScript 'Main/MainMenu'

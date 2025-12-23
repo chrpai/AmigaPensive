@@ -1,0 +1,81 @@
+; $VER: dCN!MsgScan_INSTALL 1.o (06.10.96) - written by sCANDiC of (dCN-/F·dEZiGN)
+; Installer and Installer project icon
+; (c) Copyright 1995-96 Escom AG.  All Rights Reserved.
+;
+
+(set @default-dest "FAME:Doors/dCN!MsgScan")
+
+(welcome #welcometext)
+
+(set #turboprozessor (not (patmatch (database "cpu") "68000|68010")))
+
+
+(if (= @language "deutsch")
+  (
+   (set #welcometext     "Willkommen zum Installationsprogramm für\n\n")
+   (set #welcomedesc     "Mit diesem Programm läßt sich die Installation von dCN!MsgScan sehr einfach durchführen. Alle Dateien werden installiert und evtl. Änderungen an den Systemdateien vorgenommen.")
+   (set #wrongversion    "Leider ist ihr AmigaOS© veraltet!\n\nSie benötigen mindestens AmigaOS 2.04 (v37).")
+   (set #copyinfotext    "Eine komplette Installation des FAME Mailbox System ist notwendig für die Installation dieses Programmes.")
+   (set #nofameinstalled "Sie haben das FAME Mailboy System nicht oder nicht vollständig installiert!\nDie Installation wird abgebrochen.")
+   (set #copyfiles       "Kopiere die benötigten Datenfiles nach FAME:Doors/")
+   (set #fastprocessor   "Kopiere die 68020+ Versionen der Programme.")
+   (set #slowprocessor   "Kopiere die 68000 Versionen der Programme.")
+  )
+
+  (
+   (set #welcometext     "Welcome to the Installation utilitty for\n\n")
+   (set #welcomedesc     "The installation of this program by using this program is really easy. It will copy all files to the right places an also replaces the needed systemfiles.")
+   (set #wrongversion    "Sorry! Your OS is too old!\n\nYou have to use a minimum of OS2.04 (v36).")
+   (set #copyinfotext    "This tool needs a complete FAME installation!.")
+   (set #nofameinstalled "There is no complete FAME installation!!\nThe installation aborts!.")
+   (set #copyfiles       "Copy needed files to FAME:Doors/")
+   (set #fastprocessor   "About to copy the 68020+ versions of the doors.")
+   (set #slowprocessor   "About to copy the 68000 versions of the doors.")
+  )
+)
+
+
+(message #welcomedesc)
+
+(set #osversion (/ (getversion "exec.library" (resident)) 65536 ))
+(if (< #osversion 36 )
+  (exit #wrongosversion (quiet))
+)
+(complete 0)
+(if (not (exists "FAME:Doors/"))
+
+ (
+  (abort #nofameinstalled)
+ )
+
+)
+(complete 10)
+(makedir "FAME:Doors/dCN!MsgScan" (infos))
+
+   (message #copyfiles)
+
+   (copyfiles (source "FAME/Settings/Doors/bbscmd/Scan") (dest "FAME:Settings/Doors/bbscmd/"))
+   (copyfiles (source "FAME/Doors/dCN!MsgScan/dCN!MsgScan.guide") (dest "FAME:Doors/dCN!MsgScan/"))
+   (copyfiles (source "FAME/Doors/dCN!MsgScan/dCN!MsgScan.guide.info") (dest "FAME:Doors/dCN!MsgScan/"))
+
+   
+(complete 50)
+
+  (if #turboprozessor
+     (
+     (message #fastprocessor)
+
+     (copyfiles (source "FAME/Doors/dCN!MsgScan/dCN!MsgScan.FIM.020") (dest "FAME:Doors/dCN!MsgScan/") (newname "dCN!MsgScan.FIM"))
+
+     )
+
+     (
+     (message #slowprocessor)
+
+     (copyfiles (source "FAME/Doors/dCN!MsgScan/dCN!MsgScan.FIM.000") (dest "FAME:Doors/dCN!MsgScan/") (newname "dCN!MsgScan.FIM"))
+
+     )
+  )
+
+(complete 100)
+(exit)

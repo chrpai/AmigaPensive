@@ -1,0 +1,380 @@
+/* newuser_logon.apt
+**
+** $VER: newuser_logon 0.0.4 (22.2.93)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright © 1993 ApT-Design All Rights Reserved
+**
+*/
+
+/* ######################################################################### */
+
+/*
+** TABLE LIST AND DEFINES:
+**
+** Version 0.0.1
+**
+** The following block of code should remain untouched by 3rd party
+** programmers. The block will be updated at times and all that will
+** be required from you is to paste the new block in. You may
+** alter code only when told specified.
+*/
+
+		/* Used within the CALLFUNCTION calls */
+
+COMPUTERTYPE_CALL	= 0
+COUNTRY_CALL		= 1
+BIRTHDAY_CALL		= 2
+PROTOCOL_CALL		= 3
+ARCHIVER_CALL		= 4
+SHOW_PASSWORD_AND_NAME_CALL = 5
+
+
+		/* This block is used in the SET GFX FLAG  function ONLY */
+
+ANSI_COL_FLG = 0 	/* Ansi Colour Flag	*/
+ANSI_POS_FLG = 1	/* Ansi Positioning 	*/
+ANSI_FLG_FLG = 2	/* ANSI at all!?		*/
+ANSI_SCR_FLG = 3	/* Ansi Scrolling		*/
+ANSI_CUR_FLG = 4	/* Ansi Cursor			*/
+SCRN_CLR_FLG = 7	/* Screen Clears		*/
+
+	/* This block is used in the GET VAR and  SET VAR ONLY */
+
+ACCESSLEVEL_VAR 	= 0
+VALID_VAR			= 1
+CALLSMADE_VAR		= 2
+MSGSLEFT_VAR		= 3
+MSGSREC_VAR			= 4
+UPLOADS_VAR			= 5
+DNLOADS_VAR			= 6
+BYTESUP_VAR			= 7
+BYTESDN_VAR			= 8
+BYTESLEFT_VAR		= 9
+FILERATIO_VAR		= 10
+BONUSRATIO_VAR		= 11
+HOTKEY_VAR			= 12
+EDITOR_VAR			= 13
+COMPTYPE_VAR		= 14
+SCRLENGTH_VAR		= 15
+SCRWIDTH_VAR		= 16
+GENDER_VAR			= 17
+MORE_VAR				= 18
+PROTOCOL_VAR		= 19
+ARCHIVER_VAR		= 20
+
+	/* This block is used in the GET STR and SET STR functions ONLY */
+
+USERNAME_STR 		= 0
+ADDR1_STR			= 1
+ADDR2_STR			= 2
+ADDR3_STR			= 3
+POSTCODE_STR		= 4
+COUNTRY_STR			= 5
+VOICENO_STR			= 6
+DATANO_STR			= 7
+PASSWORD_STR		= 8
+HANDLE_STR			= 9
+
+FIRELEN_OPT 		= 0
+FIRECASE_OPT		= 1
+FIREFILT_OPT		= 2
+
+LETTER_FLT			= 1
+NUMBER_FLT			= 2
+ASCII_FLT			= 4
+UPFIRST_FLT			= 8
+PUNCT_FLT			= 16
+
+FILE 					= 0
+STRING 				= 1
+
+USER_MEMBER			= 0	/* For the MOVEUSER function */
+USER_NEW				= 1
+USER_REVIEW			= 2
+
+CR		= '0A'x
+Q		= '22'x
+
+
+/* ######################################################################### */
+
+parse arg lineno
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+/*
+** NEW USER INITIAL PREFERENCES:
+**
+** You are now FREE to change the code within this section and move
+** things around to suit your system design.
+*/
+
+'SETMORE' 0
+
+'APPLYTEMPLATE' "newuser"
+
+	/*
+	** GET NAME:
+	**
+	** Some may wish to get the name now rather than in a previous
+	** script. Remove these lines if you already know the users
+	** name upon entry here.
+	*/
+DO FOREVER
+	call PROMPT "new/new_getname",FILE,"",4,30,UPFIRST_FLT+LETTER_FLT,0
+	username = result
+	'GETUSERDIR' username ; udir=result
+	if(udir="") THEN DO
+		'SETSTR' USERNAME_STR username
+		LEAVE
+		END
+	ELSE
+	'SHOWFILE' "new/new_nameused"
+	'ISDROP' ; if(result=1) then EXIT
+	'msg' "%NL."
+END
+
+
+/*
+** SetUp some Ansi Flags first. So that the System will try to Display ANSI
+** When showing the test options.
+*/
+
+		'SET_GFX_FLAG' ANSI_COL_FLG		/* Turn ANSI colour on..				*/
+		'SET_GFX_FLAG' ANSI_POS_FLG		/* Turn ANSI positioning on..			*/
+		'SET_GFX_FLAG' ANSI_FLG_FLG		/* Turn ANSI on :)						*/
+		'SET_GFX_FLAG' ANSI_SCR_FLG		/* Turn ANSI scrolling on..			*/
+		'SET_GFX_FLAG' SCRN_CLR_FLG		/* Turn SCREEN clears on..				*/
+		'SETVAR' HOTKEY_VAR 1				/* Turn ON Hotkeys as default			*/
+		'SETVAR' EDITOR_VAR 1				/* Turn FullScreenEditor on			*/
+		'SETVAR' SCRWIDTH_VAR 80			/* Screen width of 80 					*/
+		'SETVAR' MORE_VAR 1					/* Turn ON More prompt					*/
+		'SETVAR' ARCHIVER_VAR 2				/* Lha										*/
+		'SETVAR' PROTOCOL_VAR 0				/* ZModem									*/
+
+'SHOWFILE' "new/intro"
+'SHOWFILE' "new/new_verboseedit"
+verbose = 1
+call YESNO 1
+	if(result) THEN DO
+		verbose = 0 ;
+	END											/* all done..								*/
+
+	/*
+	 * Sort out the Graphical settings first..
+	 */
+
+if(verbose)	 THEN DO
+	'SHOWFILE' "new/new_ansi" ; call YESNO 1
+	if(result) THEN DO
+		'SET_GFX_FLAG' ANSI_FLG_FLG
+		'SET_GFX_FLAG' ANSI_COL_FLG
+		END
+	ELSE 'CLEAR_GFX_FLAG' ANSI_FLG_FLG
+	'SHOWFILE' "new/new_ansipos" ; call YESNO 1
+	if(result) THEN 'SET_GFX_FLAG' ANSI_POS_FLG ; ELSE 'CLEAR_GFX_FLAG' ANSI_POS_FLG
+	'SHOWFILE' "new/new_scroll" ; call YESNO 1
+	if(result) THEN 'SET_GFX_FLAG' ANSI_SCR_FLG ; ELSE 'CLEAR_GFX_FLAG' ANSI_SCR_FLG
+	'SHOWFILE' "new/new_scrclear" ; call YESNO 1
+	if(result) THEN 'SET_GFX_FLAG' SCRN_CLR_FLG ; ELSE 'CLEAR_GFX_FLAG' SCRN_CLR_FLG
+END
+
+'SHOWFILE' "new/new_cursor" ; call YESNO 0
+if(result) THEN 'SET_GFX_FLAG' ANSI_CUR_FLG ; ELSE 'CLEAR_GFX_FLAG' ANSI_CUR_FLG
+
+if(verbose) THEN DO
+	'SHOWFILE' "new/new_more" ; call YESNO 1
+	if(result) THEN 'SETVAR' MORE_VAR 1 ; ELSE 'SETVAR' MORE_VAR 0
+	'SHOWFILE' "new/new_hotkeys" ; call YESNO 1
+	if(result) THEN 'SETVAR' HOTKEY_VAR 1 ; ELSE 'SETVAR' HOTKEY_VAR 0
+	call NUMERIC_PROMPT "new/new_editor",FILE,2,1,2 ; 'SETVAR' EDITOR_VAR result-1
+END
+
+'CALLFUNCTION' COMPUTERTYPE_CALL
+
+y = 60
+'RAWNL'
+DO WHILE (y > 4)
+	'RAWNL' y
+	y=y-1
+END
+
+Text="%NL.%NL.Please enter the number that you see at the very top of your Screen.%NL.."
+call NUMERIC_PROMPT Text,STRING,"",15,60 ; 'SETVAR' SCRLENGTH_VAR result
+
+if(verbose) THEN DO
+	call NUMERIC_PROMPT "new/new_scrwidth",FILE,80,40,160 ; 'SETVAR' SCRWIDTH_VAR result
+END
+
+length = 0
+DO WHILE (length < 4)
+	'SHOWFILE' "new/new_password" ; 'GETPASSWORD' 16 ; password = result
+	'ISDROP' ; if(result=1) then break
+	'SETSTR' PASSWORD_STR password
+	length=LENGTH(password)
+	if(length < 4) then DO
+		'MSG' "%NL.%NL.%BOLD=1.%TC=1.Password must be 4 Characters or more...%BOLD=0.%TC=7.%NL."
+	END
+END
+
+'GETSTR' USERNAME_STR
+call PROMPT "new/new_handle",FILE,result,4,30,UPFIRST_FLT+LETTER_FLT,0 ; 'SETSTR' HANDLE_STR result
+call PROMPT "new/new_telephone",FILE,"",4,19,NUMBER_FLT+PUNCT_FLT ; 'SETSTR' VOICENO_STR result
+call PROMPT "new/new_dataphone",FILE,"",4,19,NUMBER_FLT+PUNCT_FLT ; 'SETSTR' DATANO_STR result
+
+Text = "%NL.%NL.Please enter your street address.%NL.."
+call PROMPT Text,STRING,"",4,35,NUMBER_FLT+LETTER_FLT+PUNCT_FLT ; 'SETSTR' ADDR1_STR result
+
+Text = "%NL.%NL.Please enter the name of your City (and Province if applicable).%NL.."
+call PROMPT Text,STRING,"",4,35,NUMBER_FLT+LETTER_FLT+PUNCT_FLT ; 'SETSTR' ADDR2_STR result
+
+Text = "%NL.%NL.Please enter the name of your County.%NL.."
+call PROMPT Text,STRING,"",4,35,NUMBER_FLT+LETTER_FLT+PUNCT_FLT ; 'SETSTR' ADDR3_STR result
+
+Text = "%NL.%NL.Please enter Post Code.%NL.."
+call PROMPT Text,STRING,"",4,11,NUMBER_FLT+LETTER_FLT,1 ; 'SETSTR' POSTCODE_STR result
+
+'CALLFUNCTION' COUNTRY_CALL
+'CALLFUNCTION' BIRTHDAY_CALL
+
+call PROMPT "new/new_gender",FILE,"",1,1,NUMBER_FLT ; 'SETVAR' GENDER_VAR result
+
+if(verbose) THEN DO
+	'CALLFUNCTION' PROTOCOL_CALL
+	'CALLFUNCTION' ARCHIVER_CALL
+END
+
+'CALLFUNCTION' SHOW_PASSWORD_AND_NAME_CALL
+
+'SETMORE' 1
+
+/*
+'GETSTR' 0 		; name=result
+'DAVE_CMD' "AUTOMSG AREA=0 TO="Q""name""Q" FROM="Q"Dave Mcintosh"Q" BODY=t:testcli SUBJECT=Welcome!"CR
+*/
+
+	/*
+	** as there is no account under the users name, we still use the
+	** flushaccount command, this causes it to be saved as default
+	** to the newuser directory.
+	*/
+EXIT
+
+/*##########################################################################*/
+
+/*
+** PROCEDURE: PROMPT
+**
+** Used whenever requesting more than one charcter from user.
+**
+** Whatever = Text string or Template FileName
+**     Type = Is the above a string or file?
+**      Def = Default string to be used
+**   MinLen = Minimum amount of characters required
+**   MaxLen = Maximum length string can be
+**   Filter = Various Filter options
+**     Case = Turn all characters into Upper case?
+**
+** RETURNS: Entered string
+*/
+
+PROMPT: procedure expose STRING FILE FIREFILT_OPT FIRELEN_OPT FIRECASE_OPT
+
+parse arg Whatever,Type,Def,MinLen,MaxLen,Filter,Case
+
+	DataRequired=1
+	DO UNTIL (DataRequired==0)
+		IF (Type) THEN	'MSG' Whatever
+		ELSE		'SHOWFILE' Whatever
+		'FIREOPTS' FIRECASE_OPT Case
+		'FIREOPTS' FIREFILT_OPT Filter
+		'FIREOPTS' FIRELEN_OPT MaxLen
+		'DOTIT' MaxLen
+		'FIREPROMPT' Def ; strval=result
+		'ISDROP' ; if(result=1) then break
+ 		if(LENGTH(strval) < MinLen) THEN DO
+			'MSG' "%NL.%BOLD=1.%TC=3.Come on, you can do better than that!%BOLD=0.%TC=7.%NL.%NL."
+			DataRequired=1
+			END
+		ELSE DataRequired=0
+	END
+	return strval
+
+/*
+** PROCEDURE: NUMERIC_PROMPT
+**
+** Used whenever requesting a Integer value from the user.
+**
+** Whatever = Text string or Template FileName
+**     Type = Is the above a string or file?
+**      Def = Default value to be used
+**      Min = Values below this are not allowed
+**      Max = Values above this are not allowed
+**
+** RETURNS: Entered Integer value
+**
+*/
+
+NUMERIC_PROMPT: procedure expose STRING FILE FIREFILT_OPT FIRELEN_OPT NUMBER_FLT
+
+parse arg Whatever,Type,Def,Min,Max
+
+	Width = LENGTH(max)
+	DataRequired=1
+	DO UNTIL (DataRequired==0)
+		IF (Type) THEN	'MSG' Whatever
+		ELSE		'SHOWFILE' Whatever
+		'FIREOPTS' FIREFILT_OPT NUMBER_FLT
+		'FIREOPTS' FIRELEN_OPT Width
+		'DOTIT' Width
+		'FIREPROMPT' Def ; strval=result
+		'ISDROP' ; if(result=1) then break
+		if(strval < Min | strval > Max) THEN DO
+			'MSG' "%NL.%BOLD=1.%TC=3.Value out of range, acceptable range between %TC=7." Min " %BOLD=3.and %TC=7." Max "%BOLD=0.%TC=7.%NL.%NL."
+			DataRequired=1
+			END
+		ELSE DataRequired=0
+	END
+	return strval
+
+/*
+** PROCEDURE: YESNO
+**
+** Used whenever requesting a [Y/n] [y/N] style hotkey input
+**
+** Flag = 1 for Default to YES, 0 for Default to NO on return
+**
+** RETURNS: 1 for YES and 0 for NO
+*/
+
+YESNO: procedure
+
+parse arg Flag
+
+'HOTKEY' ""
+Key=upper(result)
+if(Flag=0) THEN DO
+	if(Key='Y') THEN DO
+		'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+		Flag = 1
+	END
+	ELSE DO
+		'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+		Flag = 0
+	END
+END
+ELSE
+if(Key='N') THEN DO
+	'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+	Flag = 0
+END
+ELSE DO
+	'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+	Flag = 1
+END
+	return Flag
+

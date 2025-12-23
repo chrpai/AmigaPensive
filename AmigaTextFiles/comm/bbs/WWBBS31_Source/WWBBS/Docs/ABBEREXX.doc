@@ -1,0 +1,183 @@
+World Wide BBS 3.1 (22.7.95)
+Copyright © 1995 Arthur Choung
+---
+
+     WWBBS supports all ABBEREXX commands, a few Cnet commands for
+compatibility, and an extra rexx variable.  These can be used in REXX
+files, obviously, and also in MenuPrefs.
+
+     The following is an excerpt from the documentation of TransAmiga by
+Tim Aston:
+
+          ABBEREXX Commands:
+
+               These are the commands that TransAmiga supports as a part of
+               the Amiga Bulletin Board External Rexx  (ABBEREXX) interface
+               command set.  These commands should be used when portability
+               to other ARexx supporting BBS's is desired.
+
+               BBSIDENTIFY ABBEREXX BBS|EMULATION|NAME|SYSOP|TERM|USER -
+               Returns  certain   information,  depending   on  the  <what>
+               parameter.  Possible values are:
+                 ABBEREXX:  which   returns  the  current  version  of  the
+               ABBEREXX implementation (at the moment, '1.0').
+                 BBS: which  returns the  current version  of TransAmiga is
+               being used.
+                 EMULATION: indicates what type of terminal mode the caller
+               has selected.  It returns either 'ASCII' or 'ANSI'.
+                 NAME: returns the name you have set for the BBS.
+               [WWBBS will simply return `World Wide BBS'.]
+                 SYSOP: returns the name of the SysOp of the BBS.
+                 TERM: which returns a string of  the format  <baud> <rows>
+               <columns> <line number>, eg. 2400 80 24 0.
+                 USER, which  returns a  string of  the format "<username>"
+               "<calling from>" <access>, where access is one of:  GUEST (a
+               first  time  caller,  access  0), MEMBER (anyone with access
+               greater than 0 and less than  the privileged  access level),
+               CO-SYSOP  (anyone  with  access  equal  to  or  greater than
+               privileged access, but  less  than  255),  or  SYSOP (access
+               255).   An example  return string could be: "Tim Aston" "St.
+               Catharines, Ont." MEMBER
+
+               eg:  BBSIDENTIFY ABBEREXX
+                    BBSIDENTIFY BBS
+                    BBSIDENTIFY EMULATION
+                    BBSIDENTIFY NAME
+                    BBSIDENTIFY SYSOP
+                    BBSIDENTIFY TERM
+                    BBSIDENTIFY USER
+
+               CHECKABORT -
+               Returns 1 if the user has  pressed  one  of  the  abort keys
+               (CTRL-C or the spacebar), otherwise 0.  Takes no parameters.
+
+               CLS -
+               Sends  the  screen  clearing  code.  Takes no parameters and
+               returns nothing.
+
+               GETCHAR -
+               Waits for a single character from the user.   It  returns as
+               soon as it gets something, and does not wait for the user to
+               press RETURN.  It  takes  no  arguments,  and  the character
+               received  will  be  returned,  or '###PANIC' if the user was
+               unexpectedly logged off due to carrier loss, timeout, etc.
+
+               HANGUP -
+               Hangs the  online  caller  up,  and  after  the  ARexx macro
+               terminates, the  logoff procedure  will be initiated.  Note,
+               that if it is a local logon, nothing  actually happens until
+               the ARexx macro terminates.  Takes no parameters and returns
+               nothing.
+
+               IREADY -
+               If there  is any  input waiting  in the  serial buffer, this
+               command returns  1, else  0.   No input is retrieved though.
+               It takes no parameters.
+
+               MAYGETCHAR -
+               Checks if they user has  entered  a  character,  and returns
+               immediately, with  the result  being either the key the user
+               pressed or 'NOCHAR' if a key  was  not  pressed.    Takes no
+               parameters.
+
+               eg:  MAYGETCHAR
+                    cmd=RESULT
+                    if cmd~='NOCHAR' then call do_cmd
+
+               NEWLINE -
+               Sends the newline code (a carriage return followed by a line
+               feed).  Takes no parameters and returns nothing.
+
+               PRINT <string> -
+               Sends the given string with a newline appended.   It returns
+               nothing.
+
+               PROMPT <length> NORMAL|HIDE|YESNO|NOYES "<prompt>" -
+               Prompts the  user to enter text with the given length as the
+               maximum.  Three types of text input are currently supported:
+                 NORMAL: Normal line oriented input
+                 HIDE: As above, but  hid  user  input  behind  dashes (-).
+               Useful for passwords, etc.
+                 YESNO: A Yes or No response, with Yes as the default.
+                 NOYES: A Yes or No response, with No as the defalut.
+               The prompt text must be enclosed in quotes, an din order for
+               the BBS to  "see"  these  quotes,  they  themselves  must be
+               quoted (see examples).
+
+               This  command  returns  the  string  entered in the cases of
+               NORMAL and HIDE types, and either  'Y' or  'N' in  the cases
+               the YESNO and NOYES types.
+
+               eg:  PROMPT 30 'NORMAL' '"Enter your favourite colour: "'
+                    PROMPT 10 'HIDE' '"Where were YOU last night?'"
+                    PROMPT 1 'YESNO' '"Was it good for you?'"
+
+               SEND <string> -
+               Sends the  given string  exactly as  is to the user, with no
+               translation or screening done on the part of TransAmiga.  It
+               returns nothing.
+
+               SENDFILE <filename> -
+               Sends  the  given  text  file  to  the online user, the full
+               pathname must be given.  More? prompts will automatically be
+               displayed  as  usual,  and  all  TransAmiga imbedded control
+               codes are available as usual.  If the current user  has ANSI
+               turned on,  it will first look for <filename>.ANSI, and fall
+               back to the original filename if  that  is  not  found.   It
+               returns nothing.
+               [WWBBS will first search for `<filename>.<node>' and then
+               for `<filename>'.]
+
+               eg: SENDFILE 'BBS:Text/Title'
+
+               SETNODELOCATION <where> -
+               This allows  you to  change the string that indicates what a
+               user is doing that is displayed  with the  List Online Users
+               command, or the TrBLAD programme.  [WWBBS ignores this
+               command because the location is always automatically set
+               according to the menu location.]
+
+               eg:  SETNODELOCATION 'Playing "Kill the Capitalists"'
+
+               SYSOPLOG <string> -
+               Creates a  log entry  with the  given string.   The date and
+               time will  automatically  be  added  infront.    It  will be
+               appended to TransAmiga's log file.  It returns nothing.
+               [WWBBS will add to the log file according to the name of the
+               menu option, because WWBBS supports multiple logs under
+               different names.]
+
+               eg:  SYSOPLOG 'Lost all his/her money at poker'
+
+
+          ABBEREXX Variables:
+
+               Part of  the ABBEREXX  standard is  the maintenance of three
+               ARexx  variables.    These  are:  CARRIER,   TIMEONLINE  and
+               TIMELEFT.  CARRIER, as explained above, indicates whether or
+               not there is a user online line, it contains the  value 1 if
+               a  user  is  online,  0  otherwise.  TIMEONLINE and TIMELEFT
+               indicate, in minute, how much time the user has spent online
+               today  and   how  much   time  he/she  has  left  for  today
+               respectively.
+
+               eg:  PRINT 'You've used' TIMEONLINE 'minutes today'
+                    QUERY 'How do you feel about that?'
+                    answer=RESULT
+
+                    if CARRIER=0 then do
+                         SYSOPLOG 'Carrier Drop!'
+                         exit 10
+                    end
+                    if timeleft<=0 then do
+                         SYSOPLOG 'No more time!'
+                         exit 10
+                    end
+
+               WWBBS also supports an additional variable called LOCAL.  If
+               the current user is logged on locally, then this variable is
+               set to 1, and is otherwise 0 (for remote users).
+
+               Note that these variables are available only after the first
+               command is sent to WWBBS (an ABBEREXX command for example).
+

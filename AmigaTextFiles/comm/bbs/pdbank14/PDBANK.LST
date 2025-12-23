@@ -1,0 +1,1999 @@
+'
+MODE 1
+DIM hold$(20)
+DIM ansi$(10)
+' rem the next line when compiling the final door !!!
+' test%=1
+'
+cr$=CHR$(13)+CHR$(10)
+de$=CHR$(8)+" "+CHR$(8)
+esc$=CHR$(27)
+screenclr$=cr$+cr$+CHR$(12)
+'
+IF (test%=1) AND (NOT EXIST("Ram:Userdata"))
+  ' setup dummy names, etc
+  rtime$="300"
+  uname$="PETER DEANE"
+  id$="1"
+  lev$="1"
+  bd$="2400"
+  ring$="0"
+  ansi%=1
+  path$="BBS:Doorfiles1/Door211/"
+ELSE
+  IF EXIST("ram:doordata")
+    OPEN "I",#2,"RAM:USERDATA"
+    LINE INPUT #2,rtime$
+    LINE INPUT #2,uname$
+    LINE INPUT #2,id$
+    LINE INPUT #2,lev$
+    LINE INPUT #2,bd$
+    LINE INPUT #2,ring$
+    LINE INPUT #2,path$
+    CLOSE #2
+  ELSE
+    '
+    ' THIS door WON'T work without doordata!!
+    END
+    '
+  ENDIF
+ENDIF
+'
+' Investigate our working environment from the config file...
+'
+IF EXIST("S:Metro.cfg")
+  config$="S:Metro.cfg"
+ELSE IF EXIST("BBS:Metro.cfg")
+  config$="BBS:Metro.cfg"
+ELSE IF EXIST("Metro.cfg")
+  config$="Metro.cfg"
+ELSE
+  config$="XXX"
+ENDIF
+'
+' Defaults
+'
+bbsname$="The OzMetro BBS"
+sfd$="BBS:"
+sysopname$="The Sysop"
+winw$="640"
+winh$="200"
+'
+IF config$<>"XXX"
+  '
+  OPEN "I",#2,config$,128
+  DO WHILE (NOT EOF(#2))
+    LINE INPUT #2,xx$
+    xx$=TRIM$(xx$)
+    xxu$=UPPER$(xx$)
+    '
+    IF xxu$="" OR LEFT$(xxu$,1)=";"
+      ' Do nothing
+    ELSE IF LEFT$(xxu$,7)="BBSNAME"
+      xx$=MID$(xx$,8,255)
+      xx$=TRIM$(xx$)
+      bbsname$=xx$
+    ELSE IF LEFT$(xxu$,9)="SYSOPNAME"
+      xx$=MID$(xx$,10,255)
+      xx$=TRIM$(xx$)
+      sysopname$=xx$
+    ELSE IF LEFT$(xxu$,11)="WINDOWWIDTH"
+      xx$=MID$(xx$,12,255)
+      xx$=TRIM$(xx$)
+      winw$=xx$
+    ELSE IF LEFT$(xxu$,12)="WINDOWHEIGHT"
+      xx$=MID$(xx$,13,255)
+      xx$=TRIM$(xx$)
+      winh$=xx$
+    ENDIF
+    '
+  LOOP UNTIL EOF(#2)
+  CLOSE #2
+ENDIF
+'
+' integer conversion for system variables
+'
+tpc%=VAL(rtime$)
+id%=VAL(id$)
+lev%=VAL(lev$)
+ring%=VAL(ring$)
+bd%=VAL(bd$)
+timeon%=CINT(TIMER/200)
+'
+sw%=VAL(winw$)
+sh%=VAL(winh$)
+sx%=0
+sy%=0
+ww%=sw%
+wh%=sh%-12
+wx%=0
+wy%=11
+'
+'
+OPENS 1,sx%,sy%,sw%,sh%,3,32768
+IF ring%=1
+  BACKS 1
+  OPENW #1,wx%,wy%,ww%,wh%,0,2304,1
+ELSE
+  OPENW #1,wx%,wy%,ww%,wh%,0,2304,1
+  ~ActivateWindow(WINDOW(1))
+ENDIF
+'
+' Hack these settings if you like: format &Hxxx
+' the xxx is the HEX value of the RGB register
+'
+SETCOLOR 0,&H141
+SETCOLOR 1,&HD62
+SETCOLOR 2,&H2D2
+SETCOLOR 3,&HCB2
+SETCOLOR 4,&H56C
+SETCOLOR 5,&HB6B
+SETCOLOR 6,&H5DC
+SETCOLOR 7,&HFEF
+'
+title$="Time Bank  ID: "+id$+" ("+uname$+") Lev: "+lev$+" Baud: "
+IF ring%=0
+  title$=title$+"Local Login"
+ELSE
+  title$=title$+bd$
+ENDIF
+TITLEW #1,"",title$
+TITLES #1,title$
+'
+' modem need not be opened if it's a local login!
+' then you can test em standalone with the BBS running, among other things...
+'
+IF ring%<>0
+  GOSUB modem.o
+ENDIF
+'
+' Figure out the page pause setting!
+'
+flnm$=sfd$+"BBSFILES/userlog"
+IF EXIST(flnm$)
+  OPEN "R",#2,flnm$,125
+  FIELD #2,25 AS un$,10 AS pa$,1 AS le$,25 AS fr$,12 AS ph$,10 AS dl$,6 AS lm$,6 AS lf$,10 AS ind$,3 AS tc$,3 AS td$,1 AS sw$,1 AS pr$,1 AS mo$,5 AS cn$,4 AS dm1$,2 AS dm2$
+  GET #2,id%
+  page%=VAL(dm2$)
+  CLOSE #2
+ELSE
+  page%=21
+ENDIF
+IF page%>5
+  scrnht%=page%-1
+ELSE
+  scrnht%=22
+ENDIF
+IF ring%=0
+  scrnht%=(wh%/8)-4
+ENDIF
+'
+' ======================================================================
+'
+' We're in, hit em hard and good!
+'
+' reset terminal
+o$=esc$+"[0;40;37m"+CHR$(12)
+GOSUB 2
+o$=cr$+cr$+"           Metro Time Bank"
+GOSUB 2
+o$=cr$+cr$+"               (c) PFD"
+GOSUB 2
+o$=cr$+cr$+"             Version 1.4"
+GOSUB 2
+o$=cr$+cr$+"              25-Nov-94"+cr$
+GOSUB 2
+GOSUB setansi
+'
+' ======================================================================
+'
+' Fix up the accounts files, and config
+'
+GOSUB dateconv
+IF NOT EXIST(path$+"Accounts")
+  ' this is for the very first time -  start afresh
+  ' a bit of code here, but saves the sysops work.
+  ' make up a dummy random file with the sysopname
+  '
+  OPEN "R",#2,path$+"Accounts",59
+  FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+  LSET acname$=sysopname$
+  LSET acbal$="0"
+  LSET acdate$="Never"
+  LSET acdep$="0"
+  LSET acwith$="0"
+  LSET actran$="0"
+  PUT #2,1
+  CLOSE #2
+ENDIF
+PAUSE 3
+'
+' search through file to get their details
+'
+o$=cr$+cr$+"Checking your account..."
+GOSUB 2
+'
+' Check to see if they are banned!
+banned!=FALSE
+'
+IF EXIST(path$+"PDBank.banned")
+  OPEN "I",#2,path$+"PDBank.banned",1024
+  DO
+    LINE INPUT #2,check$
+    IF uname$=UPPER$(TRIM$(check$))
+      banned!=TRUE
+    ENDIF
+    EXIT IF banned!=TRUE
+  LOOP UNTIL EOF(#2)
+  CLOSE #2
+ENDIF
+'
+IF banned!=TRUE
+  '
+  o$=cr$+cr$+"You have been BANNED from the use"+cr$
+  GOSUB 2
+  o$="of the Time Bank!!!"+cr$
+  GOSUB 2
+  o$=cr$+"Contact your sysop for more information."
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+  GOTO bye
+ENDIF
+'
+OPEN "R",#2,path$+"Accounts",59
+FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+'
+' how many people do we have records for?
+'
+users%=(LOF(#2)/59)
+'
+' Hmm, that easy, eh?
+'
+k%=0
+foundit%=0
+'
+WHILE k%<users%
+  INC k%
+  IF (k% MOD 10)=0
+    o$="."
+    GOSUB 2
+  ENDIF
+  GET #2,k%
+  check$=TRIM$(acname$)
+  IF INSTR(check$,uname$)>0
+    foundit%=1
+    balance%=VAL(acbal$)
+    lastdate$=acdate$
+    lastdep%=VAL(acdep$)
+    lastwith%=VAL(acwith$)
+    lasttran%=VAL(actran$)
+    acnumber%=k%
+  ENDIF
+  '
+  EXIT IF foundit%=1
+  '
+  ' /\ So it's kludgy, but we stop wasting time, and avoid 2 matches!!
+WEND
+'
+IF foundit%<>1
+  o$=cr$+cr$+"You don't have an account with us at the moment!"
+  GOSUB 2
+  o$=cr$+cr$+"Would you like to open one (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF in$="NO" OR car%>0
+    GOTO bye
+  ENDIF
+  users%=users%+1
+  acnumber%=users%
+  o$=cr$+cr$+"No worries! Your account number is "+STR$(acnumber%)+"."
+  GOSUB 2
+  LSET acname$=uname$
+  LSET acbal$="0"
+  LSET acdate$=pd.date$
+  LSET acdep$="0"
+  LSET acwith$="0"
+  LSET actran$="0"
+  PUT #2,users%
+  balance%=0
+  lastdep%=0
+  lastwith%=0
+  lasttran%=0
+  lastdate$="Never"
+  GOSUB press
+  GOSUB 1
+  IF car%>0
+    GOTO bye
+  ENDIF
+ENDIF
+'
+CLOSE #2
+'
+' Get the config
+'
+OPEN "I",#2,path$+"pdbank.config",50
+LINE INPUT #2,bankname$
+LINE INPUT #2,temp$
+maxdeposit%=VAL(temp$)
+LINE INPUT #2,temp$
+maxwithdrawal%=VAL(temp$)
+LINE INPUT #2,temp$
+maxtransfer%=VAL(temp$)
+CLOSE #2
+'
+' initialisation
+'
+GOSUB dateconv
+lastdate$=TRIM$(lastdate$)
+IF lastdate$=pd.date$
+  ' that is, they have already been in the door today
+  ' isn't it good how time NEVER goes backward, and if the
+  ' last date isn't the same as today's it must have been a
+  ' PREVIOUS visit!!
+  '
+  deposits%=lastdep%
+  withdrawals%=lastwith%
+  transfers%=lasttran%
+ELSE
+  deposits%=0
+  withdrawals%=0
+  transfers%=0
+ENDIF
+depsnow%=0
+withsnow%=0
+' /\ nothing to do with SNOW - deposits/withdrawals NOW!
+'
+winnings%=0
+'
+' ======================================================================
+'
+' Check for messages for them
+'
+cfile$=path$+uname$+".msg"
+IF EXIST(cfile$)
+  o$=cr$+cr$
+  GOSUB 2
+  '
+  file$=cfile$
+  GOSUB seq.o
+  GOSUB press
+  GOSUB 1
+  IF car%>0
+    GOTO bye
+  ENDIF
+  '
+  KILL cfile$
+ENDIF
+'
+' ======================================================================
+main:
+' ======================================================================
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+GOSUB printmenu
+GOSUB tchk
+IF cmd%=1
+  cmd%=0
+ELSE
+  o$=cr$+cr$+ansi$(2)+"("+ansi$(3)+STR$(rtime%)+" min"+ansi$(2)+")"+ansi$(5)+" Enter Transaction: "
+  in%=0
+  il%=1
+  GOSUB 1
+ENDIF
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+' ======================================================================
+IF in$="Q"
+  GOTO bye
+ENDIF
+'
+' ======================================================================
+IF in$="R"
+  ' re-configure details
+  o$=CHR$(12)
+  GOSUB 2
+  GOSUB setansi
+  IF car%>0
+    GOTO bye
+  ENDIF
+  GOSUB setpagepause
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="D"
+  ' Deposit Time
+  GOSUB deposit
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="W"
+  ' Withdraw time
+  GOSUB withdraw
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="T"
+  ' Transfer time
+  GOSUB transfer
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="M" AND lev%=9
+  GOSUB sysop
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="H"
+  GOSUB printdocs
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="L"
+  GOSUB listaccounts
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+IF in$="G"
+  GOSUB gamble
+  IF car%>0
+    GOTO bye
+  ENDIF
+  in$=""
+ENDIF
+'
+' ======================================================================
+' final check before looping.
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+in$=""
+GOTO main
+' ======================================================================
+'
+bye:
+cs$="The Metro Time Bank was written by Peter Deane."
+GOSUB center
+o$=screenclr$+cr$+ansi$(6)+lcs$+cr$
+GOSUB 2
+cs$="Brought to you on "+bbsname$
+GOSUB center
+o$=cr$+cr$+ansi$(2)+lcs$
+GOSUB 2
+cs$="by "+sysopname$
+GOSUB center
+o$=cr$+cr$+ansi$(5)+lcs$
+GOSUB 2
+cs$="See you next time."
+GOSUB center
+o$=cr$+cr$+ansi$(3)+lcs$+cr$
+GOSUB 2
+IF EXIST("ram:userdata")
+  KILL "RAM:USERDATA"
+ENDIF
+PAUSE 25
+CLOSES 1
+GOSUB modem.c
+CLEAR
+END
+'
+' *******************************************
+PROCEDURE deposit
+  ' *****************************************
+  '
+  depositentrance:
+  o$=CHR$(12)
+  GOSUB 2
+  o$=ansi$(5)+"       Deposit Time"+cr$+"       ~~~~~~~~~~~~"+cr$+cr$
+  GOSUB 2
+  availtime%=rtime%-5
+  IF availtime%>(maxdeposit%-deposits%)
+    availtime%=(maxdeposit%-deposits%)
+  ENDIF
+  IF availtime%<1
+    availtime%=0
+  ENDIF
+  o$=ansi$(6)+"You can deposit up to "+ansi$(1)+STR$(availtime%)+ansi$(6)+" minutes."
+  GOSUB 2
+  IF availtime%<1
+    GOSUB press
+    GOSUB 1
+    GOTO depositexit
+  ENDIF
+  o$=cr$+cr$+ansi$(3)+"Minutes to deposit? "+ansi$(2)
+  in%=4
+  il%=3
+  GOSUB 1
+  IF car%>0
+    GOTO depositexit
+  ENDIF
+  temp%=VAL(in$)
+  IF temp%>availtime%
+    GOTO depositentrance
+  ELSE IF temp%<1
+    GOTO depositexit
+  ENDIF
+  timechange%=-(temp%)
+  GOSUB adjusttime
+  deposits%=deposits%+temp%
+  depsnow%=depsnow%+temp%
+  balance%=balance%+temp%
+  GOSUB adjustaccounts
+  '
+  depositexit:
+RETURN
+'
+'
+' *******************************************
+PROCEDURE withdraw
+  ' *****************************************
+  '
+  withdrawentrance:
+  o$=CHR$(12)
+  GOSUB 2
+  o$=ansi$(5)+"       Withdraw Time"+cr$+"       ~~~~~~~~~~~~~"+cr$+cr$
+  GOSUB 2
+  availtime%=balance%
+  IF balance%>maxwithdrawal%-withdrawals%
+    availtime%=maxwithdrawal%-withdrawals%
+  ENDIF
+  IF availtime%>balance%
+    availtime%=balance%
+  ENDIF
+  ' \/ needed as a failsafe... hmmm probably not - but better be sure they
+  ' can get out of this loop
+  IF availtime%<1
+    availtime%=0
+  ENDIF
+  o$=ansi$(6)+"You can withdraw up to "+ansi$(1)+STR$(availtime%)+ansi$(6)+" minutes."
+  GOSUB 2
+  IF availtime%<1
+    GOSUB press
+    GOSUB 1
+    GOTO withdrawexit
+  ENDIF
+  o$=cr$+cr$+ansi$(3)+"Minutes to withdraw? "+ansi$(1)
+  in%=4
+  il%=3
+  GOSUB 1
+  IF car%>0
+    GOTO withdrawexit
+  ENDIF
+  temp%=VAL(in$)
+  IF temp%>availtime%
+    GOTO withdrawentrance
+  ELSE IF temp%<1
+    GOTO withdrawexit
+  ENDIF
+  timechange%=(temp%)
+  GOSUB adjusttime
+  withdrawals%=withdrawals%+temp%
+  withsnow%=withsnow%+temp%
+  balance%=balance%-temp%
+  GOSUB adjustaccounts
+  '
+  withdrawexit:
+  ' /\ bit of a tautology, eh? :-)
+  '
+RETURN
+'
+'
+' *******************************************
+PROCEDURE transfer
+  ' *****************************************
+  '
+  transferentrance:
+  o$=cr$+cr$+CHR$(12)
+  GOSUB 2
+  o$=ansi$(5)+"       Transfer Time"+cr$+"       ~~~~~~~~~~~~~"
+  GOSUB 2
+  availtime%=balance%
+  IF availtime%>maxtransfer%-transfers%
+    availtime%=maxtransfer%-transfers%
+  ENDIF
+  IF availtime%<1
+    availtime%=0
+  ENDIF
+  o$=cr$+cr$+ansi$(6)+"You can transfer up to "+ansi$(1)+STR$(availtime%)+ansi$(6)+" minutes."
+  GOSUB 2
+  IF availtime%<1
+    GOSUB press
+    GOSUB 1
+    GOTO transferexit
+  ENDIF
+  o$=cr$+cr$+ansi$(2)+"You may enter a full or PART name."
+  GOSUB 2
+  o$=cr$+cr$+ansi$(3)+"Transfer to which user? "+ansi$(1)
+  in%=2
+  il%=25
+  GOSUB 1
+  IF car%>0
+    GOTO transferexit
+  ENDIF
+  transto$=in$
+  transname$=""
+  OPEN "R",#2,path$+"Accounts",59
+  FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+  FOR k%=1 TO users%
+    GET #2,k%
+    match2$=TRIM$(acname$)
+    IF INSTR(match2$,transto$)>0
+      transname$=TRIM$(acname$)
+      transnumber%=k%
+      k%=users%+50
+    ENDIF
+  NEXT k%
+  CLOSE #2
+  IF transname$=""
+    o$=cr$+cr$+ansi$(6)+"Sorry, that user has no account here!"+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO transferexit
+  ENDIF
+  '
+  o$=ansi$(2)+cr$+cr$+"Transfer time to "+ansi$(1)+transname$+ansi$(2)+" (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF car%>0
+    GOTO transferexit
+  ENDIF
+  '
+  IF in$="NO"
+    o$=cr$+cr$+ansi$(6)+"Okay, transfer aborted."+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO transferexit
+  ENDIF
+  '
+  o$=ansi$(3)+cr$+cr$+"Time to transfer: "+ansi$(5)
+  in%=4
+  il%=6
+  GOSUB 1
+  IF car%>0
+    GOTO transferexit
+  ENDIF
+  temp%=VAL(in$)
+  '
+  IF temp%>availtime%
+    o$=cr$+cr$+ansi$(6)+"You only have "+STR$(availtime%)+" minutes to transfer!"+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO transferentrance
+  ELSE IF temp%<1
+    o$=cr$+cr$+ansi$(6)+"Okay, transfer aborted."+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO transferexit
+  ENDIF
+  '
+  ' Fix up the online user's balance
+  '
+  transfers%=transfers%+temp%
+  balance%=balance%-temp%
+  GOSUB adjustaccounts
+  '
+  ' Fix up the recipient's stuff
+  '
+  OPEN "R",#2,path$+"Accounts",59
+  FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+  GET #2,transnumber%
+  newbal$=STR$(VAL(acbal$)+temp%)
+  LSET acbal$=newbal$
+  PUT #2,transnumber%
+  CLOSE #2
+  '
+  ' write message
+  '
+  GOSUB tchk
+  cfile$=path$+transname$+".msg"
+  IF EXIST(cfile$)
+    OPEN "A",#2,cfile$,1024
+  ELSE
+    OPEN "O",#2,cfile$,1024
+  ENDIF
+  PRINT #2,""
+  PRINT #2,"----------------------------------------"
+  PRINT #2,uname$;" transferred ";temp%;" mins to"
+  PRINT #2,"your account at ";time1$
+  PRINT #2,"----------------------------------------"
+  CLOSE #2
+  '
+  o$=cr$+ansi$(5)+cr$+transname$+" has been notified of"
+  GOSUB 2
+  o$=cr$+"your transfer of "+STR$(temp%)+" minutes."
+  GOSUB 2
+  '
+  GOSUB press
+  GOSUB 1
+  transferexit:
+RETURN
+'
+'
+' *******************************************
+PROCEDURE printdocs
+  ' *****************************************
+  o$=cr$+cr$+CHR$(12)
+  GOSUB 2
+  file$=path$+"PDBank.help"
+  GOSUB seq.o
+  GOSUB press
+  GOSUB 1
+  '
+RETURN
+'
+'
+' *******************************************
+PROCEDURE listaccounts
+  ' *****************************************
+  accountlistentrance:
+  o$=cr$+cr$+CHR$(12)
+  GOSUB 2
+  o$=ansi$(5)+"       List Accounts"+cr$+"       ~~~~~~~~~~~~~"+cr$+cr$
+  GOSUB 2
+  o$=ansi$(2)+"List ALL accounts (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF car%>0
+    GOTO accountlistexit
+  ENDIF
+  type$=in$
+  IF type$="NO"
+    o$=cr$+ansi$(5)+"Enter search name or part of name."
+    GOSUB 2
+    o$=cr$+"(NO wildcards are needed)"
+    GOSUB 2
+    o$=cr$+cr$+ansi$(6)+"? : "
+    GOSUB 2
+    in%=2
+    il%=25
+    GOSUB 3
+    match$=in$
+  ENDIF
+  lncount%=3
+  modout%=1
+  in%=9
+  il%=1
+  banktotal%=0
+  '
+  o$=cr$+cr$+CHR$(12)
+  GOSUB 2
+  o$=ansi$(1)+"อออออออออออออออออออออออออออออออออออออออออ"+cr$
+  GOSUB 2
+  o$=ansi$(3)+"Name                     Time  Last Visit"+cr$
+  GOSUB 2
+  o$=ansi$(1)+"อออออออออออออออออออออออออออออออออออออออออ"+cr$
+  GOSUB 2
+  OPEN "R",#2,path$+"Accounts",59
+  FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+  FOR k%=1 TO users%
+    GET #2,k%
+    match2$=TRIM$(acname$)
+    banktotal%=banktotal%+VAL(acbal$)
+    o$=ansi$(5)+acname$+ansi$(2)+acbal$+ansi$(6)+acdate$+cr$
+    IF type$="YES"
+      GOSUB 2
+      INC lncount%
+    ELSE
+      IF INSTR(match2$,match$)>0
+        GOSUB 2
+        INC lncount%
+      ENDIF
+    ENDIF
+    '
+    IF contin%=0
+      IF lncount%>=scrnht%
+        GOSUB pagepause
+      ENDIF
+    ENDIF
+    IF car%>0
+      k%=users%+50
+    ENDIF
+    IF abort%=1
+      abort%=0
+      k%=users%+50
+      ' /\ won't let me GOTO out of this - ah well, there's always another way!
+    ENDIF
+    '
+  NEXT k%
+  accountlistexit:
+  '
+  CLOSE #2
+  modout%=0
+  lncount%=0
+  contin%=0
+  o$=ansi$(1)+"อออออออออออออออออออออออออออออออออออออออออ"+cr$
+  GOSUB 2
+  o$=ansi$(3)+STR$(users%)+ansi$(2)+" depositors have "+ansi$(3)+STR$(banktotal%)+ansi$(2)+" minutes on call"+cr$
+  GOSUB 2
+  o$=ansi$(1)+"อออออออออออออออออออออออออออออออออออออออออ"
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+RETURN
+'
+'
+' *******************************************
+PROCEDURE gamble
+  ' *****************************************
+  o$=cr$+cr$+CHR$(12)
+  GOSUB 2
+  o$=ansi$(5)+"       Gamble Time"+cr$+"       ~~~~~~~~~~~"+cr$+cr$
+  GOSUB 2
+  '
+  gambleentrance:
+  extra%=0
+  availtime%=rtime%-5
+  RANDOMIZE TIMER
+  o$=ansi$(2)+"Winnings now   : "+ansi$(5)+STR$(winnings%)
+  GOSUB 2
+  o$=cr$+ansi$(2)+"Available loot : "+ansi$(5)+STR$(availtime%)
+  GOSUB 2
+  IF availtime%<2
+    o$=cr$+cr$+ansi$(6)+"Sorry, you haven't got enough time!!"+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO gambleexit
+  ENDIF
+  o$=cr$+cr$+ansi$(3)+"Your Bet       : "+ansi$(1)
+  in%=4
+  il%=6
+  GOSUB 1
+  IF car%>0
+    GOTO gambleexit
+  ENDIF
+  bet%=VAL(in$)
+  IF bet%<2
+    o$=cr$+cr$+ansi$(6)+"Okay, chicken. The bet's off!"+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO gambleexit
+  ELSE IF bet%>availtime%
+    o$=cr$+cr$+ansi$(6)+"You ain't got that much, sucker!"+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    IF car%>0
+      GOTO gambleexit
+    ENDIF
+    o$=cr$+cr$+CHR$(12)
+    GOSUB 2
+    GOTO gambleentrance
+  ELSE IF (bet% MOD 2)<>0
+    bet%=bet%-1
+    o$=cr$+cr$+ansi$(6)+"Your bet must be a EVEN amount."
+    GOSUB 2
+    o$=cr$+"Bet has been adjusted to "+ansi$(1)+STR$(bet%)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    IF car%>0
+      GOTO gambleexit
+    ENDIF
+  ENDIF
+  '
+  roll1%=RANDOM(6)+1
+  roll2%=RANDOM(6)+1
+  roll3%=RANDOM(6)+1
+  roll4%=RANDOM(6)+1
+  '
+  o$=cr$+cr$+ansi$(7)+"Rolling First Dice...."
+  GOSUB 2
+  DELAY 1
+  o$=cr$+cr$+ansi$(5)+"Your Roll : "+ansi$(6)+STR$(roll1%)
+  GOSUB 2
+  DELAY 1
+  o$=cr$+ansi$(5)+"House Roll: "+ansi$(6)+STR$(roll2%)
+  GOSUB 2
+  DELAY 1
+  IF roll1%>roll2%
+    o$=cr$+cr$+ansi$(2)+"You won "+STR$(bet%/2)+" minutes"+cr$
+    extra%=extra%+(bet%/2)
+  ELSE
+    o$=cr$+cr$+ansi$(1)+"You lost "+STR$(bet%/2)+" minutes"+cr$
+    extra%=extra%-(bet%/2)
+  ENDIF
+  GOSUB 2
+  '
+  DELAY 1
+  o$=cr$+ansi$(7)+"Rolling Second Dice...."
+  GOSUB 2
+  DELAY 1
+  o$=cr$+cr$+ansi$(5)+"Your Roll : "+ansi$(6)+STR$(roll3%)
+  GOSUB 2
+  DELAY 1
+  o$=cr$+ansi$(5)+"House Roll: "+ansi$(6)+STR$(roll4%)
+  GOSUB 2
+  DELAY 1
+  IF roll3%>roll4%
+    o$=cr$+cr$+ansi$(2)+"You won "+STR$(bet%/2)+" minutes"+cr$
+    extra%=extra%+(bet%/2)
+  ELSE
+    o$=cr$+cr$+ansi$(1)+"You lost "+STR$(bet%/2)+" minutes"+cr$
+    extra%=extra%-(bet%/2)
+  ENDIF
+  GOSUB 2
+  winnings%=winnings%+extra%
+  GOSUB tchk
+  IF extra%<>0
+    timechange%=extra%
+    GOSUB adjusttime
+  ENDIF
+  o$=cr$+cr$+ansi$(3)+"Another attempt (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF in$="NO" OR car%>0
+    GOTO gambleexit
+  ELSE
+    o$=cr$+cr$+CHR$(12)
+    GOSUB 2
+    GOTO gambleentrance
+  ENDIF
+  '
+  gambleexit:
+RETURN
+'
+' *******************************************
+PROCEDURE printmenu
+  ' *****************************************
+  in%=9
+  il%=1
+  o$=cr$+cr$+CHR$(12)
+  GOSUB 2
+  modout%=1
+  o$=ansi$(1)+"           Metro TimeBank System"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(7)+"     Copyright (c) 1991 by Peter Deane"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(5)+" อออออออออออออออออออออออออออออออออออออออออ"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(7)+" Statement For: "+ansi$(1)+uname$
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(5)+" ฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤ"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(3)+"    Time Balance:        "+ansi$(2)+STR$(balance%)
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(5)+" ฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤ"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(6)+"    Time Deposited:      "+ansi$(2)+STR$(deposits%)
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(6)+"    Time Withdrawn:      "+ansi$(1)+STR$(withdrawals%)
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(6)+"    Time Transferred:    "+ansi$(3)+STR$(transfers%)
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(5)+" อออออออออออออออออออออออออออออออออออออออออ"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(7)+" Bank Limits For: "+ansi$(1)+bankname$
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(5)+" ฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤ"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(3)+"    Max Time Deposit:    "+ansi$(2)+STR$(maxdeposit%)
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(3)+"    Max Time Withdrawal: "+ansi$(1)+STR$(maxwithdrawal%)
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(3)+"    Max Time Transfer:   "+ansi$(3)+STR$(maxtransfer%)
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(5)+" อออออออออออออออออออออออออออออออออออออออออ"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(1)+"   <"+ansi$(7)+"H"+ansi$(1)+">"+ansi$(2)+"elp               "+ansi$(1)+"<"+ansi$(7)+"D"+ansi$(1)+">"+ansi$(2)+"eposit Time"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(1)+"   <"+ansi$(7)+"W"+ansi$(1)+">"+ansi$(2)+"ithdraw Time      "+ansi$(1)+"<"+ansi$(7)+"T"+ansi$(1)+">"+ansi$(2)+"ransfer Time"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(1)+"   <"+ansi$(7)+"L"+ansi$(1)+">"+ansi$(2)+"ist Accounts      "+ansi$(1)+"<"+ansi$(7)+"G"+ansi$(1)+">"+ansi$(2)+"amble"
+  GOSUB 2
+  IF cmd%=1 OR car%>0
+    GOTO pmenexit
+  ENDIF
+  '
+  o$=cr$+ansi$(1)+"   <"+ansi$(7)+"Q"+ansi$(1)+">"+ansi$(2)+"uit               "+ansi$(1)+"<"+ansi$(7)+"R"+ansi$(1)+">"+ansi$(2)+"econfigure"
+  GOSUB 2
+  pmenexit:
+  modout%=0
+  '
+RETURN
+'
+'
+' *******************************************
+PROCEDURE adjusttime
+  ' *****************************************
+  ' this works!!! (with a change or two in Metro!!)
+  '
+  IF test%<>1
+    OPEN "I",#2,"ram:doordata",1028
+    k%=0
+    WHILE NOT EOF(#2)
+      INC k%
+      LINE INPUT #2,hold$(k%)
+    WEND
+    CLOSE #2
+    dd.lines%=k%
+    secs%=VAL(hold$(5))
+    secs%=secs%+(60*timechange%)
+    hold$(5)=STR$(secs%)
+    OPEN "O",#2,"ram:DOORDATA",1028
+    FOR k%=1 TO dd.lines%
+      PRINT #2,hold$(k%)
+    NEXT k%
+    CLOSE #2
+  ENDIF
+  '
+RETURN
+'
+' *******************************************
+PROCEDURE adjustaccounts
+  ' *****************************************
+  GOSUB dateconv
+  ' /\ hmm - probably is the same day, but what the hell!
+  OPEN "R",#2,path$+"Accounts",59
+  FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+  '
+  LSET acname$=uname$
+  LSET acbal$=STR$(balance%)
+  LSET acdate$=pd.date$
+  LSET acdep$=STR$(deposits%)
+  LSET acwith$=STR$(withdrawals%)
+  LSET actran$=STR$(transfers%)
+  '
+  PUT #2,acnumber%
+  CLOSE #2
+  '
+RETURN
+' *******************************************
+PROCEDURE sysop
+  ' *****************************************
+  '
+  maintloop:
+  IF lev%<>9
+    GOTO sysopexit
+  ENDIF
+  '
+  o$=cr$+CHR$(12)+ansi$(5)+"Sysop Maintenance Menu"+cr$+"~~~~~~~~~~~~~~~~~~~~~~"+cr$
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"D"+ansi$(1)+"]"+ansi$(3)+"elete A User"
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"E"+ansi$(1)+"]"+ansi$(2)+"dit A User"
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"A"+ansi$(1)+"]"+ansi$(5)+"dd A User"
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"L"+ansi$(1)+"]"+ansi$(7)+"ist Accounts"
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"Q"+ansi$(1)+"]"+ansi$(4)+"uit"
+  GOSUB 2
+  '
+  o$=cr$+cr$+ansi$(6)+"Enter Command: "+ansi$(7)
+  in%=0
+  il%=1
+  GOSUB 1
+  cmd$=in$
+  '
+  IF car%>0 OR cmd$="Q"
+    GOTO sysopexit
+  ENDIF
+  '
+  IF cmd$="L"
+    GOSUB listaccounts
+    IF car%>0
+      GOTO sysopexit
+    ELSE
+      cmd$=""
+      GOTO maintloop
+    ENDIF
+  ENDIF
+  '
+  IF cmd$="A"
+    '
+    cmd$=""
+    o$=cr$+cr$+ansi$(3)+"Enter User's Name to Add: "+ansi$(1)
+    in%=2
+    il%=25
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    addname$=in$
+    '
+    o$=cr$+cr$+ansi$(1)+"Add "+ansi$(3)+addname$+ansi$(1)+" (y/N)? "+ansi$(7)
+    in%=3
+    il%=1
+    yes%=0
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ELSE IF in$="NO"
+      o$=cr$+cr$+ansi$(6)+"Okay. Addition aborted!"+cr$
+      GOSUB 2
+      GOSUB press
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ELSE
+        GOTO maintloop
+      ENDIF
+    ENDIF
+    '
+    GOSUB dateconv
+    OPEN "R",#2,path$+"Accounts",59
+    FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+    INC users%
+    LSET acname$=addname$
+    LSET acbal$="0"
+    LSET acdate$=pd.date$
+    LSET acdep$="0"
+    LSET acwith$="0"
+    LSET actran$="0"
+    PUT #2,users%
+    CLOSE #2
+    o$=cr$+cr$+ansi$(3)+addname$+ansi$(5)+" has an account. You can now [E]dit it if you like."
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ELSE
+      GOTO maintloop
+    ENDIF
+  ENDIF
+  '
+  o$=cr$+cr$+ansi$(3)+"Enter User Name: "+ansi$(1)
+  in%=2
+  il%=25
+  GOSUB 1
+  IF car%>0
+    GOTO sysopexit
+  ENDIF
+  IF in$=""
+    GOTO maintloop
+  ENDIF
+  match1$=in$
+  edname$=""
+  OPEN "R",#2,path$+"Accounts",59
+  FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+  FOR k%=1 TO users%
+    GET #2,k%
+    match2$=TRIM$(acname$)
+    IF match2$=match1$
+      edname$=TRIM$(acname$)
+      ednumber%=k%
+      k%=users%+50
+    ENDIF
+  NEXT k%
+  CLOSE #2
+  IF edname$=""
+    o$=cr$+ansi$(6)+"No Such Account!"
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    GOTO maintloop
+  ENDIF
+  '
+  IF cmd$="D" AND lev%=9
+    o$=cr$+cr$+ansi$(1)+"Delete "+ansi$(3)+edname$+ansi$(1)+" (y/N)? "+ansi$(7)
+    in%=3
+    il%=1
+    yes%=0
+    GOSUB 1
+    '
+    IF edname$=uname$
+      o$=cr$+cr$+ansi$(6)+"You can't delete YOURSELF, numbskull!!"
+      GOSUB 2
+      GOSUB press
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      GOTO maintloop
+    ENDIF
+    '
+    IF car%>0
+      GOTO sysopexit
+    ELSE IF in$="NO"
+      GOTO maintloop
+    ENDIF
+    '
+    o$=cr$+ansi$(2)+"Last Chance !!!"
+    GOSUB 2
+    o$=cr$+cr$+ansi$(1)+"Delete "+ansi$(3)+edname$+ansi$(1)+" (y/N)? "+ansi$(7)
+    in%=3
+    il%=1
+    yes%=0
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ELSE IF in$="NO"
+      GOTO maintloop
+    ENDIF
+    '
+    OPEN "R",#2,path$+"Accounts",59
+    FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+    OPEN "O",#3,path$+"Accounts.temp",4096
+    FOR k%=1 TO users%
+      GET #2,k%
+      IF k%<>ednumber%
+        PRINT #3,acname$
+        PRINT #3,acbal$
+        PRINT #3,acdate$
+        PRINT #3,acdep$
+        PRINT #3,acwith$
+        PRINT #3,actran$
+      ENDIF
+    NEXT k%
+    CLOSE #2
+    CLOSE #3
+    DEC users%
+    KILL path$+"accounts"
+    OPEN "R",#2,path$+"Accounts",59
+    FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+    OPEN "I",#3,path$+"Accounts.temp",4096
+    FOR k%=1 TO users%
+      LINE INPUT #3,acname$
+      LINE INPUT #3,acbal$
+      LINE INPUT #3,acdate$
+      LINE INPUT #3,acdep$
+      LINE INPUT #3,acwith$
+      LINE INPUT #3,actran$
+      PUT #2,k%
+    NEXT k%
+    CLOSE #3
+    CLOSE #2
+    KILL path$+"Accounts.temp"
+    '
+    IF EXIST(path$+edname$+".msg")
+      KILL path$+edname$+".msg"
+    ENDIF
+    '
+    o$=cr$+cr$+ansi$(6)+edname$+ansi$(1)+" Deleted!!!"+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+  ENDIF
+  '
+  IF cmd$="E" AND lev%=9
+    OPEN "R",#2,path$+"Accounts",59
+    FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+    GET #2,ednumber%
+    edname$=TRIM$(acname$)
+    edbal$=TRIM$(acbal$)
+    eddate$=TRIM$(acdate$)
+    eddep$=TRIM$(acdep$)
+    edwith$=TRIM$(acwith$)
+    edtran$=TRIM$(actran$)
+    CLOSE #2
+    '
+    edloop:
+    o$=cr$+CHR$(12)
+    GOSUB 2
+    o$=cr$+ansi$(5)+"(1) "+ansi$(2)+"User Name         : "+ansi$(1)+edname$
+    GOSUB 2
+    o$=cr$+ansi$(5)+"(2) "+ansi$(2)+"Time Balance      : "+ansi$(1)+edbal$
+    GOSUB 2
+    o$=cr$+ansi$(5)+"(3) "+ansi$(2)+"Last Date         : "+ansi$(1)+eddate$
+    GOSUB 2
+    o$=cr$+ansi$(5)+"(4) "+ansi$(2)+"Deposits Today    : "+ansi$(1)+eddep$
+    GOSUB 2
+    o$=cr$+ansi$(5)+"(5) "+ansi$(2)+"Withdrawals Today : "+ansi$(1)+edwith$
+    GOSUB 2
+    o$=cr$+ansi$(5)+"(6) "+ansi$(2)+"Transfers Today   : "+ansi$(1)+edtran$
+    GOSUB 2
+    o$=cr$+cr$+ansi$(3)+"Enter number to edit (<rtn> saves changes): "
+    in%=0
+    il%=1
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    edbit%=VAL(in$)
+    IF edbit%=0 OR edbit%>6
+      OPEN "R",#2,path$+"Accounts",59
+      FIELD #2,25 AS acname$,6 AS acbal$,10 AS acdate$,6 AS acdep$,6 AS acwith$,6 AS actran$
+      LSET acname$=edname$
+      LSET acbal$=edbal$
+      LSET acdate$=eddate$
+      LSET acdep$=eddep$
+      LSET acwith$=edwith$
+      LSET actran$=edtran$
+      PUT #2,ednumber%
+      CLOSE #2
+      GOTO maintloop
+    ELSE IF edbit%=1
+      o$=cr$+cr$+ansi$(6)+"Enter New Name : "+ansi$(7)
+      in%=2
+      il%=25
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      IF in$<>""
+        edname$=in$
+      ENDIF
+      GOTO edloop
+    ELSE IF edbit%=2
+      o$=cr$+cr$+ansi$(6)+"Enter New Balance : "+ansi$(7)
+      in%=4
+      il%=6
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      IF in$<>""
+        edbal$=in$
+      ENDIF
+    ELSE IF edbit%=3
+      o$=cr$+cr$+ansi$(6)+"Enter Last Date : "+ansi$(7)
+      in%=1
+      il%=9
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      IF in$<>""
+        eddate$=in$
+      ENDIF
+    ELSE IF edbit%=4
+      o$=cr$+cr$+ansi$(6)+"Enter Today's Deposits : "+ansi$(7)
+      in%=4
+      il%=6
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      IF in$<>""
+        eddep$=in$
+      ENDIF
+    ELSE IF edbit%=5
+      o$=cr$+cr$+ansi$(6)+"Enter Today's Withdrawals : "+ansi$(7)
+      in%=4
+      il%=6
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      IF in$<>""
+        edwith$=in$
+      ENDIF
+    ELSE IF edbit%=6
+      o$=cr$+cr$+ansi$(6)+"Enter Today's Transfers : "+ansi$(7)
+      in%=4
+      il%=6
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      IF in$<>""
+        edtran$=in$
+      ENDIF
+    ENDIF
+    IF car%=0
+      GOTO edloop
+    ENDIF
+    '
+    cmd$=""
+  ENDIF
+  '
+  IF car%=0
+    GOTO maintloop
+  ENDIF
+  '
+  sysopexit:
+RETURN
+'
+'
+'
+'
+PROCEDURE 1
+  GOSUB 2
+  GOSUB 3
+RETURN
+'
+'
+PROCEDURE 2
+  '
+  IF ring%=1
+    PRINT #1,o$;
+  ENDIF
+  IF icon%=0
+    PRINT o$;
+  ENDIF
+  IF (modout%=1)
+    GOSUB 3
+  ENDIF
+  2.1:
+  o$=""
+RETURN
+'
+'
+PROCEDURE 3
+  idle%=CINT(TIMER/200)
+  key$=""
+  in$=""
+  in1$=""
+  a%=0
+  keyy%=0
+  b%=0
+  car%=0
+  cmd%=0
+  DO
+    IF MOUSEK=3
+      ALERT 0,"Really kill the Door?",2,"Yes|No",pdq%
+      IF pdq%=1
+        END
+      ENDIF
+      ' reset idle timer after returning from Alert
+      idle%=CINT(TIMER/200)
+    ENDIF
+    IF ring%=1
+      cd%=0
+      cd%=LPEEK(12570624)
+      cd%=cd% AND 8192
+      IF cd%<>0
+        car%=1
+        keyy%=1
+      ENDIF
+    ENDIF
+    key$=INKEY$
+    IF key$<>""
+      GOTO mod.in1
+    ENDIF
+    '
+    IF ring%=1
+      IF LOC(#1)>0
+        in1$=INPUT$(1,#1)
+        key$=in1$
+        in1$=""
+      ENDIF
+    ENDIF
+    '
+    mod.in1:
+    IF key$=CHR$(19)
+      pau$=""
+      hold%=CINT(TIMER/200)
+      WHILE CINT(TIMER/200)<hold%+45
+        pau$=INKEY$
+        IF pau$<>""
+          key$=""
+          pau$=""
+          GOTO mod.in1.1
+        ENDIF
+        IF ring%=1
+          IF LOC(#1)>0
+            key$=""
+            pau$=""
+            GOTO mod.in1.1
+          ENDIF
+        ENDIF
+      WEND
+      key$=""
+      pau$=""
+      GOTO mod.in1.1
+    ENDIF
+    '
+    mod.in1.1:
+    IF modout%=1 AND key$=""
+      cmd%=0
+      keyy%=1
+    ENDIF
+    IF modout%=1 AND key$=CHR$(32)
+      abort%=1
+      GOTO 2.1
+    ENDIF
+    IF modout%=1 AND key$<>CHR$(32)
+      keyy%=1
+    ENDIF
+    IF key$=""
+      GOTO mod.in2
+    ENDIF
+    mod.in1.5:
+    a%=ASC(key$)
+    b%=LEN(in$)
+    IF a%=13
+      GOTO mod.in1.6
+    ENDIF
+    IF (a%=8 OR a%=127) AND LEN(in$)>=1
+      in$=LEFT$(in$,b%-1)
+      DEC b%
+      o$=de$
+      GOSUB 2
+    ENDIF
+    IF b%=il%
+      GOTO mod.in2
+    ENDIF
+    IF in%=0
+      IF a%>31 AND a%<126
+        IF cmd%=1
+          cmdmenu%=0
+          dismsg%=0
+        ENDIF
+        key$=UPPER$(key$)
+        o$=key$+cr$
+        GOSUB 2
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in1.6:
+    IF in%=1 AND a%>31 AND a%<126
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=2 AND a%>31 AND a%<126
+      key$=UPPER$(key$)
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=3
+      IF a%=13 AND yes%=1
+        o$="YES"
+        GOSUB 2
+        in$="YES"
+        keyy%=1
+      ENDIF
+      IF a%=13 AND yes%=0
+        o$="NO"
+        GOSUB 2
+        in$="NO"
+        keyy%=1
+      ENDIF
+      IF a%=89 OR a%=121
+        o$="YES"+cr$
+        GOSUB 2
+        in$="YES"
+        keyy%=1
+      ENDIF
+      IF a%=78 OR a%=110
+        o$="NO"+cr$
+        GOSUB 2
+        in$="NO"
+        keyy%=1
+      ENDIF
+    ENDIF
+    IF in%=4 AND a%>47 AND a%<58
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=5
+      IF (a%=8 OR a%=127) AND LEN(ln$(ln%))>=1
+        ln$(ln%)=LEFT$(ln$(ln%),LEN(ln$(ln%))-1)
+        o$=de$
+        GOSUB 2
+        keyy%=1
+      ENDIF
+      IF a%=13
+        in$=key$
+        keyy%=1
+      ENDIF
+      IF a%=9
+        o$="     "
+        GOSUB 2
+        in$="     "
+        keyy%=1
+      ENDIF
+      IF a%>26 AND a%<127
+        o$=key$
+        GOSUB 2
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    '
+    ' new one: no echoing of input at all! Good for More (Y/n)? stuff, etc...
+    '
+    IF in%=9
+      IF a%>31 AND a%<126
+        key$=UPPER$(key$)
+        in$=key$
+        keyy%=1
+        cmd%=1
+      ENDIF
+    ENDIF
+    '
+    mod.in1.7:
+    IF a%=13
+      IF (in%<>5 AND in%<>7 AND in%<>9)
+        o$=cr$
+        GOSUB 2
+        keyy%=1
+      ENDIF
+      IF in%=9
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in2:
+    IF CINT(TIMER/200)>idle%+300
+      IF lev%>7 AND CINT(TIMER/200)>idle%+600
+        car%=1
+        keyy%=1
+      ENDIF
+      IF lev%<8
+        car%=1
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in2.0:
+  LOOP UNTIL keyy%=1
+  '
+  mod.in2.1:
+RETURN
+'
+'
+PROCEDURE seq.o
+  '
+  IF NOT EXIST(file$)
+    o$=cr$+cr$+ansi$(1)+"File Not Found..."+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO seq.o9
+  ENDIF
+  lncount%=0
+  modout%=1
+  in%=9
+  il%=1
+  OPEN "I",#2,file$,4096
+  '
+  DO UNTIL EOF(#2)
+    LINE INPUT #2,text$
+    INC lncount%
+    o$=text$+cr$
+    GOSUB 2
+    IF contin%=0
+      IF lncount%>=scrnht%
+        GOSUB pagepause
+      ENDIF
+    ENDIF
+    IF car%>0
+      GOTO seq.o9
+    ENDIF
+    IF abort%=1
+      CLOSE #2
+      abort%=0
+      GOTO seq.o9
+    ENDIF
+  LOOP
+  CLOSE #2
+  seq.o9:
+  modout%=0
+  contin%=0
+  o$=ansi$(0)
+  GOSUB 2
+RETURN
+'
+'
+PROCEDURE center
+  lcs%=LEN(cs$)
+  lcs$=SPACE$(38-lcs%/2)+cs$
+RETURN
+'
+PROCEDURE press
+  o$=cr$+cr$+ansi$(0)+"[Any_Key] "
+  in%=0
+  il%=1
+RETURN
+'
+PROCEDURE correct
+  ' not sure if this is used??
+  o$=cr$+cr$+"Is This Correct? (Y/n) "
+  yes%=1
+  in%=3
+  il%=1
+RETURN
+'
+PROCEDURE pagepause
+  modout%=0
+  o$="More (Y/n/c)?"
+  GOSUB 2
+  in%=9
+  il%=1
+  GOSUB 3
+  IF car%>0
+    GOTO pagepause9
+  ENDIF
+  o$=de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$
+  GOSUB 2
+  IF in$=" " OR in$="N"
+    abort%=1
+  ENDIF
+  IF in$="C"
+    contin%=1
+  ENDIF
+  lncount%=0
+  modout%=1
+  pagepause9:
+RETURN
+'
+PROCEDURE time1
+  t.t%=FRE(0)
+  time1$=TIME$
+  t.t%=VAL(LEFT$(time1$,2))
+  IF t.t%>11
+    a$=" PM"
+  ELSE
+    a$=" AM"
+  ENDIF
+  IF t.t%=0
+    t.t%=12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%<10
+    time1$=RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ELSE IF t.t%>21
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%>12
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ENDIF
+  GOSUB dateconv
+  pd.time$=time1$+a$
+  time1$=pd.time$+"  "+pd.date$
+RETURN
+'
+PROCEDURE tchk
+  GOSUB time1
+  timenow%=CINT(TIMER/200)
+  ctime%=(timenow%-timeon%)
+  ctime%=CINT(ctime%/60)
+  rtime%=tpc%-ctime%-depsnow%+withsnow%+winnings%
+  IF rtime%<=0
+    o$=cr$+cr$+"Sorry, Time Limit Exceeded!"
+    GOSUB 2
+    DELAY 2
+    car%=2
+  ENDIF
+RETURN
+'
+PROCEDURE modem.c
+  CLOSE #1
+RETURN
+'
+PROCEDURE modem.o
+  OPEN "",#1,"COM1:"+bd$+",n,8,1",4096
+  DELAY 1
+RETURN
+'
+'         ************
+PROCEDURE setpagepause
+  '       ************
+  '
+  oldscrnht%=scrnht%
+  o$=cr$+cr$+ansi$(2)+"Current Screen Height: "+ansi$(5)+STR$(oldscrnht%)
+  GOSUB 2
+  o$=cr$+cr$+ansi$(3)+"Change Screen Height (y/N)? "
+  in%=3
+  il%=1
+  yes%=0
+  GOSUB 1
+  IF in$="NO" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  o$=cr$+ansi$(2)+"New Screen Height: "+ansi$(1)
+  in%=4
+  il%=2
+  GOSUB 1
+  IF in$="" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=VAL(in$)
+  o$=cr$+ansi$(3)+"Are "+ansi$(1)+STR$(scrnht%)+ansi$(3)+" lines okay (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF in$="YES" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=oldscrnht%
+  o$=cr$+cr$+ansi$(1)+"No Change"
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+  '
+  pauseexit:
+RETURN
+'
+'         *******
+PROCEDURE setansi
+  '       *******
+  '
+  o$=cr$+cr$+"Do you want ANSI (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF car%>0
+    GOTO setansi9
+  ENDIF
+  '
+  IF in$="YES"
+    ansi%=1
+    ansi$(1)=esc$+"[31m"
+    ansi$(2)=esc$+"[32m"
+    ansi$(3)=esc$+"[33m"
+    ansi$(4)=esc$+"[34m"
+    ansi$(5)=esc$+"[35m"
+    ansi$(6)=esc$+"[36m"
+    ansi$(7)=esc$+"[37m"
+    ansi$(8)=esc$+"[1m"
+    ansi$(9)=esc$+"[3m"
+    ansi$(10)=esc$+"[4m"
+  ELSE
+    ansi%=0
+    FOR kk%=1 TO 10
+      ansi$(kk%)=""
+    NEXT kk%
+  ENDIF
+  setansi9:
+  ' regardless of setting, this is needed for safety!
+  ansi$(0)=esc$+"[0;37;40m"
+  o$=ansi$(0)
+  GOSUB 2
+RETURN
+'
+'
+'   **************
+PROCEDURE dateconv
+  ' **************
+  ' converts date to Fido style DD-Mmm-YY
+  ' string to use is pd.date$
+  pd.temp$=DATE$
+  pd.date1$=LEFT$(pd.temp$,2)
+  pd.date2$=MID$(pd.temp$,4,2)
+  pd.date3$=RIGHT$(pd.temp$,2)
+  pd.month%=VAL(pd.date1$)
+  pd.month$="Xxx"
+  IF pd.month%=1 THEN
+    pd.month$="Jan"
+  ELSE IF pd.month%=2
+    pd.month$="Feb"
+  ELSE IF pd.month%=3
+    pd.month$="Mar"
+  ELSE IF pd.month%=4
+    pd.month$="Apr"
+  ELSE IF pd.month%=5
+    pd.month$="May"
+  ELSE IF pd.month%=6
+    pd.month$="Jun"
+  ELSE IF pd.month%=7
+    pd.month$="Jul"
+  ELSE IF pd.month%=8
+    pd.month$="Aug"
+  ELSE IF pd.month%=9
+    pd.month$="Sep"
+  ELSE IF pd.month%=10
+    pd.month$="Oct"
+  ELSE IF pd.month%=11
+    pd.month$="Nov"
+  ELSE IF pd.month%=12
+    pd.month$="Dec"
+  ENDIF
+  pd.date$=pd.date2$+"-"+pd.month$+"-"+pd.date3$
+RETURN
+'

@@ -1,0 +1,816 @@
+;
+; Install-Script for FileCheck and FileCheckPrefs
+; $VER: Install-FileCheck 0.42  (08.07.98)
+;
+
+; - at first check the installer-version ------------------------------------
+
+(if (< (/ @installer-version 65536) 43)
+	(
+		(abort
+		"For this Install-Script Installer V43 or higher is needed! "
+		"You only have V"
+		(/ @installer-version 65536)
+		". Please get a new version and then you can install this "
+		"program.")
+	)
+)
+
+; = files and pathes ========================================================
+
+(set #src_main		"mbeigene/Cannon/FileChecker")
+(set #src_main_config	(tackon #src_main "Config"))
+(set #src_main_define	(tackon #src_main "Defines"))
+(set #src_main_language	(tackon #src_main "Languages"))
+(set #src_batch		"mbbatch")
+(set #src_prefs		"Prefs")
+(set #src_catalog	"Catalogs")
+(set #src_doc		"Docs")
+(set #src_doc_data	"Docs/Data")
+(set #src_font		"Fonts")
+(set #src_command	"C")
+(set #src_comtab	"ComTab")
+
+(set #temp		"T:")
+(set #dst_main		"mbeigene:Cannon/FileChecker")
+(set #dst_main_config	(tackon #dst_main "Config"))
+(set #dst_main_define	(tackon #dst_main "Defines"))
+(set #dst_main_language	(tackon #dst_main "Languages"))
+(set #dst_batch		"mbbatch:")
+(set #dst_prefs		"AMMS:Prefs")
+(set #dst_catalog	"LOCALE:Catalogs")
+(set #dst_doc		"AMMS:Dok")
+(set #dst_doc_data	"AMMS:Dok/Data")
+(set #dst_font		"FONTS:")
+(set #dst_command	"C:")
+(set #dst_comtab	(tackon #temp "ComTab"))
+(set #dst_ammsbat	(tackon #dst_comtab "fc_batinst"))
+
+(set #backup		"AMMS:FileCheck_BACKUP")
+(set #backup_save	"AMMS:FileCheck_BACKUP_SAVE")
+(set #backup_first	"AMMS:FileCheck_BACKUP_FIRST")
+(set #backup_main	(tackon #backup "mbeigene/Cannon/FileChecker"))
+(set #backup_batch	(tackon #backup "mbbatch"))
+(set #backup_prefs	(tackon #backup "Prefs"))
+(set #backup_catalog	(tackon #backup "Catalogs"))
+(set #backup_doc	(tackon #backup "Docs"))
+(set #backup_doc_data	(tackon #backup "Docs/Data"))
+
+(set #src_name_prefs	"FileCheck")
+(set #src_name_catalog	"FileCheckPrefs.catalog")
+(set #src_name_upload	"Upload")
+
+(set #symbol_english	"E")
+(set #symbol_german	"D")
+
+(set #mode_update	0)
+(set #mode_new		1)
+(set #mode_restore	2)
+(set #mode_uninstall	3)
+
+(set #cl_check_amms	"Status COMMAND mbserver")
+
+(set #cl_inst_amms1	"SConnect ")
+(set #cl_inst_amms2	" DTESPEED 57600 REALSPEED 57600 USER ")
+(set #cl_inst_amms3
+(cat			" BATCH "
+(cat			#dst_ammsbat
+(cat			" NOCDCHECK WAIT"))))
+
+(set #name_amms		"BBS_0:AMMS/mbSTART")
+(set #name_port		"BAT0")
+(set #name_user		"Sysop")
+
+; = german strings ==========================================================
+
+(set #symbol_language	#symbol_german)
+
+(message		"\nWillkommen zum Installationsprogramm von FileCheck "
+			"4.00 - dem ultimativen FileChecker für AMMS.\n\n"
+			"Diese Version enthält jetzt auch einen Voreinsteller "
+			"mit MUI-Interface, sowie einige andere nette "
+			"Verbesserungen."
+(all))
+
+(set #str_whattodo	"Was soll getan werden?")
+(set #ask_update	"FileCheck updaten (Version 4.00 oder höher)")
+(set #ask_newinstall	"FileCheck neu installieren")
+(set #ask_restore	"Letzte Änderungen rückgängig machen")
+(set #ask_uninstall	"FileCheck deinstallieren")
+
+(set #ask_rep_oldbatch	"Originale FileBatches wieder herstellen?")
+(set #ask_rep_newbatch	"Letzte FileBatches wieder herstellen?")
+(set #ask_deldir1	"Verzeichnis \"")
+(set #ask_deldir2	"\" löschen?")
+
+(set #str_info_backup
+(cat			"Es wird jetzt eine Sicherheitskopie von FileCheck "
+(cat			"und einigen anderen Dateien angelegt. Die "
+(cat			"Installation kann dann wieder rückgängig gemacht "
+(cat			"werden.")))))
+
+(set #str_info_restore
+(cat			"Es wird versucht die letzte Installation rückgängig "
+(cat			"zu machen. Es werden die Dateien und Einstellungen "
+(cat			"vor der letzten Installation wieder hergestellt."))))
+
+(set #str_info_uninst1
+(cat			"FileCheck wird jetzt deinstalliert. Es wird versucht "
+(cat			"die alten Einstellungen wiederherzustellen.")))
+
+(set #str_info_uninst2
+(cat			"Um FileCheck vollständig zu deinstallieren, müssen "
+(cat			"noch die Batchbefehle ausgetragen werden. Bitte "
+(cat			"folgendes in die AMMS-Befehlsebene eingeben: \n\n"
+(cat			"DELETE COMMAND FCHECK KILL\n"
+(cat			"DELETE COMMAND FCHECK LIST\n"
+(cat			"DELETE COMMAND FCHECK SET\n"
+(cat			"DELETE COMMAND FCHECK SHOW"))))))))
+
+(set #str_info_noupdate
+(cat			"Es ist nicht möglich FileCheck zu updaten, da "
+(cat			"FileCheck noch nicht installiert wurde oder die "
+(cat			"vorhandene Version zu alt ist.\n\n"
+(cat			"Wenn trotzdem nur einige Teile installiert werden "
+(cat			"sollen, dann die Installation bitte im Modus für "
+(cat			"Experten starten.")))))))
+
+(set #str_inst_main	"Die Programmdateien von FileCheck werden kopiert.")
+(set #str_inst_config	"Die Konfigurationsdateien von FileCheck werden kopiert.")
+(set #str_inst_define	"Die Definitionsdateien von FileCheck werden kopiert.")
+(set #str_inst_language	"Die Sprachdateien von FileCheck werden kopiert.")
+(set #str_inst_batch	"Die Beispielbatches werden kopiert.")
+(set #str_inst_prefs	"FileCheckPrefs wird kopiert.")
+(set #str_inst_catalog	"Die Sprachkataloge für FileCheckPrefs werden kopiert.")
+(set #str_inst_doc	"Die Dokumentationen werden kopiert. (Sprachsuffix wird entfernt)")
+(set #str_inst_doc_data	"Beispielbilder für de Dokumentationen werden kopiert.")
+(set #str_inst_font     "Die für die Dokumentationen nötigen Schriftarten werden kopiert.")
+(set #str_inst_command	"Zusätzliche (nötige) Befehle werden kopiert.")
+(set #str_inst_amms	"Bitte warten...\nDie Batchbefehle werden installiert.")
+
+(set #ask_inst_amms
+(cat			"Sollen die Batchbefehle zum einstellen der Sprache "
+(cat			"unter AMMS jetzt installiert werden?")))
+
+(set #str_run_amms	"AMMS wird gestartet ... Bitte warten")
+
+(set #ask_amms_start
+(cat			"Um AMMS starten zu können, muß erst seine Position "
+(cat			"gefunden werden.\nDazu bitte das AMMS-Verzeichnis "
+(cat			"mit der dazugehörigen Start-Batch eingeben."))))
+(set #ask_port
+(cat			"Bitte den Namen des Ports angeben von welchen die "
+(cat			"Befehle installiert werden sollen.")))
+(set #ask_user
+(cat			"Bitte den Namen des Users angeben über welchen die "
+(cat			"Befehle installiert werden sollen.\n"
+(cat			"Es ist unbedingt Sysop-Level erforderlich!"))))
+
+(set #err_inst_amms	"Es ist ein Fehler beim installieren der Batchbefehle aufgetreten.")
+
+; = english strings =========================================================
+
+; not used yet
+; (if (= @language "english") (
+
+; (set #symbol_language	#symbol_english)
+
+; ))
+
+; = additonal files and pathes ==============================================
+
+(set #src_doc_main
+(cat			"FileCheck_"
+(cat			#symbol_language
+(cat			".guide"))))
+
+(set #src_doc_prefs
+(cat			"FileCheckPrefs_"
+(cat			#symbol_language
+(cat			".guide"))))
+
+(set #dst_doc_main	"FileCheck.guide")
+(set #dst_doc_prefs	"FileCheckPrefs.guide")
+
+; ===========================================================================
+
+; - delay xx seconds --------------------------------------------------------
+
+(procedure DELAY #secs
+	(run (cat "Wait " #secs))
+)
+
+; - check if amms has already started ---------------------------------------
+
+(procedure CHECKAMMSUP
+	(= (run #cl_check_amms) 0)
+)
+
+; - get version and check if to old -----------------------------------------
+
+(procedure GETVER
+
+	(set #ver 0)
+	(set #rev 0)
+
+	(if (exists (tackon #dst_main "FileCheck"))
+		(
+			(set #fu_ver (getversion (tackon #dst_main "FileCheck")))
+			(set #ver (/ #fu_ver 65536))
+			(set #rev (- #fu_ver (* #ver 65536)))
+		)		
+	)
+
+	(if (< #ver 4)
+		(
+			(abort #str_info_noupdate)
+		)
+	)
+)
+
+; - backup the last installation --------------------------------------------
+
+(procedure BACKUP #mode
+
+	(message #str_info_backup
+		(all)
+	)
+
+; delete the old backup-dir, copy the current backup-dir to the old
+; backup-dir and create a new-backup-dir
+
+	(delete #backup_save)
+	(rename #backup #backup_save)
+	(makedir #backup)
+
+; copy main-files to the backup-dir
+
+	(makedir #backup_main)
+
+	(if (exists #dst_main)
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source #dst_main)
+			(dest #backup_main)
+			(all)
+		)
+	)
+
+; copy preferences to the backup-dir
+
+	(makedir #backup_prefs)
+
+	(if (exists (tackon #dst_prefs #src_name_prefs))
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source (tackon #dst_prefs #src_name_prefs))
+			(dest #backup_prefs)
+			(pattern "#?")
+			(files)
+			(infos)
+		)
+	)
+
+	(if (exists (cat #dst_prefs ".info"))
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source (cat #dst_prefs ".info"))
+			(dest (tackon #backup_prefs "/"))
+			(pattern "#?")
+			(files)
+		)
+	)
+
+; copy catalogs to the backup-dir
+
+	(makedir (tackon #backup_catalog @language))
+
+	(if (exists (tackon (tackon #dst_catalog @language) #src_name_catalog))
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source (tackon (tackon #dst_catalog @language) #src_name_catalog))
+			(dest (tackon #backup_catalog @language))
+			(pattern "#?")
+			(files)
+		)
+	)
+
+; copy docs to the backup-dir
+
+	(makedir #backup_doc)
+	(makedir #backup_doc_data)
+
+	(if (exists #dst_doc_data)
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source #dst_doc_data)
+			(dest #backup_doc_data)
+			(pattern "#?")
+			(files)
+		)
+	)
+
+	(if (exists (tackon #dst_doc #dst_doc_main))
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source (tackon #dst_doc #dst_doc_main))
+			(dest #backup_doc)
+			(pattern "#?")
+			(files)
+			(infos)
+		)
+	)
+
+	(if (exists (tackon #dst_doc #dst_doc_prefs))
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source (tackon #dst_doc #dst_doc_prefs))
+			(dest #backup_doc)
+			(pattern "#?")
+			(files)
+			(infos)
+		)
+	)
+
+	(if (exists (cat #dst_doc ".info"))
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source (cat #dst_doc ".info"))
+			(dest (tackon #backup_doc "/"))
+			(pattern "#?")
+			(files)
+		)
+	)
+
+; copy batches to the backup-dir
+
+	(makedir (tackon #backup_batch #src_name_upload))
+
+	(if (exists (tackon #dst_batch #src_name_upload))
+		(copyfiles
+			(prompt #str_backup)
+			(help @copyfiles-help)
+			(source (tackon #dst_batch #src_name_upload))
+			(dest (tackon #backup_batch #src_name_upload))
+			(all)
+		)
+	)
+
+	(if (AND (= #mode #mode_new) (NOT (exists #backup_first)))
+		(
+			(copyfiles
+				(prompt #str_backup)
+				(help @copyfiles-help)
+				(source #backup)
+				(dest #backup_first)
+				(all)
+			)
+		)
+	)
+)
+
+; - delete all old files ----------------------------------------------------
+
+(procedure DELETEALL
+
+; delete main-files
+
+	(delete #dst_main
+		(all)
+	)
+
+; delete preferences
+
+	(delete (tackon #dst_prefs #src_name_prefs)
+		(infos)
+	)
+
+; delete catalogs
+
+	(delete (tackon (tackon #dst_catalog @language) #src_name_catalog))
+
+; delete docs
+
+	(delete #dst_doc_data
+		(all)
+	)
+
+	(delete (tackon #dst_doc #dst_doc_main)
+		(infos)
+	)
+
+	(delete (tackon #dst_doc #dst_doc_prefs)
+		(infos)
+	)
+)
+
+; - install filecheck -------------------------------------------------------
+
+(procedure INSTALL
+
+; copy filecheck-mainfiles
+
+	(makedir #dst_main)
+	(copyfiles
+		(prompt #str_inst_main)
+		(help @copyfiles-help)
+		(source #src_main)
+		(dest #dst_main)
+		(pattern "#?")
+		(files)
+		(confirm)
+	)
+
+	(copyfiles
+		(prompt #str_inst_config)
+		(help @copyfiles-help)
+		(source #src_main_config)
+		(dest #dst_main_config)
+		(pattern "#?")
+		(files)
+		(confirm)
+	)
+
+	(copyfiles
+		(prompt #str_inst_define)
+		(help @copyfiles-help)
+		(source #src_main_define)
+		(dest #dst_main_define)
+		(pattern "#?")
+		(files)
+		(confirm)
+	)
+
+	(copyfiles
+		(prompt #str_inst_language)
+		(help @copyfiles-help)
+		(source #src_main_language)
+		(dest #dst_main_language)
+		(pattern "#?")
+		(files)
+		(confirm)
+	)
+
+; copy example-batches for filecheck
+
+	(copyfiles
+		(prompt #str_inst_batch)
+		(help @copyfiles-help)
+		(source #src_batch)
+		(dest #dst_batch)
+		(all)
+		(confirm)
+	)
+
+; copy prefs-programm
+
+	(copyfiles
+		(prompt #str_inst_prefs)
+		(help @copyfiles-help)
+		(source #src_prefs)
+		(dest #dst_prefs)
+		(pattern "#?")
+		(files)
+		(infos)
+		(confirm)
+	)
+
+; copy catalogs for the prefs-programm
+
+	(copyfiles
+		(prompt #str_inst_catalog)
+		(help @copyfiles-help)
+		(source #src_catalog)
+		(dest #dst_catalog)
+		(all)
+		(confirm)
+	)
+
+; copy documentations
+
+	(copyfiles
+		(prompt #str_inst_doc)
+		(help @copyfiles-help)
+		(source (tackon #src_doc #src_doc_main))
+		(dest #dst_doc)
+		(newname #dst_doc_main)
+		(pattern "#?")
+		(files)
+		(infos)
+		(confirm)
+	)
+
+	(copyfiles
+		(prompt #str_inst_doc)
+		(help @copyfiles-help)
+		(source (tackon #src_doc #src_doc_prefs))
+		(dest #dst_doc)
+		(newname #dst_doc_prefs)
+		(pattern "#?")
+		(files)
+		(infos)
+		(confirm)
+	)
+
+	(if (exists #dst_doc)
+		(copyfiles
+			(prompt #str_inst_doc_data)
+			(help @copyfiles-help)
+			(source #src_doc_data)
+			(dest #dst_doc_data)
+			(pattern "#?")
+			(files)
+			(confirm)
+		)
+	)
+
+; copy fonts
+
+	(copyfiles
+		(prompt #str_inst_font)
+		(help @copyfiles-help)
+		(source #src_font)
+		(dest #dst_font)
+		(all)
+		(fonts)
+		(confirm)
+	)
+
+; copy additional commands
+
+	(copyfiles
+		(prompt #str_inst_command)
+		(help @copyfiles-help)
+		(source #src_command)
+		(dest #dst_command)
+		(pattern "#?")
+		(files)
+		(confirm)
+	)
+
+; install the batch-commands
+
+	(set #quest
+		(askbool
+			(prompt #ask_inst_amms)
+			(help @askbool-help)
+		)
+	)
+
+	(if #quest
+		(
+			(set #i 0)
+
+			(if (NOT (CHECKAMMSUP))
+				(
+					(set #name_port
+						(askstring
+							(prompt #ask_amms_start)
+							(help @askstring-help)
+							(default #name_amms)
+						)
+					)
+
+					(working #str_run_amms)
+					(set @execute-dir (pathonly #name_amms))
+					(execute #name_amms)
+
+					(while (AND (NOT (CHECKAMMSUP)) (< #i 30))
+						(DELAY 1)
+						(set #i (+ #i 1))
+					)
+				)
+			)
+
+			(if (CHECKAMMSUP)
+				(
+; copy comtab-files
+
+					(copyfiles
+						(prompt #str_inst_amms)
+						(help @copyfiles-help)
+						(source #src_comtab)
+						(dest #dst_comtab)
+						(pattern "#?")
+						(files)
+					)
+
+; ask for port + username and join the command-line
+
+					(set #name_port
+						(askstring
+							(prompt #ask_port)
+							(help @askstring-help)
+							(default #name_port)
+						)
+					)
+
+					(set #name_user
+						(askstring
+							(prompt #ask_user)
+							(help @askstring-help)
+							(default #name_user)
+						)
+					)
+
+					(working #str_inst_amms)
+
+					(set #cl_inst_amms
+					(cat #cl_inst_amms1
+					(cat #name_port
+					(cat #cl_inst_amms2
+					(cat #name_user
+					(cat #cl_inst_amms3))))))
+
+; install comtab-files and if fail display a error-message
+
+					(if (NOT (= (run #cl_inst_amms) 0))
+						(message #err_inst_amms
+							(all)
+						)
+					)
+
+					(delete #dst_comtab
+						(all)
+					)
+				)
+			)
+		)
+	)
+)
+
+; - update filecheck --------------------------------------------------------
+
+(procedure UPDATE
+
+)
+
+; - restore the last installation -------------------------------------------
+
+(procedure RESTORE
+
+	(message #str_info_restore
+		(all)
+	)
+
+; restore main-files
+
+	(if (exists (tackon #backup #src_main))
+		(copyfiles
+			(prompt #str_restore)
+			(help @copyfiles-help)
+			(source (tackon #backup #src_main))
+			(dest #dst_main)
+			(all)
+			(confirm)
+		)
+	)
+
+; restore preferences
+
+	(if (exists #backup_prefs)
+		(copyfiles
+			(prompt #str_restore)
+			(help @copyfiles-help)
+			(source #backup_prefs)
+			(dest #dst_prefs)
+			(all)
+			(infos)
+			(confirm)
+		)
+	)
+
+; restore catalogs
+
+	(if (exists #backup_catalog)
+		(copyfiles
+			(prompt #str_restore)
+			(help @copyfiles-help)
+			(source #backup_catalog)
+			(dest #dst_catalog)
+			(all)
+			(confirm)
+		)
+	)
+
+; restore docs
+
+	(if (exists #backup_doc)
+		(copyfiles
+			(prompt #str_restore)
+			(help @copyfiles-help)
+			(source #backup_doc)
+			(dest #dst_doc)
+			(all)
+			(infos)
+			(confirm)
+		)
+	)
+
+; replace the batches
+
+	(if (exists (tackon #backup_first #src_batch))
+		(copyfiles
+			(prompt #ask_rep_newbatch)
+			(help @copyfiles-help)
+			(source (tackon #backup #src_batch))
+			(dest #dst_batch)
+			(all)
+			(confirm)
+		)
+	)
+)
+
+; - uninstall filecheck -----------------------------------------------------
+
+(procedure UNINSTALL
+
+	(message #str_info_uninst1
+		(all)
+	)
+
+	(DELETEALL)
+
+; replace the batches
+
+	(if (exists (tackon #backup_first #src_batch))
+		(copyfiles
+			(prompt #ask_rep_oldbatch)
+			(help @copyfiles-help)
+			(source (tackon #backup_first #src_batch))
+			(dest #dst_batch)
+			(all)
+			(confirm)
+		)
+	)
+
+; delete backup dirs
+
+	(if (exists #backup_save)
+		(delete #backup_save
+			(prompt (cat (cat #ask_deldir1 #backup_save) #ask_deldir2))
+			(help @delete-help)
+			(all)
+			(confirm)
+		)
+	)
+
+	(if (exists #backup)
+		(delete #backup
+			(prompt (cat (cat #ask_deldir1 #backup) #ask_deldir2))
+			(help @delete-help)
+			(all)
+			(confirm)
+		)
+	)
+
+	(if (exists #backup_first)
+		(delete #backup_first
+			(prompt (cat (cat #ask_deldir1 #backup_first) #ask_deldir2))
+			(help @delete-help)
+			(all)
+			(confirm)
+		)
+	)
+
+	(message #str_info_uninst2
+		(all)
+	)
+)
+
+; = main script =============================================================
+
+(set #choice
+	(askchoice
+		(prompt #str_whattodo)
+		(help @askchoice-help)
+		(choices #ask_update #ask_newinstall #ask_restore #ask_uninstall)
+		(default 0)
+	)
+)
+
+(select #choice
+	(
+		(GETVER)
+		(BACKUP #choice)
+		(UPDATE)
+	)
+	(
+		(BACKUP #choice)
+		(INSTALL)
+	)
+	(
+		(RESTORE)
+	)
+	(
+		(UNINSTALL)
+	)
+)

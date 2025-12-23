@@ -1,0 +1,181 @@
+@Database Changes_To_V1.05.guide
+
+@Node Main "Changes to HydraBBS between V1.04 and V1.05"
+
+  Changes to HydraBBS between V1.04 and V1.05
+  ===========================================
+
+  Please read *ALL* of this file, or you won't know about some of the great
+  new features of this release.
+
+  Go on, it'll only take you a couple of minutes.
+
+  This document is stored as HBBS:Docs/Misc/Upgrades/Changes_To_V1.05.Guide
+
+
+  Details
+  =======
+
+  Sysop Information     - @{"More..." link SysopInformation}
+
+  Developer Information - N/A
+
+  Files Changed         - @{"More..." link FilesChanged}
+
+@EndNode
+
+@Node SysopInformation "Sysop Information"
+
+  Sysop Information
+  =================
+
+  * FileLister
+
+    Added support for free download comments.
+
+  * MakeFreeDL
+
+    Created this great new door, for automatically making uploaded files
+    free and posting messages.
+
+    See the docs: @{"HBBS:Docs/Doors/MakeFreeDL.Guide" link HBBS:Docs/Doors/MakeFreeDL.Guide/MAIN}
+
+  * FreeDL
+
+    Fixed the LASTONLY mode, i.e. it either wouldn't work at all or
+    wouldn't work if you only had one file tagged, sorry about that..
+
+    @{"Updated Docs" link HBBS:Docs/Doors/FreeDL.Guide/MAIN}
+
+  * NewUser
+
+    FIXED: due to me using %c instead of %s when I was specifiying strings
+    for a sprintf() call the start of the new users data would have been
+    overwritten *randomly* which would cause the account editor to NOT find
+    the new user.
+
+    The door now reports more error messages in the main log file when
+    there is a problem regarding adding of a user.
+
+    Door would never let another door run after it, because it always
+    set DOOR_Continue(FALSE), not it only sets it to false if adding a
+    new user failed (which is what was intended..)
+
+    No longer displays Banner_TOP screen, it does display the following
+    screens though: PreDetails, DetailsDone and Joined
+
+  * AccountEdit
+
+    While building the list of users or while searching for new users
+    it displays the user's handle, and the file offset, just to let you
+    know it's doing something.
+
+    Also, I re-wrote the part where it builds the lists of users so that
+    it opens the file itself and scans the file itself, rather than using
+    the function HBBS_LoadUser().  This meant I could store the offset
+    from the start of the file for each user in the list, which I then
+    used to pass to HBBS_LoadUser() as the file offset, rather than
+    storing the UserID and getting HBBS_LoadUser() it to search for the
+    a user with the same UserID.
+
+    This has basically resulted in a scan of the user data file that is
+    *loads* faster, also, when browing the list of users it's now
+    loads quicker when editing/browing users at the end of the user
+    data file.  Dan dan dah!!
+
+  * HBBSCommon.library
+
+    Added more logging to some internal functions, errors are logged to the
+    main log file.
+
+    Added HBBS_OkToUpload(), to be used by protocol doors to decide whether
+    or not to allow a particular filename to be uploaded (received) to
+    the BBS.  This is so that two users can't upload the same file at the
+    same time, it also checks the playpen directories on other OPEN nodes
+    to see if the file exists there.
+
+    HBBS_FindNode() now supports wildcards (yeah!), this means that
+    you can now use wild cards in the FreeDLList.TXT file.
+
+    HBBS_AppendStrToFile() optimized.
+
+  * Node
+
+    It now deletes all files in the node's "Work" directory when the user logs
+    off and at startup.
+
+  * XPR and HYDRA
+
+    ** IMPORTANT FIX **
+
+    These doors now call HBBS_OkToUpload() (see above) when checking for files
+    to upload.
+
+  * Node, Control and HBBSNode.library
+
+    Recompiled due to structure changes for implementation of HBBS_OkToUpload()
+
+  * ErrorMessage
+
+    Fixed a *very* minor bug if reqtools.library was not available.
+
+  * AddDizToList
+
+    Optimized
+
+    A linefeed was not being added after the sentby.
+
+@EndNode
+
+@Node FilesChanged "Files Changed"
+
+  Files Changed for V1.05
+  =======================
+
+  Core Files
+  ----------
+  HBBS:Control
+  HBBS:Doors/System/Node
+  HBBS:System/Amiga/Libs/HBBSCommon.library
+  HBBS:System/Amiga/Libs/HBBSNode.library
+  HBBS:Doors/System/AddDIZToList/AddDIZToList.HBBS
+  HBBS:Doors/System/ErrorMessage/ErrorMessage
+  HBBS:Doors/System/FileHistory/FileHistory.HBBS
+  HBBS:Doors/System/Hydra/Hydra.HBBS
+  HBBS:Doors/System/NewUser/NewUser.HBBS
+  HBBS:Doors/System/XPR/XPR.HBBS
+  HBBS:Doors/System/FreeDL/FreeDL.HBBS
+  HBBS:Doors/System/MakeFreeDL/MakeFreeDL.HBBS
+  HBBS:Doors/User/AccountEdit/AccountEdit.HBBS
+  HBBS:Doors/User/FileLister/FileLister.HBBS
+
+  Misc Files
+  ----------
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.05.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.05.guide.info
+  HBBS:Storage/Example_Configs/Doors/System/MakeFreeDL/MakeFreeDL.CFG
+  HBBS:Storage/Example_Configs/Doors/System/Adverts/Adverts.CFG
+  HBBS:Docs/Misc/FileListFormat.TXT
+  HBBS:Docs/Doors/Door_Index.guide
+  HBBS:Docs/Doors/FreeDL.guide
+  HBBS:Docs/Doors/MakeFreeDL.guide
+  HBBS:Docs/Doors/MakeFreeDL.guide.info
+  HBBS:HBBS.Guide
+  HBBS:Changes.TXT
+  HBBS:ToDo.TXT
+  HBBS:ReadMe.1st
+  HBBS:ReadMe.1st.info
+
+  Developer Files
+  ---------------
+  HBBS:Developer/Include/HBBS/release.h
+  HBBS:Developer/Include/HBBS/structures.h
+  HBBS:Developer/Include/HBBS/Defines.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_protos.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas_sas.h
+  HBBS:Developer/FD/HBBSCommon_lib.fd
+  HBBS:Developer/Docs/hbbscommon.library.doc
+
+@EndNode
+

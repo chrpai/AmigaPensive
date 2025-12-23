@@ -1,0 +1,745 @@
+
+
+                               The Elite BBS
+
+                               Documentation
+
+                         Copyright 1990 by Nick Smith
+
+        Elite BBS is an online message and file handling system written
+by Nick Smith specially  for  the  Amiga personal computer.
+This manual  describes  the  installation  and  operation  of  the
+software.
+
+        A Bulletin Board System (BBS) is a program that organizes a series
+of notes to make them easier to read.  Elite_BBS is this and much
+more.  Not only are messages  neatly  organized and maintained
+by Elite_BBS,  but people may send private mail and access files for
+transfer and reading.  In  addition,  each  of  these abilities is
+protected with a flexible security.
+
+
+    Features:
+
+    Messages  may be separated  into  an  unlimited  number  of 
+    bases, or "sub-boards" as they are usually called. Each has 
+    it's own  security,  and each  may be  of a different size.
+
+    Files are much  the same as messages, the only limitation 
+    being  the amount  of disk  space  available. You may use 
+    as many subdirectories as you want, and each has it's own 
+    security.  At present Xmodem-Checksum, Xmodem-CRC, Xmodem-1K
+    Ymodem, and Zmodem are supported protocols, and Xmodem 
+    automatically responds to the caller's protocol. ie CRC or
+    checksum.
+
+    Security is flexible and based on the individual account 
+    rather than the entire system. 
+
+    All serial I/O routines have been optimized and are 
+    fully buffered for top speed, this includes protocol 
+    transfers too, where the increases really show.
+
+    Sysop is given as much power as is practical. Increase and 
+    decrease time limits instantly, edit accounts quickly online,
+    force instant logoff, control of I/O streams (serial in/out, 
+    screen & keyboard on/off), send all output to printer 
+    and disk file (singly or simultaneously).
+
+    Elite_BBS was designed with two criterion in mind, speed 
+    and reliability. Using efficient programming techniques has 
+    resulted in both a system unburdened by unrealistic limits 
+    and one ideally suited for a multi-tasking system. The 
+    software was written and tested fully on an Amiga system, 
+    and verified on a fully expanded hardware setup, not ported
+    from some other brand of computer..
+
+    Multi-tasking is not hampered! You can do whatever you 
+    like since Elite BBS runs as a separate process by design, and 
+    follows all programming guidelines; I assume memory is 
+    available for the other tasks, naturally. 
+
+
+                          Hardware Requirements 
+     
+    Amiga Personal Computer: 
+         Memory: 512k (1 megabyte recommended)
+         Disk:   1 disk drive (Hard Drive heavily recommended)
+         Modem:  Hayes compatible
+               (can use locally without modem for testing)
+
+
+                            Hardware Supported 
+     
+    All accelerator boards will improve performance
+    All AmigaDOS compatible hard drives of any capacity 
+    All printers. Used for online "hard copy" as well as 
+         account and system reports.
+
+    PLEASE NOTE: If you have the US Robotics Courier HST (14.4K) modem
+or the Dual Standard, you will need to set the HIGHEST: parameter in
+the S:Elite_System file as 9600.  The BBS will use 19,200 bps when
+a connection is made which the modem responds with CONNECT 9600.
+The ATS27=128 will need to be in the OPEN: string for the HST to
+have 19,200 bps available.  You should also have the connect strings
+with /ARQ at the end of them so that the BBS can make a connect with
+a modem that has MNP protocol.  Like this: CONNECT 2400/ARQ in the
+s:Elite_System file.
+
+If you have a 2400 baud modem or less, you will need to change the
+HIGHEST: parameter in the s:Elite_System file to be the highest baud
+rate your modem can handle.  If you don't ensure this matches your
+modem's highest baud rate, the BBS will not work.    
+
+FOR ALL MODEMS: You must ensure that CARRIER doesn't drop when DTR
+drops on the modem.  For the HST modem, this means dip switch number
+1 must be in the DOWN position.
+    
+    Here are the dip switch settings for the HST (or Dual Standard) 
+    to work with this BBS:
+
+    1 DOWN      DTR
+    2 UP        Verbal (word) results
+    3 DOWN      Results enabled
+    4 UP        Keyboard commands displayed
+    5 DOWN      Auto answer suppressed
+    6 UP        Courier sends CD signale when it connects with another modem
+    7 UP        Result codes displayed in both Originate and Answer modes
+    8 DOWN      Recognition enabled (Smart Mode)
+    9 UP        Modem hangs up, returns to Command mode, sends NO CARRIER
+   10 UP        Load from NRAM
+ Quad UP        Normal assignments
+ 
+ 
+ 
+    For the SmarTeam 2400 baud modem, you will need to take the front cover
+    off the modem and set the dip switches this way:
+
+    1 DOWN      Data Terminal Ready signal continuously provided.
+    2 UP        Carrier Detect NOT continously provided.
+    3 DOWN      Data Set Ready siginal continuously provided.
+    4 DOWN      Reserved for future use.
+    5 DOWN      SmarTEAM will not answer incoming calls automatically.
+    6 DOWN      Reserved for future use.
+    7 UP        Send modem responses as English words.
+    8 UP        Echo to your computer or terminal each character typed.
+    9 DOWN      SmarTEAM Modem sends responses to your commands.
+   10 UP        SmarTEAM modem is connected to an RJ11 (single-line) jack.
+ 
+ 
+ 
+    For the Avatex 2400 baud modem and other Hayes compatible 2400 baud
+    modems, you will need to enter the following commands in a terminal
+    program:
+ 
+    at&f&w
+    at&c1&w
+ 
+                         Configuring Your System 
+     
+         Run the CLI command: STACK 10000 (20000 to be safe)
+
+    Defining your system  means  filling  in  a set of text files 
+with the required information. These files are in s: directory. You can
+use any standard text editor for this purpose: Ed, MicroEmacs, vi; 
+all  come  to  mind.  The  files  involved  in  this  are  called: 
+Elite_System, Elite_Boards, Elite_Text,  and Elite_Transfers. To make 
+things easier for you,  I  also  include heavily  annotated  examples
+to  show you how it's done.
+     
+     
+    Elite_System 
+Contains all the pertinent  information  on the system itself, the 
+default securities for  accounts,  modem  control strings, and the 
+mail definition. 
+     
+    Elite_Boards 
+Location, size, and security of the message bases on your system. 
+     
+    Elite_Text 
+Each text file can be read by anyone who has 
+the appropriate security.  Each  may  be  located anywhere, on any 
+disk as long as it is described here. 
+     
+    Elite_Transfers
+As with  the  message  bases, each transfer area defines a separate 
+subdirectory. Other than that,  your  only worry is  what security 
+each section deserves to worry about. 
+ 
+     
+                          A WALK-THROUGH 
+     
+    First you should go through the example files and set them up
+the way you want your BBS.
+     
+    After you finish filling out  the  Elite_xxxx  files, copy them 
+into the S: directory of your WorkBench disk.  AmigaDOS uses the S: 
+directory for its startup  files,  and  so does Elite_BBS. I do this 
+for two reasons: one being that  no  matter what directory Elite_BBS 
+is run from it can always  find  its  configuration,  the   second 
+being that Elite_BBS can be run  from  anywhere, there is no need to 
+change directories or have a 'root directory' to deal with.
+All sections must be in a SEPARATE directory.
+     
+    Next  you  must  create   all   the   directories  that  your 
+configuration requires. The only thing to worry about here is that 
+you get all the names spelled  correctly, and  that  each  section
+must be in a SEPARATE directory.
+     
+    The next to last step in  the  walk-through,  making  all the 
+data files required. Run  the  "Creator" utility  and  watch it go 
+through its gyrations. If there will  be any problems running what 
+you wrote into the configuration files Creator will abort and let 
+you know where it couldn't  continue.  Using this information will 
+allow you to rewrite your  configuration  and  try again. If there 
+are any errors that you can't  figure  out  pay close attention to 
+the amount of disk space left. Elite_BBS  creates all the data files 
+needed in their full size;  you  can  never  run out of disk space 
+(file libraries notwithstanding)  with  Elite_BBS, and Creator will 
+not let you use a configuration  too  large for the amount of disk 
+storage available. 
+
+    After all is written and data files 
+created "Run Elite_BBS". You'll  see  the windows open, and you'll 
+see it waiting for a caller. By pressing F1, you're given the sysop
+functions.  You activate the account editor by pressing 1 and ENTER.
+Edit  account #1, which is the 
+Sysop by default, and set all  information.  You'll need to make a 
+name, password, and change the security level to 255. Don't forget
+to validate yourself as sysop!
+
+    Good luck!
+
+                            SECURITY NUMBERS
+
+
+        Security is from level 0 to 255.  There are several
+    default values, all of which mean very special things.
+
+    =    0 Guest. A first time caller, 0 is the suggested value.
+
+    =    1 New. Just after Joining the board, 1 is suggested.
+
+    =    2 Valid. Set when you edit accounts and Validate.
+
+               The above are set from your Elite_System file, and
+               represent standard values as defined in the system.
+               It is entirely possible for you to give New
+               accounts full powers and give everyone
+               Sysop status immediately..
+
+    >= 100 BoardOp. Can do the message base functions <D>elete,
+           <+>Lock, and <->Unlock to the bases they can visit as
+           determined by Sec_Board. A sort of controlled power most
+           useful for delegating maintenance.
+
+    >= 150 LibOp. Allows the transfer area directory operations <R>emove
+           on accessible directories. Another semi-powerful maintenance
+           delegation feature.
+
+    =  255 Sysop. Anyone with 255 Sec_Status can do all sysop functions.
+           This includes message base <E>xtract, MainMenu <K>ing Sysop,
+           and Private Mail <$>Read and <D>elete. The most powerful online
+           capabilities available.
+
+        All the other securities are set from 0..255 and are independent of
+    status. Therefore a BoardOp can not delete messages from a base which
+    is inaccessible because their Sec_Board security won't let them visit.
+    One further note, except in the Text files, if a section is restricted
+    due to security a person will not even see it listed.
+
+
+
+
+                            FILES ON YOUR DISK 
+     
+     
+    Elite_BBS : The program itself, this is what you run. 
+
+    Creator   : Utility to create your system once it is 
+                described in the configure files (s:Elite_System, etc). 
+
+    xxx.Hlp   : Example help menus displayed at various times 
+                which show available commands and what they do. 
+     
+    xxx.Txt   : Files read out for specific events, such as 
+                a guest joining the board; these provide information 
+                and help customize the look of your board. 
+
+    Elite.Stat: Created automatically when you first run the program. 
+                May be deleted if a new First Day Online is wished,
+                perhaps after you are finished with tests and officially
+                set up your BBS for callers.
+
+
+
+                     CALCULATING SPACE REQUIRED
+
+    When running, Elite occupies both disk space and RAM. This dual
+nature is the reason for the speed which surpasses all other Amiga
+bulletin board programs and some terminal packages as well.
+The BBS consumes about 170k of ram when running.  That 170k is including
+the executable running in ram.  When you use AmigaDOS's resident command,
+you can run several copies of the BBS and use less memory than if you
+didn't run the BBS as resident.  This can
+be done if you have a multi-port serial card in your Amiga.
+
+
+                COMMANDS AVAILABLE
+
+Awaiting Logon:
+  followed by a return--
+
+    <A> Abort the program (Shut down)
+    <L> Local normal logon
+    <S> Sysop immediate logon
+    <F1> At any time that you are waiting for a caller, or a caller is
+    online will give you the sysop's commands.  You can chat with the
+    caller at this time or you can do other things like read the system
+    log.  DO NOT validate the caller online in this manner.  If you DO,
+    the changes will be saved to disk but when the caller logs off, they
+    will be overwritten.  To edit the user online, you will need to go
+    into CHAT mode and then press CTRL e twice.  Press F6 to turn off the
+    serial input so that the caller will not be able to type at this time.
+    Pressing F6 after you return to CHAT mode will allow the caller to
+    continue typing.  You can press F6 at anytime while the caller is
+    online to prevent the caller from typing anything.
+
+Main Menu:
+
+    <A>bort System, logoff (all may use)
+    <B>ulletins, bases (Sec_Board)
+    <C>hat, page sysop to chat (all may use)
+    <E>lectronic-Mail, letters (Sec_Status)
+    <F>eedback, direct mail to #1 Sysop (all)
+    <G>ames Online (Great online games)
+    <I>nfo, system information (all)
+    <J>oin, become a permanent account, start at New status (only Guest)
+    <K> Edit-Accounts, online editing of users' accounts (255 sysop)
+    <M>essages, bases (Sec_Board)
+    <S>ystem Time, including remaining for user (all)
+    <T>ext Files, show large files you've created to the caller (all)
+    <V>ersion of BBS (all)
+    <W>elcome Reprint (all)
+    <X>fers, directories, Xmodem, Ymodem or Zmodem (Sec_Transfer)
+    <Z>oom to ANSI graphics
+    <?>Help
+
+Text files:
+
+    <#>number, to read (Sec_Text)
+    <L>ist, shows all files available with +- security
+    <Q>uit, go to MainMenu
+    <?>Help
+
+Transfer areas:
+
+    <N>ew, visit all directories with new files
+    <S>elect, answer Y/N to visit or bypass directories
+    <A>ll, go through all directories
+    <L>ist, show directories available
+    <Q>uit, MainMenu
+
+    Prompt:
+
+        <C>atalog, show all files numbered sequentially/non-stop
+        <D>ownload
+        <L>ist, one by one
+        <Q>uit, to Transfers, above, or next in sequence
+        <R>emove, delete (Sec_Status >= 150)
+        <U>pload, if done from keyboard will bypass Xmodem and save
+        the file's entry directly
+
+        Between (during List, or Download)
+
+            <D>ownload
+            <Q>uit, to Prompt above
+            <R>emove, (Sec_Status >=150)
+
+Messages:
+
+    <N>ew, visit all bases with new messages
+    <S>elect, answer Y/N to visit or bypass bases individually
+    <A>ll, go through all bases
+    <L>ist, show bases available
+    <Q>uit, MainMenu
+
+    Prompt:
+
+        <D>elete, (Sec_Status >=100)
+        <I>ndividual, select single numbers
+        <N>ew, read new messages since last logoff
+        <Q>uit, to Messages above
+        <R>ead, select numbered range
+        <W>rite, edit a message
+
+        Between (during reading)
+
+            <A>gain, go back and read it again
+            <D>elete, (Sec_Status >=100)
+            <E>xtract, save into a separate text file (Sec_Status ==255)
+            <L>ast, go backwards by one and read that message
+            <N>ext, continue the reading
+            <P>rivate-Reply, send a letter to the author
+            <Q>uit, to Prompt above
+            <R>eply-Regular, write a message in response
+            <+>Lock, protect from RollOver (Sec_Status >=100)
+            <->Unlock, allow to RollOver (Sec_Status >=100)
+
+During Chat:
+
+    Ctrl-V> Version number
+    Ctrl-E Ctrl-E> Edit Online User, must be pressed in quick succession
+
+Editor:
+
+    During Text Entry
+
+        Ctrl-X = Delete the entire current line
+        Ctrl-W = Delete the last word entered
+        Empty Line = Stop text entry, and start edit options
+
+    At Prompt
+
+        <A>bort and do NOT save the message
+        <C>ontinue entering more text
+        <D>elete a line
+        <E>dit a line already entered
+        <F>ree space, report how much space is left to use
+        <H>elp, give detailed help on the editor
+        <L>ist all text entered so far
+        <R>etype last line entered to make a quick correction
+        <S>ave text
+
+
+
+
+
+                        FUNCTION KEYS
+
+
+F1 = SysOp's menu options. Only the local keyboard can enter or leave Chat
+
+F2 = Time+10min. Increase temporarily the user's time limit online
+
+F3 = Time-10min. Remove 10 minutes temporarily from the user
+
+F4 = Force Instant Logoff. Immediately jumps to logoff
+
+Elite allows you to control all the I/O streams, which can be a very
+useful power. There are input and output options, and all choices
+will be displayed in the Status Pane
+
+F5 = Keyboard Input on/off. In case you don't want any accidental
+     key-presses to affect the online user.
+
+F6 = Serial Input on/off. This is the most powerful function, since
+     you can instantly make the online user unable to enter input!
+     Especially handy for taking them for a walk around the system,
+     or in Chat when you want to speak uninterrupted.
+
+F7 = File Output on/off. Automatically opens and adds to the end
+     of a file called TRANSCRIPT.TEXT which is kept in the directory
+     indicated by your configure file, Elite_System LOCAT entry.
+     All output will be mirrored into this file until turned off.
+
+F8 = Printer Output on/off. Make instant hard-copy through the
+     printer, mirrors all output until turned off. Useful for
+     recording information during Chat, or for keeping a log of
+     some action.
+
+F9 = Screen Output on/off. If you don't need to see what's going
+     on with the system, you can turn this off. It will freeze
+     the local screen, but the Status Pane will continue to monitor
+     system activity. Will moderately speed up serial output
+     since it doesn't stop to send to the local screen.
+
+F10= Serial Output on/off. If you don't want an online user to see
+     what you're up to, perhaps editing the account during Chat,
+     this is the best. Will not send any output to serial until
+     turned on again.
+
+
+
+
+                       EXPANDED TOPICS
+
+
+
+                        MODEM CONTROL
+
+        Elite_BBS expects certain things of the modem, the example
+setup string provided handles all the requirements, but I have not
+made it clear just what is needed.
+
+        First, and most important, is that the modem should NOT
+automatically answer the phone. This is unlike any other BBS that I
+have run across and is a point to be aware of.
+
+        The modem MUST send result codes, but should NOT echo command
+sequences. You should use VERBOSE results since they send an extra CR-LF
+which Elite expects. The EXTENDED result codes must be selected, they
+correctly show what speed the caller is using and Elite automatically
+handles any speed from 300 up to 19200 in this way.
+
+        Disable any "escape code character" to avoid mishaps and false
+commands going out to your modem. This is a safety precaution.
+
+        The suggested OPEN: codes for the following modems are known and
+personally tested.
+
+
+  SmarTeam 2400: ATE0M0X1V1S0=0
+    Avatex 2400: ATE0M0X1V1S0=0
+US Robotics HST: ATE0M0X1V1S0=0&H1&R2S27=128
+
+
+        The "RESET:" code is NOT the same as the modem Reset command.
+Therefore, do NOT use the ATZ command; instead I suggest ATH0 which
+ensures the modem is ready for the next caller when it should be.
+
+
+
+                    FILE TRANSFER DIRECTORY TECHNIQUES
+
+        Once an online (by modem) account uploads a file into a transfer area
+it is immediately available for others to download, all governed by
+the securities you've set, of course. Ordinarily this makes things very
+easy on a sysop since there is no maintenance involved. However, people
+cannot be trusted sometimes and might upload files you do not want.
+If you are worried about problems like this I have a solution:
+
+Give one directory a very high Download security (255) so that only
+someone with that very high Security can access it.
+Set the Upload security to what you want, I'd suggest 0 so that
+even a guest account may send in a file.
+Then you move the file itself into a regular directory and it will
+be available to callers which have access to that directory.
+
+NOTE: You'll need to have "arc" and "lharc" in your C: directory for
+the <E>xtract function to work while reading the description of a file.
+This function will create a file called "list" in the T: directory.  I
+created a T directory in ram: and assigned T: to RAM:T
+This will speed up the arc and lharc listing processes.
+You'll also need to have "show" in your C: directory for the <S>how a
+graphics file to work.  This only works from the sysop's keyboard.
+One other file you'll need is "say".  This is used for the voice when
+a caller requests chat.
+
+USE the rz and sz included with this archive if you want 19200 bps file
+transfers because I've modified them so they will work correctly at all
+baud rates and with all the file transfer protocols available.
+
+
+                      MESSAGE BASE TECHNIQUES
+
+        "One Liners": since old messages will automatically roll over
+once a base is full to make room for new, you can exploit this fact and
+create a base where there is only one message. All anyone can read and
+respond to will be the very last.
+
+        If you <+>Lock that single message so it doesn't roll over you
+have made a bulletin inside the message base that will show up when
+an account does a <N>ew read of all bases.
+
+
+
+
+                     CREATOR AND HOW TO USE IT
+
+        Elite_BBS needs many disparate files to store data and keep
+track of the data stored. Since each system has different sizes I can't
+give you already existing files, so I give you Creator. Once you have
+set up all your configuration you run Creator. The display shows its
+progress and any problems that might arise. Creator will not re-create
+any data files that already exist.
+
+        Since Creator does not re-create existing files you may add
+new bases and directories as often as you like, running Creator after
+each change to the configure files. You do not need to run Creator if
+you are just making changes to s:Elite_Text.
+
+        Note that any errors creating a file will cause the generic
+"Previous KEYS exist" message to appear; if you know that a file
+should have been created this is a signal : you you should check
+for errors and correct them.
+
+        THIS EXAMPLE should only be read by those confident with
+AmigaDOS and CLI commands. In order to increase the size of an already
+existing directory or base without destroying all previously existing
+data you must do as the following example for messages shows:
+
+Change the number in s:Elite_Boards to be the difference between the
+old number of messages and the new. If you HAVE 100 messages and WANT
+to have 150, the number is 50.
+
+   change the s:Elite_Boards temporarily by using the above example to 50
+   cd board-directory
+   rename Board.Data Old.Data
+   rename Board.Keys Old.Keys
+   Creator (and if everything goes well continue, else fix the problem)
+   rename Board.Data New.Data
+   rename Board.Keys New.Keys
+   join Old.Data New.Data AS Board.Data
+   join Old.Keys New.Keys AS Board.Keys
+   change the s:Elite_Boards to the full number you wanted, ie 150 here
+
+
+
+
+
+                         TIME LIMITS
+
+        There are three important pieces of information kept with each
+account on the system: Time_Last_On, Time_Limit, and Time_Used.
+Time_Last_On is something you cannot normally change, it is what keeps
+<N>ew readings in order. Limit and Used are the two we are concerned with.
+Each time a person calls, Time_Last_On is checked and if it is over 12 hrs
+ago they get the their full Time_Limit and Time_Used is set back to 0.
+If not, then the time they've already used is subtracted from their limit
+and if there is any time left they get to the Main Menu. If all their time
+has been used they are sent the Logon24hrs.Text and disconnected. This
+12 hour limit is based on the time they last called, NOT the calendar day.
+
+
+
+
+                     SINGLE DRIVE SYSTEMS
+
+        Running Elite_BBS on a single drive is possible with a little
+forethought and careful design. Here I will describe the steps required
+to make a "Turnkey" disk that, when inserted after turning on the power,
+will automatically run the board you have created. All steps done in
+quotes are CLI commands and how to use them.
+
+ 1: "Format drive df0: name "My_Board" noicons", keep the inner set of
+    quotes. This makes us a very clean disk without even a trashcan
+    to get in our way.
+ 2: "Install My_Board:". The command to make it acceptable as a WorkBench
+    disk.
+ 3: "MakeDir My_Board:devs".
+ 4: "MakeDir My_Board:s".
+
+   YOU MAY SKIP 5, 6, AND 7 IF NOT USING A PRINTER
+
+ 5: "MakeDir My_Board:devs/printers".
+ 6: Copy your printer into the devs/printers directory.
+    You need only have YOUR printer, NOT ALL the selections.
+ 7: Copy the file called printer.device into the devs directory.
+
+ 8: Copy the file 'system-configuration' into the devs directory.
+ 9: Copy the file called serial.device into the devs directory.
+10: Copy the CLI command file 'Stack' onto your disk.
+11: Copy Elite_BBS itself onto the disk.
+12: Copy Creator onto the disk.
+13: Put all the Elite_xxx configuration files into the S directory
+     which you created in step 5 above.
+
+14: Edit a file called 'startup-sequence' and put it into the
+     same S directory. Use the following text as a guideline:
+
+     "
+      Stack 10000
+      Elite_BBS
+
+     "
+15: MakeDir all the directories you need for the configuration you
+     have written into the Elite_xxx files (which are now in the S directory).
+16: Assuming that your configuration contains no faults, run Creator to
+     create all the data needed. Follow any error messages and fix the
+     problems now.
+17: "Delete Creator". You may now get rid of Creator since it is only
+     needed to create the data files, not run the board on a day to day
+     basis.
+
+18: Re-boot your system (CTRL-A-A) and insert the My_Board: disk when
+     asked for WorkBench.
+19: Follow the rest of the standard sequence, editing account #1
+     to create the sysop, and so forth.
+
+
+
+
+
+                       FUNCTION KEY HINTS
+
+        Though I have previously described the use of the function keys
+it often helps to show them in actual use. Running Elite BBS we've
+come across some interesting side-effects and techniques:
+
+        To generate a report of all transfer area files available, turn on
+the Transcript.Txt file (F7) and visit each transfer area in turn doing a
+complete <L>ist, or <C>atalog for quick summaries. You may also send this
+directly to printer using the (F8) function key so you get both a text
+and "hard copy" version without having to print it later.
+
+        The same technique can be used to generate a report of all
+active accounts by using the <L>ist Members command from the main menu.
+
+        If you are not going to be typing it is a good idea to turn
+off the keyboard input (F5) to avoid accidents. Even if your pet cat
+decides to shuffle off to old Buffalo across your keyboard it will not
+upset an online user.
+
+        While not actively watching the board it helps to turn off
+the screen output (F9). You'll still get Status Pane reports, but the
+main display will be frozen; this will speed online activities by a
+small degree.
+
+
+
+
+                  CREATING A "CLOSED" SYSTEM
+
+        For those of you who wish an exclusive bulletin board, where
+members can not Join but must be entered manually by the sysop for
+security reasons, here is a technique:
+
+        In the Elite_System file, edit the GUEST entries to have a
+time limit of 0. When someone who does NOT have an account calls in
+and tries to enter as a Guest they will instantly be read the file
+"Logon24Hrs.Text" and the connection terminated. You may edit the
+file to contain a No-Admittance message instead of an overtime message
+to get the point across. Any members who exceed their limits will also
+be read this text, so you should tell them about it before that happens.
+
+
+                    ADDITIONAL INFORMATION
+
+        An application file called "Application.txt" can be placed in
+the system directory and each line in that file will be displayed to the
+new caller after the standard BBS questions have been asked.  The answers
+to these questions will be stored in the "NewUsers" file.
+
+        The Elite BBS v.31 is freely distributable.  To become a
+    registered Elite BBS sysop, you'll need to send in $50.00.
+
+        This program is copyrighted.  This implies that I  wrote  it
+    entirely  in  my  own time and received precious little help getting
+    it done. If you use Elite_BBS regularly or in a serious (business,
+    profit) fashion I request that you send in the registration to aid
+    further development to the program and its utilities.
+
+
+         Send the registration price of $50.00 to:
+      
+           Nick Smith
+           P.O. Box 31 
+           Concord, CA  94520
+
+         Check or money order payable to Nick Smith
+
+        You will receive the latest version of the software complete with
+    source code written in SAS/C (Used to be Lattice C).
+
+
+            For your contribution you get the following:
+
+    o   The latest program update
+
+    o   Access to the "Elite_BBS Sysop" Message Base
+        for guaranteed answers to important questions     
+
+    o   The satisfaction of knowing that you are helping in the
+        development and improvement of Elite_BBS
+

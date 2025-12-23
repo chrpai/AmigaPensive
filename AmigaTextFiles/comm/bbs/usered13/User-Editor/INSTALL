@@ -1,0 +1,319 @@
+; $VER: UserEditor Install V1.4 (28.7.98) - written by Sascha "SieGeL" Pfalz
+; Installer and Installer project icon
+; (c) Copyright 1985-98 Amiga International Inc.  All Rights Reserved.
+;
+; For best view set TAB to 2
+;
+; This script follows the rules for the Installer, all text vars have a 
+; t_ preceeding the var name, all other vars have the # in front of the
+; names and all sub procedures (if any) will start with P_ .
+;
+; V1.0 (3.8.97)   - Initial Version, Script is able to update or full install
+;                   the UserEditor including Guides and Locale files.
+; V1.1 (10.8.97)  - Changed the script so that it automatically recognizes
+;                   if some of the files to copy are missing (Update etc.)
+;                   In this case only the existing files will be copied.
+;                   This also includes the documentation parts, so this script
+;                   won't abort any longer if not all of the files are present.
+; V1.2 (23.8.97)  - First public Release of the UserEditor package.
+; V1.3 (9.2.98)   - Enhanced to install also German docs
+; V1.4 (28.7.98)  - Changed script to install only on OS 3.x Amigas. Also this
+;                   script refers now to UserEditor instead of User-Editor to
+;                   follow FAME Style rules.
+
+;===================
+;= Check-Variables =
+;===================
+
+(set @user-level 2)
+
+(set #MUI "MUI")
+(set #MUIMASTER_VMIN 11)
+(set #MUIMASTER_PATH "MUI:Libs/muimaster.library")
+(set #USERED 	"modules/UserEditor")
+(set #USEDGUIDE "modules/UserEditor.guide")
+(set #USEDGUIDE_GER "modules/UserEditor_ger.guide")
+(set #USEDHIST 	"modules/UserEditor.history")
+(set #USEDCATDE	"catalogs/deutsch/UserEd.catalog")
+
+;================
+;= GERMAN TEXTS =
+;================
+
+(IF (= @language "deutsch")
+	(
+	(set default_lang 2)
+
+	(set t_StartMsg			(cat		"\nInstallations-Skript des UserEditors für FAME\n\n"
+															"Dieses Skript installiert den UserEditor und alle relevanten\n"
+															"Dateien auf Ihrem System.\n\n"
+															"FAME ist © 1993-98 by David 'Strider' Wettig\n"
+															"UserEditor ist © 1995-98 by Sascha 'SieGeL' Pfalz\n"
+															"MUI ist © 1993-98 by Stefan Stuntz"))
+	(set t_bad-kick			(cat		"\nSie benötigen mindestens AmigaOS V3.0 oder\n\n"
+															"höher, um den UserEditor zu benutzen !\n\n"
+															"-> Bitte updaten Sie Ihr System <-"))
+	(set t_wrong_mui		(cat		"Falsche MuiMaster.library Version!\n\n"
+															"Installiert ist V%ld.%ld, benötigt wird aber mind. V11 !\n\n"
+															"Bitte updaten Sie Ihr MUI System auf V3.6+\n(Library-Version 11+) !"))
+	(set t_no_mui				(cat		"Konnte MUI nicht finden !\n"
+															"UserEditor benötigt unbedingt MUI V3.6+ um zu arbeiten !\n\n"
+															"Bitte erst das MUI System installieren (es lohnt sich) und\n"
+															"dann diese Installation nochmal beginnen !"))
+	(set t_AskForDest						"Bitte Ziel-Pfad für den UserEditor angeben:")
+	(set t_copyused							"Kopiere UserEditor und das Piktogramm...")
+	(set t_selectlocale	(cat		"Bitte Sprache(n) zum Installieren/Updaten auswählen:\n"
+															"(Alle Kataloge werden nach PROGDIR:Catalogs/ kopiert)"))
+	(set t_askfordocs						"Dokumentation installieren/updaten ?")
+	(set t_selectdocs						"Bitte auswählen, welche Teile der Dokumentation installiert/geupdated werden sollen:")
+	(set t_askforddest					"Bitte Zielverzeichnis für die Dokumentation auswählen:")
+	))
+
+;=================
+;= ENGLISH TEXTS =
+;=================
+
+(IF (= @language "english")
+	(
+	(set default_lang 4)
+
+	(set t_StartMsg 	(cat			"\nInstallation Script of UserEditor for FAME\n\n"
+															"This script will install UserEditor and all required\n"
+															"files to your System.\n\n"
+															"FAME is © 1993-98 by David 'Strider' Wettig.\n"
+															"UserEditor is © 1995-98 by Sascha 'SieGeL' Pfalz\n"
+															"MUI is © 1993-98 by Stefan Stuntz"))
+	(set t_bad-kick			(cat		"\n\nYou must be using AmigaOS V3.0 or higher\n\n"
+															"to use the UserEditor !\n\n"
+															"-> Please update your machine ! <-"))
+	(set t_wrong_mui		(cat		"Wrong MuiMaster.library Version !\n\n"
+															"Installed is V%ld.%ld, required is at least V11 !\n\n"
+															"Please update your MUI System to at least V3.6+\nLibrary-Version 11+) !"))
+	(set t_no_mui				(cat		"Unable to find MUI System !\n"
+															"UserEditor requires MUI V3.6+ to work !\n"
+															"Please install first the MUI System and restart this Installation\n"
+															"after the MUI system is installed."))
+	(set t_AskForDest						"Specify destination for UserEditor:")
+	(set t_copyused							"Now copying UserEditor and the Icon...")
+	(set t_selectlocale	(cat		"Please choose language(s) to install/update:\n"
+															"(English is built-in, all other catalogs will be copied to PROGDIR:Catalogs/"))
+	(set t_askfordocs						"Do you wish to install/update the documentation ?")
+	(set t_selectdocs						"Please choose which parts of the documentation should be installed/updated:")
+	(set t_askforddest					"Select Destination directory for the documentation:")
+	))
+
+;****************************************************************************
+;***                  MAIN INSTALLATION SCRIPT STARTS HERE !              ***
+;****************************************************************************
+
+(set #osver (/ (getversion) 65536))				; Determine OS Version...
+(if (< #osver 39) ( (ABORT t_bad-kick)))	; ...and stop if OS < 39
+(complete 0)
+(message t_StartMsg)
+(complete 1)
+(welcome)
+
+;======================================================================
+;= FIRST SYSTEM-CHECKS TO DETERMINE USED AMIGA AND INSTALLED SOFTWARE =
+;======================================================================
+
+(set #MUI_ASSIGN (getassign #MUI))				; Check if MUI exists!
+
+(if (<> #MUI_ASSIGN "")
+	(
+	(set #muiver (/ (getversion #MUIMASTER_PATH) 65536)) 	; Get Version
+	(set #muirev (* (getversion #MUIMASTER_PATH) 65536))	; ???
+	(set #muirev (/ #muirev 65536))												; Get Revision
+	(if (< #muiver #MUIMASTER_VMIN) (ABORT (t_wrong_mui #muiver #muirev)))
+	(complete 6)
+	)
+	(
+	(abort t_no_mui)
+	))
+
+
+;======================================================================
+;=       PROMPT FOR THE DESTINATION DIRECTORY & COPY MAIN FILES       =
+;======================================================================
+
+(if (<> 0 (exists #USERED))
+	(
+
+	(set #mypath "")
+
+	(until (<> #mypath "")
+		(
+		(set #mypath
+			(askdir (prompt t_AskForDest)
+							(default "FAME:Modules")
+							(help @askdir-help)))
+		))
+	(complete 12)
+
+	(set @default-dest #mypath)
+
+
+	(copylib 	(prompt t_copyused)
+						(source "Modules/UserEditor")
+						(dest		@default-dest)
+						(confirm)
+						(help	@copylib-help)
+						(infos))
+	)
+	(
+	(set @default-dest "FAME:Modules")
+	)
+)
+(complete 20)
+
+;======================================================================
+;=                      INSTALL LOCALE CATALOGS                       =
+;======================================================================
+
+(if (<> 0 (exists #USEDCATDE))
+	(
+
+	(if (= default_lang 2) 	(set #def -1)
+													(set #def 0))
+
+
+	(set #catalogs
+		(askoptions	(prompt t_selectlocale)
+								(help @askoptions-help)
+								(choices	"[2pdeutsch"
+													"")
+								(default #def)))
+	(complete 30)
+
+	(if (IN #catalogs 0) 
+		(
+		(set #mkpath (tackon @default-dest "Catalogs/deutsch"))
+		(makedir #mkpath)
+		(copylib 	  (prompt "Kopiere deutschen Katalog...")
+								(source "Catalogs/deutsch/UserEd.catalog")
+								(dest 	#mkpath)
+								(help @copyfiles-help))
+
+		(complete 40)
+
+		))
+	))
+
+;======================================================================
+;=        INSTALL AMIGA-GUIDE DOCUMENTATION & HISTORY FILE            =
+;======================================================================
+
+(complete 55)
+
+(set #myguide (exists #USEDGUIDE))
+(set #myhist (exists #USEDHIST))
+(set #mygerguide (exists #USEDGUIDE_GER))
+
+(set #docdef 0)
+
+(if (OR (<> 0 #myguide) (<> 0 #myhist) (<> 0 #mygerguide))
+	(
+	(if (= 1 (AskBool	(prompt t_askfordocs)	(help		@askbool-help)))
+		(
+
+		(if (<> 0 #myguide) 
+			(              
+			(set #selguide "AmigaGuide Manual - English (71kb)")
+			(set #docdef (+ #docdef 1))
+			)
+			(
+			(set #selguide "")
+			)
+		)
+
+		(if (<> 0 #mygerguide) 
+			(
+			(set #selgerguide "AmigaGuide Manual - Deutsch (81kb)")
+			(set #docdef (+ #docdef 2))
+			)
+			(
+			(set #selgerguide "")
+			)
+		)
+
+
+		(if (<> 0 #myhist) 	
+			(            
+			(set #selhis "UserEditor.History         (16kb)")
+			(set #docdef (+ #docdef 3))
+			)
+			(
+			(set #selhis "")
+			)
+		)
+
+		(complete 60)
+
+
+		(set #docparts
+			(askoptions (prompt		t_selectdocs)
+									(help			@askoptions-help)
+									(choices #selguide
+													 #selgerguide
+												   #selhis)
+									(default #docdef)))
+		(complete 70)
+
+		(if (<> 0 #docparts)
+			(
+			(set #docdest
+				(askdir (prompt 	t_askforddest)
+								(help			@askdir-help)
+								(default	"FAME:Documentation")))
+
+			(complete 75)
+
+			(if (<> "" #docdest)
+				(
+				(if (IN #docparts 0)
+					(
+					(copyfiles 	(prompt "Install AmigaGuide...")
+											(help		@copyfiles-help)
+											(source	"Modules/UserEditor.guide")
+											(dest		#docdest)
+											(infos))
+
+					(complete 85)
+
+					))
+
+				(if (IN #docparts 1)
+					(
+					(copyfiles 	(prompt "Install AmigaGuide...")
+											(help		@copyfiles-help)
+											(source	"Modules/UserEditor_ger.guide")
+											(dest		#docdest)
+											(infos))
+
+					(complete 90)
+
+					))
+
+				(if (IN #docparts 2)
+					(
+					(copyfiles 	(prompt "Install History...")
+											(help		@copyfiles-help)
+											(source	"Modules/UserEditor.history")
+											(dest		#docdest)
+											(infos))
+
+					(complete 95)
+
+					))
+				))
+			))
+		))
+	))
+
+
+;======================================================================
+;=                       END OF INSTALLATION                          =
+;======================================================================
+
+(complete 100)
+(exit)

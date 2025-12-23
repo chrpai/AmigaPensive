@@ -1,0 +1,226 @@
+/* IceFileSort_v0.39, Copyright Kenji Irie 1997 */
+/* Startup */
+
+cfg = 'BBS:IceSortDir'
+
+dir = 'IceFileDir:'
+list = 'ram:filelist'
+
+/* Output dir file and executable script file */
+
+address command
+
+xref. = 0
+q = Open('xxx',cfg)
+if q = 0 then do
+    say 'Could not open the IceSortDIR file'
+    exit 20
+end
+
+nfile = 1
+do while ~eof('xxx')
+    source.nfile = readln('xxx')
+    nfile = nfile + 1
+end
+
+nfile = nfile -1
+
+echo '"No. files in cfg  = ' || nfile || ' " '    
+
+if nfile <1 then do
+    say 'IceSortDIR file is empty'
+    exit 5
+end
+
+/* call close('xxx') */
+
+/* Getting the file list of the dir.. */
+
+'echo "cd ' || dir || '" >ram:tempscript'
+'echo "list quick nohead nodates >ram:Filelist" >ram:shit2'
+'append ram:shit2 ram:tempscript'
+
+'execute ram:tempscript'
+
+'delete ram:tempscript >nil:'
+'delete ram:shit2 >nil:'
+
+xref. = 0
+
+buggar = 'ram:filelist'
+b = Open('ttt', buggar)
+if b = 0 then do
+    say 'Could not open the Filelist file'
+    exit 20
+end
+
+NumInList = 1
+
+do while ~eof('ttt')
+    source.NumInList = readln('ttt')
+    NumInList = NumInList + 1
+end
+
+NumInList = NumInList - 2
+
+
+'echo "No. files in list = ' || NumInList || '" '    
+
+
+/* Right, not we have all the neccessary lists and files, lets get to work..*/
+
+xref. = 0
+q = Open('www', list)
+if q = 0 then do
+    say 'Could not open the FileList file'
+    exit 20
+end
+
+nfiles=1 
+do while ~eof('www')
+    listfiles.nfiles = readln('www')    
+    nfiles = nfiles + 1
+end
+
+nfiles = nfiles - 2
+
+do while ~eof('www')
+    b = readln('www')
+    bb = upper(subword(b,1,1))
+    xref.bb.please = subword(b,1,1)
+ 
+end
+
+call close('www')
+
+'echo ";Script to move files" >ram:MoveIceFiles'
+'echo ";List of Aminet files with no equivalent Type: dir." >ram:UnknownFiles'
+do i = 1 to NumInList 
+
+    'echo "NumInlist pos = ' || i || '/' || numinlist || '"'
+
+    files.i = subword(listfiles.i,1,1)
+
+    /* Having problems, trying to do it the long way.... */
+
+    'echo "' || dir || '' || files.i || '" >ram:tempy'
+
+    wanker = 'ram:tempy'
+    address command
+    xref. = 0
+
+    typefound = 0
+
+    g = open('zzz', wanker)
+        if g = 0 then do
+            say 'Could not open the List file'
+            typefound = 2
+        end
+
+    if (typefound = 0) then do 
+        d = readln('zzz')
+        dd = upper(subword(d,1,1))
+        xref.dd.crap = subword(d,1,1)
+
+        currentfile = xref.dd.crap
+
+        o = open('vvv', xref.dd.crap)
+            if o = 0 then do
+                'echo "Couldnt open file' || currentfile || ' Possible spaces in filename."'
+                exit 20
+            end
+    
+        nlines=3
+        do while ~(nlines = 8)
+            a = readln('vvv')
+            aa = upper(subword(a,1,1))
+            xref.aa.type = subword(a,1,1)
+            xref.aa.dir = subword(a,2,2)
+
+            dirfind = xref.aa.dir
+            
+            if (xref.aa.type = 'Type:') then do
+                'echo "Type: Found. Looking for: ' || xref.aa.dir || '"'
+
+/* This is the comparison bit.... <gulp> ... */
+
+                compar = 0
+                s = 1
+                do while compar = 0
+
+
+                xref. = 0
+                b = Open('bbb', cfg)
+                if q = 0 then do
+                  say 'Could not read the CFG file'
+                  exit 20
+                end
+
+                  b = readln('bbb')
+                  bb = upper(subword(s, 1, 1))
+                  xref.bb.end    = subword(b, 1, 1)
+                  xref.bb.start  = subword(b, 2, 1)
+
+                    aminet_dir = xref.bb.end
+                    local_dir = xref.bb.start
+                    
+                    if (dirfind  = aminet_dir ) then do
+                    'echo "' || dirfind || ' Equivalent found. "'
+                        newdir = local_dir
+                        compar = 1
+                    end
+                    
+                    if ( s = nfile ) then do
+                        compar = 2
+                    end
+
+                    s = s + 1
+
+                end
+
+                if (compar = 1) then do
+                    'echo "move ' || currentfile || ' ' || newdir || '" >ram:MoveIceFilesTemp'    
+                    'append ram:MoveIceFilesTemp ram:MoveIceFiles'
+                    compar = 0 
+                    nlines = 7
+                end
+                
+                if (compar = 2) then do
+                    'echo "File ' || currentfile || ' from Aminet:' || dirfind || ' has no equivalent dir"'
+                    'echo "File: ' || currentfile || ' -=> ' || dirfind '" >ram:UnknownTemp'
+                    'append ram:unknowntemp ram:UnknownFiles'
+                    nlines = 7
+                    compar = 0
+                end
+
+                typefound = 1
+
+            end
+
+            nlines = nlines +1
+        
+        end
+
+        If Typefound = 0 then do
+            say 'Type: Not Found'
+        end
+    
+    end
+
+    call close ('vvv')
+    call close ('bbb')
+    call close ('zzz')
+
+end
+
+
+call close ('xxx')
+call close ('www')
+call close ('vvv')
+call close ('zzz')
+call close ('ttt')
+'delete ram:moveicefilestemp >nil:'
+'delete ram:Unknowntemp >nil:'
+'delete ram:tempy >nil:'
+'delete ram:filelist >nil:'
+exit 

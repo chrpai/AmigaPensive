@@ -1,0 +1,84 @@
+/*
+             The C-Net Speaker Chat Utility
+                      Version 2.1
+               by Le Chat and Gate Keeper
+
+                  Copyright (c) 1992
+               A Boothware Presentation
+
+          Call The Phone Booth BBS For More!
+           (504)272-2000  3/12/24/HST 24hrs
+*/
+
+options results
+
+signal on error
+signal on syntax
+signal on ioerr
+
+GETUSER 1
+name = result
+GETUSER 23
+port = result
+
+config  = "PFiles:SpeakerChat.Config"
+version = "Speaker Chat Version 2.1 by Le Chat"
+
+
+transmit ''
+transmit '\c6\n1Enter a reason to chat:'
+query '\c7> \c3'
+chatreason = result
+transmit ""
+if chatreason = '' | chatreason = "###PANIC" then
+  do
+    BUFFERFLUSH
+    ADDKEYS "Aborting Chat"||d2c(13)
+    exit
+  end
+logentry "Chat Reason: "||chatreason   
+transmit '\c6     Name\c3:  'name
+transmit '\c6  Problem\c3:  'chatreason
+transmit ''
+
+if exists("cnet:sound") then
+  do
+    call open(sndfile,"cnet:sound","R")
+    line = readln(sndfile)
+    if upper(line) = "OFF" then line = "OFF"
+      else line = "ON"
+  end
+else line = "ON"
+
+if line = "ON" then
+  do
+    opt   = ""
+    if exists(config) then
+      do
+        call open(in,config,"R")
+        if eof(in) then type = ""
+          else type = readln(in)
+        if type = version then
+          if eof(in) then opt = ""
+            else opt = readln(in)
+        call close(in)
+      end
+    string = 'echo >speak:'opt' "SisOp, 'name' is paging you on port 'port'"'
+    string2 = 'echo >speak:'opt' "Reason issss 'chatreason'"'
+    address command string
+    address command string2
+  end
+
+BUFFERFLUSH
+ADDKEYS left(chatreason,30)||d2c(13)
+exit
+
+IOERR:
+ERROR:
+SYNTAX:
+line = sigl
+err = rc
+transmit "Error in "line" type "rc" "errortype(rc)
+logentry "Error in SpeakerChat.v2"
+logentry "Error in "line" type "rc" "errortype(rc)
+exit

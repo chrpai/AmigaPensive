@@ -1,0 +1,222 @@
+;
+;       *********************************************************
+;       *                                                       *
+;       *             NETCALL CALLER-BATCHDATEI                 *
+;       *                                                       *
+;       *********************************************************
+;
+;	Autor : Markus Marquardt & Michael Scheler
+;	$VER: 4.02				Datum : 16.08.1995
+;
+;       Beschreibung :
+;	Diese Batchdatei wird beim Anrufen der Server-Box von der
+;	anrufenden Mailbox ausgefuehrt.
+;	Das Passwort fuer den LOGIN in die andere Box muss im File
+;	MBDAT:NET@BOXNAME.PW stehen, wobei BOXNAME = Name der angerufenden
+;	Box ist.
+;	Die gesendeten und empfangenen Daten werden im Directory
+;	MBMSG:POINT/<Portname>/ temporaer gespeichert.
+;	Stehen im Directory MBNET:EXPORT/ die Dateien <USERNAME>@FA.LHA
+;	und <USERNAME>@FA.MSGNR, so werden nicht die neusten Nachrichten und
+;	Files aktuell exportiert und gepackt, sondern diese vorgepackten
+;	Daten benutzt.
+;
+;       Das Script sollte so eingebunden werden, dass es ueber Level und
+;       Flags auf die folgende Befehle zugreifen kann :
+;
+;	BREAK OFF
+;	CHECK FILE
+;	DISK DOWNLOAD
+;	DISK UPLOAD
+;	ECHO
+;	EXTERN
+;	FASTNET GETFILE
+;	FASTNET MAKEFILE
+;	HANGUP
+;	IF
+;	LOGOUT			<- Option /FAST muss unterstuetzt werden !
+;	ON ERROR
+;	ON HANGUP
+;	WAIT
+;	WAITSTRING
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DELETE
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) :
+;	USERNAME : Name der anzurufenen Node
+;	STRASSE  : @NETCALL
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) des Hauptnetztes,
+;	die aber nicht der eigentliche Server im Hauptnetz ist, sondern nur
+;	fuer das Importieren eines weiteres Unternetzes dient.
+;	USERNAME : Name der anzurufenen Node
+;	STRASSE  : @LOCALNET
+;
+;	Einrichtung eines LocalGates fuer die Einbindung eines anderen
+;	lokalen Netzwerks :
+;	USERNAME : Name der anzurufenen Node
+;	VORNAME  : Gatename im Fastnet
+;	STRASSE  : @LOCALGATE
+;
+;	Einrichtung eines Gates fuer die Einbindung eines anderen 
+;	globalen Netzwerks :
+;	USERNAME : Name der anzurufenen Node
+;	VORNAME  : Gatename im Fastnet
+;	NACHNAME : Gatename im Fremd-Netz
+;	STRASSE  : @GATE
+;
+;       Konstanten :
+;
+DEBUG	 = "ON"					; DEBUG-MODUS AKTIVIEREN
+DEBUGDIR = "AMMS:NETDEBUG/"			; Debug-Directory
+IMPORTPORT= "IMPORT"				; Portname fuer Import
+IMPORTDIR= "mbnet:Import/"			; Import-Directory
+TMPDIR   = "mbmsg:point/'{port}'/"		; Dir fuer Tmp-Files
+EXPORTDIR= "mbnet:export/"			; Export-Directory
+NETNAME	 = "NET@'{SYSNAME}'"			; Username im anderen System
+MAXKBYT	 = 2000					; Max. Laenge des Msg-Files
+CACHE	 = 200					; Max. KByte Cache-Ram-Speicher
+COPYFILE = "'{NAME}'@FA.lha"			; Vorgabefile (Pack-Event)
+COPYNR	 = "'{NAME}'@FA.msgnr"			; File fuer Msg-Nummern
+SENDFILE = "caller.lha"				; Zu sendendes File
+RECFILE	 = "called.lha"				; Empfangenes File
+MSGFILE	 = "msgs"				; File fuer Msgs
+NRFILE	 = "msgnr"				; File fuer Msg-Nummern
+IMPORTFILE= "'IMPORTDIR''{NAME}'@FA'{CALLNR}'.LHA" ; Importfile fuer anderen Port
+PACKER	 = "lha -IP-1 m ""'TMPDIR''SENDFILE'"" ""'TMPDIR''MSGFILE'"""
+						; Packen
+UNPACKER = "lha -IP-1 x ""'TMPDIR''RECFILE'"" ""'TMPDIR'"" ""'MSGFILE'""" 
+						; Entpacken
+;
+;	Abbruchtasten sperren / bei Fehler & Abbruch verzweigen
+;
+
+_break off					; Kein Break erlauben
+_on error END_FAIL				; Label fuer Fehler
+_on hangup END_FAIL				; Label fuer Hangup
+
+;
+;	Optionen fuer Zusatz-Funktionen erzeugen
+;
+
+ GETOPT="/Cache='CACHE'"
+ MAKOPT=""
+_if {STREET} != "@NETCALL" then _goto NONETCALL
+ GETOPT="/Cache='CACHE'"
+ MAKOPT=""
+_goto ENDOFOPT
+NONETCALL:
+_if {STREET} != "@LOCALGATE" then _goto NOLOCALGATE
+ GETOPT="/Filter=%001111100000000000/Type=2/Cache='CACHE'"
+ MAKOPT="/Filter=%0111100000000/Type=2"
+_goto ENDOFOPT
+NOLOCALGATE:
+_if {STREET} != "@GATE" then _goto NOGATE
+ GETOPT="/Filter=%001111100000000000/Type=1/Cache='CACHE'"
+ MAKOPT="/Filter=%0111100000000/Type=1"
+_goto ENDOFOPT
+NOGATE:
+_if {STREET} != "@LOCALNET" then _goto NOLOCALNET
+ GETOPT="/Filter=%101111100000000000/Cache='CACHE'"
+ MAKOPT="/Filter=%0111100000000"
+_goto ENDOFOPT
+NOLOCALNET:
+ENDOFOPT:
+
+;
+;	Alte TMP-Files loeschen
+;
+
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_extern/q rename "'TMPDIR''SENDFILE'" "'TMPDIR''SENDFILE''{CALLNR}'"
+_extern/q rename "'TMPDIR''RECFILE'" "'TMPDIR''RECFILE''{CALLNR}'"
+
+;
+;	Auf Usernamen/Passwortabfrage warten
+;
+
+_echo/raw "^M"
+_waitstring "Username:"
+_echo/raw "'NETNAME'^M"
+_waitstring "Passwort:"
+_disk text "mbdat:'{name}'.PW"
+_echo/raw "^M"
+
+;
+;	Die neuen Nachrichten fuer die angerufene Box sammeln & packen
+;
+
+_check file "'EXPORTDIR''COPYFILE'" EXPORT		; Existiert Sendefile ?
+_extern/q copy "'EXPORTDIR''COPYFILE'" "'TMPDIR''SENDFILE'" ; Ja, vorgepackte
+_extern/q copy "'EXPORTDIR''COPYNR'" "'TMPDIR''NRFILE'"	 ; Files benutzen
+_goto WAIT_UP					; -> Warten auf andere Box
+
+EXPORT:
+_fastnet makefile'MAKOPT' "'TMPDIR''MSGFILE'" 'MAXKBYT' "'TMPDIR''NRFILE'"
+_extern/q 'PACKER'
+
+;
+;       Die neuen Nachrichten der angerufenen Box schicken
+;
+WAIT_UP:
+_waitstring "WAITUP"
+_echo/nolf "STARTUP STARTUP STARTUP STARTUP STARTUP"
+_disk download "'TMPDIR''SENDFILE'"
+_wait 2
+
+;
+;       Nachrichten von angerufener Box empfangen
+;
+
+_disk upl "'TMPDIR''RECFILE'"
+
+;
+;       Auflegen nach 3 Sek.
+;
+
+_on hangup/ignore                                ; Auflegen ignorieren
+_wait 3
+_hangup
+
+;
+;	Gezogene Msgs als gelesen kennzeichnen
+;
+
+_fastnet makefile/setnr "'TMPDIR''NRFILE'"
+
+;
+;	Wenn Debug-Modus aktiv, empfangenes Pointfile retten
+;
+
+_if DEBUG == "ON" then _extern/q copy "'TMPDIR''RECFILE'" "'DEBUGDIR''{NAME}''{CALLNR}'.LHA"
+
+;
+;	Wenn Port IMPORT existiert, Import-Event starten
+;
+
+_check port "'IMPORTPORT'" IMPORT		; Wenn kein Port, verzw.
+_extern/q copy "'TMPDIR''RECFILE'" "'IMPORTFILE'"
+_add event/Background "'IMPORTPORT'" 0 3 mbbatch:fastnet_import "'{NAME}'"
+_goto END					; -> Ende
+
+;
+;	Neue empfangene Nachrichten entpacken und einsortieren
+;
+IMPORT:
+_extern/q delete "'TMPDIR''SENDFILE'" "'TMPDIR''NRFILE'" "'EXPORTDIR''COPYFILE'" "'EXPORTDIR''COPYNR'"
+_extern/q 'UNPACKER'
+_fastnet getfile'GETOPT' "'TMPDIR''MSGFILE'"
+
+;
+;	Ende
+;
+
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" ; Disk aufraeumen
+_eod 0						; Rueckkehr mit ok
+
+END_FAIL:					; Ende, Status = Fehler
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" ; Disk aufraeumen
+_eod 1

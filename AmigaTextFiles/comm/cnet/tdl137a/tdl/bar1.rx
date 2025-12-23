@@ -1,0 +1,155 @@
+/* */
+options results
+ss=sendstring;tr=transmit;GC=GetChar;QY=Query;SF=sendfile;changewhere 'TDL'
+call open(1,'ram:tdl1',R);line1=readln(1);call close(1)
+parse var line1 xd.1'|'ud.6'|'p1'|'p2'|'p6'|'pa'|'pc'|'pf'|'bbsp0
+call open(1,bbsp0''xd.1'.dat','R');line1=readln(1);call close(1)
+
+STALKATION:
+ss cls
+tr p2'"So you want to get rid of 'xd.1', eh? How would you like this done?"'
+tr pf'('pa'T'pf')'pc' Throw 'xd.1' in a Pit With Monsters'
+tr pf'('pa'G'pf')'pc' Have Gang Personally Kill 'xd.1
+tr pf'('pa'H'pf')'pc' Hire a Private Mercenary To Kill 'xd.1
+tr pf'('pa'R'pf')'pc' Hire a Thief to Rob 'xd.1' Blind'
+tr pf"("pa"B"pf")"pc" Put a Bounty on "xd.1"'s Head"
+tr pf'('pa'Q'pf')'pc' Quit to Bar'
+ss p1'Gang (T,G,H,R,B,Q) >> 'pf
+gc;call gcc
+if com1='T' then signal gang_x1
+if com1='G' then signal gang_x2
+if com1='H' then signal gang_x3
+if com1='R' then signal gang_x4
+if com1='B' then signal gang_x5
+if com1='Q' then signal gang_x6
+signal stalkation
+
+GANG_X1:
+tr p2'A pit eh? Alright. How many monsters would you like in the pit?'
+cost=xd.8*10000;costa=comadd(cost)
+tr p2'It costs 'costa' GP per monster.'
+ud.6a=comadd(ud.6)
+tr p2'You have 'ud.6a' GP.'
+if ud.6<cost then do;tr p2'Not enough GP.';call gang_x6;end
+afford=ud.6%cost
+if afford>20 then afford=20
+tr p2'You can afford 'afford' monsters.'
+qy p1'How many? ('pc'max = 'p6''afford''p1') 'pf
+call gcc4
+if com1<1 then call gang_x6
+if com1>afford then com1=afford
+handman=cost*com1;handmana=comadd(handman)
+tr p2'You hand the man 'handmana' GP.'
+tr p2'He says: "Consider it done..." He laughs and walks off...'
+ud.6=ud.6-handman;xd.80=1;xd.81=1;xd.82=com1
+call save_player_gang;call pcr;signal bar1
+
+SAVE_PLAYER_GANG:
+call getu2
+call open(juser,bbsp0''xd.1'.dat','W')
+call writeln(juser,line1)
+call close(juser)
+return
+
+GANG_X2:
+tr p2'My gang eh? Alright. How many of us would you like to attack 'pron5'?'
+cost=xd.8*50000;costa=comadd(cost)
+tr p2'It costs 'costa' GP per gang member.'
+ud.6a=comadd(ud.6)
+tr p2'You have 'ud.6a' GP.'
+if ud.6<cost then do;tr p2'Not enough GP.';call gang_x6;end
+afford=ud.6%cost
+if afford>20 then afford=20
+tr p2'You can afford 'afford' gang members.'
+qy p1'How many? ('pc'max = 'p6''afford''p1') 'pf
+call gcc4
+if com1<1 then call gang_x6
+if com1>afford then com1=afford
+handman=cost*com1
+handmana=comadd(handman)
+tr p2'You hand the man 'handmana' GP.'
+tr p2'He says: "Consider it done..." He laughs and walks off...'
+ud.6=ud.6-handman
+xd.80=1;xd.81=2;xd.82=com1
+call save_player_gang;call pcr;signal bar1
+
+GANG_X3:
+tr p2'A private mercenary eh? Alright. What level would you like him to be?'
+cost=xd.8*100000;costa=comadd(cost)
+tr p2'It costs 'costa' GP per level.'
+ud.6a=comadd(ud.6)
+tr p2'You have 'ud.6a' GP.'
+if ud.6<cost then do;tr p2'Not enough GP.';call gang_x6;end
+afford=ud.6%cost
+if afford>20 then afford=20
+tr p2'You can afford a level 'afford' mercenary.'
+qy p1'What level? ('pc'max = 'p6''afford''p1') 'pf
+call gcc4
+if com1<1 then call gang_x6
+if com1>afford then com1=afford
+handman=cost*com1;handmana=comadd(handman)
+tr p2'You hand the man 'handmana' GP.'
+tr p2'He says: "Consider it done..." He laughs and walks off...'
+ud.6=ud.6-handman
+xd.80=1;xd.81=3;xd.82=com1
+call save_player_gang;call pcr;signal bar1
+
+GANG_X4:
+tr p2'A thief eh? Alright. What level would you like him to be?'
+cost=xd.8*50000;costa=comadd(cost)
+tr p2'It costs 'costa' GP per level.'
+ud.6a=comadd(ud.6)
+tr p2'You have 'ud.6a' GP.'
+if ud.6<cost then do;tr p2'Not enough GP.';call gang_x6;nd
+afford=ud.6%cost
+if afford>20 then afford=20
+tr p2'You can afford a level 'afford' thief.'
+qy p1'What level? ('pc'max = 'p6''afford''p1') 'pf
+call gcc4
+if com1<1 then call gang_x6
+if com1>afford then com1=afford
+handman=cost*com1;handmana=comadd(handman)
+tr p2'You hand the man 'handmana' GP.'
+tr p2'He says: "Consider it done..." He laughs and walks off...'
+ud.6=ud.6-handman;xd.80=1;xd.81=4;xd.82=com1
+call save_player_gang;call pcr;signal bar1
+
+GANG_X5:
+tr p2'A bounty eh? Alright. How much of a bounty?'
+ud.6a=comadd(ud.6)
+qy p1'How much? ('pc'max = 'p6''ud.6a''p1') 'pf
+call gcc4
+if com1<1 then call gang_x6
+if com1>ud.6 then com1=ud.6
+com1a=comadd(com1)
+tr p2'You hand the man 'com1a' GP.'
+tr p2'He says: "Consider it done..." He laughs and walks off...'
+ud.6=ud.6-com1;xd.80=1;xd.81=5;xd.82=com1
+call save_player_gang;call pcr;signal bar1
+
+GANG_X6:
+tr p2'The man growls under his breath...'
+call pcr;signal bar1
+
+GETU1:
+parse var line1 xd.1'|'xd.2'|'xd.3'|'xd.4'|'xd.5'|'xd.6'|'xd.7'|'xd.8'|'xd.9'|'xd.10'|'xd.11'|'xd.12'|'xd.13'|'xd.14'|'xd.15'|'xd.16'|'xd.17'|'xd.18'|'xd.19'|'xd.20'|'xd.21'|'xd.22'|'xd.23'|'xd.24'|'xd.25'|'xd.26'|'xd.27'|'xd.28'|'xd.29'|'xd.30'|'xd.31'|'xd.32'|'xd.33'|'xd.34'|'xd.35'|'xd.36'|'xd.37'|'xd.38'|'xd.39'|'xd.40'|'xd.41'|'xd.42'|'xd.43'|'xd.44'|'xd.45'|'xd.46'|'xd.47'|'xd.48'|'xd.49'|'xd.50'|'xd.51'|'xd.52'|'xd.53'|'xd.54'|'xd.55'|'xd.56'|'xd.57'|'xd.58'|'xd.59'|'xd.60'|'xd.61'|'xd.62'|'xd.63'|'xd.64'|'xd.65'|'xd.66'|'xd.67'|'xd.68'|'xd.69'|'xd.70'|'xd.71'|'xd.72'|'xd.73'|'xd.74'|'xd.75'|'xd.76'|'xd.77'|'xd.78'|'xd.79'|'xd.80'|'xd.81'|'xd.82
+if xd.19=1 then do;pron1='his';pron2='His';pron3='He';pron4='he';pron5='him';end
+else do;pron1='her';pron2='Her';pron3='She';pron4='she';pron5='her';end
+RETURN
+
+GETU2:
+line1=xd.1'|'xd.2'|'xd.3'|'xd.4'|'xd.5'|'xd.6'|'xd.7'|'xd.8'|'xd.9'|'xd.10'|'xd.11'|'xd.12'|'xd.13'|'xd.14'|'xd.15'|'xd.16'|'xd.17'|'xd.18'|'xd.19'|'xd.20'|'xd.21'|'xd.22'|'xd.23'|'xd.24'|'xd.25'|'xd.26'|'xd.27'|'xd.28'|'xd.29'|'xd.30'|'xd.31'|'xd.32'|'xd.33'|'xd.34'|'xd.35'|'xd.36'|'xd.37'|'xd.38'|'xd.39'|'xd.40'|'xd.41'|'xd.42'|'xd.43'|'xd.44'|'xd.45'|'xd.46'|'xd.47'|'xd.48'|'xd.49'|'xd.50'|'xd.51'|'xd.52'|'xd.53'|'xd.54'|'xd.55'|'xd.56'|'xd.57'|'xd.58'|'xd.59'|'xd.60'|'xd.61'|'xd.62'|'xd.63'|'xd.64'|'xd.65'|'xd.66'|'xd.67'|'xd.68'|'xd.69'|'xd.70'|'xd.71'|'xd.72'|'xd.73'|'xd.74'|'xd.75'|'xd.76'|'xd.77'|'xd.78'|'xd.79'|'xd.80'|'xd.81'|'xd.82
+RETURN
+
+gcc:;com1=result;GETCARRIER;if result="FALSE" then call hangupmodem;IF TIME('E')>secs THEN call quitbbsnow;if pcrneg=1 then return;com1=compress(com1,',');if datatype(com1)='NUM' & noedit~=1 then com1=abs(com1);tr;RETURN
+
+PCR:;ss p1'--Press *any key* to continue--'pf;gc;pcrneg=1;call gcc;pcrneg=0;tr;tr'[1A[K[1A';RETURN
+
+COMADD: procedure
+arg x;if datatype(x)~='NUM' then return x;x=x%1;if x>99999999999999 then x=99999999999999;y=length(x);z=y%3;if z*3=y then z=z-1;if z*3>y then z=z-1;if z<1 then return x;j=y-(z*3);do i=1 to z;ii=y-(3*i);x=insert(',',x,ii);end;return x
+
+gcc4:;com1=result;GETCARRIER;if result="FALSE" then call hangupmodem;IF TIME('E')>secs THEN call quitbbsnow;com1=compress(com1,',');if datatype(com1)~='NUM' & com1~='max' & com1~='MAX' then com1=0;if com1~='MAX' & com1~='max' then do;com1=com1%1;com1=abs(com1);end;tr;RETURN
+
+bar1:
+call open(1,'ram:tdl1','W');call writeln(1,ud.6);call close(1)
+bufferflush;exit

@@ -1,0 +1,540 @@
+
+  
+  /*      Checkinbound 12   May 16,1994  by Charles Johnston 
+               Sysop - Upper Room BBS - (602) 771-8971  
+
+     
+      ------------------------------------------------------------ 
+       Edit the variables below to suit YOUR system configuration 
+      ------------------------------------------------------------        */
+
+ Faith = "1"         /* <----- "1" if you run Faith-Net  "0" if you don't */
+
+ Clink = "1"         /* <----- "1" if you run Clink      "0" if you don't */
+
+ Traptoss = "0"      /* <----- "1" if you use Traptoss   "0" if you don't */
+
+
+ DoImportPath="CNET:TOSS"  /* <-YOUR TOSSER script or command             */
+
+
+ Ticpath = "BIN:ftick mail:configs/tick.cfg" /* <-YOUR Tick prg path.     
+                                                  If none then put "0"    */
+ 
+                                             
+ Trapcfgpath = "BIN:traplist.cfg"            /*<-YOUR Traplist.cfg path   */
+
+
+ OutDIR = "Mail:outbound/"  /* <--YOUR system's outbound directory path   */
+ 
+
+ PrgPath = "Bin:"  /* <-- the directory CheckInbound is commanded from  
+                           With Aftersession command use BIN:             */
+
+
+ FIDO = "2" /* <--You ARE NOT running FIDO now  then FIDO = "0"           */
+            /*    You ARE running FIDO on 68040 then FIDO = "1"           */
+            /*    You ARE running FIDO on 68030 then FIDO = "2"           */
+            /*    You ARE running FIDO on 68020 then FIDO = "3"           */
+            /*    You ARE running FIDO on 68000 then FIDO = "4"           */
+
+ /* Note:
+    the FIDO variable sets a delay so Traplist can finish COMLETELY before
+    deletion of the old nodelists is attempted. If your OLD nodelists do 
+    not get deleted move the variable up in value. Tested on 030'/40 mhz      
+
+     --------------------------------------------------------------
+                      T  H  A  N  K     Y  O  U 
+     --------------------------------------------------------------       */ 
+
+
+if ~show('l','rexxsupport.library') then;do
+if ~addlib('rexxsupport.library',0,-30,0) then;do
+say "Couldn''t access rexxsupport.library!"
+exit 5
+end
+end
+Options Results
+call checkzerobyte
+call checkzedzip
+InDir="Mail:Inbound/"
+InboundFiles=showdir(InDir,'F')
+if InboundFiles='' then EXIT
+ftic=0
+toss=0
+trap=0
+setclip('fa')
+setclip('c')
+setclip('fi')
+if faith="1" then
+do
+call checkfaitheco
+call checkfaithlst
+end
+if clink="1" then
+do
+call checkclinkeco
+call checkclinklst
+end
+if fido~="0" then
+do
+call checknodediff
+end
+call trap
+call Tic
+call toss
+if Traptoss="1" then
+do
+call checkbadmsgs
+end
+call WriteDelete
+call checkbakin
+Tic:
+InDir="Mail:Inbound/"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line name "." suffix rest
+if upper(suffix)='TIC' then ftic=1
+end i
+if ftic=1&Ticpath="0" then call deletetic
+if ftic=1&Ticpath ~="0" then
+do
+address command
+'run >NIL:' Ticpath
+end
+call delay(14)
+RETURN
+Toss:
+InDir="Mail:Inbound/"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line name "." suffix rest
+msg=left(suffix,2)
+if upper(msg)=MO&length(suffix)=3 then
+do
+toss=1
+leave i
+end
+if upper(msg)=TU&length(suffix)=3 then
+do
+toss=1
+leave i
+end
+if upper(msg)=WE&length(suffix)=3 then
+do
+toss=1
+leave i
+end
+if upper(msg)=TH&length(suffix)=3 then
+do
+toss=1
+leave i
+end
+if upper(msg)=FR&length(suffix)=3 then
+do
+toss=1
+leave i
+end
+if upper(msg)=SA&length(suffix)=3 then
+do
+toss=1
+leave i
+end
+if upper(msg)=SU&length(suffix)=3 then
+do
+toss=1
+leave i
+end
+if upper(msg)=PK&length(suffix)=3 then
+do
+toss=1
+leave i
+end
+end i
+if toss=1 then
+do
+address command
+DoImportPath
+end
+call delay(5)
+RETURN
+checkzerobyte:
+address command
+'SYS:c/list >ram:filelist LFORMAT "%-25N %L"' Outdir
+dirname=Outdir
+data='ram:filelist'
+call OPEN(f,data,'r')
+do while ~eof(f)
+line=readln(f)
+parse var line name size
+delfile=dirname||name
+if size='empty' then CALL delete(delfile)
+end
+call close(f)
+call delay(15)
+address command 'delete ram:filelist QUIET'
+RETURN
+checkbadmsgs:
+address command
+'SYS:c/list >ram:msglist LFORMAT "%-25N %D" Mail:Bad/'
+dirname='Mail:Bad/'
+data='ram:msglist'
+call OPEN(f,data,'r')
+do while ~eof(f)
+line=readln(f)
+parse var line name day
+delfile=dirname||name
+if day ~='Today' then CALL delete(delfile)
+end
+call close(f)
+call delay(15)
+address command 'delete ram:msglist QUIET'
+return
+checkzedzip:
+address command
+'SYS:c/list >ram:zedzip Mail:Inbound/'
+dirname='Mail:Inbound:'
+data='ram:zedzip'
+call OPEN(f,data,'r')
+do while ~eof(f)
+line=readln(f)
+parse var line name '.' suffix size rest
+if upper(suffix)='PKT'&size='60' then
+do
+delfile=dirname||name||'.'||suffix
+address command 'delete' delfile 'QUIET'
+end
+end
+call close(f)
+call delay(14)
+address command
+'delete ram:zedzip QUIET'
+return
+deletetic:
+address command
+'SYS:c/list >ram:ticlist Mail:Inbound/'
+dirname='Mail:Inbound/'
+data='ram:ticlist'
+call OPEN(f,data,'r')
+do while ~eof(f)
+line=readln(f)
+parse var line name '.' suffix rest
+delfile=dirname||name||'.'||suffix
+if upper(suffix)='TIC' then CALL delete(delfile)
+end
+call close(f)
+call delay(14)
+address command
+'delete ram:ticlist QUIET'
+return
+checkbakin:
+dirname='Mail:BakIn/'
+If ~exists(dirname) then
+do
+setclip('fa')
+setclip('c')
+setclip('fi')
+EXIT
+end
+address command
+'SYS:c/list >ram:bakin LFORMAT "%-15N %D" Mail:Bakin/'
+data='ram:bakin'
+call OPEN(f,data,'r')
+do while ~eof(f)
+line=readln(f)
+parse var line name day
+delfile=dirname||name
+if day ~='Today' then CALL delete(delfile)
+end
+call close(f)
+call delay(15)
+address command 'delete ram:bakin QUIET'
+EXIT
+trap:
+if trap=1 then
+do
+address command 'CD BIN:'
+address command 'run >NIL: traplist CONFIG' trapcfgpath
+if FIDO="0" then call delay(500)
+if FIDO="1"&getclip('fi')='NODEDIFF' then call delay(1500)
+if FIDO="1"&getclip('fi')='' then call delay(1100)
+if FIDO="2"&getclip('fi')='NODEDIFF' then call delay(3000)
+if FIDO="2"&getclip('fi')='' then call delay(1850)
+if FIDO="3"&getclip('fi')='NODEDIFF' then call delay(5000)
+if FIDO="3"&getclip('fi')='' then call delay(2850)
+if FIDO="4"&getclip('fi')='NODEDIFF' then call delay(7500)
+if FIDO="4"&getclip('fi')='' then call delay(4350)
+end
+RETURN
+WriteDelete:
+if getclip('c')='ClinkLST' then
+do
+filename='sysdata:log/maint'
+if ~exists(filename) then
+do
+call open(f,filename,'w')
+end
+call open(f,filename,'a')
+line=''
+call writeln(f,line)
+line='Updated Clink nodelist on' Date(u) 'at' Time(c)
+call writeln(f,line)
+line=''
+call writeln(f,line)
+call close(f)
+call delete(oldcfile)
+end
+if getclip('fa')='FaithLST' then
+do
+filename='sysdata:log/maint'
+if ~exists(filename) then
+do
+call open(f,filename,'w')
+end
+call open(f,filename,'a')
+line=''
+call writeln(f,line)
+line='Updated Faith-Net nodelist on' Date(u) 'at' Time(c)
+call writeln(f,line)
+line=''
+call writeln(f,line)
+call close(f)
+call delete(oldfafile)
+end
+if getclip('fi')='NODEDIFF' then
+do
+filename='sysdata:log/maint'
+if ~exists(filename) then
+do
+call open(f,filename,'w')
+end
+call open(f,filename,'a')
+line=''
+call writeln(f,line)
+line='Updated FIDO nodelist on' Date() 'at' Time(c)
+call writeln(f,line)
+line=''
+call close(f)
+address command 'delete' deldiff
+call delay(14)
+address command 'delete' delnode
+end
+RETURN
+checknodediff:
+InDir="Nodelist:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line oldnode'.' oldnodenumbers rest
+if upper(oldnode)='NODELIST' THEN
+do
+delnode=InDir||oldnode||'.'||oldnodenumbers
+end
+end i
+InDir="Nodelist:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line olddiff '.' olddiffnumbers rest
+if upper(olddiff)='NODEDIFF' THEN
+do
+deldiff=InDir||olddiff||'.'||olddiffnumbers
+end
+end i
+InDir="Inbound:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line diffname '.' diffnumbers
+if upper(diffname)='NODEDIFF' THEN
+do
+trap=1
+setclip('fi','NODEDIFF')
+arcpath=InDir||diffname'.'diffnumbers
+address command 'arc x ' arcpath
+call delay(100)
+if ticpath="0" then
+do
+address command 'delete' InDir||'nodediff.#? QUIET'
+end
+address command 'rename' PrgPath||'Nodediff.#? Nodelist: QUIET'
+end
+end i
+call delay(14)
+close(f)
+RETURN
+checkclinklst:
+newcname=''
+InDir="Nodelist:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line oldname '.' oldnumbers rest
+if upper(oldname)='CLINKLST' THEN
+do
+oldcname='ClinkLST'
+oldcfile=InDir||oldname||'.'||oldnumbers
+oldcnodes=oldname||'.'||oldnumbers
+call close(f)
+call delay(14)
+end
+end i
+InDir="Inbound:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line newname '.' newnumbers rest
+if upper(newname)='CLINKLST' THEN
+do
+trap=1
+setclip('c','ClinkLST')
+newcname=getclip('c')
+newcfile=InDir||newname||'.'||newnumbers
+newcnodes=newname||'.'||newnumbers
+address command 'copy' newcfile 'to nodelist:'
+end
+end i
+call delay(14)
+close(f)
+RETURN
+checkclinkeco:
+InDir="Nodelist:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line oldname '.' oldnumbers rest
+if upper(oldname)='CLINKECO' THEN
+do
+oldname='ClinkECO'
+oldcefile=InDir||oldname||'.'||oldnumbers
+oldechos=oldname||'.'||oldnumbers
+call close(f)
+call delay(14)
+end
+end i
+InDir="Inbound:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line newname '.' newnumbers rest
+if upper(newname)='CLINKECO' THEN
+do
+newname='ClinkECO'
+newfile=InDir||newname||'.'||newnumbers
+newechos=newname||'.'||newnumbers
+address command 'copy' newfile 'to nodelist:'
+if ticpath="0" then call delete(newfile)
+call delay(14)
+filename='sysdata:log/maint'
+if ~exists(filename) then
+do
+call open(f,filename,'w')
+end
+call open(f,filename,'a')
+line=''
+call writeln(f,line)
+line='Deleted' oldechos 'and copied' newechos 'to Nodelist: on' Date(u) 'at' Time(c)
+call writeln(f,line)
+line=''
+call writeln(f,line)
+call close(f)
+call delete(oldcefile)
+end
+end i
+call delay(14)
+RETURN
+checkfaithlst:
+newfaname=''
+InDir="Nodelist:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line oldname '.' oldnumbers rest
+if upper(oldname)='FAITHLST' THEN
+do
+oldfaname='FaithLST'
+oldfafile=InDir||oldname||'.'||oldnumbers
+oldfanodes=oldname||'.'||oldnumbers
+call close(f)
+call delay(14)
+end
+end i
+InDir="Inbound:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line newname '.' newnumbers rest
+if upper(newname)='FAITHLST' THEN
+do
+trap=1
+setclip('fa','FaithLST')
+newfaname=getclip('fa')
+newfafile=InDir||newname||'.'||newnumbers
+newfanodes=newname||'.'||newnumbers
+address command 'copy' newfafile 'to nodelist:'
+end
+end i
+call delay(14)
+close(f)
+RETURN
+checkfaitheco:
+InDir="Nodelist:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line oldname '.' oldnumbers rest
+if upper(oldname)='FAITHECO' THEN
+do
+oldname='FaithECO'
+oldfile=InDir||oldname||'.'||oldnumbers
+oldechos=oldname||'.'||oldnumbers
+call close(f)
+call delay(14)
+end
+end i
+InDir="Inbound:"
+InboundFiles=showdir(InDir,'F')
+DO i=1 TO WORDS(InboundFiles)
+testfile=WORD(InboundFiles,i)
+line=testfile
+parse var line newname '.' newnumbers rest
+if upper(newname)='FAITHECO' THEN
+do
+newname='FaithECO'
+newfile=InDir||newname||'.'||newnumbers
+newechos=newname||'.'||newnumbers
+address command 'copy' newfile 'to nodelist:'
+if ticpath="0" then call delete(newfile)
+call delay(14)
+filename='sysdata:log/maint'
+if ~exists(filename) then
+do
+call open(f,filename,'w')
+end
+call open(f,filename,'a')
+line=''
+call writeln(f,line)
+line='Deleted' oldechos 'and copied' newechos 'to Nodelist: on' Date(u) 'at' Time(c)
+call writeln(f,line)
+line=''
+call writeln(f,line)
+call close(f)
+call delete(oldfile)
+end
+end i
+call delay(14)
+RETURN

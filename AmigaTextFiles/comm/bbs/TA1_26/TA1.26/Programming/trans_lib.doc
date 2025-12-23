@@ -1,0 +1,587 @@
+TABLE OF CONTENTS
+
+transamiga.library/ANSIWrite
+transamiga.library/BBSCmd
+transamiga.library/BBSLineInfo
+transamiga.library/CheckCarrier
+transamiga.library/CheckLock
+transamiga.library/CloseBBSLine
+transamiga.library/ConAbortRead
+transamiga.library/ConCheckRead
+transamiga.library/ConQueueRead
+transamiga.library/DropDTR
+transamiga.library/FixString
+transamiga.library/FreeDriveSpace
+transamiga.library/LogEntry
+transamiga.library/NewBBSLine
+transamiga.library/ObtainLine
+transamiga.library/OutStr
+transamiga.library/PostNodeMsg
+transamiga.library/RaiseDTR
+transamiga.library/ReleaseLine
+transamiga.library/SaveMsgText
+transamiga.library/SerFlush
+transamiga.library/SerQuery
+transamiga.library/SerReadChar
+transamiga.library/SerReadData
+transamiga.library/SerWrite
+transamiga.library/SerWriteLen
+transamiga.library/SetSerParams
+transamiga.library/Notes
+
+
+transamiga.library/ANSIWrite                   transamiga.library/ANSIWrite
+
+    NAME
+      ANSIWrite  - Writes a string, converting ANSI codes.
+
+    SYNOPSIS
+      VOID ANSIWrite(struct BBSLine *line, char *ch);
+      -6c           d1                    a0
+    
+    FUNCTION
+      Writes the string to the terminal window.  This provides
+      high-powered ANSI emulation, capable of handling most Amiga and IBM
+      ANSI codes, including 16-colour ANSI.  This ANSI emulation is
+      significantly faster than the console.device with cursor on, and
+      about the same speed as the console.device with cursor off.  It
+      properly adjusts to different fonts sizes, system fonts and window
+      sizes.  It does not update the position of the cursor sprite.
+
+
+transamiga.library/BBSCmd                           transamiga.library/BBSCmd
+
+    NAME
+      BBSCmd  - Send an ARexx message to a line
+    
+    SYNOPSIS
+      int BBSCmd(int linenum, char *cmd, char *buf);
+      -102       d0           a0         a1
+
+    FUNCTION
+      Sends an ARexx command to a BBS line currently executing an ARexx
+      macro.  The result code of that command is returned, and any string
+      info returned is copied into the buffer pointed to by buf.  Any
+      ARexx command that TransAmiga normally understands may be sent, but
+      you must be careful only to use this function when you know that
+      TransAmiga is going to be listening to its ARexx port.  Normally,
+      only programmes actually started from within an ARexx macro using
+      "address command ..." will use this function.
+
+      Note that though you could perform all I/O simply bby sending ARexx
+      commands.  However, this is not recommended for reasons of speed. 
+      For example, you will find it significantly faster to use
+      ANSIWrite() and SerWrite() to send text than using the SEND ARexx
+      command via BBSCmd().  For more involved I/O, such as displaying a
+      text file, you will however probably prefer to use send ARexx
+      commands.
+
+    EXAMPLE
+      You must also be sure that the command sent is as TransAmiga expects
+      to see it.  For example, while in ARexx you might say:
+
+        textpath='BBS:Text/'
+        sendfile textpath'MyFile'
+
+      But TransAmiga will actually see this as:
+
+        SENDFILE BBS:Text/MyFile
+
+      As ARexx will capitalize the command, expand all variables and
+      remove quotation marks.  So to issue this command with BBSCmd(),
+      you would use:
+
+        rc=BBSCmd(bbsline,"SENDFILE BBS:Text/MyFile",buf);
+
+      Be careful with commands like PROMPT, where TransAmiga still expect
+      to see some quotation marks (see the TransAmiga.Doc for info on
+      this).
+
+
+transamiga.library/BBSLineInfo               transamiga.library/BBSLineInfo
+
+    NAME
+      BBSLineInfo  - Returns the BBS line structure of a line number
+    
+    SYNOPSIS
+      ULONG BBSLineInfo(int linenum);
+      -42               d1
+
+    FUNCTION
+      Returns the address of a BBSLine structure for the line number asked
+      for, or NULL if a line has not been opened under that number. 
+      This function should only be used when no I/O needs to be done
+      through the line asked for.  For all but the most simplest of tasks,
+      use ObtainLine()/ReleaseLine() instead.
+
+
+transamiga.library/CheckCarrier             transamiga.library/CheckCarrier
+
+    NAME
+      CheckCarrier  - Determines if carrier is present
+    
+    SYNOPSIS
+       int CheckCarrier(struct BBSLine *line);
+       -4e              d1
+    
+    FUNCTION
+      Returns TRUE if carrier is present, or FALSE if it is not.  It will
+      also return TRUE if there is no serial device for that line, and if
+      DTR is low.
+
+
+transamiga.library/CheckLock                   transamiga.library/CheckLock
+
+    NAME
+      CheckLock  - See if something is locked.
+    
+    SYNOPSIS
+      int CheckLock(int what);
+      -84           d1
+    
+    FUNCTION
+      Returns either TRUE or FALSE depending on whether the resources
+      asked for is locked.  See the header files for possible values of
+      what.
+
+    BUGS
+      The value returned will only be meaningful if a copy of TransAmiga
+      is currently running.
+
+
+transamiga.library/CloseBBSLine             transamiga.library/CloseBBSLine
+
+    NAME
+      CloseBBSLine  - De-initializes a BBS line
+    
+    SYNOPSIS
+      VOID CloseBBSLine(struct BBSLine *line);
+      -3c               d1
+    
+    FUNCTION
+      Releases all resources that were opened when NewBBSLine() was called. 
+      Each call you make to NewBBSLine() should have a matching
+      CloseBBSLine() call to close down.
+
+
+transamiga.library/ConAbortRead             transamiga.library/ConAbortRead
+
+    NAME
+      ConAbortRead  - Aborts the read request
+    
+    SYNOPSIS
+      VOID ConAbortRead(struct BBSLine *line);
+      -7e               d1
+
+    FUNCTION
+      Does an AbortIO() of the console read request, if one is still
+      pending.  If there isn't, it simply does nothing, so it is always
+      safe to call.
+
+    EXAMPLE
+      ConQueueRead(), ConCheckRead() and ConAbortRead() were all designed
+      specifically for TransAmiga's needs, and therefore may not be suited
+      to your applications.  However, this is typically how they would be
+      used:
+
+      First, make sure there are no outstanding requests:
+
+        ConAbortRead(line);
+        ConQueueRead(line,ch);
+
+      Then, to check if a key has been pressed, call queue the read with
+      ConQueueRead() (note that reads can be aborted by the BBS when you
+      don't expect it, so you should call ConQueueRead() often), then
+      ConCheckRead() to see if it says a character has been entered.  If it
+      does, double-check this by seeing if the character is non-zero.  If it
+      is, copy the character out of the buffer and queue up a new read:
+
+        ConQueueRead(line,ch);
+        if (ConCheckRead(line)==1)
+        {
+            if (ch[0]!=0)
+            {
+                c=ch[0];
+                ConQueueRead(line,ch);
+            }
+        }
+
+      Finally, before your programme exits, be sure to call ConAbortRead()
+      so no outstanding requests are still pending:
+
+        ConAbortRead(line);
+
+
+transamiga.library/ConCheckRead             transamiga.library/ConCheckRead
+
+    NAME
+      ConCheckRead  - Checks if a character has been received
+    
+    SYNOPSIS
+      int ConCheckRead(struct BBSLine *line);
+      -78              d1
+
+    FUNCTION
+      Checks if the read request has completed and returns either 0 (if it
+      has not) or 1 (if it has).  The character will be in the buffer you
+      passed to ConQueueRead().
+
+      This function will also update the position of the cursor in your
+      window if the window is active.
+
+    BUGS
+      Sometimes ConCheckRead() will say that a character has arrived, but
+      your buffer will contain 0.  Your input routine should therefore
+      furthur check to make sure a non-zero value is in your character
+      buffer.
+
+    EXAMPLE
+      See ConAbortRead().
+
+
+transamiga.library/ConQueueRead             transamiga.library/ConQueueRead
+
+    NAME
+      ConQueueRead  - Queues a character read from the console.device
+
+    SYNOPSIS
+      VOID ConQueueRead(struct BBSLine *line, char *ch);
+      -72               d1                    a0
+    
+    FUNCTION
+      Starts up an asynchronous read of one character from the
+      console.device.  The character will be placed in the location
+      pointed to by ch.  Multiple read-requests can not be queued up
+      simultaneously, i.e. if a request is already queued, ConQueueRead
+      will do nothing.
+
+    EXAMPLE
+      See ConAbortRead().
+
+
+transamiga.library/DropDTR                       transamiga.library/DropDTR
+
+    NAME
+      DropDTR  - Lowers serial DTR
+    
+    SYNOPSIS
+      VOID DropDTR(struct BBSLine *line);
+      -8a          d1
+    
+    FUNCTION
+      Drops DTR on the specified line's serial device.  When DTR is low,
+      any attempts to do any serial I/O will simply result in nothing
+      happening.
+
+    BUGS
+      There is no easy way of dropping DTR on the Amiga, other than to
+      close all instances of the unit of the serial device in use.  This
+      function will close the serial device that TransAmiga opened (if you
+      have direct access to the BBSLine structure) or the serial device
+      opened when you ObtainLine()'ed a BBSLine structure.  It can't do
+      anything about others that have the serial device open (such as a
+      frontend mailer), so if there are such programmes running, DTR will
+      not be dropped.
+
+
+transamiga.library/FixString                   transamiga.library/FixString
+
+    NAME
+      FixString  - Fixes the capatilization of a string
+    
+    SYNOPSIS
+      void FixString(char *name)
+      -f0            a0
+    
+    FUNCTION
+      Tries to fix the capitilization of someone's name.  The first
+      character, and every character after any punctuation will be
+      capitalized, all other characters will be in lower-case.  This can
+      be useful as TransAmiga stores user names all in capitals.
+      
+      FixString now also nows about names beginning with 'Mac' and 'Mc',
+      in which cases the next letter after them will be capitalized, and
+      it also knows about 'de' by itself, in which case the d will be
+      lowercase.
+
+
+transamiga.library/FreeDriveSpace         transamiga.library/FreeDriveSpace
+
+    NAME
+      FreeDriveSpace  - returns the number of kilobytes free on a drive.
+    
+    SYNOPSIS
+      LONG FreeDriveSpace(char *dev);
+      -30            a0
+    
+    FUNCTION
+      Returns the number of free kilobytes on dev.  Note that dev doesn't
+      actually have to be the name of a physical device, it can be a
+      directory or an assignment, and the number of free kilobytes on the
+      device on which that directory or assignment resides will be
+      returned.
+
+
+transamiga.library/LogEntry                       transamiga.library/LogEntry
+
+    NAME
+      LogEntry  - Add a formatted log entry to the specified log file.
+    
+    SYNOPSIS
+      VOID LogEntry(char *symbol, char *str, char *logfile);
+      -2a           d1           a0         a1
+    
+    FUNCTION
+      Appends str to logfile, with symbol as the identifier.  It is
+      formatted with the identifier first, followed by the date and time
+      then the log string.  If the file does not exist, it creates a new
+      one.  Symbol should be a one character string.
+
+
+transamiga.library/NewBBSLine                 transamiga.library/NewBBSLine
+
+    NAME
+      NewBBSLine  - Sets up a new line for the BBS.
+    
+    SYNOPSIS
+      int NewBBSLine(struct BBSLine *line);
+      -36            d1
+    
+    FUNCTION
+      Does all the necessary setup for a new BBS line, given a properly
+      initialized BBSLine struct.  The only fields of this structure that
+      need to be set are bl_Number and bl_Window.  If no font name and
+      size is given, no font will be set for your window.  If no serial
+      device name is given, then no serial device will be open, and all
+      serial I/O functions for that line will simply do nothing.  If you
+      do not set bl_Screen, then the Workbench screen will be used (or the
+      default public screen for those running Release 2).  You should set
+      the bl_Status field to something meaningful.
+
+      See transamiga.h for more information on specific fields in the
+      BBSLine structure and for return codes.
+
+      Nothing other than TransAmiga itself should ever actually have a
+      need for this function, as doors spawned from the BBS do not setup
+      their own line.
+
+
+transamiga.library/ObtainLine                   transamiga.library/ObtainLine
+
+    NAME
+      ObtainLine  - Obtain access to a BBSLine structure
+    
+    SYNOPSIS
+      LONG ObtainLine(LONG linenum, struct BBSLine *linebuf);
+      -114            d1            a0
+
+    FUNCTION
+      Gains access to the line asked for.  A copy is made of the BBSLine
+      structure, and is put into the buffer pointed to by linebuf.  An
+      error code is returned (see transamiga.h) or 0 if there was no
+      error.
+
+    EXAMPLE
+      struct BBSLine line_buf;
+      LONG ret,bbsline=0;
+
+      ret=ObtainLine(bbsline,&line_buf);
+      ...
+      ReleaseLine(&line_buf);
+
+
+transamiga.library/OutStr                            transamiga.library/OuStr
+
+	NAME
+	  OutStr  - Simple unbuffered text output to stdout.
+   
+   	SYNOPSIS
+      VOID OutStr(char *str);
+      -24         a0
+    
+    FUNCTION
+      Simply prints the supplied string to Output().  Absolutely nothing
+      fancy is done, just a quick way to ouput a string.
+
+
+transamiga.library/PostNodeMsg                transamiga.library/PostNodeMsg
+
+    NAME
+      PostNodeMsg  - Sends a message to another line.
+    
+    SYNOPSIS
+      void PostNodeMsg(struct BBSLine *line, int linenum, char *msg)
+      -c6              d1
+    
+    FUNCTION
+      Sends an online message to the indicated line number.  If linenum is
+      greater than 100, then the message will be broadcast to all lines
+      except the current one.  Passing the BBSLine structure of the current
+      line (or a copy thereof) is optional, but recommended if possible.
+      For example, a door programme SHOULD pass it, while an external
+      programme talking to the BBS wouldn't be able to so it shouldn't.
+
+    BUGS
+      In versions of TransAmiga previous to v1.11, a completely different
+      method of passing messages was used that involved the setting of the
+      bl_Message field in the BBSLine structure.  This method was poor,
+      and that's why it was replaced, however, some applications may have
+      depended on this and will therefore break under v1.11 and above.
+
+
+transamiga.library/RaiseDTR                     transamiga.library/RaiseDTR
+
+    NAME
+      RaiseDTR  - Raises serial DTR
+
+    SYNOPSIS
+      VOID RaiseDTR(struct BBSLine *line);
+      -90           d1
+    
+    FUNCTION
+      Raises the DTR for the serial device of the specified line.  If the
+      line isn't using serial.device, then it will just re-OpenDevice()
+      the read and write requests.
+
+
+transamiga.library/ReleaseLine                 transamiga.library/ReleaseLine
+
+    NAME
+      ReleaseLine  - Release an obtained line
+    
+    SYNOPSIS
+      VOID ReleaseLine(struct BBSLine *line);
+      -11a             a0
+
+    FUNCTION
+      Relinquishes control over a line that you have obtained using
+      ObtainLine().  Every call to ObtainLine() must be matched by a call
+      to ReleaseLine().  Once you have called this function, you may no
+      longer use the BBSLine structure you've obtained.
+
+
+transamiga.library/SaveMsgText                 transamiga.library/SaveMsgText
+
+    NAME
+      SaveMsgText  - Save the text of a message to a file
+    
+    SYNOPSIS
+      int SaveMsgText(char *infile, char *outfile, LONG msgnum, LONG type,
+      -108            a0            a1             d0           d1
+                      LONG marg, struct MsgHeader *header)
+                      d2         a2    
+    FUNCTION
+      Saves an FTS-0001 message file, given by infile and msgnum, to the
+      given outfile.  If outfile exists, the text will be appended to it.
+      It will be formatted to fit into a margin of marg.  header is not
+      currently used, but you MUST pass 0 in the meantime.  Type allows
+      you to specify what the output will look like, see transamiga.h for
+      the definitions of the various flags.
+
+
+transamiga.library/SerFlush                     transamiga.library/SerFlush
+
+    NAME
+      SerFlush  - Flushes the serial device's input buffer
+
+    SYNOPSIS
+      VOID SerFlush(struct BBSLine *line);
+      -66           d1
+    
+    FUNCTION
+      Does a CMD_CLEAR on the lines serial read request.
+
+
+transamiga.library/SerQuery                     transamiga.library/SerQuery
+
+    NAME
+      SerQuery  - Query how many characters the serial device has waiting
+    
+    SYNOPSIS
+      ULONG SerQuery(struct BBSLine *line);
+      -ba            d1
+    
+    FUNCTION
+      Returns the number of characters waiting to be read from the serial
+      device of the given line, but doesn't actually read any.
+
+
+transamiga.library/SerReadChar               transamiga.library/SerReadChar
+
+    NAME
+      SerReadChar  - Reads a character from the serial port
+
+    SYNOPSIS
+      LONG SerReadChar(struct BBSLine *line, char *ch);
+      -60              d1                    a0
+    
+    FUNCTION
+      Reads a single character from the serial port if there is one
+      waiting, and places it in the buffer *ch.  Returns the number of
+      characters read (either 0 or 1).  Always returns 0 if there is no
+      serial device open or DTR is low.
+
+
+transamiga.library/SerReadData               transamiga.library/SerReadData
+
+    NAME
+      SerReadData  - Gets all waiting characters from the serial port
+    
+    SYNOPSIS
+      LONG SerReadData(struct BBSLine *line, char *ch);
+      -5a              d1                    a0
+    
+    FUNCTION
+      Reads all characters waiting at the serial port into the buffer *ch.
+      Returns the number of characters actually read.  Always returns 0 if
+      there is no serial device open or DTR is low.
+
+
+transamiga.library/SerWrite                     transamiga.library/SerWrite
+
+    NAME
+      SerWrite  - Outputs a string to the serial port
+    
+    SYNOPSIS
+      VOID SerWrite(struct BBSLine *line, char *ch);
+      -54           d1                    a0
+    
+    FUNCTION
+      Simply sends the specified string to the given line's serial port.
+
+
+transamiga.library/SerWriteLen               transamiga.library/SerWriteLen
+
+    NAME
+      SerWriteLen  - Outputs a string to the serial port
+    
+    SYNOPSIS
+      VOID SerWriteLen(struct BBSLine *line, char *ch, ULONG len);
+      -ae              d1                    a0        a1
+                       
+    FUNCTION
+      Simply sends the specified string of the given length to the line's
+      serial port.
+
+
+transamiga.library/SetSerParams             transamiga.library/SetSerParams
+
+    NAME
+      SetSerParams  - Changes the baud rate for a line
+    
+    SYNOPSIS
+      VOID SetSerParams(struct BBSLine *line, ULONG baud);
+      -48               d1                    d2
+    
+    FUNCTION
+      Adjusts the baud rate of the serial device for the line given.  Safe
+      to call if the serial device is not open.
+
+
+transamiga.library/Notes                           transamiga.library/Notes
+
+    This library is still under development, so there are functions still to
+    be added, and existing functions may be changed.  Also, there are a
+    few private functions that are not documented here (since they're
+    private).
+

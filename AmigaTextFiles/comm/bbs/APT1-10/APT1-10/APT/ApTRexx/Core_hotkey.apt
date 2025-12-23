@@ -1,0 +1,932 @@
+/* Core_hotkey.apt
+**
+** $VER: Core 0.0.3 (20.9.95)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright © 1993-95 ApT-Design All Rights Reserved,AG,DM
+**
+** This is mearly to act as a very basic example of how you may wish
+** to do things, or at least get started in the right direction.
+**
+** Editor TABS = Size of 3.
+**
+** NOTE: It is down to each of you to do your own 'LINE DROPPING' checks.
+** If your scripts fail to pick a dropped carrier then you have to debug
+** your own scripts, ... yourself :)
+**
+*/
+
+/* ######################################################################### */
+
+/*
+** TABLE LIST AND DEFINES:
+**
+** Version 0.0.2
+**
+** The following block of code should remain untouched by 3rd party
+** programmers. The block will be updated at times and all that will
+** be required from you is to paste the new block in. You may
+** alter code only when told specified.
+*/
+
+		/* Used within the CALLFUNCTION calls */
+
+COMPUTERTYPE_CALL	= 0
+COUNTRY_CALL		= 1
+BIRTHDAY_CALL		= 2
+PROTOCOL_CALL		= 3
+ARCHIVER_CALL		= 4
+SHOW_PASSWORD_AND_NAME_CALL = 5
+
+
+		/* This block is used in the SET GFX FLAG  function ONLY */
+
+ANSI_COL_FLG = 0 	/* Ansi Colour Flag	*/
+ANSI_POS_FLG = 1	/* Ansi Positioning 	*/
+ANSI_FLG_FLG = 2	/* ANSI at all!?		*/
+ANSI_SCR_FLG = 3	/* Ansi Scrolling		*/
+ANSI_CUR_FLG = 4	/* Ansi Cursor			*/
+SCRN_CLR_FLG = 7	/* Screen Clears		*/
+
+	/* This block is used in the GET VAR and  SET VAR ONLY */
+
+ACCESSLEVEL_VAR 	= 0
+VALID_VAR			= 1
+CALLSMADE_VAR		= 2
+MSGSLEFT_VAR		= 3
+MSGSREC_VAR			= 4
+UPLOADS_VAR			= 5
+DNLOADS_VAR			= 6
+BYTESUP_VAR			= 7
+BYTESDN_VAR			= 8
+BYTESLEFT_VAR		= 9
+FILERATIO_VAR		= 10
+BONUSRATIO_VAR		= 11
+HOTKEY_VAR			= 12
+EDITOR_VAR			= 13
+COMPTYPE_VAR		= 14
+SCRLENGTH_VAR		= 15
+SCRWIDTH_VAR		= 16
+GENDER_VAR			= 17
+MORE_VAR				= 18
+PROTOCOL_VAR		= 19
+ARCHIVER_VAR		= 20
+/* MENUSET_VAR			= 21 */
+
+	/* This block is used in the GET STR and SET STR functions ONLY */
+
+USERNAME_STR 		= 0
+ADDR1_STR			= 1
+ADDR2_STR			= 2
+ADDR3_STR			= 3
+POSTCODE_STR		= 4
+COUNTRY_STR			= 5
+VOICENO_STR			= 6
+DATANO_STR			= 7
+PASSWORD_STR		= 8
+HANDLE_STR			= 9
+
+FIRELEN_OPT 		= 0
+FIRECASE_OPT		= 1
+FIREFILT_OPT		= 2
+
+LETTER_FLT			= 1
+NUMBER_FLT			= 2
+ASCII_FLT			= 4
+UPFIRST_FLT			= 8
+PUNCT_FLT			= 16
+
+FILE 					= 0
+STRING 				= 1
+
+USER_MEMBER			= 0	/* For the MOVEUSER function */
+USER_NEW				= 1
+USER_REVIEW			= 2
+
+DAYS2REVIEW_STVAR		= 0
+DAYSLASTCALL_STVAR	= 1
+
+LASTDATECALL_STSTR		= 0
+LASTTIMECALL_STSTR		= 1
+
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+
+CR = 'A'x
+CLS = '%CLS.'
+
+/* ######################################################################### */
+
+parse arg lineno justlog .
+
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+'SETMORE' 0
+
+'RETURNCODE' 0
+
+'GETSTATICVAR' 2 ; ansidetect=result
+CALL TIME 'R'	/* Reset Elapsed time counter */
+
+'GETVAR' ACCESSLEVEL_VAR	; level=result
+'GETVAR' CALLSMADE_VAR 		; callsmade = result /* how many calls made */
+'GETVAR' MSGSLEFT_VAR  		; msgsleft = result  /* How many msgs left  */
+'GETSTR' USERNAME_STR  		; username = result  /* username				*/
+var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result
+
+'SETMORE' 1
+
+/*
+** If the user is accessing here on 'default menu' syle, then we
+** might as well remember which the real number of the menu and
+** set it.
+**/
+if(menuset=0) then do
+var=getclip(MENUSET_VAR) ; 'SETVAR' var	2
+end
+
+'MAIL_CMD'	"HASMAIL"
+if result=1 then do
+ 'MSG' "%NL. You have waiting mail!%NL."
+ 'HOTKEY' "%NL. Press a key to continue: => "
+END
+ELSE DO
+ 'MSG' "%NL. A thought for the Day...%NL."
+ 'DAVE_CMD' "GETQUOTE"
+ 'MSG' "%TC=6." RESULT
+ 'HOTKEY' "%TC=7. Press a key to continue: => "
+END
+
+'MSG' "%NL."
+'SMALLCMD' "SCANNEWS"
+'msg' "Please press a key to continue =>%WAITKEY=1000."
+
+
+/*
+** MAIN_MENU:
+**
+**/
+DO FOREVER
+	var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result ; if(result~=2) then break
+	'INFORM' "At Main Menu."
+	'SETBREAK' "FMCLPDXWGB12345"
+/*	'SHOWFILE' "menus/main-HK"  */
+	'SHOWFILE' "menus/mainbutton"
+	'HOTKEY' "%TC=7. Ok What Now? " ;  rawkey=result ; key=upper(rawkey)
+	'ISDROP'		; if(result=1) then break
+
+	select
+		when key="C" then do
+			'PAGESYSOP'
+		end
+		when key="D" then do
+			call GAMES_MENU
+		end
+		when key="B" then do
+			'SHOWGLOBALFILE' "tplates:txt/apt-bbs.tpl"
+			'HOTKEY' "%TC=7.Press a key =>"
+		end
+		when key="F" then do
+		'INFORM' "Entering file areas..."
+		call FILES_MENU 0
+		end
+		when key="G" then do
+			'CHAINAPT' "Logoff"
+			'ISDROP' ; if(result=1) then break
+		end
+
+			  when key="X" then do
+			'INFORM' "CDROM Script."
+			'CHAINAPT' "Aminet-CDROM"
+			'ISDROP' ; if(result=1) then break
+		end
+
+		when key="L" then do
+			'MAIL_CMD' "FEEDBACK"
+		end
+		when key="M" then do
+			'MAILLIST' 0
+		end
+		when key="P" then do
+			call PREFS_MENU 0	; if(result~=2) then break
+
+		end
+		when key="W" then do
+			'MAIL_CMD' "SHOWMAIL"
+		end
+		when key="1" then do
+			call AMIGA_MENU
+		end
+		when key="2" then do
+			call IBM_MENU
+		end
+
+		when key="3" then do
+		'INFORM' "Running QWK Bundler."
+		'CHAINAPT' "QWKbuttons 0"
+		end
+
+		when key="4" then do
+		'INFORM' "Doing NewFile Scan."
+		'MSG' CLS
+		CALL NEWSCAN_SINCE_DATE
+		end
+
+		when key="5" then do
+			call PICTURE_MENU
+		end
+
+		when rawkey='F0'x then do ; 'CHATMODE' ; end
+
+		otherwise
+		  end
+
+END
+EXIT
+
+/* ######################################################################### */
+
+/*
+** GAMES_MENU:
+**
+**/
+GAMES_MENU: procedure
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+DO FOREVER
+	'SETBREAK' "0123456789HMPTVZCQGEFNABDIJKORSWYL"
+	'INFORM' "At Games Menu."
+	'SHOWFILE' "menus/menu_doorbutton"
+	'HOTKEY' "  Please Select a Door..." ; rawkey=result ; key=upper(rawkey)
+	'ISDROP' ; if(result=1) then return
+
+	select
+
+			when key="0" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="1" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="2" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="3" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="4" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="5" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="6" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="7" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="8" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="9" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="H" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="M" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="P" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="T" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="V" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="Z" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="X" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="C" then do
+				'INFORM' "Paging Sysop!"
+				'PAGESYSOP'
+				end
+			when key="Q" then return 0
+			when key="G" then do
+				'CHAINAPT' "Logoff"
+				'ISDROP' ; if(result=1) then return
+				end
+			when key="E" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="F" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="N" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="A" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="B" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="D" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="I" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="J" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="K" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="O" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="R" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="S" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="W" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="Y" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="L" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+			when key="U" then do
+				'msg' "%CLS.%TC=7.%CURSOR=1."
+				'msg' "\n\nThis is just a demonstration Menu. The option you selected is not available.\n"
+				'msg' "Please press a key to continue =>%WAITKEY=250."
+				'msg' "\n\n"
+				end
+
+			when rawkey='F0'x then do ; 'CHATMODE' ; end
+
+			otherwise
+			end
+	end
+
+	'ISDROP' ; if(result=1) then return
+
+END
+return
+
+/*
+** PREFS_MENU:
+**
+**/
+PREFS_MENU: procedure
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+
+parse arg prefarg
+
+DO FOREVER
+	'SHOWFILE' "pref/prf_choice"
+	'HOTKEY' "  Choose an option: " ; rawkey=result ; key=upper(rawkey)
+	'ISDROP' ; if(result=1) then return
+
+	select
+		when key="Q" then do
+		return 0
+		end
+		when key="P" then do
+		'EDITSTATS' 0
+		end
+
+		when key="B" then do
+		var=getclip(MENUSET_VAR) ; 'SETVAR' var	1
+		var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result
+ 		return 1
+		end
+		when key="C" then do
+		var=getclip(MENUSET_VAR) ; 'SETVAR' var	3
+		return 3
+		end
+		when key="H" then do
+		var=getclip(MENUSET_VAR) ; 'SETVAR' var	2
+		return 2
+		end
+
+		when key="S" then do
+		'EDITSTATS' 1
+		end
+
+		when key="M" then do
+		'DAVE_CMD' "MAILSELECT" prefarg
+		end
+
+		when rawkey='F0'x then do ; 'CHATMODE' ; end
+
+		otherwise
+		end
+	end
+
+	'ISDROP' ; if(result=1) then return 0
+
+END
+return 0
+
+/*
+** AMIGA_MENU:
+**
+**/
+AMIGA_MENU: procedure
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+DO FOREVER
+	'SHOWFILE' "menus/MENU_AMIGA-HK"
+	'HOTKEY' "%TC=7.  Your choice? " ; rawkey=result ; key=upper(rawkey)
+	'ISDROP' ; if(result=1) then return
+	var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result ; if(result~=2) then return
+
+	select
+		when key="Q" then do
+		return 0
+		end
+		when key="C" then do
+			'PAGESYSOP'
+		end
+		when key="D" then do
+			call GAMES_MENU
+		end
+		when key="F" then do
+		'INFORM' "Entering file areas..."
+		call FILES_MENU 1
+		end
+		when key="G" then do
+			'CHAINAPT' "Logoff"
+			'ISDROP' ; if(result=1) then return
+		end
+		when key="L" then do
+			'MAIL_CMD' "FEEDBACK"
+		end
+		when key="M" then do
+			'MAILLIST' 1
+		end
+		when key="P" then do
+			call PREFS_MENU 1
+		end
+		when key="W" then do
+			'MAIL_CMD' "SHOWMAIL"
+		end
+
+		when key="B" then do
+		'INFORM' "Running QWK Bundler."
+		'CHAINAPT' "QWKbuttons 1"
+		end
+
+		when key="N" then do
+		'INFORM' "Doing NewFile Scan."
+		'MSG' CLS
+		CALL NEWSCAN_SINCE_DATE
+		end
+
+		when rawkey='F0'x then do ; 'CHATMODE' ; end
+
+		otherwise	'MSG' "Rawkey was = "rawkey
+
+		end
+
+	end
+
+	'ISDROP' ; if(result=1) then return
+
+END
+return
+
+/*
+** IBM_MENU:
+**
+**/
+IBM_MENU: procedure
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+DO FOREVER
+	'SHOWFILE' "menus/MENU_IBM-HK"
+	'HOTKEY' "%TC=7.  Your choice? " ; rawkey=result ; key=upper(rawkey)
+	'ISDROP' ; if(result=1) then return
+	var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result ; if(result~=2) then return
+
+	select
+		when key="Q" then do
+		return 0
+		end
+		when key="C" then do
+			'PAGESYSOP'
+		end
+		when key="D" then do
+			call GAMES_MENU
+		end
+		when key="F" then do
+		'INFORM' "Entering file areas..."
+		call FILES_MENU 2
+		end
+		when key="G" then do
+			'CHAINAPT' "Logoff"
+			'ISDROP' ; if(result=1) then return
+		end
+		when key="L" then do
+			'MAIL_CMD' "FEEDBACK"
+		end
+		when key="M" then do
+			'MAILLIST' 2
+		end
+		when key="P" then do
+			call PREFS_MENU 2
+		end
+		when key="W" then do
+			'MAIL_CMD' "SHOWMAIL"
+		end
+
+		when key="B" then do
+		'INFORM' "Running QWK Bundler."
+		'CHAINAPT' "QWKbuttons 2"
+		end
+
+		when key="N" then do
+		'INFORM' "Doing NewFile Scan."
+		'MSG' CLS
+		CALL NEWSCAN_SINCE_DATE
+		end
+
+		when rawkey='F0'x then do ; 'CHATMODE' ; end
+
+		otherwise
+		end
+	end
+
+	'ISDROP' ; if(result=1) then return
+
+END
+return
+
+			/*
+			** FILES_MENU:
+			**/
+			FILES_MENU: procedure
+
+			parse arg new_sig
+
+			Finished = 0
+			F1 = getclip(F1)
+			F2 = getclip(F2)
+			F3 = getclip(F3)
+			F4 = getclip(F4)
+			F5 = getclip(F5)
+			F6 = getclip(F6)
+
+			'INITFILEAREA'
+
+			'SETSIG' "NEWSIG="new_sig ; old_sig = result
+
+			'SELECTAREA' ; selected_area = result
+			if( selected_area == -1 ) then Finished = 1
+			else 'TOUCHINDEX'
+
+			'FILESTYLE' "RESET"
+
+			DO WHILE Finished~=1
+
+				'SHOWFILE' "file/fmenu"
+
+				'HOTKEY' "" ; rawkey=result ; key=upper(rawkey)
+
+				'ISDROP' ; if(result=1) then Finished = 1
+
+				select
+					when key="A" then do
+						'SELECTAREA' ; selected_area = result
+						if(selected_area == -1) then Finished=1
+						else 'TOUCHINDEX'
+					end
+					when key="S" then						'SCANAREA'
+					when key="=" then						'GLOBALNEWSCAN'
+					when key='N' then						'LOCALNEWSCAN'
+					when key='D'x | key='A'x then		'CONTINUESCAN'
+					when key='M' then						'MARKFILE'
+					when key='R' then						'REMOVEMARKED'
+					when key='U' then						'UPLOAD'
+					when key='D' then						'DOWNLOAD'
+					when key='L' then						'LISTMARKED'
+					when key='>' | key='.' then		'NEXTAREA'
+					when key='<' | key=',' then		'PREVAREA'
+					when key='V' then						'VIEWARCHIVE'
+					when key='F' then						'FILTERMENU'
+					when key='O' then						'FILTERSOFF'
+					when key='-' then do 
+						'FILEAREAINFO' "AREANUMBER" ; selected_area = result
+						'CHAINAPT' "FLST_Downloader "selected_area
+					end
+					when key="Q" then do
+						/*
+						** As the user may wish to QUIT, he may, unknowingly
+						** have forgot that they have files 'marked' for
+						** download. We should be kind and remind them of this,
+						** and give them the chance of sticking around.
+						**/
+						'MARKFILE' "QUERY" ; got_any_files = result
+						if( got_any_files==1 ) then do
+							'SHOWFILE' "file/filesmarked"	/* Inform of marked files	*/
+							call YESNO 1						/* default to YES				*/
+							if(result) THEN Finished=1		/* If TRUE, then finish.	*/
+						end
+						else Finished=1						/* Otherwise simply Quit	*/
+					end
+					when rawkey='F0'x then do ; 'CHATMODE' ; end
+					otherwise
+				end
+
+				'ISDROP' ; if(result=1) then Finished = 1
+			END
+
+			'FREEFILEAREA'
+
+			'SETSIG' "NEWSIG="old_sig ; old_sig = result
+
+			'msg' "\z4\b1\c7Leaving File Area...\b0\z0\c7"
+
+			return old_sig
+
+
+			/*
+			** NewScan:
+			**
+			** Takes care of doing all of the "file scanning since date"
+			** functions without the need to have pre-accessed a file
+			** area.. Example, shortly after logon ask the user if they
+			** wish to scan for new files since last on.
+			**/
+
+NEWSCAN_SINCE_DATE: procedure
+
+				'INFORM' "Scanning for files since date.."
+
+				'FILESTYLE' "RESET"
+
+				'INITFILEAREA'
+
+				'FINDDEFAULTBASE' ; first_base = result
+
+				if( first_base ~= -1) then do
+					'TOUCHINDEX' first_base
+					'GLOBALNEWSCAN'
+				end
+
+				/*
+				** As the user may have ABORTED scanning, but STILL
+				** have marked files, one needs to do the obvious
+				** and check..
+				**/
+				'MARKFILE' "QUERY" ; got_any_files = result
+				if( got_any_files==1 ) then do
+					'SHOWFILE' "file/downnsmarked"
+					call YESNO 1
+					if(result) THEN 'DOWNLOAD'
+				end
+
+				'FREEFILEAREA'
+
+			return
+
+
+/*
+** PICTURE_MENU:
+**
+**/
+PICTURE_MENU: procedure
+F1 = getclip(F1)
+F2 = getclip(F2)
+F3 = getclip(F3)
+F4 = getclip(F4)
+F5 = getclip(F5)
+F6 = getclip(F6)
+DO FOREVER
+	'SHOWFILE' "menus/MENU_PICTURE"
+	'HOTKEY' "%TC=7.  Your choice? " ; rawkey=result ; key=upper(rawkey)
+	'ISDROP' ; if(result=1) then return
+	var=getclip(MENUSET_VAR) ; 'GETVAR' var	; menuset=result ; if(result~=2) then return
+
+	select
+		when key="Q" then do
+		return 0
+		end
+		when key="C" then do
+			'PAGESYSOP'
+		end
+		when key="D" then do
+			call GAMES_MENU
+		end
+		when key="F" then do
+		'INFORM' "Entering file areas..."
+		call FILES_MENU 5
+		end
+		when key="G" then do
+			'CHAINAPT' "Logoff"
+			'ISDROP' ; if(result=1) then return
+		end
+		when key="L" then do
+			'MAIL_CMD' "FEEDBACK"
+		end
+		when key="M" then do
+			'MAILLIST' 5
+		end
+		when key="P" then do
+			call PREFS_MENU 5
+		end
+		when key="W" then do
+			'MAIL_CMD' "SHOWMAIL"
+		end
+
+		when key="N" then do
+		'INFORM' "Doing NewFile Scan."
+		'MSG' CLS
+		CALL NEWSCAN_SINCE_DATE
+		end
+
+		when rawkey='F0'x then do ; 'CHATMODE' ; end
+
+		otherwise	'MSG' "Rawkey was = "rawkey
+
+		end
+	end
+
+	'ISDROP' ; if(result=1) then return
+
+END
+return
+
+
+
+/*
+** PROCEDURE: YESNO
+**
+** Used whenever requesting a [Y/n] [y/N] style hotkey input
+**
+** Flag = 1 for Default to YES, 0 for Default to NO on return
+**
+** RETURNS: 1 for YES and 0 for NO
+*/
+
+YESNO: procedure
+
+parse arg Flag
+
+'HOTKEY' ""
+Key=upper(result)
+if(Flag=0) THEN DO
+	if(Key='Y') THEN DO
+		'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+		Flag = 1
+	END
+	ELSE DO
+		'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+		Flag = 0
+	END
+END
+ELSE
+if(Key='N') THEN DO
+	'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+	Flag = 0
+END
+ELSE DO
+	'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+	Flag = 1
+END
+	return Flag
+
+

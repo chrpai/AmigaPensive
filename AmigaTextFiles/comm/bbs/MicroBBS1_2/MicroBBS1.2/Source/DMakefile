@@ -1,0 +1,47 @@
+# DMakeFile for MicroBBS
+
+MAINFLAGS   = -v -//
+HANFLAGS    = -v -r -mRR -mi -proto
+MAINOBJS    = MicroBBS.o Strings.o Output.o Input.o Config.o Commands.o Support.o
+HANOBJS     = MicroBBS-handler.o
+MAINEXE     = MicroBBS
+HANEXE      = L:MicroBBS-handler
+
+doall : $(MAINEXE) $(HANEXE)
+
+$(MAINEXE) : $(MAINOBJS)
+    dcc $(MAINFLAGS) %(right) -o %(left)
+
+MicroBBS.o: MicroBBS.c MicroBBS.h Strings.o Output.o Input.o Config.o Commands.o Spaw.h Support.o
+    dcc $(MAINFLAGS) -c MicroBBS.c -o %(left)
+
+Strings.o: Strings.c Strings.h
+    dcc $(MAINFLAGS) -c Strings.c -o %(left)
+
+Output.o: Output.c Output.h Support.h
+    dcc $(MAINFLAGS) -c Output.c -o %(left)
+
+Input.o: Input.c Input.h Misc.h Support.h
+    dcc $(MAINFLAGS) -c Input.c -o %(left)
+
+Config.o: Config.c Config.h
+    dcc $(MAINFLAGS) -c Config.c -o %(left)
+
+Commands.o: Commands.c Commands.h Misc.h Spawn.h Config.h
+    dcc $(MAINFLAGS) -c Commands.c -o %(left)
+
+Support.o: Support.c Support.h Config.h Commands.h
+    dcc $(MAINFLAGS) -c Support.c -o %(left)
+
+$(HANEXE) : $(HANOBJS)
+    dcc $(HANFLAGS) %(right) -o %(left)
+
+MicroBBS-handler.o: MicroBBS-handler.c Spawn.h
+    dcc $(HANFLAGS) -c MicroBBS-handler.c -o %(left)
+
+clean:
+    -delete $(MAINOBJS) $(HANOBJS)
+
+all:
+    -delete $(MAINOBJS) $(MAINEXE) $(HANOBJS) $(HANEXE)
+    dmake

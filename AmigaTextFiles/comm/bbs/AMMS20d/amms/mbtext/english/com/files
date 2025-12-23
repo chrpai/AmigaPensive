@@ -1,0 +1,981 @@
+;
+;	$VER: AMMS Files 3.09 [English] / 03-06-1995
+;
+;	Translation by The Terminator
+;
+
+Known VARs in the requester :
+
+;	Var19: Number of files
+;	Var20: Boardname
+;	Var21: Path+boardname
+;	Var22: ZONE Req-window
+;	Var23: ZONE Comment-window
+;	Var24: SETLINE Infoline
+;	Var25: SETPOS Infoline (Col 40)
+;	Var26: SETLINE Comment-window
+
+;
+; Screen of Files
+; ---------------
+*
+#EOFF##RESET##RELOFF##ZONEOFF##HOME##CLS#
+Files : {var19 22}#FARBE 1,7# FILE-SYSTEM V{VERSION}.{REVISION} #RESET#
+{tab 23}[h=help]#RESET##HOME#^J
+#FARBE 7,4##INVERS# XX Filename     Dn  Length Uploader     Date   Comment                         {var24}
+                                                                                {var25}
+{limspaceon}{var21 40}#RESET#{limspaceoff}{var22}
+*
+; >>UP: 2.0
+; Help: Page 1 of 5
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 1 of 5                       #RESET#^J#CLB#
+d: mark file for download  e: change comment       E: change both comments^J
+D: start download          i: show fileinfo        I: toggle cont. fileinfo^J
+l: show transfer time      k: show long comment    K: toggle cont. long comment^J
+u: upload file             S: search from cursor   F: search from top^J
+CTRL-U: resume upload      s: search again         f: search again
+{var22}
+*
+; >>UP: 2.0
+; Help: Page 2 of 5
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 2 of 5                       #RESET#^J#CLB#
+t: show textfile           r: rename file         CTRL-A: toggle new/alpha sort^J
+T: show textfile (raw)     R: rename uploader     CTRL-O: toggle new/all files^J
+v: view archives           p: change privateuser  CTRL-E: lock large comment^J
+C: check archives          P: lock file           CTRL-D: delete file^J
+a: show size of all files  L: update filelength   CTRL-I: import file from disk
+{var22}
+*
+; >>UP: 2.0
+; Help: Page 3 of 5
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 3 of 5                       #RESET#^J#CLB#
+c: copy file               q: quit / next board   CTRL-F: toggle freedownload^J
+m: move file               x: exit / next board   CTRL-T/B: first/last page^J
+o: toggle file protection  z: quit / last board   CTRL-N/L: fol./pre. page^J
+h: next helpPage           Z: exit / last board   CTRL-XC: refresh window^J
+Q: quit / leave FILES      X: exit / leave FILES  CTRL-Y : refresh screen
+{var22}
+*
+; >>UP: 2.0
+; Help: Page 4 of 5
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 4 of 5                       #RESET#^J#CLB#
+b: show infotext of board      B: show info of board  CTRL-P: locked-sort (P)^J
+n: import file as new file     H: show hex dump       CTRL-R: protect-sort (L)^J
+SP: last long commment page    w: write settings      CTRL-V: download-sort (d)^J
+->: following l. comment page^J
+<-: preceding l. comment page  N: mark all files from this file as new
+{var22}
+*
+;
+; Starttext of Filesystem
+; -----------------------
+*
+^J#VFARBE 2#{command} - FILE-SYSTEM V{VERSION}.{REVISION}#RESET#^J^J
+*
+;
+; Endtext of Filesystem
+; ---------------------
+*
+^J#VFARBE 2#End of FILE-SYSTEM !#RESET#^J^J
+*
+;
+; Top line number of Requester-Window
+; -----------------------------------
+*
+3
+*
+;
+; Transfertime for Download
+; -------------------------
+;	Var3 : Size of files (bytes)
+;	Var4 : Size of files (Mbytes)
+;	Var27: Number of files
+;	Var28: Expected transfertime
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Transfertime for downloads              #RESET#^J#CLB#^J
+Number of files : {var27}^J
+Expected time   : {var28} min.^J
+Size of files   : {var4} MByte [{var3} Bytes]
+{var22}
+*
+;
+; Infoline : FILEINFO
+; -------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Info ...                                #RESET#
+*
+; >>UP: 2.0
+; FILEINFO
+; --------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+;	Var27-30: Uploader (Username@Nodename)
+;	Var31-34: String of all transfer nodes
+*
+#ZONEOFF#{var26}#CLB#
+Filename  : {var2 20}
+Length    : {var4 12}
+Downloads : {var10}^J
+Date      : {var7 20}
+Filenumber: {var12}^J
+Uploader  : {var27 67}^J
+{var31 79}{var22}
+*
+; >>UP: 2.0
+; FILEINFO-PRIVATE
+; ----------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+;	Var27-30: Uploader (Username@Nodename)
+;	Var31-34: String of all transfer nodes
+*
+#ZONEOFF#{var26}#CLB#
+Filename  : {var2 20}
+Length    : {var4 12}
+Downloads : {var10}^J
+Date      : {var7 20}
+Filenumber: {var12}^J
+Uploader  : {var27 67}^J
+Private to: {var13},{var14},{var15}^J
+{var31 79}{var22}
+*
+;
+; Infoline : long comment
+; -----------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Comment (                               #RESET#^J#CLB#
+*
+;
+; Long comment
+; ------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+#ZONEOFF#{var24}#RIGHT 9##FARBE 7,5##INVERS#
+{var2})            #RESET#^J#CLB#
+*
+;
+; Endtext of long comment/boardinfotext
+; -------------------------------------
+*
+#RESET#{var22}
+*
+;
+; Dattyp: long line
+; -----------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If there is a long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+^M#CL# {var1} {var2 12}{var9 4}{var3 8}{var5 10} {var6 9}{var17}
+*
+;
+; Dattyp: long line (DELETED)
+; ---------------------------
+*
+^M#CL#    <DELETED>
+*
+;
+; Dattyp: long line (no new files)
+; --------------------------------
+*
+^M#CL#    N o   n e w   f i l e s
+*
+;
+; Dattyp: long line (no files)
+; ----------------------------
+*
+^M#CL#    N o   f i l e s
+*
+; >>UP: 2.0
+; Rename Uploader : refresh line
+; ------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+#RESET#{limspaceon}{var5 10}{limspaceoff}
+*
+;
+; Dattyp: small line (refresh XX-Flags)
+; -------------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+ {Var1}
+*
+;
+; Dattyp: small line (refresh length)
+; -----------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+{tab 20}{limspaceon}{var3 8}{limspaceoff}
+*
+;
+; Cursor
+; ------
+*
+>#LEFT#
+*
+;
+; Delete cursor
+; -------------
+*
+ 
+*
+;
+; Unknown uploader
+; ----------------
+*
+Unknown
+*
+;
+; Datelook (Var 6)
+; ----------------
+*
+1-4-5
+*
+;
+; Datelook (Var 7)
+; ----------------
+*
+1-3-6
+*
+; >>UP: 2.0
+; Search filename
+; ---------------
+*
+#FARBE 7,4##INVERS#{var25}
+Search :                                #HFARBE 1#{var24}#RIGHT 49#
+*
+;
+; Refresh boardname
+; -----------------
+*
+#FARBE 7,4##INVERS#{var25}{limspaceon}{var21 40}#RESET#{limspaceoff}
+*
+;
+; Status (search) : FILE NOT FOUND
+; --------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File not found !                        #RESET#
+*
+;
+; Set position (Edit small comment)
+; ---------------------------------
+*
+#VFARBE 2#^M#RIGHT 48#
+*
+;
+; Refresh small comment (Edit small comment)
+; ------------------------------------------
+;	Var1    : XX-flags
+;	Var2    : Filename
+;	Var3    : Filelength (block right)
+;	Var4    : Filelength (block left)
+;	Var5    : Uploader
+;	Var6    : Date (xx-xx-xx)
+;	Var7    : Date (x-xx-xx)
+;	Var8    : Subject
+;	Var9    : Number of downloads (block right)
+;	Var10   : Number of downloads (block left)
+;	Var11   : Filenumber (block rigth)
+;	Var12   : Filenumber (block left)
+;	Var13   : Private-user 1
+;	Var14   : Private-user 2
+;	Var15   : Private-user 3
+;	Var16   : If there is a long comment then ">" else nothing
+;	Var17   : Optimized version : {var8 30}{var16}
+;	Var27-30: Uploader (Username@Nodename)
+;	Var31-34: String of all transfer nodes
+*
+#RESET#^M#RIGHT 48#{var8}
+*
+;
+; Enter filename
+; --------------
+*
+#FARBE 7,4##INVERS#{var25}Filename :                              #HFARBE 1#
+{var24}#RIGHT 51#
+*
+;
+; Enter Subject
+; -------------
+*
+#FARBE 7,4##INVERS#{var25}Comment:                                #HFARBE 1#
+{var24}#RIGHT 49#
+*
+;
+; Status (upload,import) : NOT ENOUGTH SPACE FOR FILE
+; ---------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Not enough space for file !             #RESET#
+*
+;
+; Status (import) : FILE NOT FOUND
+; --------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File not found !                        #RESET#
+*
+;
+; Status (upload,import) : FILE ALREADY EXISTS
+; --------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File already exists !                   #RESET#
+*
+;
+; Leave FILES
+; -----------
+*
+#ZONEOFF##RESET##HOME##CLS#
+*
+;
+; Question: Delete File ?
+; -----------------------
+*
+#FARBE 7,4##INVERS#{var25}Delete file (y/n) ?                     {var24}#RIGHT 60#
+*
+;
+; Status (delete) : FILE IS PROTECTED FROM DELETION
+; -------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File is protected from deletion !       #RESET#
+*
+;
+; Status (large comment) : LARGE COMMENT IS UNLOCKED
+; --------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Large comment is unlocked !             #RESET#
+*
+;
+; Status (large comment) : LARGE COMMENT IS LOCKED
+; ------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Large comment is locked !               #RESET#
+*
+;
+; Start download
+; --------------
+*
+#FARBE 7,5##INVERS#{var24}Download with {limspaceon}
+{protocol 26}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Start upload
+; ------------
+*
+#FARBE 7,5##INVERS#{var24}Upload with {limspaceon}
+{protocol 28}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Start resume upload
+; -------------------
+*
+#FARBE 7,5##INVERS#{var24}Resume upload with {limspaceon}
+{protocol 21}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+; >>UP: 2.0
+; Status (upload) : Upload OK
+; ---------------------------
+*
+#FARBE 7,5##INVERS#{var24}Upload OK !                             #RESET#{var22}
+*
+;
+; Status (upload,download) : XPR-LIB NOT FOUND
+; --------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}XPR-library not found !                 #RESET#{var22}
+*
+;
+; Status (upload) : UPLOAD ABORTED
+; --------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Upload aborted !                        #RESET#{var22}
+*
+;
+; Status (upload resume,delete) : FILE IN USE
+; -------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File in use !                           #RESET#{var22}
+*
+;
+; Status : USER NOT FOUND
+; -----------------------
+*
+#FARBE 7,1##INVERS#{var24}User not found !                        #RESET#
+*
+;
+; Status (private) : USER ALREADY EXISTS
+; --------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}User already exists !                   #RESET#
+*
+;
+; Status (private) : USER FOUND
+; -----------------------------
+*
+#FARBE 7,4##INVERS#{var24}User found !                            #RESET#
+*
+;
+; Private file to
+; --------------
+;	Var18: Number of User (1,2 or 3)
+*
+#FARBE 7,4##INVERS#{var25}Privatefile to ({var18}):                     #HFARBE 1#
+{var24}#RIGHT 59#
+*
+;
+; Set position (rename filename)
+; ---------------------------------
+*
+#VFARBE 2#^M#RIGHT 4#
+*
+;
+; Refresh filename (rename filename)
+; ----------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+#RESET#^M#RIGHT 4#{limspaceon}{var2 12}{limspaceoff}
+*
+;
+; Status : DISK ERROR
+; -------------------
+*
+#FARBE 7,1##INVERS#{var24}Error on disk ! Please contact sysop !  #RESET#
+*
+;
+; Clear Infoline
+; --------------
+*
+#FARBE 7,1##INVERS#{var24}                                        #RESET#
+*
+;
+; Status (download) : NO DOWNLOADS FREE
+; -------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}No downloads free !                     #RESET#
+*
+;
+; Status (download) : DOWNLOAD SKIPED
+; -----------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Skipped downloads ! You are out of time !#RESET#
+*
+;
+; Status (download) : DOWNLOAD ABORTED
+; ------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Download aborted !                      #RESET#
+*
+;
+; Status (download) : DOWNLOADLIST IS FULL
+; ----------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Downloadlist is full !                  #RESET#
+*
+;
+; Show raw text (clear screen)
+; ----------------------------
+*
+#RESET##ZONEOFF##HOME##CLS#
+*
+;
+; Show text (clear screen)
+; ------------------------
+*
+#RESET##ZONEOFF##HOME##CLS#{moreon}
+*
+;
+; Show text (wait for key)
+; ------------------------
+*
+^J^J#RESET##VFARBE 2#Press SPACE or RETURN to continue !
+*
+; >>UP: 2.0
+; Rename uploader
+; ---------------
+*
+#VFARBE 2#^M#RIGHT 28#{BORDER 10}
+*
+; >>UP: 2.0
+; Get target board
+; ----------------
+*
+#FARBE 7,4##INVERS#{var25}Targetboard :                           #HFARBE 1#
+{var24}#RIGHT 54#{BORDER 25}
+*
+;
+; Size of all files
+; -----------------
+;	Var3: Size of all file (Bytes)
+;	Var4: Size of all file (Mbytes)
+*
+#ZONEOFF##FARBE 7,5##INVERS#
+{var24}Size of all files ...                   #RESET#^J#CLB#^J
+Size of all files : {var4} MByte [{var3} Bytes]{var22}
+*
+;
+; Editor comment
+; --------------
+;	Var2 : Filename
+*
+Comment of file "{var2}"
+*
+;
+; Question : Keys for NO
+; ----------------------
+*
+Nn
+*
+;
+; Question : Keys for YES
+; -----------------------
+*
+YyJj
+*
+; >>UP: 2.0
+; Status (download) : Download OK
+; -------------------------------
+*
+#FARBE 7,5##INVERS#{var24}Download OK !                           #RESET#{var22}
+*
+; >>UP: 2.0
+; STATUS: Error on open board
+; ---------------------------
+;	Var20: Boardname
+;	PATH : Act. path
+*
+^JO P E N - E R R O R ! Please contact sysop !^J
+({PATH}{VAR20})^J
+*
+;
+; Insert board in boardlist
+; -------------------------
+;	Var20: Boardname
+*
+Add board "{Path}{var20}" to list (y/n) ? 
+*
+;
+; Path: Filelist
+; --------------
+*
+mbbatch:filelist/
+*
+; >>UP: 2.0
+; RunFileBatch: Clear Screen
+; --------------------------
+*
+#ZONEOFF##RESET##HOME##CLS#
+*
+; >>UP: 2.0
+; RunFileBatch: Can not find batch file
+; -------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Can't find batch file                   #RESET#
+*
+;
+; Path: Upload
+; ------------
+*
+mbbatch:upload/
+*
+; >>UP: 2.0
+; Path: Filebatch 1
+; -----------------
+*
+mbbatch:filebatch1/
+*
+;
+; Path: Filebatch 2
+; -----------------
+*
+mbbatch:filebatch2/
+*
+; >>UP: 2.0
+; Path: Filebatch 3
+; -----------------
+*
+mbbatch:filebatch3/
+*
+; >>UP: 2.0
+; Path: Filebatch 4
+; -----------------
+*
+mbbatch:filebatch4/
+*
+; >>UP: 2.0
+; RunFileBatch: STATUS OK
+; -----------------------
+*
+#FARBE 7,5##INVERS#{var24}Status : OK                             #RESET#
+*
+; >>UP: 2.0
+; RunFileBatch: STATUS ERROR
+; --------------------------
+*
+#FARBE 7,1##INVERS#{var24}Status : ERROR                          #RESET#
+*
+;
+; Path: Checkpath
+; ---------------
+*
+mbbatch:filecheck/
+*
+; >>UP: 2.0
+; Path: Filebatch 5
+; -----------------
+*
+mbbatch:filebatch5/
+*
+; >>UP: 2.0
+; Path: Filebatch 6
+; -----------------
+*
+mbbatch:filebatch6/
+*
+; >>UP: 2.0
+; Path: Filebatch 7
+; -----------------
+*
+mbbatch:filebatch7/
+*
+; >>UP: 2.0
+; Path: Filebatch 8
+; -----------------
+*
+mbbatch:filebatch8/
+*
+;
+; Infoline (Boardinfotext)
+; ------------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Boardinfotext ...                       #RESET#^J#CLB#
+*
+;
+; Filename of Boardinfo
+; ---------------------
+*
+Boardinfo
+*
+;
+; Identify NET-user with wildcards
+; --------------------------------
+*
+NET@**
+
+;
+; Boardinfo (user)
+; ----------------
+;	Var1: Comment to board
+;	Var2: Name of boardsysop
+;	Var3: Max. KBytes
+;	Var4: Tab-filename
+;	Var5: Directory-name
+;	Var6: Highest filenumber in board
+;	Var7: Max. number of files in board
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Boardinfo ...                           #RESET#^J#CLB#
+Boardcomment       : {var1}^J
+Boardsysop         : {var2}^J
+Max. kbytes        : {var3}^J
+Max. files         : {var7}^J
+Highest filenumber : {var6}
+{var22}
+*
+;
+; Boardinfo (sysop)
+; -----------------
+;	Var1: Comment to board
+;	Var2: Name of boardsysop
+;	Var3: Max. KBytes
+;	Var4: Tab-filename
+;	Var5: Directory-name
+;	Var6: Highest filenumber in board
+;	Var7: Max. number of files in board
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Boardinfo ...                           #RESET#^J#CLB#
+Boardcomment       : {var1}^J
+Boardsysop         : {var2 25}Max. kbytes        : {var3}^J
+Max. files         : {var7 25}Highest filenumber : {var6}^J
+Tabfilename        : {var4}^J
+Directoryname      : {var5}
+{var22}
+*
+;
+; Question : IMPORT FILE AS NEW FILE
+; ----------------------------------
+*
+#FARBE 7,4##INVERS#{var25}Import file as new file (y/n) ?         {var24}#RIGHT 72#
+*
+;
+; Filename of configuration-file
+; ------------------------------
+*
+{userdir}/files.cfg
+*
+;
+; Status : MARK ALL FILES FROM THIS FILE AS NEW
+; ---------------------------------------------
+*
+#FARBE 7,5##INVERS#{var24}Mark all files from this file as new !  #RESET#
+*
+;
+; Status : SAVE SETTINGS
+; ----------------------
+*
+#FARBE 7,5##INVERS#{var24}Save settings ...                       #RESET#
+*
+; >>ADD: 2.0
+; Long comment page : only one page
+; ---------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+#RESET#{var24}#RIGHT 32##INVERS#     
+*
+; >>ADD: 2.0
+; Long comment page : bottom
+; --------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+#RESET#{var24}#RIGHT 32##INVERS#<<   
+*
+; >>ADD: 2.0
+; Long comment page : top
+; -----------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+#RESET#{var24}#RIGHT 32##INVERS#   >>
+*
+; >>ADD: 2.0
+; Long comment page : rest of pages
+; ---------------------------------
+;	Var1 : XX-flags
+;	Var2 : Filename
+;	Var3 : Filelength (block right)
+;	Var4 : Filelength (block left)
+;	Var5 : Uploader
+;	Var6 : Date (xx-xx-xx)
+;	Var7 : Date (x-xx-xx)
+;	Var8 : Subject
+;	Var9 : Number of downloads (block right)
+;	Var10: Number of downloads (block left)
+;	Var11: Filenumber (block rigth)
+;	Var12: Filenumber (block left)
+;	Var13: Private-user 1
+;	Var14: Private-user 2
+;	Var15: Private-user 3
+;	Var16: If exists long comment then ">" else nothing
+;	Var17: Optimized version : {var8 30}{var16}
+*
+#RESET#{var24}#RIGHT 32##INVERS#<< >>
+*
+; >>ADD: 2.0
+; RENAME: File already exists
+; ---------------------------
+*
+#FARBE 7,1##INVERS#{var24}RENAME: file already exists             #RESET#
+*
+; >>ADD: 2.0
+; Path: Download
+; --------------
+*
+mbbatch:download/
+*
+; >>ADD: 2.0
+; Help: Page 4 of 5
+; -----------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Help: Page 5 of 5                       #RESET#^J#CLB#
+1: activate file viewer                 5: no function^J
+2: activate file viewer                 6: show full long comment^J
+3: no function                          7: no function^J
+4: no function                          8: export File_ID.diz
+{var22}
+*

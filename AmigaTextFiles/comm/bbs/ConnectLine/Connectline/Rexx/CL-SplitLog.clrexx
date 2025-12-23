@@ -1,0 +1,115 @@
+/*
+**  $VER: CL-SplitLog.clrexx 1.1 (05 Feb 1996)
+**
+**        © 1995-96 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-SplitLog.clrexx
+**
+**  FUNCTION:
+**      Demonstrationsskript zur cl_rexx.library, Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl_rexx.library © 1995 Mathias Mischler
+**
+**      Dieses Skript splittet ein Logfile in mehrere Sublogs, eines pro LogID.
+**      Optional kann ein Pfad und Name eines zu bearbeitenden Logs als Parameter
+**      übergeben werden.
+**
+**      Notgedrungen arbeitet das Skript sehr zeitaufwendig, was durch ein paar
+**      Sicherheitsmaßnahmen noch verstärkt wird. Die einzelnen Files werden für
+**      jeden Eintrag geschlossen und wieder neu geöffnet, um im Falle eines Ab-
+**      sturzes oder Reset nicht für ewig lange Validate-Zeiten zu sorgen. Damit
+**      der Boxbetrieb durch den RexxMast nich unnötig gestört wird, läuft das
+**      Skript auf Priorität -2, was das Ganze natürlich nochmal verlangsamt.
+**      Falls man das Skript gerne einsetzen möchte, so empfehle ich, es täglich
+**      einmal per Cron zu starten, bevor die Logfiles eine wahnsinnige Größe er-
+**      reichen.
+**
+**  $HISTORY:
+**
+**   03 Dec 1995 : 0.01 : initial release
+**   05 Dec 1995 : 1.0  : Auf cl_rexx optimiert
+**   05 Feb 1996 : 1.1  : kosmetische Fixes
+*/
+
+file=arg(1)
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then exit 10
+    end
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*50
+windowheight=Fontsize*4
+windowY=Fontsize+1
+WindowX=Fontsize
+
+/* Standard-IO umleiten */
+
+screen=CLGET_FrontScreenName()
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-SplitLog/SCREEN'screen,'W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+if exists('CONNECTLINE:Log/Logfile-'||date()) then exit
+
+if file='' then do
+    say 'Benenne Logfile um ...'
+    call CL_LogRename('CONNECTLINE:Log/Logfile-'||date())
+    file='CONNECTLINE:Log/Logfile-'||date()
+    end
+
+if ~open('log',file,'R') then do
+    say 'Konnte Logfile nicht öffnen !'
+error:
+    exit 10
+    end
+
+say 'Lese Logfile ...'
+anzahl=CL_GetText(file,zeile)
+say 'Splitte Logfile ...'
+do x=0 to anzahl-1
+    if word(zeile.x,1)='AB' then zeile.x=''
+    logid=word(zeile.x,3)
+    if zeile~='' then do
+        if exists('CONNECTLINE:Log/'logid'.LOG') then mode='A'
+        else mode='W'
+        if ~open(hndl,'CONNECTLINE:Log/'logid'.LOG',mode) then do
+            say 'Konnte Sublog 'logid' nicht öffnen !'
+            call error
+            end
+        call writeln hndl,zeile.x
+        end
+    call close hndl
+    end
+
+
+
+ende:
+
+call CL_LogAdd('0','SPLTLOG','Logfile gesplittet')
+
+call close STDOUT
+call close STDIN
+exit
+

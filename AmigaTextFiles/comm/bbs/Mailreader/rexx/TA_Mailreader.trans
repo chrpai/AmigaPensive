@@ -1,0 +1,1296 @@
+/* $VER: TA_Mailreader.trans 1.0a (16.May.1996) by Helmut Steeg
+   TA_Mailreader ist ein Interface zwischen TransAmiga und dem
+   MailManager.
+*/
+ 
+options results
+/* signal on syntax 
+*/
+/* ------------------------------------------------------------------------
+               Public variables.. enter here your personal settings.
+             Check the meanings of the variables in the documentation
+   ------------------------------------------------------------------------ */
+textpath="DOORS:Mailreader/text/"
+savepath="DOORS:MailReader/User/"
+AREADEF="DOORS:MailReader/Area-Definitions"
+LANGUAGEDEF="BBS:Configs/MailReader.LANG"
+langlist.1="Default"
+langlist.2="Deutsch"
+langlist.3="English"
+userlanguage=2
+defaultarea="BBS.ALLGEMEIN"
+defaultsort=0
+defaultgui=1
+canwritenm=0
+userlevel=1
+aliasuse=0
+/* ------------------------------------------------------------------------
+            if you are NOT the one, who is known as HELMUT STEEG,
+       don't even think about changing anything below this lines without
+                           notifying me.... Thank you :-)
+   ------------------------------------------------------------------------ */
+call get_libs
+call get_defaultsettings
+call getuserdata
+call Set_ANSI
+SetNodeLocation UserName" "Language.5
+this_area=defaultarea
+call MainLoop
+exit 0
+
+CarrierLost:
+   SysopLog Language.59
+   exit 10
+
+syntax:
+   Print "Fehler in Zeile" SIGL
+   Print "Grund:" errortext(rc)
+   SysopLog Language.0":"SIGL "("RC")"
+   Sysoplog Language.1":"errortext(rc)
+   continue
+   exit 10
+
+SaveUserData:
+   if carrier=0 then call CarrierLost
+   Open('userdata',savepath||username,'w')
+      Writeln('userdata',defaultgui)
+      Writeln('userdata',canwritenm)
+      Writeln('userdata',userlevel)
+      Writeln('userdata',this_area)
+      Writeln('userdata',userlanguage)
+   Close('userdata')
+   return
+
+getuserdata:
+   if carrier=0 then call CarrierLost
+   Userinfo 'o'; Access   =RESULT
+   Userinfo 'a'; username =RESULT
+   Userinfo '3'; aliasname=RESULT
+   userinfo 'v'; pagesize =RESULT
+   if aliasname="RESULT" then aliasname=username
+   if exists(savepath||username) then
+   do
+      Open('userdef',savepath||username,'r')
+         defaultgui  =readln('userdef')
+         canwritenm  =readln('userdef')
+         userlevel   =readln('userdef')
+         defaultarea =readln('userdef')
+         userlanguage=readln('userdef')
+      Close('userdef')
+   end
+   if userlanguage<0 | userlanguage>2 then userlangauge=0
+   return
+
+set_ansi:
+   if carrier=0 then call CarrierLost
+   userinfo 'x'; ANSI=upper(RESULT)
+   if ANSI="ON" then 
+   do
+      ESC='1b'x||'['
+      Far00=ESC||"0;30m"; Far01=ESC||"0;31m"; Far02=ESC||"0;32m"
+      Far03=ESC||"0;33m"; Far04=ESC||"0;34m"; Far05=ESC||"0;35m"
+      Far06=ESC||"0;36m";  Far07=ESC||"0;37m"
+      Far10=ESC||"1;30m";  Far11=ESC||"1;31m";  Far12=ESC||"1;32m"
+      Far13=ESC||"1;33m";  Far14=ESC||"1;34m";  Far15=ESC||"1;35m"
+      Far16=ESC||"1;36m";  Far17=ESC||"1;37m"
+      BF01=ESC||"44m"; BF02=ESC||"41m"
+      GRAPH="Ä"
+   end
+   else
+   do
+      ESC=""
+      Far00=""; Far01=""; Far02=""
+      Far03=""; Far04=""; Far05=""
+      Far06=""; Far07=""
+      Far10=""; Far11=""; Far12=""
+      Far13=""; Far14=""; Far15=""
+      Far16=""; Far17=""
+      BF01=""; BF02=""; GRAPH="-"
+   end
+   return
+
+get_defaultsettings:
+   if carrier=0 then call CarrierLost
+   if exists(LANGUAGEDEF) then
+   do
+      Open('ldef',LANGUAGEDEF,'r')
+         a=0;
+         do until eof('ldef')
+            language.a=readln('ldef')
+            a=a+1
+         end
+      Close('ldef')
+   end
+   if exists(AREADEF) then
+   do
+      Open('adef',AREADEF,'r')
+         a=0
+         do until eof('adef')
+            alias_areas.a=readln('adef')
+            a=a+1
+         end
+         a_areas=a-1
+      Close('adef');
+   end
+   return
+
+get_libs:
+   if ~show("L","rexxsupport.library") then
+   do
+      if ~addlib("rexxsupport.library",0,-30,0) then
+      do
+         Print "Error: Rexxsupport.library is missing. Please notify Sysop."
+         continue
+         exit 10
+      end
+   end
+   if ~show('p','MAILMANAGER') then
+   do
+      Print "Error: Mail Manager 1.2 MUST be running."
+      continue
+      exit 10
+   end
+   return
+
+SetArea:
+   if carrier=0 then call CarrierLost
+   Print ESC||pagesize-(pagesize/2)";1H"Far01||ESC"K"center(Language.57,78)
+   ADDRESS "MAILMANAGER" MM_GetAreaInfo this_area area_stem
+   ADDRESS "MAILMANAGER" MM_ListMsgs this_area area_msgs
+   max_msgs=area_stem.NMSG
+   select
+      when area_stem.TYPE="MAIL" then areatype=0      /* area = netmail  */
+      when area_stem.TYPE="ECHO" then areatype=1      /* area = echo     */
+      otherwise areatype=2                            /* dont care about */
+   end
+/*
+   Print ESC||pagesize-(pagesize/2)";1H"ESC"K"Far01||center(Language.58,78)
+   call SortList
+*/
+   return
+
+DrawGUI:
+   if carrier=0 then call CarrierLost
+   Print Far04||ESC"2;1H"||ESC||"K"||copies(GRAPH,79)
+   Print Far04||ESC"4;1H"||ESC||"K"||copies(GRAPH,79)
+   print Far04||ESC||pagesize-3";1H"||ESC||"K"||copies(GRAPH,79)
+   print Far04||ESC||pagesize-1";1H"||ESC||"K"||copies(GRAPH,79)
+   Print Far06||ESC||"1;1H"||ESC||"K"||Language.6||Far03 this_area
+   Print Far06||ESC||"1;50H"||ESC||"K"||Language.4||Far03 max_msgs
+   return
+
+AreaListe:
+   if carrier=0 then call CarrierLost
+   Print far02||ESC||"3;1H"ESC||"K"Language.9||ESC||"3;7H"Language.10||ESC||"3;29H"Language.11||ESC||"3;50H"Language.12
+   pages=area_msgs.COUNT%(pagesize-9)
+   rest=area_msgs.COUNT//(pagesize-9)
+   if rest>0 then pages=pages+1
+   do a=0 to pagesize-9
+      nummer=this_msg+a
+      if nummer>area_msgs.COUNT-1 then Print Far07||ESC||5+a";1H"ESC||"K"
+      else Print Far07||ESC||5+a";1H"ESC||"K"right(area_msgs.nummer.NUM,5) Far06||left(area_msgs.nummer.FROM,21) left(area_msgs.nummer.TO,20) left(area_msgs.nummer.SUBJ,30)
+   end
+   Print far02||ESC||pagesize-2||";65H"||Language.41 Far01||seite||Far03"/"Far01||pages
+   Send ESC||pagesize-2";"promptpos"H"
+   return
+
+SetPrompt:
+   if carrier=0 then call CarrierLost
+   systeminfo 'm';  restzeit=RESULT
+   promptstring=ESC||pagesize-2";1H"Far04||ESC"K["Far07||right(restzeit,3)||Far04"] "Far01"?"Far07"="Far06||Language.16||Far04 "-" Far06"1"Far01","Far06"2"Far01","Far06"7"Far01","Far06"8" Far04"-" Far07"C"Far01","Far07"I"Far01","Far07"D"Far01","Far07"R"Far01","Far07"A"Far01","Far07"S"Far01","Far07"E"Far01","Far07"Q" Far05">"
+   promptpos=44
+   Send Promptstring
+   return
+
+SetPrompt2:
+   if carrier=0 then call CarrierLost
+   promptstring=ESC||pagesize-2";1H"ESC"K"Far02||Language.49
+   Send Promptstring
+   return
+
+ReDraw:
+   if carrier=0 then call CarrierLost
+   call DrawGUI
+   call SetPrompt
+   call AreaListe
+   return
+
+ReDraw2:
+   if carrier=0 then call CarrierLost
+   call DrawGUI
+   call AreaListe
+   call SetPrompt2
+   nummer=curr_msg+this_msg
+   Send Far07||ESC||5+curr_msg";1H"ESC||"K"BF02||right(area_msgs.nummer.NUM,5) Far03||BF02||left(area_msgs.nummer.FROM,21) left(area_msgs.nummer.TO,20) left(area_msgs.nummer.SUBJ,30)||Far07
+   Send ESC||pagesize-2";44H"
+   return
+
+MainLoop:
+   if carrier=0 then call CarrierLost
+   if ANSI="OFF" | defaultgui=0 then call MainLoopASCII
+   seite=1
+   this_msg=0
+   CLS
+   Call SetArea
+   Call ReDraw
+   do until ende=1
+      if carrier=0 then call CarrierLost
+      getchar; taste=upper(result)
+      select
+         when taste="5b"x | taste = "9b"x then
+         do
+            MayGetChar; Temp=upper(result)
+            if Temp="A" then call ListUp
+            if Temp="B" then call ListDown
+            if Temp="C" then call ListEnd
+            if Temp="D" then call ListTop
+         end
+         when taste="1" then call ListEnd
+         when taste="2" then call ListDown
+         when taste="7" then call ListTop
+         when taste="8" then call ListUp
+         when taste="#" then call JumpPage
+         when taste="?" then call HelpPage
+         when taste="D" then call ReDraw
+         when taste="C" then call ChangeArea
+         when taste="I" then call InfoPage
+         when taste="R" then call ReadMsg
+         when taste="S" then call WriteMsg
+         when taste="A" then call AnswerMsg
+         when taste="E" then call Einstellungen
+         when taste="@" then call Sysopmodul
+         when taste="Q" then
+         do
+            ende=1
+            Send ESC||pagesize-2";"promptpos"H"Far11||Language.7
+            call SaveUserData
+         end
+         otherwise NOP
+      end
+   end
+   return
+
+
+MoveCursorDown:
+   if carrier=0 then call CarrierLost
+   Send Far07||ESC||5+curr_msg";1H"ESC||"K"right(area_msgs.nummer.NUM,5) Far06||left(area_msgs.nummer.FROM,21) left(area_msgs.nummer.TO,20) left(area_msgs.nummer.SUBJ,30)||Far07
+   curr_msg=curr_msg+1
+   if curr_msg>pagesize-9 then curr_msg=0
+   nummer=curr_msg+this_msg
+   Send Far07||ESC||5+curr_msg";1H"ESC||"K"BF02||right(area_msgs.nummer.NUM,5) Far03||BF02||left(area_msgs.nummer.FROM,21) left(area_msgs.nummer.TO,20) left(area_msgs.nummer.SUBJ,30)||Far07
+   return
+
+MoveCursorUp:
+   if carrier=0 then call CarrierLost
+   Send Far07||ESC||5+curr_msg";1H"ESC||"K"right(area_msgs.nummer.NUM,5) Far06||left(area_msgs.nummer.FROM,21) left(area_msgs.nummer.TO,20) left(area_msgs.nummer.SUBJ,30)||Far07
+   curr_msg=curr_msg-1
+   if curr_msg<0 then curr_msg=pagesize-9
+   nummer=curr_msg+this_msg
+   Send Far07||ESC||5+curr_msg";1H"ESC||"K"BF02||right(area_msgs.nummer.NUM,5) Far03||BF02||left(area_msgs.nummer.FROM,21) left(area_msgs.nummer.TO,20) left(area_msgs.nummer.SUBJ,30)||Far07
+   return
+
+ListEnd:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";"promptpos"H"Far11||left(Language.45,20)
+   if seite=pages then
+   do
+      call SetPrompt
+      return
+   end
+   seite=pages
+   this_msg=(seite-1)*(pagesize-9)
+   call SetPrompt
+   call Arealiste
+   return
+
+ListTop:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";"promptpos"H"Far11||left(Language.44,20)
+   if seite=1 then
+   do
+      call SetPrompt
+      return
+   end
+   seite=1
+   this_msg=0
+   call SetPrompt
+   call AreaListe
+   return
+
+ListUp:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";"promptpos"H"Far11||left(Language.42,20)
+   seite=seite-1
+   if seite<1 then
+   do
+      seite=1
+      call SetPrompt
+      return
+   end
+   this_msg=(seite-1)*(pagesize-9)
+   call SetPrompt
+   call Arealiste
+   return
+
+ListDown:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";"promptpos"H"Far11||left(Language.43,20)
+   seite=seite+1
+   if seite>pages then
+   do
+      seite=pages
+      call SetPrompt
+      return
+   end
+   this_msg=(seite-1)*(pagesize-9)
+   call SetPrompt
+   call Arealiste
+   return
+
+JumpPage:
+   if carrier=0 then call CarrierLost
+   Send Far02||ESC||pagesize-2||";1H"copies(" ",64)
+   Promptstring=ESC||pagesize-2";1H"Far01||Language.46 Far07||BF01"    "ESC"4D"
+   Prompt 4 NORMAL '"'promptstring'"'
+   taste=upper(RESULT)
+   if taste="RESULT" then
+   do
+      call SetPrompt
+      return
+   end
+   if taste>pages | taste<1 then
+   do
+      Send ESC||pagesize-2";1H"Far01||ESC"K"Language.47" "Far07
+      continue
+      call SetPrompt
+      call AreaListe
+      return
+   end      
+   seite=taste
+   this_msg=(seite-1)*(pagesize-9)
+   call SetPrompt
+   call Arealiste
+   return
+
+HelpPage:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";"promptpos"H"Far11||left(Language.16,17);
+   do a=0 to pagesize-9
+      Send ESC||a+5";1H"Far06||ESC"K"
+   end
+   filename=textpath||langlist.userlanguage"/Help"
+   if exists(filename".ANSI") then filename=filename".ANSI"
+   check=open('helpfile',filename,'r')
+      a=5
+      do until eof('helpfile')
+         zeile=readln('helpfile')
+         Print ESC||a";1H"zeile
+         a=a+1
+         if a=pagesize-4 then
+         do
+            Send Far01||ESC||pagesize-2";1H"ESC"K"
+            More
+            taste=upper(RESULT)
+            if taste="N" then
+            do
+               call Redraw
+               return
+            end
+            a=5
+         end
+      end
+   check=close('helpfile')
+   Send Far01||ESC||pagesize-2";1H"ESC"K"
+   continue
+   call Redraw
+   return
+
+ChangeArea:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";"promptpos"H"Far11||left(Language.26,17)
+   ADDRESS "MAILMANAGER" MM_GetGroups mailgroups
+   if rc=0 then 
+   do
+      do a=0 to pagesize-9
+         Send ESC||a+5";1H"ESC||"K"
+      end
+      do a=0 to mailgroups.COUNT-1
+         Send ESC||a+7";10H"ESC||"K"Far01||right(a+1,2)||Far07":"Far06 mailgroups.a
+      end
+      promptstring=ESC||pagesize-2";1H"ESC||"K"Far02||Language.29 Far07||BF01||ESC||"4@"
+      Prompt 4 NORMAL '"'promptstring'"'
+      taste=upper(result)
+      if taste="RESULT" then
+      do
+         call Redraw
+         return
+      end
+      if taste>mailgroups.COUNT | taste<1 then 
+      do
+         Send Far01||ESC||pagesize-2||";1H"Language.30" "
+         continue
+         call Redraw
+         return
+      end
+      taste=taste-1
+      ADDRESS "MAILMANAGER" MM_GetGroupAreas group_areas mailgroups.taste userlevel
+      do a=0 to pagesize-9
+         Send Far01||ESC||a+5";1H"ESC||"K"
+      end
+      lines=0
+      do a=0 to group_areas.COUNT-1
+         areatag=group_areas.a.AREA
+         ADDRESS "MAILMANAGER" MM_GetAreaInfo areatag dummy
+         areadesc=left(dummy.DESC,40)
+         Send ESC||lines+5";10H"ESC||"K"Far01||right(a+1,2)||Far07":"Far06 left(areatag,25,".")||areadesc
+         lines=lines+1
+         if lines=pagesize-8 then
+         do
+            Send ESC||pagesize-2";1H"ESC"K"
+            More; taste=upper(result)
+            if taste="N" then
+            do
+               promptstring=ESC||pagesize-2";1H"Far02||Language.32 Far07||BF01||ESC"4@"
+               Prompt 4 NORMAL '"'promptstring'"'
+               taste=upper(RESULT)
+               if taste="RESULT" then
+               do
+                  call Redraw
+                  return
+               end
+               if taste<1 | taste>group_areas.count then
+               do
+                  Send Far01||ESC||pagesize-2";1H"ESC"K"Language.33" "
+                  continue
+                  call Redraw
+                  return
+               end
+               newarea=group_areas.taste.AREA
+               ADDRESS "MAILMANAGER" MM_GetAreaInfo newarea dummy
+               if dummy.TYPE="MAIL" then
+               do
+                  if canwritenm=0 then
+                  do
+                     Send ESC||pagesize-2";1H"Far01||ESC"K"Language.56" "
+                     Call Redraw
+                     continue
+                     return
+                  end
+               end
+               taste=taste-1
+               this_area=group_areas.taste.AREA
+               seite=1
+               this_msg=0
+               call CheckforAlias
+               call SetArea
+               call Redraw
+               return
+            end
+            call DrawGUI
+            lines=0
+         end
+      end
+      promptstring=ESC||pagesize-2";1H"Far02||ESC"K"||Language.32 Far07||BF01||ESC"4@"
+      Prompt 4 NORMAL '"'promptstring'"'
+      taste=upper(RESULT)
+      if taste="RESULT" then
+      do
+         call Redraw
+         return
+      end
+      if taste<1 | taste>group_areas.count then
+      do
+         Send Far01||ESC||pagesize-2";1H"ESC"K"Language.33" "
+         continue
+         call Redraw
+         return
+      end
+      newarea=group_areas.taste.AREA
+      ADDRESS "MAILMANAGER" MM_GetAreaInfo newarea dummy
+      if dummy.TYPE="MAIL" then
+      do
+         if canwritenm=0 then
+         do
+            Send ESC||pagesize-2";1H"Far01||ESC"K"Language.56" "
+            continue
+            call Redraw
+            return
+         end
+      end
+      taste=taste-1
+      this_area=group_areas.taste.AREA
+      seite=1
+      this_msg=0
+      call CheckForAlias
+      call SetArea
+      call Redraw
+      return
+   end
+   call Redraw
+   return
+
+CheckForAlias:
+   if carrier=0 then call CarrierLost
+   aliasuse=0
+   if exists(AREADEF) then
+   do
+      check=open('aliasfile',AREADEF,'r')
+         do while ~eof('aliasfile')
+            if this_area=readln('aliasfile') then
+            do
+               aliasuse=1
+               check=close('aliasfile')
+               return
+            end
+         end
+      check=close('aliasfile')
+   end
+   aliasuse=0
+   return
+
+InfoPage:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";"promptpos"H"Far11||left(Language.48,17)
+   do a=0 to pagesize-9
+      Send ESC||a+5";1H"Far06||ESC"K"
+   end
+   filename=textpath||langlist.userlanguage"/InfoPage"
+   if exists(filename".ANSI") then filename=filename".ANSI"
+   check=open('infodat',filename,'r')   
+      a=5
+      do until eof('infodat')
+         b=readln('infodat')
+         Send ESC||a";1H"Far06||b
+         a=a+1
+      end
+   check=close('infodat')
+   Send Far01||ESC||pagesize-2";1H"ESC"K"
+   continue
+   call Redraw
+   return
+
+ReadMsg:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";"promptpos"H"Far11||left(Language.13,17)
+   call SetPrompt2
+   ende=0
+   curr_msg=0
+   nummer=curr_msg+this_msg
+   Send Far07||ESC||5+this_msg";1H"ESC||"K"BF02||right(area_msgs.nummer.NUM,5) Far03||BF02||left(area_msgs.nummer.FROM,21) left(area_msgs.nummer.TO,20) left(area_msgs.nummer.SUBJ,30)||Far07
+   do until ende=1
+      if carrier=0 then call CarrierLost
+      getchar; taste=upper(result)
+      select
+         when taste="5b"x | taste = "9b"x then
+         do
+            MayGetChar; Temp=upper(result)
+            if Temp="A" then call MoveCursorUp
+            if Temp="B" then call MoveCursorDown
+         end
+         when taste="Q" then ende=1
+         when taste="2" then call MoveCursorDown
+         when taste="8" then call MoveCursorUp
+         when C2D(taste)=13 then call ReadThisMsg
+         otherwise NOP
+      end      
+   end
+   ende=0
+   Call Redraw
+   return
+
+ReadThisMsg:
+   if carrier=0 then call CarrierLost
+   a=area_msgs.nummer.NUM
+   ADDRESS "MAILMANAGER" MM_ReadMsg this_area a msgtext
+   if rc=0 then
+   do
+      Absender=msgtext.FROM
+      Absenderaddr=msgtext.FROMADDR
+      Empfaenger=msgtext.TO
+      Empfaengeraddr=msgtext.TOADDR
+      Betreffzeile=msgtext.SUBJ
+      msgdatum=msgtext.DATE
+      Send ESC"3;1H"Far07||ESC"K"||BF01||ESC"79@"Language.10":   "Absender "("Absenderaddr")"
+      Send ESC"4;1H"Far07||ESC"K"||BF01||ESC"79@"Language.11": "Empfaenger||ESC"4;50H"Language.15||": "msgdatum
+      Send ESC"5;1H"Far07||ESC"K"||BF01||ESC"79@"Language.12":    "Betreffzeile
+      Send ESC"6;1H"Far04||copies(GRAPH,79)
+      check=open('temp','T:Mailreader.tmp','w')
+         do a=0 to msgtext.TEXT.COUNT-1
+            if length(msgtext.TEXT.a)>79 then
+            do
+               textzeile=msgtext.TEXT.a
+               do while length(textzeile)>79
+                  parse var textzeile teil1 +78" " teil2
+                  check=writeln('temp',teil1)
+                  textzeile=teil2
+               end
+               check=writeln('temp',textzeile)
+            end
+            else check=writeln('temp',msgtext.TEXT.a)
+         end
+         if areatype then
+         do
+            check=writeln('temp',msgtext.FOOT.0)
+            check=writeln('temp',msgtext.FOOT.1)
+         end
+      check=close('temp')
+      a=7
+      do b=7 to pagesize-4
+         Send ESC||b";1H"ESC"K"
+      end
+      check=open('temp','T:MailReader.tmp','r')
+         do until eof('temp')
+            textzeile=readln('temp')
+            if pos(">",textzeile)~=0 then Send Far07||ESC||a";1H"ESC"K"textzeile
+            else Send Far06||ESC||a";1H"ESC"K"textzeile
+            a=a+1
+            if a>pagesize-4 then
+            do
+               Send Far01||ESC||pagesize-2";1H"ESC"K"Language.51" "
+               getchar
+               taste=upper(RESULT)
+               if taste="N" then
+               do
+                  check=close('temp')
+                  call Redraw2
+                  return
+               end
+               do b=7 to pagesize-4
+                  Send Far07||ESC||b";1H"ESC"K"
+               end
+               a=7
+            end
+         end      
+      check=close('temp')
+      Send ESC||pagesize-2";1H"Far01||ESC"K"
+      continue
+      call Redraw2
+      return
+   end
+   Send ESC||pagesize-2";1H"Far01||ESC"K"Language.50" "
+   continue
+   call Redraw2
+   return
+
+WriteMsg:
+   if carrier=0 then call CarrierLost
+   promptstring=ESC||pagesize-2";1H"Far02||ESC"K"Language.17 Far07||BF01||ESC"25@"
+   Prompt 25 NORMAL '"'promptstring'"'
+   empfaenger=RESULT
+   if empfaenger="RESULT" then empfaenger=Language.53
+   if areatype~=1 then
+   do
+      promptstring=ESC||pagesize-2";1H"Far02||ESC"K"Language.19 Far07||BF01||ESC"25@"
+      Prompt 25 NORMAL '"'promptstring'"'
+      zieladdr=RESULT
+      if zieladdr="RESULT" then
+      do
+         Send ESC||pagesize-2";1H"Far02||ESC"K"Language.20 " "
+         continue
+         call Redraw
+         return
+      end
+   end
+   promptstring=ESC||pagesize-2";1H"Far02||ESC"K"Language.21 Far07||BF01||ESC"30@"
+   Prompt 30 NORMAL '"'promptstring'"'
+   betreff=result
+   if betreff="RESULT" then betreff=Language.22
+   do a=5 to pagesize-4   
+      Send Far01||ESC||a";1H"ESC"K"
+   end
+   a=12
+   Send Far02||ESC||a";15H"left(language.11,20)Far07":" Far06||empfaenger
+   a=a+1
+   if areatype=0 then
+   do
+      Send Far02||ESC||a";15H"left(language.19,20)Far07":" Far06||zieladdr
+      a=a+1
+   end
+   Send Far02||ESC||a";15H"left(language.12,20)Far07":" Far06||betreff
+   promptstring=ESC||pagesize-2";1H"Far02||ESC"K"Language.60
+   prompt 1 YESNO '"'promptstring'"'
+   taste=upper(RESULT)
+   if taste="RESULT" then taste="J"
+   if taste="Y" | taste="J" then write_msg.FROM=aliasname
+   else write_msg.FROM=username
+   promptstring=ESC||pagesize-2";1H"Far02||ESC"K"Language.24
+   Prompt 1 YESNO '"'promptstring'"'
+   taste=upper(RESULT)
+   if taste="RESULT" then taste="J"
+   if taste="Y" | taste="J" then
+   do   
+      TextEdit
+      if upper(result)~="###ABORTED" then
+      do
+         write_msg.FROMADDR=""
+         write_msg.TO=empfaenger
+         write_msg.TOADDR=zieladdr
+         write_msg.SUBJ=betreff
+         write_msg.TEAR="TA_Maildoor V1.1"
+         write_msg.FLAGS="REFLOW"
+         write_msg.FILE="T:Editor.temp"
+         ADDRESS "MAILMANAGER" MM_WriteMsg this_area write_msg
+         if rc~=0 then
+         do
+            Send ESC||pagesize-2";1H"Far01||Language.54" "
+            continue
+         end
+      end
+   end
+   ADDRESS "MAILMANAGER" MM_ListMsgs this_area area_msgs
+   call Redraw
+   return
+
+AnswerMsg:
+   if carrier=0 then call CarrierLost
+   Send ESC||pagesize-2";44H"Far11||left(Language.55,17)
+   call SetPrompt2
+   ende=0
+   curr_msg=0
+   nummer=curr_msg+this_msg
+   Send Far07||ESC||5+curr_msg";1H"ESC||"K"BF02||right(area_msgs.nummer.NUM,5) Far03||BF02||left(area_msgs.nummer.FROM,21) left(area_msgs.nummer.TO,20) left(area_msgs.nummer.SUBJ,30)||Far07
+   do until ende=1
+      if carrier=0 then call CarrierLost
+      getchar; taste=upper(result)
+      select
+         when taste="5b"x | taste = "9b"x then
+         do
+            MayGetChar; Temp=upper(result)
+            if Temp="A" then call MoveCursorUp
+            if Temp="B" then call MoveCursorDown
+         end
+         when taste="Q" then ende=1
+         when taste="2" then call MoveCursorDown
+         when taste="8" then call MoveCursorUp
+         when C2D(taste)=13 then call AnswerThisMsg
+         otherwise NOP
+      end      
+   end
+   ende=0
+   ADDRESS "MAILMANAGER" MM_ListMsgs this_area area_msgs
+   Call Redraw
+   return
+
+AnswerThisMsg:
+   if carrier=0 then call CarrierLost
+   a=area_msgs.nummer.NUM
+   promptstring=ESC||pagesize-2";1H"Far02||ESC"K"Language.60
+   prompt 1 YESNO '"'promptstring'"'
+   taste=upper(RESULT)
+   if taste="RESULT" then taste="J"
+   if taste="Y" | taste="J" then write_msg.FROM=aliasname
+   else write_msg.FROM=username
+   ADDRESS "MAILMANAGER" MM_ReadMsg this_area a msgtext
+   if rc=0 then   
+   do
+      write_msg.FROMADDR=""
+      Empfaenger=msgtext.FROM
+      write_msg.TO=Empfaenger
+      Empfaengeraddr=msgtext.FROMADDR
+      Betreffzeile=msgtext.SUBJ
+      write_msg.TOADDR=empfaengeraddr
+      write_msg.SUBJ=betreffzeile
+      write_msg.FLAGS="REFLOW"
+      write_msg.TEAR="TA_Maildoor V1.1"
+      write_msg.FILE="T:Editor.temp"
+      ADDRESS "MAILMANAGER" MM_QUOTEMSG this_area a "NOLOGO"
+      ADDRESS COMMAND "COPY >NIL: T:MM.TRANS T:Quote.temp"
+      do a=5 to pagesize-4
+         Send ESC||a";1H"Far01||ESC"K"
+      end
+      a=10
+      Send Far02||ESC||a";15H"left(language.11,20)Far07":" Far06||empfaenger
+      a=a+1
+      if areatype=0 then
+      do
+         Send Far02||ESC||a";15H"left(language.19,20)Far07":" Far06||empfaengeraddr
+         a=a+1
+      end
+      Send Far02||ESC||a";15H"left(language.12,20)Far07":" Far06||betreffzeile
+      promptstring=ESC||pagesize-2";1H"Far02||ESC"K"Language.24
+      Prompt 1 YESNO '"'promptstring'"'
+      taste=upper(RESULT)
+      if taste="RESULT" then taste="J"
+      if taste="Y" | taste="J" then
+      do   
+         TextEdit
+         if upper(result)~="###ABORTED" then
+         do
+            ADDRESS "MAILMANAGER" MM_WriteMsg this_area write_msg
+            if rc~=0 then
+            do
+               Send ESC||pagesize-2";1H"Far01||Language.54" "
+               continue
+            end
+         end      
+      end
+   end
+   ende=1
+   return
+
+Einstellungen:
+   if carrier=0 then call CarrierLost
+   defaultgui=0
+   ende=1
+   CLS
+   call MainLoopASCII
+   return
+
+Set_AreaASCII:
+   if carrier=0 then call CarrierLost
+   ADDRESS "MAILMANAGER" MM_GetAreaInfo this_area area_stem
+   Print Far02||Language.57||Far01 this_area Far03"-"Far01 area_stem.NAME
+   ADDRESS "MAILMANAGER" MM_ListMsgs this_area area_msgs
+   select
+      when area_stem.TYPE="MAIL" then areatype=0      /* area = netmail  */
+      when area_stem.TYPE="ECHO" then areatype=1      /* area = echo     */
+      otherwise areatype=2                            /* dont care about */
+   end
+   return
+
+SetPromptASCII:
+   if carrier=0 then call CarrierLost
+   systeminfo 'm';  restzeit=RESULT
+   promptstring=Far01||restzeit Far02||Language.3||Far03 area_stem.NMSG Far02||Language.4" "
+   return;
+
+MainLoopASCII:
+   if carrier=0 then call CarrierLost
+   Print Far01"TransAmiga Mailreader V1.1"
+   Print Far02"--------------------------"
+   Newline
+   ende=0
+   call Set_AreaASCII
+   call SetPromptASCII
+   Send promptstring
+   do until ende=1
+      if carrier=0 then call CarrierLost
+      getchar; taste=upper(result)
+      select
+         when taste="L" then call AreaListeASCII
+         when taste="R" then call ReadMsgASCII
+         when taste="S" then call WriteMsgASCII
+         when taste="C" then call Change_AreaASCII
+         when taste="P" then call PostfachASCII
+         when taste="E" then call EinstellungenASCII
+         when taste="A" then call AntwortenASCII
+         when taste="?" then call HelpPageASCII
+         when taste="Q" then
+         do
+             ende=1
+             call SaveUserData
+             Print Far11||Language.7
+             exit 0
+         end
+         otherwise ende=0
+      end
+   end
+   return
+
+HelpPageASCII:
+   if carrier=0 then call CarrierLost
+   Print Far02||Language.16||Far03
+   Sendfile textpath||langlist.userlanguage"/Help"
+   Send PromptString
+   return
+
+EinstellungenASCII:
+   if carrier=0 then call NoCarrier
+   Print Far01||Language.34||Far03
+   Sendfile textpath||langlist.userlanguage"/ANSI_Menu"
+   Prompt 1 NORMAL '"'Language.35'"'
+   taste=upper(RESULT)
+   Print Far03
+   select
+      when taste="A" then
+      do
+         defaultgui=1
+         call ansi_main
+         return
+      end
+      when taste="B" then
+      do
+         SetGraphics 1
+         call Set_ANSI
+         call SetPromptASCII
+         Print Far03||Language.36 Language.37
+      end
+      when taste="C" then
+      do
+         SetGraphics 0
+         Send Far07
+         call Set_ANSI
+         call SetPromptASCII
+         Print Far03||Language.36 Language.38
+      end
+      otherwise Print Far01||Language.39
+   end
+   Send PromptString
+   return
+
+Change_AreaASCII:
+   if carrier=0 then call CarrierLost
+   Print Far01||Language.26
+   ADDRESS "MAILMANAGER" MM_GetGroups mailgroups
+   if rc=0 then
+   do
+      print Far03||Language.27
+      print Far03||Language.28
+      do a=0 to mailgroups.COUNT-1
+         print far01||right(a+1,6)": "far06||left(mailgroups.a,30)
+      end
+      string=Far03||Language.29 far07
+      if ANSI="ON" then string=string BF01||ESC||"3@"
+      Prompt 3 NORMAL '"'string'"'
+      taste=result
+      if taste="RESULT" then
+      do
+         Print Far01
+         Print Language.30
+         Send PromptString
+         return
+      end
+      Print Far01
+      if taste>mailgroups.COUNT | taste<1 then
+      do
+         Print Far01||Language.30
+         Send PromptString
+         return
+      end
+      taste=taste-1
+      ADDRESS "MAILMANAGER" MM_GetGroupAreas area_liste mailgroups.taste userlevel
+      if rc=0 then
+      do
+         Print Far03||Language.31
+         Print Far03||Language.28
+         b=0
+         do a=0 to area_liste.COUNT-1
+            ADDRESS "MAILMANAGER" MM_GetAreaInfo area_liste.a.AREA areaname
+            print far01||right(a+1,6)": "far06||left(area_liste.a.AREA,30)":" left(areaname.DESC,30)
+            b=b+1
+            if b=pagesize-2 then
+            do
+               More; taste=upper(RESULT)
+               if taste="N" then
+               do
+                  string=Far03||Language.32 Far07
+                  if ANSI="ON" then string=string BF01||ESC"4@"
+                  prompt 4 NORMAL '"'string'"'
+                  taste=RESULT
+                  if taste="RESULT" then
+                  do
+                     Print Far01
+                     Print Language.33||Far01
+                     Send Promptstring
+                     return
+                  end
+                  taste=taste-1
+                  Print Far01
+                  if taste>area_liste.count | taste<0 then
+                  do
+                     Print Far01||Language.33||Far01
+                     Send PromptString
+                     return
+                  end
+                  newarea=area_liste.taste.AREA
+                  ADDRESS "MAILMANAGER" MM_GetAreaInfo newarea dummy
+                  if dummy.TYPE="MAIL" then
+                  do
+                     if canwritenm=0 then
+                     do
+                        Print Far01||Language.56
+                        call SetPromptASCII
+                        Send Promptstring
+                        return
+                     end
+                  end
+                  this_area=area_liste.taste.AREA
+                  call Set_AreaASCII
+                  call SetPromptASCII
+                  call CheckForAlias
+                  Send PromptString
+                  return
+               end
+               else
+               do
+                  b=0
+                  Print Far03||Language.31
+                  Print Far03||Language.28
+               end
+            end
+         end
+         string=Far03||Language.32 Far07
+         if ANSI="ON" then string=string BF01||ESC"4@"
+         prompt 4 NORMAL '"'string'"'
+         taste=RESULT
+         if taste="RESULT" then
+         do
+            Print Far01||Language.33||Far01
+            send PromptString
+            return
+         end
+         taste=taste-1
+         Print Far01
+         if taste>area_liste.count | taste<0 then
+         do
+            Print Far01||Language.33||Far01
+            Send PromptString
+            return
+         end
+         newarea=area_liste.taste.AREA
+         ADDRESS "MAILMANAGER" MM_GetAreaInfo newarea dummy
+         if dummy.TYPE="MAIL" then
+         do
+            if canwritenm=0 then
+            do
+               Print Far01||Language.56
+               call SetPromptASCII
+               Send Promptstring
+               return
+            end
+         end
+         this_area=area_liste.taste.AREA
+         call Set_AreaASCII
+         call SetPromptASCII
+         Send PromptString
+         call CheckForAlias
+         return
+      end
+   end
+   Send Promptstring
+   return
+
+AntwortenASCII:
+   if carrier=0 then call CarrierLost   
+   Print Far03||Language.55||Far07
+   string=Far03||Language.61||Far07
+   if ANSI="ON" then string=string BF01||ESC||"4@"
+   Prompt 5 NORMAL '"'string'"'
+   taste=upper(RESULT)
+   newline
+   if taste="RESULT" then
+   do
+      Print Far01||Language.62||Far07
+      Send PromptString
+      return
+   end
+   ADDRESS "MAILMANAGER" MM_ReadMsg this_area taste old_msg
+   if rc=0 then
+   do
+      reply_msg.TO=username
+      reply_msg.FROMADDR=""
+      reply_msg.TO=old_msg.FROM
+      reply_msg.TOADDR=old_msg.FROMADDR
+      reply_msg.SUBJ=old_msg.SUBJ
+      reply_msg.FLAGS="REFLOW"
+      reply_msg.TEAR="TA_Maildoor V1.1"
+      reply_msg.FILE="T:Editor.temp"
+      ADDRESS "MAILMANAGER" MM_QuoteMsg this_area taste "NOLOGO"
+      ADDRESS COMMAND "COPY >NIL: T:MM.TRANS T:Quote.temp"
+      call CheckForalias
+      if aliasuse=1 then
+      do
+         string=Far03||Language.60||Far07
+         Prompt 1 YESNO '"'string'"'
+         taste=upper(RESULT)
+         if taste="RESULT" then taste="J"
+         if taste="J" then reply_msg.FROM=ALIASNAME
+      end
+      Send Far02||Language.11": "Far01||reply_msg.TO
+      if areatype=0 then Print far02"("Far01||reply_msg.TOADDR||Far02")"
+      else newline
+      Print Far02||Language.12": "Far01||reply_msg.SUBJ
+      Prompt 1 YESNO '"'Language.24'"'
+      taste=upper(RESULT)
+      if taste="Y" | taste="J" then
+      do
+         TextEdit
+         if upper(result)~="###ABORTED" then
+         do
+            ADDRESS "MAILMANAGER" MM_WriteMsg this_area reply_msg
+            call SetPromptASCII
+            Send PromptString
+            ADDRESS "MAILMANAGER" MM_ListMsgs this_area area_msgs
+            return
+         end
+      end
+   end
+   Send PromptString
+   return
+
+WriteMsgASCII:
+   if carrier=0 then call CarrierLost
+   string=Far03||Language.17||Far07
+   if ANSI="ON" then string=string BF01||ESC||"25@"
+   NEWLINE
+   Prompt 25 NORMAL '"'string'"'
+   ergebnis=RESULT
+   Print Far07
+   if ergebnis="RESULT" then
+   do
+      Print Far01||Language.18
+      Send PromptString
+      return
+   end
+   write_msg.TO=ergebnis
+   call CheckForAlias
+   if aliasuse=1 then
+   do
+      string=Far03||Language.60||Far07
+      Prompt 1 YESNO '"'string'"'
+      taste=upper(RESULT)
+      if taste="RESULT" then taste="J"
+      if taste="J" then write_msg.FROM=ALIASNAME
+      else write_msg.FROM=username
+      newline
+   end
+   write_msg.FROMADDR=""
+   if areatype=0 then
+   do
+      string=Far03||Language.19||Far07
+      if ANSI="ON" then string=string BF01||ESC||"25@"
+      Prompt 25 NORMAL '"'string'"'
+      ergebnis=RESULT
+      Send Far07
+      if ergebnis="RESULT" then
+      do
+         Print Far01||Language.20
+         Send PromptString
+         return
+      end
+      write_msg.TOADDR=RESULT
+   end
+   Send Far02
+   string=Far03||Language.21 Far07
+   if ANSI="ON" then string=string||BF01||ESC||"25@"
+   Prompt 25 NORMAL '"'string'"'
+   ergebnis=RESULT
+   Print Far07
+   if ergebnis="RESULT" then ergebnis=language.22
+   write_msg.SUBJ=ergebnis
+   write_msg.TEAR="TA_Maildoor V1.1"
+   write_msg.FLAGS="REFLOW"
+   write_msg.FILE="T:Editor.Temp"
+   newline   
+   Print Far02||Language.11": "Far06||write_msg.TO
+   if areatype=0 then Print Far02||Language.23 Far06||write_msg.TOADDR
+   Print Far02||Language.12": "Far06||write_msg.SUBJ||Far02
+   Prompt 1 YESNO '"'Language.24'"'
+   taste=upper(RESULT)
+   if taste="Y" | taste="J" then
+   do
+      TextEdit
+      if upper(result)~="###ABORTED" then
+      do
+         ADDRESS "MAILMANAGER" MM_WriteMsg this_area write_msg
+         ADDRESS "MAILMANAGER" MM_ListMsgs this_area area_msgs
+         call SetPromptASCII
+         Send PromptString
+         return
+      end
+   end
+   Send Promptstring
+   return
+
+ReadMsgASCII:
+   if carrier=0 then call CarrierLost
+   Print Far11||Language.13
+   Prompt 6 NORMAL '"'Far05||Language.14' "'
+   taste=RESULT
+   ADDRESS "MAILMANAGER" MM_ReadMsg this_area taste this_msg
+   if rc=0 then
+   do
+      CLS
+      if ANSI="ON" then
+      do
+         do a=1 to 3
+            print Far03||BF01||copies(" ",79)
+         end
+         Send ESC||"1;1H"
+      end
+      Print Language.10": "this_msg.FROM "("this_msg.FROMADDR")"
+      print Language.11": "this_msg.TO "      "Language.15": "this_msg.DATE
+      print Language.12": "this_msg.SUBJ
+      newline
+      b=3
+      do c=0 to this_msg.TEXT.COUNT-1
+         if length(this_msg.TEXT.c)>79 then
+         do
+            textzeile=this_msg.TEXT.c
+            do while length(textzeile)>79
+               parse var textzeile teil1 +78" " teil2
+               Print Far06||teil1
+               b=b+1
+               textzeile=teil2
+            end
+            Print Far06||textzeile
+         end
+         else Print Far06||this_msg.TEXT.c
+         b=b+1
+         if b=pagesize-2 then
+         do
+            More; taste=upper(result)
+            if taste="N" then
+            do
+               Send PromptString
+               return
+            end
+            else
+            do
+               b=3
+               if ANSI="ON" then
+               do
+                  do a=1 to 3
+                     print Far03||BF01||copies(" ",79)
+                  end
+                  Send ESC||"1;1H"
+               end
+               Print Language.10": "this_msg.FROM "("this_msg.FROMADDR")"
+               print Language.11": "this_msg.TO "      "Language.15": "this_msg.DATE
+               print Language.12": "this_msg.SUBJ
+               newline
+            end
+         end
+      end
+      if areatype=1 then
+      do
+         Print Far06||this_msg.FOOT.0
+         Print Far06||this_msg.FOOT.1
+      end
+   end
+   Send Promptstring
+   return
+
+AreaListeASCII:
+   if carrier=0 then call CarrierLost
+   Print Far11||Language.8
+   Print Far03||left(Language.9,7) left(Language.10,25)||left(Language.11,25)||left(Language.12,22)
+   Print Far03||copies(GRAPH,79)
+   b=0
+   do a=0 to (area_msgs.COUNT)-1
+      if carrier=0 then call CarrierLost
+      Print Far06||right(area_msgs.a.NUM,6)":" left(area_msgs.a.FROM,24) left(area_msgs.a.TO,24) left(area_msgs.a.SUBJ,24)
+      b=b+1
+      if b=pagesize-2 then
+      do
+         More; taste=upper(result)
+         if taste="N" then
+         do
+            Send Promptstring
+            return
+         end
+         else
+         do
+            b=0
+            Print Far03||left(Language.9,7) left(Language.10,25)||left(Language.11,25)||Far07||left(Language.12,22)
+            Print Far03||copies(GRAPH,79)
+         end
+      end
+   end
+   Send Promptstring
+   return
+
+Sysopmodul:
+SortList:
+PostfachASCII:
+   return

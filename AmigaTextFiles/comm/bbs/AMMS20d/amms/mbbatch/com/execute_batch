@@ -1,0 +1,96 @@
+;
+;	EXECUTE BATCH
+;
+;	$VER: 2.00 / 29-01-1995
+;
+;	Scriptfile zum Starten der User-Batches.
+;
+;	Benoetigte AMMS-Befehle :
+;	-------------------------
+;	break off
+;	check user
+;	disk execute
+;	echo
+;	eod
+;	extern
+;	if
+;	on error
+;	parse
+;
+;       Variablen initialisieren :
+;       --------------------------
+batch=""				; Anfangsbuchstabe der Zusatzbatches
+filenameend=".bat"			; Filenamenende der Zusatzbatches
+maxbatches=5				; Max. Anzahl der Zusatzbatches
+file="login"				; Name der Userbatch (default: login)
+user="'{name}'"				; Username, dessen Batch editiert wird
+
+;	Programm :
+;	----------
+
+; Parameter auswerten
+
+p2=""					; Username initialisieren
+_if os != "T" THEN _parse "Execute Batch" p0 N p1 ; User-Parameter auswerten
+_if os == "T" THEN _parse "Execute Batch" p0 N p1 N p2 ; Sysop-Para auswerten
+
+_if "'p1''p2'" == "" then _goto EXECUTE	; Wenn keine Para, Loginbatch starten
+
+; Ueberpruefe, ob 1. Parameter eine Batch
+
+i=maxbatches+1				; Schleifenzaehler initialisieren
+LOOP:
+i=i-1					; Schleifenzaehler erniedrigen
+_if/i i < 1 then _goto NO_BATCH		; Kein Batchname gefunden -> NoBatch
+_if p1 != "'batch''i'" then _goto LOOP	; Batchname korrekt ? Nein -> Batch
+
+file="'batch''i''filenameend'"		; Batchfilenamen erzeugen
+
+; Username ueberpruefen
+
+CHECK_NAME:
+_if p2 == "" then _goto EXECUTE		; Kein Username -> eigene Batch starten
+_if os == "F" then _goto UNKNOWN_BATCH	; Kein Sysop -> unbekannte Batch
+_check user "'p2'" UNKNOWN_USER		; User unbekannt -> Fehler
+user=p2					; Username vom Parameter uebernehmen
+
+; File unter Userzugriff starten, wenn nicht vorhanden, ignorieren
+
+EXECUTE:
+COMNAME=				; Befehlsname auf nix
+_disk execute/useracc/noerr "mbudir:'user'/'file'"
+_eod					; Ende
+
+; Wenn keine Batchdatei gefunden, dann nach Name pruefen
+
+NO_BATCH:
+_if p2 != "" then _goto UNKNOWN_BATCH	; 2.Para vorhanden -> unbekannte Batch
+p2=p1					; 2. Para = 1. Para
+_goto CHECK_NAME			; -> Name pruefen
+
+; Fehlerbehandlungsroutinen
+
+UNKNOWN_BATCH:
+_gosub LOADTEXT
+_if/i maxbatches != 0 then _goto UNKNOWN_BATCH_1
+_echo T_NoBatch
+_eod
+
+UNKNOWN_BATCH_1:
+_echo T_UnknownBatch
+_eod
+
+UNKNOWN_USER:
+_gosub LOADTEXT
+_echo T_UnknownUser
+_eod
+
+; Unterroutine: Lade sprachspezifische Texte
+
+LOADTEXT:
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/execute_batch.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/execute_batch.bat"
+_return

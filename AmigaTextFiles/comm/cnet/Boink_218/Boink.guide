@@ -1,0 +1,391 @@
+@database "Boink"
+
+Copyright (c) 1993-98 Bob Maple
+                      DR. John M. Hoyt
+                      Kelly Cochran
+All Rights Reserved
+
+AmigaGuide is a registered trademark of Commodore Amiga, Commodore
+Business Machines, Inc.
+
+
+@master "Boink"
+
+
+@Node Main "Boink Manual"
+
+ $VER: Boink 2.18 (22-Oct-98) - CNet Amiga 4.69+ UUCP Mail Bouncer
+ © 1993-98 Bob Maple     - bmaple@burner.com
+           John Hoyt     - amicon@amicon.net
+           Kelly Cochran - kcochran@best.com
+
+ Update Notes
+
+        @{" Read Me First!     v2.18 " Link "README"    }
+        @{" Version History          " Link "History"   }
+        @{" To-Do List               " Link "ToDo"      }
+        @{" Reporting Bugs           " Link "Bugs"      }
+ 
+ Table of Contents
+
+        @{" Software License         " Link "License"   }
+
+	@{" What exactly is Boink?   " Link "WhatIs?"   }
+	@{" Running Boink (Boinking) " Link "InstallBoink" }
+
+ Click on one of the above buttons.  If you are just using Boink for
+ the first time, start with the Software License and work your way down
+ in sequential order for proper installation.
+
+@EndNode
+
+
+@Node README "Current Version Notes"
+
+ v2.18 -- Oct 22 1998
+ 
+     o If HELPADDR was not specified, it would result in the
+       Help Return Address in your bounce message being sent as
+       "@site.name".
+       Now defaults to "sysop".
+       
+     o When using the COPY switch to send a local copy of the each
+       Boinked item, sometimes only the return message would get sent.
+       Added Delay(5*TICKS_PER_SECOND) between calls of CnSendEmail
+       and that seems to fix it.  If anyone notices mail in the Boink
+       log as being Boinked out, but not copied locally, please let me
+       know ASAP...
+       
+
+@EndNode
+
+
+@Node History "Past Version Notes"
+
+
+ v2.15 -- Oct 21 1998
+ 
+     o By popular demand, the name has been changed to "Boink"!
+       The HISTORY shall still show "UUBoing" for previous versions.
+
+
+ v2.14 -- Oct 21 1998
+ 
+     o New switch added...  COPY.
+       If specified on the command line, a Local COPY of the bounced
+       mail item will be imported to the SYSOP account on your system.
+       Thanks again to Trolan for his help and insight...
+
+
+ v2.11 -- Oct 18 1998
+ 
+     o Now UUBoing will NOT bounce mail back if it came from:
+         mailer-daemon@*
+         postmaster@*
+         root@*
+       
+     o Bumped the revision up :)
+
+
+ v2.10 -- Oct 10 1998
+ 
+     o Oh my gawd, the code has been Trolanized...  Kelly Cochran began
+       working his magic on it, cleaning it up, and fixing the following:
+ 
+       * ReadArgs() support added.
+       * SITE is now optional if CNet is running.
+       * UUMail path is now read from CNet/Config, else defaults to UUMail.
+         (will likely make this work the same as SITE later)
+       * All ANSI C calls with equivalent OS calls have been replaced.
+       * Minor optimizations across the board.
+       * Postmaster and help addresses now have a sanity check placed
+         upon them.
+       
+     o The Detect from own domain problem is fixed once again and
+       should be working.  (another by-product of Trolan's work)
+       So it should NOT bounce back to your system if it came from
+       your system.
+
+
+ v2.07 -- Oct 9 1998
+ 
+     o I had to break the DETECT FROM OWN DOMAIN feature.
+       will fix in next revision.
+
+
+ v2.06 -- Oct 8 1998
+ 
+     o Updated for CNet Amiga v4.69 and above -- DO NOT USE THIS VERSION
+       OF UUBOING UNLESS YOU ARE RUNNING SAID VERSION OF CNET!
+       
+       This version expects to find it's items to bounce in the directory
+       uumail:unknown, which only CNet 4.69 and above support.
+       
+     o Currently, UUBoing relies on Kelly Cochran's CnSendEmail program
+       which must be in your path somewhere.
+       I have included CnSendEmail, but please be sure to contact Kelly,
+       (AKA Trolan) and thank him for his work.
+       In a forthcoming release, UUBoing will no longer require the use
+       of CnSendEmail. 
+       
+     o UUBoing no long will allow mail which has YOUR SYSTEM's domain as
+       the origin to be bounced back, creating an endless loop situation.
+       
+     o Notification of bounced mail is no longer sent to postmaster/sysop
+       on the local system.  Instead a new log is created which shows the
+       mailid that did not exist, and where it was bounced back to.
+       Logname: cnet:sysdata/uuboing
+       
+     o $VER string is now updated automatically when compiled.
+       (thanks Ray Akey)
+
+
+ v1.13 -- Jul 7
+ 
+     o Updated for CNet Amiga v4.13a and above -- DO NOT USE THIS VERSION
+       OF UUBOING UNLESS YOU ARE RUNNING SAID VERSION OF CNET!
+       
+       The user keys (which UUBoing uses to determine who to bounce
+       and who not to bounce) changed in v4.13 of CNet, so this update
+       of UUBoing changes to use the new keys.
+
+
+ v1.12 -- Jan 29
+ 
+     o A few more cosmetic changes.. nothing big.
+     
+     o Now understands both "From:" address configurations.. UUBoing
+       didn't know how to deal with "Real Name <netname@address>"
+       previously.
+       
+     o UUBoing can now bounce several thousand messages per mailfile instead
+       of the previous 20.  One side-effect is that UUBoing should be a
+       little faster at bouncing large mailfiles.
+
+
+ v1.11 -- Jan 25
+ 
+     o Reduced stack usage by about 500 bytes, bringing total stack usage
+       down to less than 2k bytes.
+       
+     o UUBoing could only re-mail 10 messages in from a single mail file.
+       That number is now doubled to 20.
+       
+     o Cleaned up/streamlined the console output a little bit.
+
+
+ v1.10 -- Jan 23 
+ 
+     o Fixed a rather large bug -- the DELETE keyword sometimes wouldn't
+       work!  Should now.
+
+     o The keyword SITE is now required, followed immedaitely by your site's
+       name.  See @{" Running UUBoing " Link "InstallBoink" } for examples.
+       
+     o New keyword LINES lets you specify the maximum number of lines of the
+       original message, INCLUDING HEADERS, UUBoing should return to the
+       sender.  Again, see @{" Running UUBoing " Link "InstallBoink" }.
+
+
+ v1.00 -- Jan 23
+ 
+       Original release
+
+@EndNode
+
+@Node ToDo "Plans for the future"
+ 
+     o Add internal code to post the actual mail items.
+       (removing reliance on Kelly Cochran's CNetSendEmail)
+       
+     o Implement a NO-BOUNCE list, so that certain mailid's and
+       even From: addresses will NEVER be bounced back, and instead
+       just sent to NIL:
+       
+ 
+ If you have other suggestions, please mail me at amicon@amicon.net
+ 
+ 
+@EndNode
+
+
+@Node Bugs "Bug Reporting and Updates"
+ 
+     o The fastest way to make a bug report, or get an update
+       is to find me (WarNPeace) on IRC!
+       You can find me on BeyondIRC 24/7 in #CNetIndependent.
+       Server: irc.beyondirc.net port 6667
+       
+     o You can also send email to amicon@amicon.net with a detailed
+       explanation of your problem.
+ 
+ 
+@EndNode
+
+
+
+@Node License "Software License Agreement"
+
+ This program is provided as-is, with no warranty either expressed or
+ implied.
+ 
+ By using this software, you submit to any consequences due to the use
+ or misuse of the program.  The author will not be held responsible for
+ any damage caused by the use of this program.
+ 
+ This application is currently under development by Dr. John M. Hoyt
+ (WarNPeace on IRC) and is NOT 100% free.
+ 
+ I expect those who use Boink to take a few minutes and send email to
+ me <amicon@amicon.net> and tell me how it works for you.  Constructive
+ critisizm is welcome.
+ 
+ Of course, any contributions you might wish to send along are always
+ welcome, and you may mail them to:
+ 
+ Dr. John M. Hoyt
+ 125 Wyatt Oaks Court
+ Easley, SC 29642-8368
+ 
+
+@EndNode
+
+
+@Node WhatIs? "What is Boink?"
+
+ Since the 3x release of CNet, there has been support for UUCP Mail...
+ The 4x series has even better support, thanks to the efforts of Ray Akey!
+ 
+ This brings on other problems.  Since users may or may not have free run
+ on the network from your system, it's possible that they could get deleted
+ or decide to change their netname.  If someone on the net should happen to
+ send mail to a non-existant user at your machine, the files just lay around
+ in UUMail:.
+ 
+ Boink solves this by 'bouncing' (or Boinking!) messages that arrived for
+ users it doesnot know.  It remails the original sender letting him/her know
+ that the person they mailed couldn't be found, keeps a log of bounced
+ items so the Sysop may monitor activity. And optionally will place a copy
+ of the Boinked mail in the Sysop/Postmasters mailbox.
+ 
+ Boink works great with CNet because in v4.69 a 'hook' was added to the
+ bbstext which will let you place the command line to call Boink and it
+ will be executed after all mail is done processing in uumail: and items for
+ unknown users are moved to uumail:unknown/
+ 
+ Simple as that.
+ 
+ Boink would not be possible if it were not for Bob Maple contributing the
+ source to his UUBoing, which this program started out as. Thank you Bob!
+ Bob's addy: bmaple@burner.com
+ 
+ Kelly Cochran is also owed a bit of gratitude for his help in making Boink
+ work nicely! Danke Kelly!
+ Kelley's Addy: kcochran@best.com
+ 
+ Also, much thanks to Ray Akey for continuing to provide us with CNet Amiga,
+ without a doubt the best BBS software available for ANY platform!
+ Ray's Addy: rakey@cnetbbs.net
+ 
+ 
+ For more information, updates, bug reports, etc, please contact:
+ DR. John M. Hoyt <amicon@amicon.net>
+ WarNPeace on IRC - irc.beyondirc.net - #CNetIndependent
+ 
+ 
+@EndNode
+
+
+@Node InstallBoink "Using Boink"
+
+ Using Boink is easier than ever thanks to a new BBSTEXT line added in
+ CNet v4.69 (Thanks again Ray Akey!)...
+ 
+ Line 2604 is our hook.  Whatever you have on that line will be executed
+ upon mail-task's completion of handling the last item in uumail:
+ 
+ You can also run Boink from a shell, or a CRON event if you wish
+ It is a DOS executable, NOT a CNet C program.  However if CNet is not
+ up at runtime, you MUST specify the SITE as an argument.
+ 
+ Boink has the following command line template:
+ 
+   Boink <SITE your.site> [DELETE] [LINES <number>] [HELPADDR <UUCPID>]
+         [POSTMASTER <UUCPID>] [COPY]
+   
+ Commands in <> are required, ones in [] are not.  For instance, Boink
+ REQUIRES the SITE keyword, followed by your site name, where as the LINES
+ keyword is optional, BUT if you supply it, the number of lines is required
+ immediately following.  Keyword explanations:
+ 
+ SITE          Your sitename (REQUIRED if CNet is not running).
+ DELETE        Delete bounced mail after returning it to the sender;
+               Otherwise it STAYS in UUMail: and will be bounced AGAIN
+               next time.  Recommended you ALWAYS supply this keyword.
+ LINES         How many lines of the original message should Boink
+               return, including headers?
+ HELPADDR      The UUCP ID of the account help is available from on your
+               system (This defaults to "sysop").
+ POSTMASTER    The UUCP ID of the account you wish to be associated with
+               POSTMASTER functions (where the local log will be mailed)
+               etc... (This defaults to "sysop").
+ COPY          Copy bounced mail to POSTMASTER (if POSTMAST not specified
+               "sysop" will be assumed).
+
+
+ Some examples:
+ 
+   1> Boink SITE burner.com DELETE
+   1> Boink SITE foo.machine DELETE LINES 15
+   1> Boink DELETE
+   1> Boink DELETE COPY
+   
+ Example 1 runs Boink (our site "burner.com"), and deletes any mail it
+ bounces afterwards.
+ 
+ Example 2 runs Boink (our site "foo.machine", deletes any mail it
+ bounces afterwards, and will ONLY return a maximum of 15 lines of the
+ original message.
+ 
+ Example 3 would only work if CNet was running.
+ 
+ Example 4 would place a copy on your local system in the SYSOP box.
+
+ 
+ My BBSTEXT line 2604 reads:
+ 
+ Miami:Boink >NIL: DELETE POSTMASTER jhoyt COPY
+ 
+ Which calls Boink (in my Miami: assign, but you may place anywhere)
+ and sets my system domain to amicon.net and after running deletes all
+ items in uumail:unknown/ so they are not bounced again.
+ 
+ 
+ When Boink bounces a message, it returns the following message to who it
+ originaly came in for.
+ 
+ The message is currently un-configurable:
+
+ 
+  ## Returned message from MAILER-DAEMON@<your.site>
+  
+     Reason for return    : User <whomever> is not a user at this site.
+     Possible explanations: The user could have been deleted off the BBS or
+                            has changed his net-name.
+                            
+     If you need help contacting a user at this particular site, please send
+     mail to '<HelpAddr>@<your.site>'.
+     
+  ## UN-SENT Message Follows ##
+  
+
+ The original message they sent is returned, or as many lines of the message
+ will be returned if the LINES keyword was used (in which case Boink says
+ "## Portion of UN-SENT message.."
+ 
+ In addition, each item bounced is logged to cnet:sysdata/log/Boink
+ letting you know that it returned a piece of mail to a non-existant user,
+ and who it returned it to.
+
+@EndNode
+ 

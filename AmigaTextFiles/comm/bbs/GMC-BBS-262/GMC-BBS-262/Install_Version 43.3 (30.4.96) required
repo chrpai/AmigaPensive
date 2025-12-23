@@ -1,0 +1,252 @@
+; $VER: Install-GMC-BBS 1.00 (15.07.97)
+
+(set version "2.62")
+(set revision "24-07-97")
+
+(set #tmpdir "T:")
+(set #archive "GMC-BBS-262")
+(set @default-dest "WORK:")
+
+(complete 0)
+(set #intro_0 (cat "GMC-BBS Version " version " Revision " revision "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"))
+(if (= @language "deutsch")
+(
+  (set #welcome_0  "Dieses Installationsprogramm spricht Deutsch und Englisch. Starten Sie es mit verschiedenen Einstellungen im Locale Voreinsteller. Es wird automatisch die richtige Sprachversion installiert.")
+  (set #welcome_1  "Es benötigt mindestens die Installer Version 43.3 (30.4.96) oder höher.")
+
+  (set #intro_1    "Diese Software ist FREEWARE!")
+  (set #intro_2    "Willkommen zum GMC-BBS Installationsprogramm. Hiermit können Sie GMC-BBS neu auf Ihrem System installieren oder eine bereits vorhandene, ältere Version von GMC-BBS ersetzen.")
+  (set #intro_3    "Neue GMC-BBS Versionen sind immer abwärtskompatibel, alle User Daten und Registrations Nummern funktionieren weiter.")
+
+  (set #exists_0   "Achtung!")
+  (set #exists_1   "GMC-BBS existiert bereits auf Ihrem Computer.")
+  (set #exists_2   "Wenn Sie Scripts, Sounds, Texte oder bbs.config verändert haben, sichern Sie bitte sofort die Dateien bevor Sie mit der Installation fortfahren! Die alten Dateien werden gelöscht.")
+  (set #exists_3   "GMC-BBS existiert noch nicht auf Ihrem Computer.")
+  (set #exists_4   "Starte Neuinstallation von GMC-BBS.")
+
+  (set #packing_0  "Entpacke Datei ")
+  (set #packing_1  "nach ")
+  (set #packing_2  "Bitte um etwas Geduld!")
+
+  (set #dest_0     "Bitte wählen Sie ein Laufwerk für GMC-BBS.")
+  (set #dest_1     "Ein Verzeichnis namens 'GMC-BBS' wird dort automatisch erzeugt.")
+  (set #dest_2     "Der Platzbedarf beträgt cirka 1,5 MB.")
+  (set #dest_3     "Die Installation erfolgt auf folgendem Laufwerk.")
+
+  (set #copying    "\nKopiere ")
+
+  (set #finished_0 "GMC-BBS wurde erfolgreich installiert im Verzeichnis")
+  (set #finished_1 "Bitte starten Sie nun Ihren Rechner neu, bevor sie GMC-BBS starten.")
+)
+(
+  (set #welcome_0  "This installation programm speaks englisch and german. You should start it with different settings in the locale program. It will install automatically the correct language version.")
+  (set #welcome_1  "It requires at least Installer Version 43.3 (30.4.96) or higher.")
+
+  (set #intro_1    "This software is FREEWARE!")
+  (set #intro_2    "Welcome to the GMC-BBS installation program. Use this tool to install GMC-BBS on your system or to update a previously installed GMC-BBS release.")
+  (set #intro_3    "All new versions of GMC-BBS are backwards compatible, all user data and registration numbers will continue to work.")
+
+  (set #exists_0   "Attention!")
+  (set #exists_1   "GMC-BBS already exists on your Computer.")
+  (set #exists_2   "If you have modified Scripts, Sounds, Texts or bbs.config please save the files now before you continue with the installation! The old files will be deleted.")
+  (set #exists_3   "GMC-BBS does not exist on your Computer.")
+  (set #exists_4   "Starting first installation of GMC-BBS.")
+
+  (set #packing_0  "Unpacking file ")
+  (set #packing_1  "to ")
+  (set #packing_2  "Please be patient!")
+
+  (set #dest_0     "Please select a drive for GMC-BBS.")
+  (set #dest_1     "A drawer called 'GMC-BBS' will be created here automatically.")
+  (set #dest_2     "The space required is about 1,5 MB.")
+  (set #dest_3     "The installation occur on the following drive.")
+
+  (set #copying    "\nCopying ")
+
+  (set #finished_0 "GMC-BBS was successfully installed in the drawer")
+  (set #finished_1 "Please reboot your machine before starting GMC-BBS.")
+)
+)
+
+(procedure P_COPYDIR #lib #sourcedir #destdir
+(
+  (if (exists #sourcedir)
+  (
+    (foreach #sourcedir "~(#?.info)"
+    (
+      (if (< @each-type 0)
+        (P_COPYFILE #lib (tackon #sourcedir @each-name) #destdir)
+      )
+    )
+    )
+  )
+  )
+)
+)
+
+(procedure P_COPYFILE #lib #srcname #dstdir
+(
+  (if #lib
+  (
+    (copylib
+      (prompt #copying #srcname " ...")
+      (help @copylib-help)
+      (source #srcname)
+      (dest #dstdir)
+      (optional "force" "askuser")
+      (confirm "expert")
+    )
+  )
+  (
+    (copyfiles
+      (prompt #copying #srcname " ...")
+      (help @copyfiles-help)
+      (source #srcname)
+      (dest #dstdir)
+      (optional "force" "askuser")
+      (confirm "expert")
+      (if #icons  (infos))
+    )
+  )
+  )
+)
+)
+
+(message "\n" #welcome_0 "\n\n" #welcome_1)
+
+(message "\n" #intro_0 "\n\n" #intro_1 "\n\n" #intro_2 "\n\n" #intro_3)
+
+(complete 5)
+(if (exists (cat #archive ".lha"))
+(
+  (message "\n" #packing_0 #archive ".lha\n\n" #packing_1 #tmpdir "\n\n" #packing_2)
+  (run (cat "Lha x " #archive ".lha " #tmpdir))
+  (set #scrdir (tackon #tmpdir #archive))
+)
+(
+  (set #scrdir "")
+)
+)
+
+(complete 10)
+(if (<> (exists "GMC-BBS:" (noreq)) 0)
+(
+  (message "\n" #exists_0 "\n\n" #exists_1 "\n\n" #exists_2)
+  (run (cat "Copy GMC-BBS:System/Stat.File " (tackon #scrdir "System")))
+  (run (cat "Copy GMC-BBS:System/User.Data " (tackon #scrdir "System")))
+  (run "Delete ENV:GMC-BBS all quiet")
+  (run "Delete ENVARC:GMC-BBS all quiet")
+  ;(run "Delete GMC-BBS:#? all quiet")
+  (run "Delete GMC-BBS:Scripts all quiet")
+  (run "Delete GMC-BBS:Sound all quiet")
+  (run "Delete GMC-BBS:System all quiet")
+  (run "Delete GMC-BBS:Text_Deutsch all quiet")
+  (run "Delete GMC-BBS:Text_English all quiet")
+  (run "Delete GMC-BBS:XPR_Libs all quiet")
+  (run "Delete GMC-BBS:Utilities all quiet")
+  (run "Delete GMC-BBS:#? quiet")
+)
+(
+  (message "\n" #exists_0 "\n\n" #exists_3 "\n\n" #exists_4)
+)
+)
+
+(complete 15)
+(message "\n" #dest_0 "\n\n" #dest_1 "\n\n" #dest_2)
+(set @default-dest (askdir (prompt #dest_0) (help @askdir-help) (default @default-dest)))
+
+(complete 20)
+(set destination (tackon @default-dest "GMC-BBS"))
+(message "\n" #dest_3 "\n\n" destination)
+(set #icons 0)
+(P_COPYDIR 0 (tackon #scrdir "devs") "devs:")
+(P_COPYDIR 1 (tackon #scrdir "libs") "libs:")
+
+(complete 25)
+(P_COPYFILE 0 (tackon #scrdir "Icons/GMC-BBS.info") @default-dest)
+(P_COPYFILE 0 (tackon #scrdir "BBS.PRG") destination)
+
+(complete 30)
+(P_COPYFILE 0 (tackon #scrdir "EEU.PRG") destination)
+(P_COPYFILE 0 (tackon #scrdir "bbs.config") destination)
+(P_COPYFILE 0 (tackon #scrdir "bbs.config.info") destination)
+(P_COPYFILE 0 (tackon #scrdir (cat #archive ".readme")) destination)
+
+(complete 35)
+(P_COPYDIR 0 (tackon #scrdir "Bulletins_Menu") (tackon destination "Bulletins_Menu"))
+(complete 40)
+(P_COPYDIR 0 (tackon #scrdir "File_System") (tackon destination "File_System"))
+(P_COPYDIR 0 (tackon #scrdir "Message_Board") (tackon destination "Message_Board"))
+(P_COPYDIR 0 (tackon #scrdir "Private_Mail") (tackon destination "Private_Mail"))
+(P_COPYDIR 0 (tackon #scrdir "System") (tackon destination "System"))
+(P_COPYDIR 0 (tackon #scrdir "Temp") (tackon destination "Temp"))
+
+(complete 45)
+(set #icons 1)
+(P_COPYFILE 0 (tackon #scrdir "Scripts.info") destination)
+(P_COPYDIR 0 (tackon #scrdir "Scripts") (tackon destination "Scripts"))
+
+(complete 55)
+(P_COPYFILE 0 (tackon #scrdir "Sounds.info") destination)
+(P_COPYDIR 0 (tackon #scrdir "Sounds") (tackon destination "Sounds"))
+
+(complete 65)
+(P_COPYFILE 0 (tackon #scrdir "Utilities.info") destination)
+(P_COPYDIR 0 (tackon #scrdir "Utilities") (tackon destination "Utilities"))
+
+(complete 70)
+(P_COPYFILE 0 (tackon #scrdir "XPR_Libs.info") destination)
+(P_COPYDIR 0 (tackon #scrdir "XPR_Libs") (tackon destination "XPR_Libs"))
+
+(complete 75)
+(if (= @language "deutsch")
+(
+  (P_COPYFILE 0 (tackon #scrdir "Deutsch/BBS.PRG.info") destination)
+  (P_COPYFILE 0 (tackon #scrdir "Deutsch/EEU.PRG.info") destination)
+  (P_COPYDIR 0 (tackon #scrdir "Deutsch") destination)
+
+  (complete 80)
+  (P_COPYFILE 0 (tackon #scrdir "Deutsch/BBS_Text.info") destination)
+  (P_COPYDIR 0 (tackon #scrdir "Deutsch/BBS_Text") (tackon destination "BBS_Text"))
+
+  (complete 85)
+  (P_COPYFILE 0 (tackon #scrdir "Deutsch/Help_Text.info") destination)
+  (P_COPYDIR 0 (tackon #scrdir "Deutsch/Help_Text") (tackon destination "Help_Text"))
+)
+(
+  (P_COPYFILE 0 (tackon #scrdir "English/BBS.PRG.info") destination)
+  (P_COPYFILE 0 (tackon #scrdir "English/EEU.PRG.info") destination)
+  (P_COPYDIR 0 (tackon #scrdir "English") destination)
+
+  (complete 80)
+  (P_COPYFILE 0 (tackon #scrdir "English/BBS_Text.info") destination)
+  (P_COPYDIR 0 (tackon #scrdir "English/BBS_Text") (tackon destination "BBS_Text"))
+
+  (complete 85)
+  (P_COPYFILE 0 (tackon #scrdir "English/Help_Text.info") destination)
+  (P_COPYDIR 0 (tackon #scrdir "English/Help_Text") (tackon destination "Help_Text"))
+)
+)
+
+(complete 90)
+(startup "GMC-BBS"
+  (prompt "Some commands will be added to your \"s:user-startup\" file.")
+  (help @startup-help)
+  (command "if exists \"" destination "\"\n")
+  (command "   assign GMC-BBS: \"" destination "\"\n")
+  (command "endif")
+)
+
+(complete 95)
+(run (cat "assign GMC-BBS: " "\"" destination "\""))
+
+(if (exists (tackon #tmpdir #archive))
+(
+  (run (cat "delete " (tackon #tmpdir #archive) " all quiet"))
+  (run (cat "delete " (tackon #tmpdir #archive) ".info quiet"))
+)
+)
+
+(complete 100)
+(exit "\n" #intro_0 "\n\n" #intro_1 "\n\n" #finished_0 "\n\n" destination "\n\n" #finished_1 (quiet))
+

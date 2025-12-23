@@ -1,0 +1,208 @@
+
+;;;  Trion BBS startup script   (c) 94-98 by Paul Spijkerman
+;;;
+;;;  Place something as the line below in your startup-sequence
+;;;  for trion to start in it's own shell.
+;;;
+;;;  newshell con:5/154/690/115/Trion  from  dh2:trion/startup
+;;;
+;;;  newshell con:5/154/690/115/Trion  from  trion:startup
+;;;
+;;;  Or just 'execute trion:startup' to start it in an existing shell
+;;;
+;;;  You have to change the Trion: part in the lines above too
+;;;  the path where you stored the BBS or make an assign before
+;;;  the startup like this:
+;;;
+;;;  assign trion: dh2:trion
+
+
+echo  "Trion BBS startup script"
+echo  ""
+echo  "Starting up nodes 0 & 1"
+echo  ""
+
+
+;;; All the references to paths where the BBS and data is stored
+
+;assign  trion:     dh2:trion
+
+
+;;; Short cuts to where I store my files , optional
+
+assign  downloading:    trion:files
+assign  down.amiga:     trion:files
+assign  down.pc:        trion:files
+
+; assign  downloading:    dh1:downloading
+; assign  down.amiga:     dh1:down.amiga
+; assign  down.pc:        dh1:down.pc
+
+
+
+
+;;;  Don't do anything if the assign Trion: isn't available
+
+if not exists trion:
+   echo "Error: You need an assign trion: to your BBS directory."
+   quit
+endif
+
+
+
+;;; Make sure old third party doors that need 'TRON:' still work
+
+assign  tron:      trion:
+
+;;; Make a shortcut to the doors directory, probably needed for paragon doors
+
+assign  doors:     trion:doors
+
+;;; For future Trion libs, or if you keep file transfer libs handy
+
+if exists trion:libs
+   assign  add LIBS:   trion:libs
+endif
+
+path    trion:utils  trion:scripts  add
+
+;;; Define some commands to 'exit' remote shells (like on some PC boards)
+
+alias endshell endcli
+alias exit     endcli                ;Used on PC boards in remote shells
+
+
+CheckStart
+if WARN
+   echo "Trion BBS startup script aborted.."
+   quit            ;Stop script if CheckStart returns return code 5
+endif
+
+
+stack 10000          ;was 5000 - 20000   (Xpr libs ??)
+
+;;; MMU-less debug util
+
+;run trion:utils/nullcheck
+
+
+
+;;;  Make sure important directories exist
+
+if not exists trion:data
+   makedir trion:data
+endif
+if not exists trion:filecat
+   makedir trion:filecat
+endif
+if not exists trion:icons
+   makedir trion:icons
+endif
+if not exists trion:log
+   makedir trion:log
+endif
+if not exists trion:killedfiles
+   makedir trion:killedfiles
+endif
+if not exists trion:Upload
+   makedir trion:Upload
+endif
+if not exists trion:Files
+   makedir trion:Files
+endif
+if not exists trion:Users
+   makedir trion:Users
+endif
+
+if not exists trion:mail
+   makedir trion:mail
+endif
+if not exists trion:mail/fido
+   makedir trion:mail/fido
+endif
+
+if not exists trion:inbound
+   makedir trion:inbound
+endif
+if not exists trion:outbound
+   makedir trion:outbound
+endif
+if not exists trion:inbound/bad
+   makedir trion:inbound/bad
+endif
+if not exists trion:inbound/backup
+   makedir trion:inbound/backup
+endif
+if not exists trion:inbound/decode
+   makedir trion:inbound/decode
+endif
+if not exists trion:outbound/attaches
+   makedir trion:outbound/attaches
+endif
+
+
+
+
+
+;;; Start up the Trion Resource Manager   ( add -i to iconize add startup)
+
+
+changetaskpri 1                   ;priority was 2
+cd trion:
+run   trion:utils/trionRM  -m  trion:cfg/trionrm.cfg
+wait 1
+changetaskpri 0
+
+
+
+;;; Start up GPFax if needed
+
+; cd gpfax:
+; run gpfax <nil: >nil: -b19200 -np -q -l -f5     ;19200/38400/57600
+; waitforport rexx_gpfax
+; rx "address rexx_gpfax closeserial"
+
+wait 1 secs
+
+
+
+;;; Startup BBS node(s)
+
+changetaskpri 1
+cd trion:
+run   trion:utils/bbs  -0 -i -d
+wait 1
+
+run   trion:utils/bbs  -1 -i -d           ;Iconized, debug
+; run   trion:utils/bbs  -2 -i -d -v        ;Iconized, debug, silenced
+; run   trion:utils/bbs  -3 -i -d
+; run   trion:utils/bbs  -4 -i -d
+; run   trion:utils/bbs  -5 -i -d
+; run   trion:utils/bbs  -6 -i -d
+; run   trion:utils/bbs  -7 -i -d
+changetaskpri 0
+
+
+
+;;; Install 'Rigth-Amiga FKeys' to Popup/ScreenToFront Nodes 0 & 1.
+
+run TrionHotkeys "HOTKEY0=rawkey rcommand f1" "HOTKEY1=rawkey rcommand f2"
+
+;;; The clickit tools (obsolete by GuiMod)
+
+; run trion:utils/clickit2
+; run trion:utils/clickit
+
+;;; Run TrionScheduler OR a Cron utility
+
+;;; Start TrionScheduler with Trion:cfg/scheduler.cfg
+
+run scheduler
+
+;;; Startup a cron utility (FI CyberCron) to undertake certain actions
+;;; at certain times , like call-out , maintenance scripts.
+
+; run CyberCron >nil: CRONTAB  trion:cfg/CronTab  LOGFILE  trion:log/Cron.log
+
+
+

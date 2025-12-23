@@ -1,0 +1,114 @@
+;
+;       ADD PORT : AMMS-Script zum Einrichten eines neuen Ports
+;
+;       VERSION : $VER: 1.04 / 29.06.1995
+;
+;       Mit diesem Script werden alle noetigen Verzeichnisse & Files fuer
+;       einen neuen Port angelegt.
+;
+;
+;       Das Script sollte so eingebunden werden, dass es ueber Level und
+;       Flags auf die folgende Befehle zugreifen kann :
+;
+;	CHECK FILE
+;	ECHO
+;	EDIT PORT
+;	EOD
+;	EXTERN
+;	GOSUB
+;	GOTO
+;	IF
+;	INPUT
+;	PARSE
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DIR
+;	ECHO
+;	MAKEDIR
+;
+
+; Parameter auswerten
+
+ _parse "ADD PORT" P0 N/Port PORT 
+
+; Pruefe, ob Port schon existiert
+
+ _check file "amms:startup/'PORT'" NEW_PORT	; wenn nicht vorh., verzw.
+ _echo "^JDer Port existiert bereits !^J"	; Fehlermeldung ausgeben
+ _goto END					; -> Ende
+
+;
+;       Verzeichnisse einrichten
+;
+NEW_PORT:
+ NAME="files:uploads/'PORT'"			; Dir fuer Uploads erzeugen
+ _gosub MAKE_DIR
+ NAME="mbmsg:point/'PORT'"			; Dir fuer Point erzeugen
+ _gosub MAKE_DIR
+
+;
+;       Startup-File einrichten
+;
+
+ NAME="amms:startup/'PORT'"
+ STRING="run port *""'PORT'*""*n"
+ _gosub MAKE_FILE
+
+;
+;       Settings-File einrichten
+;
+PREFLOOP:
+ _echo "^JVorhandene Settings als Voreinstellung :^J"
+ _extern dir mbdevs:default/~(#?.txt)
+ _input PREFNAME "^JFilename : "
+ _if PREFNAME == "" then goto PREFLOOP
+ _check file "mbdevs:default/'PREFNAME'" PREFLOOP
+
+ _check file "mbdevs:default/'PREFNAME'.txt" COPYSET
+ _disk text "mbdevs:default/'PREFNAME'.txt"
+
+COPYSET:
+ NAME="mbdevs:'PORT'.set"
+ STRING=""
+ _gosub MAKE_FILE
+
+ _extern/q copy "mbdevs:default/'PREFNAME'" "mbdevs:'PORT'.set"
+
+ _edit port "'PORT'"
+
+ _echo "^JFertig !^J"
+
+;
+;       Ende
+;
+END:
+ _eod
+
+;
+;       Unterroutine zum Einrichten eines Verzeichniss
+;
+MAKE_DIR:
+ _echo/nolf "Erzeuge Directory 'NAME' ... "
+ _extern/q makedir "'NAME'"
+ _goto CHECK
+
+;
+;       Unterroutine zum Erzeugen eines Files
+;
+MAKE_FILE:
+ _echo/nolf "Erzeuge File 'NAME' ... "
+ _extern/q echo >"'NAME'" "'STRING'"
+; _goto CHECK
+
+;
+;	Unterroutine zum Existenzpruefen eines Files/Verzeichnisses
+;
+CHECK:
+ _check file "'NAME'" CHECK_ERR
+ _echo "Ok !"
+ _return
+CHECK_ERR:
+ _echo "Fehler !"
+ _return

@@ -1,0 +1,44 @@
+/**/
+options results;parse arg ar1'|'ar2;call pragma('P',-5)
+
+/* == Place your code here! "AR1" is the path/file, "AR2" is the temp file == */
+
+/*           Screamtracker(S3m) Loader Module - Made for FPDiz
+
+                                   V1.1
+
+   This was as hard as hell to figure out, but I think I figured it out now.
+
+     If you find any bugs in this please report them to mUb@912:1000/0.0,
+               Chris Brundell@2:2502/12.0 or mub@reliant.psu.edu             */
+
+open('input',ar1,R)
+temp=readch('input',96);lf='0a'x
+parse var temp SongName'00'x 28 Type 29 shit 31 Ordnum 33 InsNum 35 PatNum 37 Flags 39 Created 41 FileFormat 43 SCRM 47 gv 48 is 49 it 50 mv 51
+desc= '.'center(translate(strip(songname),'-',' '),42,'-')'.'lf
+desc=desc||"|"center(c2d(PatNum)' patterns - 'c2d(InsNum)' instruments',42,'-')"|"lf
+temp=readch('input',c2d(OrdNum))
+do n=1 to min(c2d(InsNum),7)
+        samppointer.n=c2d(readch('input',2))/16
+        end
+x=0
+do m=1 to n-1
+        seek('input',samppointer.m,B)
+        temp=readch('input',80)
+        parse var temp shit 49 sampname'00'x 75
+        if strip(sampname)~='' then do
+                x=x+1
+                sampname.x=sampname
+                end
+        end
+x=min(x,6)
+do n=1 to x-1
+        desc=desc||'|'center(strip(sampname.n),42)'|'lf
+        end
+
+desc=desc||"`"center(translate(strip(sampname.n),'-',' '),42,'-')"'"
+
+/* =========== Writes the "DESC" variable to the temp file. =========== */
+
+call open(fp,ar2,'W');call writeln(fp,desc);call close(fp)
+exit

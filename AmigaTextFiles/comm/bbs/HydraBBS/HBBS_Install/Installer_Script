@@ -1,0 +1,117 @@
+(if (= @user-level 0) (set @user-level 2))
+(if (< (/ (getversion) 65536) 37) (abort "You need 2.04 or better"))
+
+(message "\n\nHydraBBS V1.10\n\nBy Dominic Clifton\n\nHydra^CRoSS POiNT")
+(welcome)
+
+(set #msg_recreatedirs "Creating directory structure!")
+(set #msg_noupgrade "This script cannot be used to update an existing installation")
+(set #msg_InstallSDK "Do you want to install the HydraBBS Developer SDK")
+
+(set #help_PickTarget "Just pick a dir dammit..")
+(set #help_InstallSDK "If you want to develop doors for HydraBBS install this, examples also included!")
+
+(set #Target "SYS:")
+
+(procedure getdir
+  (set #Target  (askdir (prompt "Pick a directory to Install HBBS in.\n(A directory called HBBS will be created)")
+                         (help #help_PickTarget)
+                         (default #Target)
+	         )
+  )
+)
+
+(getdir)
+
+(set #Upgrade (exists (tackon #Target "HBBS")))
+
+(if (= #Upgrade 2)
+ (
+  (abort #msg_noupgrade)
+ )
+)
+
+(if (= #Upgrade 0)
+ (
+  (makedir (tackon #Target "HBBS"))
+  (copyfiles (source "InstallTemp/HBBS.info")
+             (dest #Target)
+  )
+
+  (set #Target (tackon #Target "HBBS"))
+  (set @default-dest #Target)
+
+  (working #msg_recreatedirs)
+  (execute "InstallTemp/Make_Empty_Dirs" #Target)
+
+  (complete 10)
+
+  (copyfiles (source "Core/")
+             (dest #Target)
+             (optional "force" "nofail")
+             (infos)
+             (noposition)
+             (all)
+  )
+
+  (complete 40)
+
+  (copyfiles (source "Misc/")
+             (dest #Target)
+             (optional "force" "nofail")
+             (infos)
+             (noposition)
+             (all)
+  )
+
+  (complete 60)
+
+  (copyfiles (source "Misc/Storage/Example_Configs/")
+             (dest #Target)
+             (optional "force" "nofail")
+             (infos)
+             (noposition)
+             (all)
+  )
+
+  (complete 70)
+
+  (copyfiles (source "Misc/Storage/Example_Screens/Special/")
+             (dest (tackon #Target "Screens/Special/"))
+             (optional "force" "nofail")
+             (infos)
+             (noposition)
+             (all)
+  )
+
+  (complete 80)
+
+  (copyfiles (source "Misc/Storage/Example_Screens/Bulletins/")
+             (dest (tackon #Target "Screens/Bulletins/"))
+             (optional "force" "nofail")
+             (infos)
+             (noposition)
+             (all)
+  )
+
+  (complete 90)
+
+  (if (= 1 (askbool (prompt #msg_InstallSDK) (help #Help_InstallSDK) (default 1)))
+   (copyfiles (source "Developer/")
+              (dest #Target)
+              (optional "force" "nofail")
+              (infos)
+              (noposition)
+              (all)
+   )
+  )
+ )
+)
+
+(complete 100)
+
+(message "\n\n*** IMPORTANT ***\n\nPlease read ReadMe.1st and the Quickstart section of HBBS.Guide, both found in the newly created\n" #target " directory, before attempting to start HydraBBS!")
+
+(run "SYS:Utilities/Multiview" (cat "\"" (tackon #target "HBBS.guide") "\"") (safe))
+
+(exit)

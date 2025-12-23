@@ -1,0 +1,117 @@
+/************************************************************************/
+/*              Excelsior! Last Callers (ELC) v1.9 (3/9/93)             */
+/*                            by Sean Workman                           */
+/*       Due to the crap I see in all those CNet doors, this door       */
+/*          is ONLY to be used by REGISTERED EXCELSIOR! SYSOPS!         */
+/*       This door is NOT for use on ANY version of ANY other BBS!      */
+/*                                                                      */
+/*    I worked hard on this door, please do not modify it in ANY way!   */
+/*     If there is a bug, please leave me mail on my board or on the    */
+/*       Excelsior! support BBS (Skynet) by handle is The Trooper.      */
+/*                                                                      */
+/*    If you like this door enough to keep it on your BBS for longer    */
+/*  than a 30 day trial period, please send me a mere $5(US) so that I  */
+/*            can continue to write more doors for Excelsior!           */
+/*      Send money to: Sean Workman  P.O.Box 5229 Eugene, OR 97405      */
+/*                                                                      */
+/*     Now that I've got that out of the way, the newest version of     */
+/*      Excelsior! Last Callers will always be available on my BBS      */
+/*          AmigaX BBS 503-342-2144 68030/16.8k Ultimate Speed!         */
+/*             Multiline, multiuser chats, 50+ online games             */
+/*  And powered by the BEST BBS software out for the Amiga; Excelsior!  */
+/************************************************************************/
+options results
+SIGNAL ON ioerr
+SIGNAL ON syntax
+
+path='bbs:' ; File='Ex.LastCallers' ;Lines=10 ;LST=1;LCN=1;LCT=1;columns=1
+LocalStates='OR' ; LocalCountries='USA'
+LocalCities='Eugene Springfield Veneta Marcola Cottage Grove Spfld Elmira'
+LocalCities=LocalCities||'Junction City Creswell Harrisburg Cheshire'
+C0='\c4';C1='\c6';C2='\c6';H2='\c7';C3='\c6';H3='\c7';C4='\c6';H4='\c7'
+C5='\c6';C6='\c6';C7='\c6';C8='\c6';C9='\c6';T1='\z4';T2='\z0';TX='\c7'
+GU=Getuser ; tr=transmit ; ver='1.9'
+if columns=1 then do ; d1='Ñ' ; d2='Å' ; d3='Ï' ; dv='³' ; end
+else ;            do ; d1='Í' ; d2='Ä' ; d3=d1  ; dv=' ' ; end
+b1=C0||'ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ'd1'ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ'd1'ÍÍ'd1'ÍÍÍÍ'd1'ÍÍÍÍÍ'd1'ÍÍÍ'd1'ÍÍÍÍÍÍÍÍÍÍÍ'd1'ÍÍÍÍÍÍÍ'd1'ÍÍÍÍÍ»\@6'
+b2=C0||'ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ'd2'ÄÄÄÄÄÄÄÄÄÄÄÄÄÄ'd2'ÄÄ'd2'ÄÄÄÄ'd2'ÄÄÄÄÄ'd2'ÄÄÄ'd2'ÄÄÄÄÄÄÄÄÄÄÄ'd2'ÄÄÄÄÄÄÄ'd2'ÄÄÄÄÄ¶'
+b3=C0||'ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ'd3'ÍÍÍÍÍÍÍÍÍÍÍÍÍÍ'd3'ÍÍ'd3'ÍÍÍÍ'd3'ÍÍÍÍÍ'd3'ÍÍÍ'd3'ÍÍÍÍÍÍÍÍÍÍÍ'd3'ÍÍÍÍÍÍÍ'd3'ÍÍÍÍÍ¼'
+default = C0'º'C1'Sean Workman      'C0||DV||C2'Eugene        'C0||DV||C3'OR'C0||DV||C4'USA 'C0||DV||C5'00   'C0||DV||C6'Fri'C0||DV||C7' 1-Jan-1993'C0||DV||C8'12:00am'C0||DV||C9'LOCAL'C0'º\Q1'
+tr '\q1\f1Updating Excelsior! Last Callers...'
+call GetInfo
+call CheckFile
+call UpdateFile
+tr '\q1\f1Updated!                    '
+sendfile path||File
+EXIT
+
+GetInfo:
+  GU  4 ; tmp=result ; v3=right(tmp,2)     ; city=left(tmp,length(tmp)-3)
+  GU  1 ; tmp=result ; v1=left(tmp,18,' ') ;  v2=left(city,14,' ')
+  GU 30 ; tmp=result ; v4=left(tmp, 4,' ')
+  if LCN=1 & index(LocalCountries,left(v4,3))=0 then do;C4=H4;C3=H3;C2=H2;signal LD;end
+  if LST=1 & index(LocalStates,v3)=0 then do;C3=H3;C2=H2;signal LD;end
+  if LCT=1 & index(LocalCities,city)=0 then C2=H2
+LD:
+  GU 13 ; tmp=result ; temporary=left(tmp,21,' ') ; call FixTime
+  v6=left(v6,3,' ') ; v7=right(v7,11,' ') ; v8=right(v8,7,' ')
+  GU 22 ; tmp=result ; v5=left(tmp, 5,' ')
+  GU 24 ; tmp=result ; v9=right(tmp, 5,' ') ; if tmp=19200 then v9="LOCAL"
+return
+
+FixTime:
+  parse var temporary v6' 'v7' 'v8
+  parse var v8 hour':'mins
+  if hour>12 then hour=hour-12
+  v8=hour||':'||left(mins,2)||translate(right(time('c'),2),xrange('a','z'),xrange('A','Z'))
+return
+
+CheckFile:
+  if ~exists(path||File) then
+  do
+    open(file1,path||File, 'W')
+    call DoHeader
+    writeln(file1,b1)
+    do i=1 to Lines
+      writeln(file1,default)
+    end
+    writeln(file1,b3)
+    close(file1)
+  end
+  open(file1,path||File, 'R')
+  top=readln(file1);top=readln(file1);top=readln(file1);top=readln(file1)
+  do i=1 to Lines
+    Last.i=readln(file1)
+    if Last.i='' | Last.i=b3 then Last.i = default
+  end
+  bottom=readln(file1)
+  close(file1)
+return
+
+UpdateFile:
+  open(file1,path||File, 'W')
+  call DoHeader
+  writeln(file1,b2)
+  writeln(file1,C0'º'C1||v1||C0||DV||C2||v2||C0||DV||C3||v3||C0||DV||C4||v4||C0||DV||C5||v5||C0||DV||C6||v6||C0||DV||C7||v7||C0||DV||C8||v8||C0||DV||C9||v9||C0'º')
+  do i=1 to Lines-1
+    writeln(file1,Last.i)
+  end
+  writeln(file1,b3)
+  close(file1)
+return
+
+DoHeader:
+  writeln(file1,'\q1\f1\c5Excelsior! Last Callers v'||ver||' -*- by Sean Workman - AmigaX 503-342-2144 16.8k DS')
+  writeln(file1,b1)
+  head1='Last '||Lines||' Callers' ; head1=left(head1,15,' ')
+  writeln(file1,C0'º'TX||T1||head1||'   'T2||C0||DV||TX||T1'City/Town     'T2||C0||DV||TX||T1'ST'T2||C0||DV||TX||T1'Ctry'T2||C0||DV||TX||T1'Calls'T2||C0||DV||TX||T1'Day'T2||C0||DV||TX||T1'Date       'T2||C0||DV||TX||T1'Time   'T2||C0||DV||TX||T1'Baud 'C0'\z0º')
+return
+
+IOERR:
+SYNTAX:
+  tr '\f1\nf\c7Error: \c3'rc' \c7- \c6'errortext(rc)' \c3@ line #\c6'sigl
+  le='\c7Error: '||rc||'/'||errortext(rc)||' @ '||sigl
+  logentry le
+  bufferflush
+exit
+EXIT

@@ -1,0 +1,428 @@
+/*
+$VER: Gnew.trans (Public) 7.02  (26 Dec. 1998) by Gnome
+*/
+
+/* 
+  Upgraded to use 4-digit year: e.g. 19980201 or 20010104
+
+  NOT for use on Moonlight BBS (which has special file markers)
+
+  ** Gnewfiles must be in your BBS:bin/ drawer
+
+  ** This program REQUIRES that the utility 'UserLast.rexx' has been
+  ** run within Logon.trans.
+  ** For more information on this, see the document Gnew.readme
+
+   Gnew forms list of new files on or since caller-specified date,
+   The new files are listed into a work file by bin/Gnewfiles
+   and then numbered and displayed by this script.
+   See docs for how to run Gnewfiles offline.
+
+   The entered year for 'since' must be greater than 1977, because
+   days are calculated since 1 Jan 1978 by Amigados.
+
+   The listing respects the caller's screen length, access level and
+   flags. Caller is invited to mark files for download. Marking is
+   done by a call to Transamiga.
+
+   Thanks to Craig Hutchison and Andy McArdle for pointing out a
+   bug in the formatting routine, which caused trouble when used in 
+   combination with Stuart Gillibrand's 'Flist' system layout.
+*/
+
+/*--------- User config section ------------------------*/
+
+maxfiles = 5 /* Max number of files caller may mark in one batch */
+
+workfile = 'RAM:newlist'  /* change as required */
+
+/* Set the minimum access level for a caller to mark files for download */
+DLaccess = 5
+
+/*---------- End of configs ----------------------------*/
+
+options results
+options failat 20
+
+if ~show('L',"rexxsupport.library") then 
+  call addlib("rexxsupport.library",0,-30)
+
+m.1='Jan'; m.2='Feb'; m.3='Mar'; m.4='Apr'; m.5='May'; m.6='Jun'
+m.7='Jul'; m.8='Aug'; m.9='Sep'; m.10='Oct'; m.11='Nov'; m.12='Dec'
+n.1='01'; n.2='02'; n.3='03'; n.4='04'; n.5='05'; n.6='06'
+n.7='07'; n.8='08'; n.9='09'; n.10='10'; n.11='11'; n.12='12'
+
+/*
+call open('STDERR','ram:tracefile','w')
+trace results
+*/
+
+signal on syntax
+signal on failure
+
+cls   /* clear screen */
+
+call colorcall
+
+userinfo 'o' ; user_access = result
+userinfo 'g' ; user_flags = result
+userinfo 'v' ; user_screen = result-6
+userinfo '&' ; marked_count = result  /* No. of files already marked */
+userinfo 'a' ; name=result
+systeminfo 'j'; today=result     /* format 25 Jan 2001 */
+systeminfo '8'; bbsline=result
+
+ufile='env:userlast.'||bbsline
+call open('last',ufile,'r')
+lastcall = readln('last')  /* Date of last call as e.g. 20 Jan 2001 */
+call close('last')
+
+call flagconvert  /* converts flags to numeric 'numflags' */
+
+sysoplog 'Gnew.trans: Listed new files.'
+
+if right(lastcall,2)='90' then lastcall = today /* for new callers */
+if user_access=0 then lastcall = today
+
+call addcent  /* forms prompt_date as '1997 04 27' */
+
+retry:
+
+print BRI
+print YEL||'List New Files on the BBS since chosen date.'
+print WHI||'The date below shows when you last called.'
+print WHI||'You may change this date if you wish: then press enter.'
+print
+print CYA||'                            Yr Mo Day' 
+
+if CARRIER = 0 then signal Quitlist
+query YEL||'Show files uploaded since '||WHI||BLUBK||'\\'||prompt_date
+mydate=result
+print OFF
+if mydate = '###PANIC' then signal Quitlist
+if mydate = 'RESULT' then do
+  return 0
+end
+
+x=checkdate()  /* checks mydate as valid entry */
+
+if x>0 then do
+  print OFF
+  print BRI||RED||'Invalid date entered.'
+  print CYA||'Year month day needed, e.g. 1996 04 27'
+  signal retry
+end
+
+call dateconvert  
+/* formats mydate into lastdate and listdate
+   e.g. 1995 10 31 lastdate=19951031, listdate=31 Oct 1995
+    or  2002 05 21 to lastdate=20020521, listdate=21 May 2002
+*/
+
+basedate=date('i')
+testdate=date('i',lastdate,'s')
+lapse=basedate-testdate
+
+if lapse>180 then do
+  print OFF
+  print CYA||'You have asked for new files over the last '||lapse||' days.'
+  send 'It will be a long list!  '
+  queryN 'Are you sure? '
+  if result ~='Y' then signal retry
+end
+if lapse<0 then do
+  print OFF
+  print BRI||CYA||'You have asked for future files!'
+  signal retry
+end
+
+print OFF
+print OFF||CYA||'Scanning file areas: please wait a few secs.'
+print
+
+if exists(workfile) then call delete(workfile)
+
+address command 'Gnewfiles '||lastdate||' '||user_access||' '||numflags||' '||workfile
+answer=RC
+
+if answer=1 then do
+  print YEL||'Invalid date entered.'
+  signal retry
+end
+if answer>1 then signal listfail
+
+if ~exists(workfile) then signal taskfail
+
+print
+print YEL||'This list produced by Gnome''s Steamware on '||date()||' at '||time()
+print WHI
+call open('frank',workfile,'r')
+
+do i=1 to 10
+  line=readln('frank')
+  if word(line,1)='Area' then leave
+end
+print WHI||line
+
+fname. = ''
+
+fcount=0
+linum=2
+closed=0
+do while ~eof('frank')
+  line=readln('frank')
+  if left(line,1) = '#' then do
+    fcount=fcount+1
+    parse var line hash fpath fsize fdate fdescr
+    fpath=strip(fpath); fsize=strip(fsize)
+    fdate=strip(fdate); fdescr=strip(fdescr)
+
+/*    fname=reverse(delstr(reverse(fpath),pos('/',reverse(fpath)))) */
+    epath = lastpos('/',fpath)  /* new */
+    IF epath = 0 THEN epath = lastpos(':',fpath) /* new */
+    fname = right(fpath,length(fpath)-epath)  /* new */
+
+    fname.fcount=fname
+    line = YEL||left(fcount,3)||') '||WHI||left(fname,20)||right(fsize,7)||' '||fdate||' '||fdescr
+  end
+
+  print line
+  linum=linum+1
+  if linum>=user_screen then do
+    call pause                   /* More? Y, N, Mark file */
+    if procede=0 then leave
+  end
+end
+call close('frank')
+closed=1
+
+if fcount=0 then do
+  print YEL||'No new files since specified date.'
+  queryN CYA||'Choose another date? '
+  if upper(result)='Y' then signal retry
+  else signal eggsit
+end
+
+call pause
+
+userinfo '&' ; marked_count = result
+
+if marked_count>0 then do
+  LSTMARKEDFILES "ram:gnomefile"
+  print CYA
+  print 'The following files are currently marked:'
+  print YEL
+  sendfile "ram:gnomefile"
+  call delete("ram:gnomefile")
+  print
+  if CARRIER = 0 then signal Quitlist
+  continue
+end
+
+eggsit:
+  if exists(workfile) then call delete(workfile)
+return 0
+
+/*--------------------------------------------------------*/
+
+Pause:  /* Offers More? Y, N, Mark. (Mark only if closed=1) */
+  if linum=0 then return
+  procede=1
+  print
+  if closed=0 then do
+    do forever
+      if CARRIER = 0 then signal Quitlist
+      if color='ON' then do
+        getchar CYA||'More? 'YEL||'Y'||CYA||'es, '||WHI||'N'||CYA||'o, '||WHI||'M'||CYA||'ark file '||WHI
+      end
+      else do
+        getchar 'More? Y = Yes, N = No, M = Mark file: '
+      end
+      response = result
+      print
+      print
+      select
+        when response = '###PANIC' then signal Quitlist
+        when response='Y' then leave
+        when response='N' then do
+          procede=0
+          leave
+        end
+        when response='M' then call Mark_files
+        otherwise leave
+      end
+    end
+  end
+  else do /* at end of file */
+    do forever
+      if CARRIER = 0 then signal Quitlist
+      if color='ON' then do
+        getchar YEL||'Q'||CYA||'uit, '||WHI||'M'||CYA||'ark file '||WHI
+      end
+      else do
+        getchar 'Q = Quit, M = Mark file: '
+      end
+      response=result
+      print
+      print
+      select
+        when response = '###PANIC' then signal Quitlist
+        when response='Q' then leave
+        when response='M' then call Mark_files
+        otherwise leave
+      end
+    end
+  end
+  linum=0
+return
+             
+mark_files:
+  do forever
+    userinfo '&'            /* Get this again, in case caller marked    */
+    marked_count = result   /* same file twice. TA keeps correct count. */
+    if marked_count>=maxfiles then do
+      print YEL||'You must download before you mark any more.'
+      return
+    end
+    else do
+      do forever
+        if CARRIER = 0 then signal Quitlist
+        query CYA||'Enter a file number to mark (RETURN only, if none): '||WHI
+        fileno=result
+        if fileno='RESULT' then return
+        if fileno = '###PANIC' then signal Quitlist
+        if (fileno<1) | (fileno>fcount) then do
+          print YEL||'Please enter a sensible number.'
+          print
+          iterate
+        end
+        break
+      end
+      MARKFILE fname.fileno
+      response = result
+      if response = 'FAIL' then print YEL||'Sorry. Could not mark '||fname.fileno
+      else do
+        print YEL||fname.fileno||' has been marked.'
+        sysoplog 'Marked file: '||fname.fileno
+        print
+      end
+    end
+  end
+return
+
+flagconvert:  /* converts pattern 'XXXXXXXX' to numeric value */
+  numflags=0
+  bit=1
+  do while bit<9
+    if substr(user_flags,bit,1)='X' then numflags=numflags+(2**(bit-1))
+    bit=bit+1
+  end
+return
+
+addcent:
+  day = word(lastcall,1)
+  mo = word(lastcall,2)
+  yr = word(lastcall,3)
+  if length(yr)=2 then do
+    if yr > '80' then yr='19'||yr 
+      else yr='20'||yr
+  end
+
+  found=0
+  do i=1 to 12
+    if mo=m.i then do
+      found=1
+      mn=n.i
+      leave
+    end
+  end
+  prompt_date=yr||' '||mn||' '||day
+return
+
+dateconvert:
+  day = word(mydate,3)
+  mo = word(mydate,2)
+  yr = word(mydate,1)
+
+  lastdate=compress(mydate)
+
+  found=0
+  do i=1 to 12
+    if mo=n.i then do
+      found=1
+      mn=m.i
+      leave
+    end
+  end
+
+  listdate=day||' '||mn||' 'yr
+
+return
+
+checkdate:
+  if length(mydate)~=10 | words(mydate)~=3 then return 10
+  day=word(mydate,3)
+  mo=word(mydate,2)
+  yr=word(mydate,1)
+  thisyr=left(date('s'),4)   /* Current year e.g. '1997' or '2002'  */
+
+  if yr>thisyr | yr<1978 | mo<1 | mo>12 | day>31 | day <1 then return 20
+  /* Note, dates earlier than 1st Jan 1978 can't be handled by Amigados */
+
+return 0
+
+colorcall:
+ userinfo 'x' ; color = result
+
+ CSI   = '1b'x||'['
+ CRLF  = '0d'x||'0a'x
+
+ if color='ON' then do
+   OFF=CSI'0;37m';RED=CSI'31m';GRN=CSI'32m';YEL=CSI'33m';BLU=CSI'34m'
+	 PUR=CSI'35m';CYA=CSI'36m';WHI=CSI'37m'; BRI = CSI'1m'
+   BLUBK=CSI'44m'
+ end
+ else do
+   RED='';GRN='';YEL='';BLU='';PUR='';CYA='';WHI='';OFF=''
+   BLUBK=''; BRI = ''
+ end
+
+return
+
+listfail:       /* Gnewfiles error return codes */
+  err. = 'Unidentified error'||answer
+  err.1='Invalid date sent to lister'
+  err.8='Gnewfiles Cannot open Files.BBS. Check configs/file.cfg'
+  err.9='Gnewfiles Cannot create Newlist'
+  err.10='Gnewfiles not found. Missing path?'
+  err.11='Gnewfiles Cannot open intuition.library'
+  err.12='Gnewfiles Cannot open File.cfg'
+  err.13='Gnewfiles out of memory'
+
+  Logentry 'Gnew.trans: '||err.answer
+
+Taskfail:
+  print CYA||'Sorry: Unable to list files for you just now.'
+  print 'Please try again tomorrow.'
+  print
+  if CARRIER = 0 then signal Quitlist
+  continue
+exit 0
+
+Quitlist:
+  Exit 10
+
+FAILURE:
+  trace off
+  logentry 'Gnew.trans: DOS Error 'rc'  in line 'SIGL
+  signal Fail2
+
+SYNTAX:
+  trace off
+  logentry 'Gnew.trans: Error 'rc' - 'errortext(rc)' in line 'SIGL
+Fail2:
+  Transmit
+  Transmit RED||'CRASH!  Program error!  Sysop will be notified in Log.'
+  if CARRIER = 0 then signal Quitlist
+  Continue
+Exit 20

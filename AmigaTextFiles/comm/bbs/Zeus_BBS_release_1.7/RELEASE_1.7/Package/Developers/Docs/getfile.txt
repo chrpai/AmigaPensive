@@ -1,0 +1,65 @@
+Converting GadToolsBox GetFile buttons to gui.lib
+
+In SetupScreen() replace
+
+	if ( ! ( getClass = initGet()))
+		return( 3L );
+
+	if ( ! ( getImage = NewObject( getClass, NULL, GT_VisualInfo, VisualInfo, TAG_DONE )))
+		return( 4L );
+
+with
+
+	if ( ! ( getClass = InitGetFile() ) )
+		return( 3L );
+
+In CloseDownScreen() remove
+
+	if ( getImage   ) {
+		DisposeObject( getImage );
+		getImage = NULL;
+	}
+
+In OpenXXXWindow() change
+
+		if ( PEDGTypes[ lc ] != GENERIC_KIND ) {
+			ng.ng_Width      = ComputeX( ng.ng_Width );
+			ng.ng_Height     = ComputeY( ng.ng_Height);
+		}
+
+		PEDGadgets[ lc ] = g = CreateGadgetA((ULONG)PEDGTypes[ lc ], g, &ng, ( struct TagItem * )&PEDGTags[ tc ] );
+
+		if ( PEDGTypes[ lc ] == GENERIC_KIND ) {
+			g->Flags             |= GFLG_GADGIMAGE | GFLG_GADGHIMAGE;
+			g->Activation        |= GACT_RELVERIFY;
+			g->GadgetRender       = (APTR)getImage;
+			g->SelectRender       = (APTR)getImage;
+		}
+
+to
+
+		ng.ng_Width      = ComputeX( ng.ng_Width );
+		ng.ng_Height     = ComputeY( ng.ng_Height);
+
+		if ( PEDGTypes[ lc ] == GENERIC_KIND )
+		{
+			PEDGadgets[ lc ] = g = NewObject( getClass, NULL,	GA_Top, 			ng.ng_TopEdge,
+																				GA_Left, 		ng.ng_LeftEdge,
+																				GA_Width, 		ng.ng_Width,
+																				GA_Height, 		ng.ng_Height,
+																				GA_Previous, 	g,
+																				GA_ID,			ng.ng_GadgetID,
+																				GA_UserData,	ng.ng_UserData,
+																			 	GT_VisualInfo,	VisualInfo,
+																			 	TAG_DONE );
+
+			if( g )
+			{
+				g->Flags             |= GFLG_GADGIMAGE | GFLG_GADGHIMAGE;
+				g->Activation        |= GACT_RELVERIFY;
+			}
+		}
+		else
+		{
+			PEDGadgets[ lc ] = g = CreateGadgetA((ULONG)PEDGTypes[ lc ], g, &ng, ( struct TagItem * )&PEDGTags[ tc ] );
+		}

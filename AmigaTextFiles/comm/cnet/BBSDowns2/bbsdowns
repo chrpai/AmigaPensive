@@ -1,0 +1,641 @@
+/***********************************************************************/
+/*                          BBS DOWNS! V2.0                            */
+/***********************************************************************/
+/*     A horse race pfile written in Arexx for the Amiga Cnet BBS!     */
+/*                                                                     */
+/*     Brought to you by Lori Bogan and Gene Ponce, sysops of....      */
+/*                                                                     */
+/*                   Superboard Two (702) 423-7206                     */
+/*                                                                     */
+/* This program is based on another program called "Horses" which was  */ 
+/* written in C for the Tag BBS.  While this program is not a direct   */
+/* porting of the "Horses" program, we would still like to credit the  */
+/* author of "Horses", D.Budzitowski, for many of the concepts we have */
+/* used in this pfile!                                                 */
+/***********************************************************************/
+/*                    A FEW NOTES TO OTHER SYSOPS                      */
+/***********************************************************************/
+/*  1. With this pfile you should also have an accompanying file called*/
+/*     Dinstuct which is called when the user asks for instructions.   */
+/*     If that file is not present you can make a simple text file to  */
+/*     to be used or do nothing since the program will still  run      */
+/*     without the Dinstruct file.                                     */
+/*  2. You will need to change the variables below (under the comment  */
+/*     *BBS variable initialization*) to suit your configuration.      */
+/***********************************************************************/
+/*                       VARIABLE DECLARATIONS                         */
+/***********************************************************************/
+/* BBSname   = name of the BBS this pfile is being run on              */
+/* Sysopname = name of the sysop offering this pfile                   */
+/* Progname  = name of this program                                    */
+/* FilePath  = path to subdirectory for support files                  */
+/* input     = used in CHECKPANIC procedure to hold input argument     */
+/* Uhandle   = Handle of current player                                */
+/* Udate     = Current date & time                                     */
+/* Uaccess   = User's access number (0,23)                             */
+/* CLS       = User's screen clear code                                */
+/* AcctBal   = Current player's account balance                        */
+/* LowBal    = Flag to signal when player's acct balance is too low    */
+/* MaxPlayers= Maximum players allowed                                 */
+/* player.i  = 'array' to hold all player handles                      */
+/* score.i   = 'array' to hold all player acct balances                */
+/* i, j      = simple counters used in various places in program       */
+/* temp      = temporary variable used when sorting/swapping           */
+/* nplayers  = total number of players in Dplayers files               */
+/* Flag      = used to signal different events                         */
+/* More      = used to ask if user wants to see more of the score list */
+/* Choice    = main menu choice                                        */
+/* Another   = does player want to bet on ANOTHER race?                */
+/* Hname.i   = horse names                                             */
+/* WHorse.i  = horse(s) picked to win, show or place                   */
+/* WBet.i    = amount bet to win, show or place                        */
+/* WOdds.i   = holds the current "To win" odds on the horses           */
+/* POdds.i   = holds the current "To place" odds on the horses         */
+/* SOdds.i   = holds the current "To show" odds on the horses          */
+/* RNum      = holds random numbers picked for horse race              */
+/* Count.i   = holds the cumulative counter for each horse during race */
+/* Win       = holds number of WIN horse                               */
+/* Place     = holds number of PLACE horse                             */
+/* Show      = holds number of Show horse                              */
+/***********************************************************************/
+/*                       VARIABLE INITIALIZATIONS                      */
+/***********************************************************************/
+
+  options results           /* required for cnet */
+
+/*Program error handling */
+  SIGNAL ON ioerr       /* if an io error occurs goto ioerr:          */
+  SIGNAL ON syntax      /* if a syntax error occurs goto syntax:      */
+
+/*BBS variable initialization */
+  BBSname = '\K1Superboard Two'
+  Sysopname = 'Sysop'
+  Progname = 'BBS Downs!'
+  MaxPlayers = 38        /* max number of players allowed by sysop */
+  FilePath = "dh1:cnet/pfiles/games/Downs"
+  pragma('directory', FilePath)            /* set current dir to FilePath */
+  
+  bufferflush
+  logentry "Played "Progname
+
+/*Program variable initialization */
+  getuser 1 ; Uhandle = result    /* get the user's handle           */
+  getuser 12; Udate = result      /* get current date & time         */
+  getuser 15 ; Uaccess = result   /* get user's access level (0,23)  */
+  getuser 19 ; CLS = d2c(result)  /* put value into packedBinary form*/
+  SendString "\Z0"                /* Set background color to black   */
+  Hname.1 = "Tumble Weed"
+  Hname.2 = "Frisky Girl"
+  Hname.3 = "Citation"
+  Hname.4 = "Thunder"
+  Hname.5 = "Whirlaway"
+  Hname.6 = "Seabiscuit"
+  Hname.7 = "Comet"
+  Hname.8 = "Old-Nag"
+
+/************************************************************************/
+/*                            MAIN PROGRAM                              */
+/************************************************************************/
+MAIN:
+  CALL PLAYERFILE
+  CALL CHECKBALANCE
+  Choice = 0
+  Do until Choice = 5
+     transmit CLS
+     transmit "\C7                   ********************************"
+     transmit "\C5                      Welcome to BBS Downs! V2.0"
+     transmit "\C7                   ********************************"
+     transmit ""
+     transmit "\C7                        1)\C5 Read Instructions"
+     transmit "\C7                        2)\C5 View Scoreboard"
+     transmit "\C7                        3)\C5 Millionaires Club"
+     transmit "\C7                        4)\C5 Go to the Track!"
+     transmit "\C7                        5)\C5 Quit"
+     transmit ""
+     transmit "\C7                   ********************************"
+     transmit ""
+     Query"                    What would you like to do?  "
+     Choice = result
+     CALL CHECKPANIC Choice
+     If Choice = 1 then CALL INSTRUCT
+     else If Choice = 2 then CALL SCOREBOARD
+     else If Choice = 3 then CALL MILLIONS
+     else If Choice = 4 then CALL THETRACK
+  end
+  CALL BYE
+  BUFFERFLUSH
+  SHUTDOWN
+EXIT
+
+PLAYERFILE:
+  Transmit CLS
+  Transmit "\C7Checking player file..."
+  Transmit ""
+  AcctBal = 100
+  Flag = 0
+  nplayers = 0
+
+  if ~exists('Dplayers') then do     /* Create a Players file if needed*/
+    open(file1, 'Dplayers', 'W')
+      writeln(file1, 0)              /* There are no players as yet */
+    close(file1)
+   end
+
+   open(file1, 'Dplayers', 'R')      /* Read in existting player info */
+     nplayers = readln(file1)        /* Get current number of players */
+     do i = 1 to nplayers
+        player.i = readln(file1)     /*Read a player's name*/
+        score.i = readln(file1)      /*Read a player's score*/
+        if player.i = Uhandle then do  /*find user's acct balance*/
+           AcctBal = score.i           /*set user's acct balance*/
+           Transmit "\C2I see you have bet here before!"
+           Transmit "\C2Your account balance is:  $"AcctBal
+           Flag = 1                   /*signal player was found*/
+        end
+     end
+   close(file1)
+
+   if Flag = 0 then do                 /*if player was not found in file*/
+       if nplayers < MaxPlayers then do 
+         transmit "\C2A new player!!"
+         transmit "\C2You will be given $100 to start you out!"
+         nplayers = nplayers + 1
+         player.nplayers = UHandle
+         score.nplayers = AcctBal
+         end
+       else if nplayers >= MaxPlayers then do
+         Transmit ""
+         Transmit "Sorry there is no room for another gambler at the track!"
+         Transmit "Talk to "SysopName" maybe he/she can do something about that!"
+         CALL BYE
+       end
+    end
+  CALL PAUSE
+RETURN
+
+CHECKBALANCE:
+  LowBal = "FALSE"
+  If AcctBal < 2 then do
+    LowBal = "TRUE"
+    TRANSMIT ""
+    TRANSMIT "\C2It seems your account balance of $"AcctBal" is too low to place any bets."
+    TRANSMIT ""
+    QUERY"Would you like to try to win $50 with no strings attached? "
+    Flag = UPPER(result)
+    CALL CHECKPANIC Flag
+    TRANSMIT ""
+    If Flag = "Y" then do
+      TRANSMIT ""
+      QUERY"\C4Okay, Pick a number between 1 and 5:  "
+      Guess = result
+      CALL CHECKPANIC Guess
+      RNum = RANDOM(1,5,TIME('S'))
+      if Guess = RNum then do
+         TRANSMIT ""
+         TRANSMIT "\C2You guessed it!!! Adding to your Account Balance..."
+         TRANSMIT ""
+         AcctBal = AcctBal + 50
+         LowBal = "FALSE"
+         end
+      else do
+         TRANSMIT ""
+         TRANSMIT "\C2Sorry the number was "RNum".  Try again sometime!"
+         TRANSMIT ""
+         end
+    end
+    else do
+      TRANSMIT ""
+      SENDSTRING "\C4Okay fine...but you won't be able to place any bets until "
+      TRANSMIT "you have more money!!"
+      TRANSMIT ""
+      end
+    CALL PAUSE
+  end
+RETURN
+
+INSTRUCT:
+  Transmit CLS
+  if exists('Dinstruct') then do
+    open(instruct, 'Dinstruct', 'R')
+      do while ~eof(instruct)
+        line = readln(instruct)
+        transmit "\C3"line
+      end
+    close(instruct)
+  end
+  else do
+    transmit "\C2Instructions file was not found..."
+    transmit "\C2Notify "Sysopname"!"
+  end
+  Transmit ""
+  CALL PAUSE
+RETURN
+
+SCOREBOARD:
+  TRANSMIT CLS "Sorting Scores............."
+  CALL SORTSCORES
+  Flag = 1
+  i = 1
+  j = 1
+  More = 'Y'
+  Do Forever
+     if More ~= 'Y' then break
+     Do while Flag = 1
+        transmit CLS
+        transmit "\C7                    *******************************"
+        transmit "\C4                              SCOREBOARD"
+        transmit "\C7                    *******************************\C4"
+        Flag = 0
+     end
+     if player.j = UHandle then Score.j = AcctBal
+     P = Left(Player.j,20,' ')   /*Pad end of handle with spaces*/
+     Sendstring "                    " /* 20 spaces for lining up */
+     Transmit P"  $"Score.j
+     i = i + 1
+     j = j + 1
+     if j > Nplayers then break
+     else if j <= Nplayers & i = 11 then do
+         Flag = 1
+         i = 0          /* Only display 10 names per page */
+         transmit "\C7                    *******************************"
+         query"\C7                    Do you want to see more(Y/N)? "
+         More = UPPER(result)
+         CHECKPANIC result
+         iterate
+       end
+     else if j <= Nplayers & i < 11 then iterate
+  end
+  if More = 'Y' then transmit "\C7                    *******************************"
+  CALL PAUSE
+RETURN
+
+MILLIONS:
+  Transmit CLS
+  Transmit ""
+  if exists('Dmillions') then do
+    open(mill, 'Dmillions', 'R')
+        j = 0
+        i = 0
+        do while ~eof(mill)
+        do while j = 0
+          transmit CLS
+          transmit "\C7             ***********************************************"
+          transmit "\C4                            MILLIONAIRES CLUB"
+          transmit "\C7             ***********************************************\C4"
+          j = 1
+        end
+          line = readln(mill)
+          transmit "             "line
+          i = i + 1
+          if i = 10 then do
+            j = 0
+            i = 0
+            call PAUSE
+          end
+        end
+    close(mill)
+  end
+  else do
+    transmit "\C4There are no millionaires yet..."
+  end
+  Transmit ""
+  CALL PAUSE
+RETURN
+
+CHECKMILLIONS:
+  if acctbal >= 1000000 then do
+    transmit "\C4"
+    transmit "Congratulations!!!! You have become a Millionaire!!"
+    transmit "Adding your name to this elite group of gamblers...."
+    transmit "\c2\rnThe Bookie awards you 5000 gamepoints for your efforts\q1"
+    transmit ""
+    addpoints 5000
+line = left(UHandle,22,' ')||"$"AcctBal||"  "||left(UDate,15)
+    if ~exists('Dmillions') then do     /* Create a Dmillions file if needed*/
+      open(fileM, 'Dmillions', 'W')
+      writeln(fileM, line)  /* Put player in file */
+     close(fileM)
+    end
+    else do
+      open(fileM, 'Dmillions', 'A')   
+      writeln(fileM, line)   /* Add player to file */
+      close(fileM)
+    end
+    AcctBal = 1000
+    transmit "Your new account balance is $1,000.\C7"
+    transmit ""
+    query"\C2Would you like to see the Millionaires Club list (Y/N)? "
+    More = UPPER(result)
+    CHECKPANIC result
+    If More = "Y" then CALL MILLIONS
+  end
+RETURN
+
+SORTSCORES:
+  /* Straight Selection Sort */
+  do i = 1 to (Nplayers - 1)
+     do j = (i+1) to Nplayers
+        if Score.i < Score.j then do
+          Temp = Score.i
+          Score.i = Score.j
+          Score.j = Temp
+          Temp = Player.i
+          Player.i = Player.j
+          Player.j = Temp
+        end
+     end
+  end
+RETURN
+
+THETRACK:
+  Another = "Y"
+  Do While Another = "Y"
+       CALL CHECKBALANCE
+    If LowBal = "FALSE" then do
+       CALL BOOKIE
+       CALL GETBETS
+       CALL RACE
+       CALL WINNERS
+       TRANSMIT ""
+       Query"\C4Do you want to play another race?  "
+       Another = UPPER(result)
+       CALL CHECKPANIC Another
+     end
+     else Another = "N"
+  end
+
+RETURN
+
+BOOKIE:
+  /* Choose the odds on the horses */
+  do i = 1 to 8
+    WOdds.i = random(1,15,TIME('S'))    /* Pick a random number*/
+    POdds.i = Left(WOdds.i *.75,pos('.', WOdds.i*.75) -1)
+    SOdds.i = Left(WOdds.i *.5,pos('.', WOdds.i*.5) -1)
+  end
+
+  /* Set all bets to zero */
+  do i = 1 to 3
+    WHorse.i = 0
+    WBet.i = 0
+  end
+
+  TRANSMIT CLS
+  TRANSMIT "\C7*********************************************************************"
+  TRANSMIT "\C4                         PLACE YOUR BETS!!"
+  TRANSMIT "\C7*********************************************************************"
+  TRANSMIT "\C4  No.         Horse           Win Odds     Place Odds     Show Odds"
+  TRANSMIT "\C4  ---    ---------------      --------     ----------     ---------"
+  Sendstring "\C3"
+  do i = 1 to 8
+    SENDSTRING right(i,4,' ')"       "                 /* Horse No.    */
+    SENDSTRING left(Hname.i,21,' ')                    /* Horse's name */
+    SENDSTRING right(WOdds.i,2,' ')":1          "      /* Win Odds     */
+    SENDSTRING right(POdds.i,2,' ')":1           "     /* Place Odds   */
+    TRANSMIT right(SOdds.i,2,' ')":1"                  /* Show Odds    */
+  end
+  TRANSMIT "\C7*********************************************************************"
+  TRANSMIT ""
+RETURN
+
+GETBETS:
+  str.1 = "WIN:  "
+  str.2 = "PLACE:  "
+  str.3 = "SHOW:  "
+  i = 1
+  do forever
+    /* Position cursor for each bet */
+    TRANSMIT "\f0\!9\!6"
+    TRANSMIT "Your account balance is:  $"AcctBal"          "
+    TRANSMIT ""
+    do j = 1 to 4
+      TRANSMIT "                                                                      "
+    end
+    Sendstring "\^4"
+
+    if i > 3 then break       /* Check for all bets in*/
+
+    if AcctBal < 2 then break  /* Not enough money to bet anymore */
+
+    /* Get the horse number to bet on for each: win, place, show */
+    Query"Enter the horse number to " str.i
+    WHorse.i = result
+    TRANSMIT ""
+    CALL CHECKPANIC WHorse.i
+    if WHorse.i = '' then do
+       /* Check if user pressed return, if so there is no bet on this round */
+       WBet.i = 0
+       i = i + 1
+       iterate
+    end
+    else if WHorse.i < 1 | WHorse.i > 8 then do
+       /* Make sure horse number bet on is within range */
+       TRANSMIT "Invalid Horse number.  Try again!\W3"
+       iterate
+    end
+    else do
+       /* If a horse is being bet on then get the amount of the bet */
+       Query"How much do you want to bet:  "
+       WBet.i = result
+       CALL CHECKPANIC WBet.i
+       if WBet.i >= 2 & WBet.i <= AcctBal & WBet.i <= 2000 then do
+         /* make sure the amount of the bet is within range */
+         AcctBal = AcctBal - WBet.i
+         i = i + 1
+         iterate
+       end
+       else if WBet.i < 2 then do
+         /* if bet is too low then redo */
+         TRANSMIT "Sorry you must bet at least $2.  Try again!\W3"
+         iterate
+       end
+       else if WBet.i > AcctBal then do
+         /* if bet is too high then redo */
+         TRANSMIT "You can not bet more than your account balance of:  $"AcctBal". Try Again!\W3"
+         iterate
+       end /* else */
+       else if WBet.i > 2000 then do
+         /* if bet is too high then redo */
+         TRANSMIT "You can not bet more $2,000. Try Again!\W3"
+         iterate
+       end /* else */
+     end /* else do */
+  end /* do forever */
+ 
+  if AcctBal < 2 then TRANSMIT "\!1You have bet as much as you can.  The window is now closed!!"
+
+  CALL PAUSE
+RETURN
+
+RACE:
+  SENDSTRING "\f1"  /* clear screen and go to home position */
+  TRANSMIT ""
+  TRANSMIT "\C2THEY'RE OFF!!!"
+  TRANSMIT ""
+  /* The race itself is 55 spaces long */
+  TRANSMIT "\C4++++++++++++|Start------------------------------------------Finish|"
+  do i = 1 to 8
+    TRANSMIT RIGHT(Hname.i, 12,' ')"|"
+    Count.i = 1    /* reset all horse counters */
+  end
+  TRANSMIT "\C4++++++++++++|-----------------------------------------------------|"
+  SENDSTRING "\n1\c6Your Bets:  "
+  do i = 1 to 3
+    SENDSTRING str.i||whorse.i"    "
+  end
+  SendString "\C2"
+  win = 0    /* no winning horse yet */
+  place = 0  /* no place horse yet */
+  show = 0   /* no show horse yet */
+
+  j = random(1,8,Time('S'))  /* pick random horse to start out of gate */
+  Flag = "Go"
+
+  Do while Flag = "Go"
+    i = j
+    j = 1		/* always start at 1 after 1st time through loop */
+    do while i <= 8     /* cycle through each horse and add up their 'scores' */
+      RNum = random(1,5,TIME('S'))    /* Pick a random number*/
+      Count.i = Count.i + RNum        /* Add the number to the current horse's count */
+
+      /* Draw the horse's new position if he has not already crossed finish line*/
+      If (i ~= Win) & (i ~= Place) & (i ~= Show) then do
+        Sendstring "\f0\>9\>4\!3" /* Position cursor at top of Race Track */
+        Sendstring "\!"i        /* move down to the current horse's vertical positon */
+        /*Draw current horse's horizontal position */
+        Sendstring Copies(' ', (Count.i) - 2) i
+      end
+
+      /* Check for win, place, and show horse */
+      If Count.i >= 55 then do
+         If Win = 0 then do         
+            Win = i  /* remember winning horse's number */
+            Sendstring "\f0\>9\>4\!3"
+            Sendstring "\!"i
+            Sendstring Copies(' ', (Count.i) - 2) "\C3W\C2"
+         end
+         else if (Place = 0) & (i ~= Win) then do
+            Place = i  /* remember place horse's number */
+            Sendstring "\f0\>9\>4\!3"
+            Sendstring "\!"i
+            Sendstring Copies(' ', (Count.i) - 2) "\C3P\C2"
+         end
+         else if (Show = 0) & (i ~= Win) & (i ~= Place) then do
+            Show = i   /* remember show horse's number */
+            Sendstring "\f0\>9\>4\!3"
+            Sendstring "\!"i
+            Sendstring Copies(' ', (Count.i) - 2) "\C3S\C2"
+            i = 8  /* race is over */
+            Flag = "Stop"  /* signal end of race */
+         end
+       end /* If Count.i >= 55 then do */
+
+       i = i + 1
+    end  /* Do while i <= 8 */
+  end /* Do while Flag = "Go" */
+  Sendstring "\f0\!6\!9"
+  CALL PAUSE
+RETURN
+
+WINNERS:
+  TRANSMIT ""
+  TRANSMIT "Horse #"Win" is the winner!!"
+  If WHorse.1 = '' then  TRANSMIT "You did not bet on a horse to win!"
+  else do
+    TRANSMIT "You bet $"WBet.1" on Horse #"WHorse.1" to win."
+    If WHorse.1 = Win then do
+       Won = WBet.1 * WOdds.Win
+       AcctBal = AcctBal + Won  + WBet.1
+       TRANSMIT "Congratulations! You WIN $"Won" on your win bet!"
+    end
+    else TRANSMIT "Sorry you LOST on your win bet."
+  end
+  TRANSMIT ""
+
+  TRANSMIT "Horse #"Place" placed!"
+  If WHorse.2 = '' then TRANSMIT "You did not bet on a horse to place!"
+  else do
+    TRANSMIT "You bet $"WBet.2" on Horse #"WHorse.2" to place."
+    If (WHorse.2 = Place) | (WHorse.2 = Win) then do
+       Won = WBet.2 * WOdds.Place
+       AcctBal = AcctBal + Won + WBet.2
+       TRANSMIT "Congratulations! You WIN $"Won" on your place bet!"
+    end
+    else TRANSMIT "Sorry you LOST on your place bet."
+  end
+  TRANSMIT ""
+
+  TRANSMIT "Horse #"Show" showed."
+  If WHorse.3 = '' then TRANSMIT "You did not bet on a horse to show!"
+  else do
+    TRANSMIT "You bet $"WBet.3" on Horse #"WHorse.3" to show."
+    If (WHorse.3 = Show) | (WHorse.3 = Place) | (WHorse.3 = Win) then do
+       Won = WBet.3 * WOdds.Show
+       AcctBal = AcctBal + Won + WBet.3
+       TRANSMIT "Congratulations! You WIN $"Won" on your show bet!"
+    end
+    else TRANSMIT "Sorry you LOST on your show bet."
+  end
+RETURN
+
+PAUSE:
+  transmit ""
+  sendstring "\C7Press any key to continue..."
+  getchar
+  CALL CHECKPANIC result
+  transmit ""
+RETURN
+
+CHECKPANIC: procedure
+  input = arg(1)
+  if input = "###PANIC" then do
+    BUFFERFLUSH
+    SHUTDOWN
+    EXIT
+  end
+RETURN
+
+BYE:
+    CALL CHECKMILLIONS
+    TRANSMIT ""
+    TRANSMIT "             Brought to you by Superboard Two!!  (702) 423-7206"
+    TRANSMIT ""
+    TRANSMIT '             Returning to 'BBSname'...\Q1'
+    CALL SORTSCORES
+    /* Rewrite PlayersFile */
+    open(file1, 'Dplayers', 'W')
+      writeln(file1, NPlayers)
+      do i = 1 to NPlayers
+        if player.i = UHandle then Score.i = AcctBal
+        writeln(file1, player.i)
+        writeln(file1, score.i)
+      end
+    close(file1)
+    BUFFERFLUSH
+    SHUTDOWN
+EXIT
+
+/************************************************************************/
+/* Error Handling Routines                                              */
+/************************************************************************/
+ioerr:
+    TRANSMIT 'Inout/Output Error in 'progname'.  Line:  'SIGL
+    TRANSMIT 'Error:  'RC errortext(RC)
+    TRANSMIT 'Please notify 'sysopname'!'
+    TRANSMIT 'Returning to 'BBSname'...'
+    LOGENTRY 'Input/Output Error in 'progname'.  Line:  'SIGL
+    LOGENTRY 'Error:  'RC errortext(RC)
+    BUFFERFLUSH
+    SHUTDOWN
+EXIT
+
+syntax:
+    TRANSMIT 'Syntax Error in 'progname'.  Line:  'SIGL
+    TRANSMIT 'Error:  'RC errortext(RC)
+    TRANSMIT 'Please notify 'sysopname'!'
+    TRANSMIT 'Returning to 'BBSname'...'
+    LOGENTRY 'Syntax Error in 'progname'.  Line:  'SIGL
+    LOGENTRY 'Error:  'RC errortext(RC)
+    BUFFERFLUSH
+    SHUTDOWN
+EXIT

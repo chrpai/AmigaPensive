@@ -1,0 +1,357 @@
+/* Main Menu */
+
+MenuName "Main"
+
+MenuText "Text/MainMenu"
+
+Prompt "(\(GetTimeLeft())) \(27)[36mMain: \(27)[0m"
+
+Unknown "\(27)[36mInvalid command: \(27)[0m'%s'"
+
+LoadMenu "BBS:Menu/MsgMenu.menu"
+LoadMenu "BBS:Menu/FileMenu.menu"
+LoadMenu "BBS:Menu/Doors.menu"
+
+Command "messages" (N:1) {
+    rexx("LogEntry Messages");
+    rexx("SelectSIG \(arg(1))");
+    if(CurrentSIG()) {
+        rexx("SendModem \(13)\(10)");
+        rexx("SelectSIGArea \(arg(2))");
+        menu("MsgMenu.menu");
+    }
+};
+
+Command "files" (N:1) {
+    rexx("LogEntry Files");
+    menu("FileMenu.menu");
+};
+
+Command "doors" (N:1) {
+    rexx("LogEntry Doors");
+    menu("Doors.menu");
+};
+
+Command "?" {
+    rexx("SendASCII Text/MainMenu.txt");
+};
+
+Command "??" (G:) {
+    rexx("SendASCII Text/GlobalMenu.txt");
+};
+
+Command "lm" (G:) {
+    rexx("ListMarkedFiles");
+};
+
+Command "lmm" (G:) {
+    rexx("ListMarkedMsg");
+};
+
+Command "cm" (G:) {
+    rexx("ClearMarkedFiles");
+    rexx("SendModem \(27)[32mMarked files cleared\(13)\(10)\(27)[0m");
+};
+
+Command "cmm" (G:) {
+    rexx("ClearMarkedMsg");
+    rexx("SendModem \(27)[32mMarked messages cleared\(13)\(10)\(27)[0m");
+};
+
+Command "chat" (N:1 G:) {
+    rexx("LogEntry Paging SysOp");
+    rexx("PageSysOp");
+};
+
+Command "shell" (N:2 G:) {
+    if(GetMask() & 4) {
+        rexx("LogEntry Shell");
+        rexx("SendModem \(13)\(10)");
+        rexx("SetStatus Shell");
+        dos("NewShell TECHIO:\(node())");
+        rexx("WaitForIO");
+        rexx("SendModem \(13)\(10)");
+    } else {
+        rexx("LogEntry Shell - access failure");
+        rexx("SendModem \(27)[31mNo access\(13)\(10)\(27)[0m");
+    }
+};
+
+Command "goodbye" (N:1 G:) {
+    if(lower(arg(1)) == "y") quit;
+    if(GetYesNo("\(27)[32mGoodbye\(27)[36m - Are you sure? \(27)[0m", 0, 1)) {
+        rexx("SendModem \(13)\(10)\(13)\(10)");
+        quit;
+    }
+    rexx("SendModem \(13)\(10)");
+};
+
+Command "g!" (G:) {
+    rexx("SendModem \(13)\(10)");
+    rexx("Disconnect");
+    quit;
+};
+
+Command "who" (N:2 G:) {
+    rexx("LogEntry Who's online");
+    rexx("SendModem \(27)[33mNode  User                            Status\(13)\(10)");
+    rexx("SendModem \(27)[31m---------------------------------------------------------\(13)\(10)\(27)[0m");
+    $an = 0;
+    while($an <= Con_MaxNode()) {
+        if(Con_LineActive($an) != "") rexx("SendModem \(str($an, 1, 6))\(str(Con_LineUser($an), 1, 32))\(Con_LineStatus($an))\(13)\(10)");
+        $an = $an + 1;
+    }
+    rexx("SendModem \(13)\(10)");
+    GetHotkey("\(27)[32mPress any key to continue...\(27)[0m");
+    rexx("SendModem \(13)\(10)");
+};
+
+Command "mail" (N:2 G:) {
+    rexx("LogEntry Sending mail");
+    $oldarea = GetMsgArea();
+    rexx("ChgMsgArea 1");        /* Edit here to change the private area! */
+    rexx("WriteMsg");
+    rexx("ChgMsgArea \($oldarea)");
+};
+
+Command "mcheck" (N:2 G:) {
+    rexx("SendModem \(27)[33mChecking for mail...\(27)[0m");
+    $oldarea = GetMsgArea();
+    if(MessageCheck()) {
+        if(GetYesNo("\(27)[36mRead these messages now? \(27)[0m", 1, 1)) {
+            rexx("SendModem \(13)\(10)\(13)\(10)\(27)[33mReading mail\(13)\(10)\(13)\(10)\(27)[0m");
+            rexx("SetStatus Reading messages");
+            rexx("ReadMarked");
+        }
+    } else rexx("SendModem \(13)\(10)\(13)\(10)No new mail\(13)\(10)");
+};
+
+Command "info" (G: N:2) {
+    rexx("LogEntry Reading info");
+    rexx("SendASCII Text/Info.txt");
+    rexx("SendModem \(13)\(10)");
+    GetHotkey("\(27)[32mPress any key to continue...\(27)[0m");
+    rexx("SendModem \(13)\(10)");
+};
+
+Command "dl" (G:) {
+    rexx("LogEntry Downloading marked files");
+    rexx("Download MARKEDONLY");
+};
+
+Command "ulist" (N:2 G:) {
+    rexx("LogEntry Listing users");
+    rexx("SendModem \(27)[33mList of users:\(13)\(10)\(27)[0m\(13)\(10)");
+    dos("list >t:bbsuserst.txt\(node()) BBS:User/~(Preset) DIRS LFORMAT \"%-3N %C\"");
+    dos("sort from t:bbsuserst.txt\(node()) to t:bbsusers.txt\(node()) numeric");
+    rexx("SendASCII t:bbsusers.txt\(node())");
+    dos("delete t:bbsusers.txt\(node()) t:bbsuserst.txt\(node()) quiet");
+    rexx("SendModem \(13)\(10)");
+    GetHotkey("\(27)[32mPress any key to continue...\(27)[0m");
+    rexx("SendModem \(13)\(10)");
+};
+
+Command "msg" (G:) {
+    $text = "";
+    $dst = "";
+    if(str(arg(1), 1, 1) == "-") {
+        $aid = lower(str(arg(1), 2, 1));
+        if($aid == "n") $dst = str(arg(1), 3, len(arg(1)) - 2);
+        else if($aid == "a") $dst = "A";
+        else {
+            rexx("SendModem \(27)[33mUsage: \(27)[0mmsg \(27)[36m[[-(n#|a)] <text>]\(13)\(10)\(27)[0m");
+            break;
+        }
+        $text = arg(2);
+        if($text != "") {
+            $an = 3;
+            while(arg($an) != "") {
+                $text = "\($text) \(arg($an))";
+                $an = $an + 1;
+            }
+        }
+    } else {
+        while($dst == "") {
+            $dst = upper(AskInput("\(27)[32mSend message to node # ('l' to list, 'a' for all): \(27)[0m", "", 4));
+            if($dst == "") $dst = "Q";
+            if($dst == "L") {
+                rexx("SendModem \(13)\(10)\(27)[33mNode  User                            Status\(13)\(10)");
+                rexx("SendModem \(27)[31m---------------------------------------------------------\(13)\(10)\(27)[0m");
+                $ln = 0;
+                while($ln <= Con_MaxNode()) {
+                    if(Con_LineActive($ln) != "") rexx "SendModem \(str($ln, 1, 6))\(str(Con_LineUser($ln), 1, 32))\(Con_LineStatus($ln))\(13)\(10)";
+                    $ln = $ln + 1;
+                }
+                rexx("SendModem \(13)\(10)");
+                $dst = "";
+            }
+        }
+    }
+    if($dst != "Q") {
+        if($dst != "A") $dstname = Con_LineActive($dst);
+        else $dstname = "dummy";
+        if(($dst == node()) || ($dstname == "")) rexx("SendModem \(13)\(10)\(27)[31mInvalid node number\(27)[0m\(13)\(10)");
+        else {
+            if($text == "") {
+                rexx("SendModem \(13)\(10)");
+                $text = AskInput("\(27)[32mEnter message text: \(27)[0m", "", 256);
+            }
+            if($text == "") break;
+            if($dst == "A") {
+                $ln = 0;
+                while($ln <= Con_MaxNode()) {
+                    if((Con_LineActive($ln) != "") && ($ln != node())) {
+                        $usrname = GetUserName();
+                        rxport(Con_LineActive($ln));
+                        rexx("ShowMessage \(27)[36mMessage from \(27)[33m\($usrname)\(27)[36m on node \(27)[0m\(node()):\(13)\(10)\(13)\(10)\($text)");
+                        rxport(Con_LineActive(node()));
+                        rexx("SendModem \(13)\(10)\(27)[33mMessage sent to \(27)[36m\(Con_LineUser($ln)) \(27)[33mon node \(27)[36m\($ln)\(13)\(10)\(27)[0m");
+                        rexx("LogEntry Node message sent to node \($ln)");
+                    }
+                    $ln = $ln + 1;
+                }
+            } else {
+                $dstname = Con_LineActive($dst);
+                if($dstname != "") {
+                    $usrname = GetUserName();
+                    rxport($dstname);
+                    rexx("ShowMessage \(27)[36mMessage from \(27)[33m\($usrname)\(27)[36m on node \(27)[0m\(node()):\(13)\(10)\(13)\(10)\($text)");
+                    rxport(Con_LineActive(node()));
+                    rexx("SendModem \(13)\(10)\(27)[33mMessage sent to \(27)[36m\(Con_LineUser($dst)) \(27)[33mon node \(27)[36m\($dst)\(13)\(10)\(27)[0m");
+                    rexx("LogEntry Node message sent to node \($ln)");
+                }
+            }
+        }
+    }
+};
+
+Command "ts" (G:) {
+    dos("BBS:Rexx/TSet.rexx \(node())");
+};
+
+Command "us" (G:) {
+    dos("BBS:Rexx/USet.rexx \(node())");
+};
+
+Command "qs" (G:) {
+    dos("BBS:Rexx/QSet.rexx \(node())");
+};
+
+Command "ws" (G:) {
+    dos("BBS:Rexx/WSet.rexx \(node())");
+};
+
+Command "ba" (G:) {
+    if(lower(arg(1)) == "a") SetUserMisc("QWKASYNC", 1);
+    else if(lower(arg(1)) == "s") SetUserMisc("QWKASYNC", 0);
+    if(GetUserMisc("QWKASYNC")) {
+        rexx("LogEntry Packing QWK messages asynchronously");
+        dos("run <>NIL: BBS:Bin/TechQWK \(node()) O BBS:Cfg/TechQWK.Cfg");
+        rexx("SendModem \(27)[33mPacking messages asynchronously, you will be informed on completion\(13)\(10)\(27)[0m");
+    } else {
+        rexx("LogEntry Downloading QWK messages");
+        dos("BBS:Bin/TechQWK \(node()) O BBS:Cfg/TechQWK.Cfg");
+        rexx("SendModem \(13)\(10)");
+        GetHotkey("\(27)[32mPress any key to start sending...\(27)[0m");
+        rexx("SendModem \(13)\(10)\(13)\(10)");
+        rexx("MarkAnyFile \(GetUserPath(GetUserName()))/TECHDEVC.QWK");
+        rexx("Download MARKEDONLY");
+    }
+};
+
+Command "qu" (G:) {
+    if(lower(arg(1)) == "a") SetUserMisc("QWKASYNC", 1);
+    else if(lower(arg(1)) == "s") SetUserMisc("QWKASYNC", 0);
+    rexx("LogEntry Uploading QWK messages");
+    dos("delete \(GetUserPath(GetUserName()))/TECHDEVC.REP quiet");
+    rexx("\(13)\(10)\(27)[33mStart sending TECHDEVC.REP\(13)\(10)\(13)\(10)\(27)[0m");
+    if(ReceiveFiles()) {
+        if(GetUserMisc("QWKASYNC")) {
+            dos("run <>NIL: BBS:Bin/TechQWK \(node()) I BBS:Cfg/TechQWK.Cfg");
+            rexx("SendModem \(27)[33mProcessing replies asynchronously\(13)\(10)\(27)[0m");
+        } else dos("BBS:Bin/TechQWK \(node()) I BBS:Cfg/TechQWK.Cfg");
+    } else rexx("SendModem \(13)\(10)\(13)\(10)\(27)[31mTransfer failed\(13)\(10)\(27)[0m");
+};
+
+Command "bw" (G:) {
+    if(lower(arg(1)) == "a") SetUserMisc("WWFASYNC", 1);
+    else if(lower(arg(1)) == "s") SetUserMisc("WWFASYNC", 0);
+    if(GetUserMisc("WWFASYNC")) {
+        rexx("LogEntry Packing WWF messages asynchronously");
+        dos("run <>NIL: BBS:Bin/TechWWF \(node()) O BBS:Cfg/TechWWF.Cfg");
+        rexx("SendModem \(27)[33mPacking messages asynchronously, you will be informed on completion\(13)\(10)\(27)[0m");
+    } else {
+        rexx("LogEntry Downloading WWF messages");
+        dos("BBS:Bin/TechWWF \(node()) O BBS:Cfg/TechWWF.Cfg");
+        rexx("SendModem \(13)\(10)");
+        GetHotkey("\(27)[32mPress any key to start sending...\(27)[0m");
+        rexx("SendModem \(13)\(10)\(13)\(10)");
+        rexx("MarkAnyFile \(GetUserPath(GetUserName()))/TECHDEVC.WWF");
+        rexx("Download MARKEDONLY");
+    }
+
+};
+
+Command "wu" (G:) {
+    if(lower(arg(1)) == "a") SetUserMisc("WWFASYNC", 1);
+    else if(lower(arg(1)) == "s") SetUserMisc("WWFASYNC", 0);
+    rexx("LogEntry Uploading wwf messages");
+    dos("delete \(GetUserPath(GetUserName()))/TECHDEVC.RRF quiet");
+    rexx("\(13)\(10)\(27)[33mStart sending TECHDEVC.RRF\(13)\(10)\(13)\(10)\(27)[0m");
+    if(ReceiveFiles()) {
+        if(GetUserMisc("WWFASYNC")) {
+            dos("run <>NIL: BBS:Bin/TechWWF \(node()) I BBS:Cfg/TechWWF.Cfg");
+            rexx("SendModem \(27)[33mProcessing replies asynchronously\(13)\(10)\(27)[0m");
+        } else dos("BBS:Bin/TechWWF \(node()) I BBS:Cfg/TechWWF.Cfg");
+    } else rexx("SendModem \(13)\(10)\(13)\(10)\(27)[31mTransfer failed\(13)\(10)\(27)[0m");
+};
+
+Command "status" (N:2 G:) {
+    if(GetUserAccess() < 5) $acc = "New";
+    else if(GetUserAccess() < 20) $acc = "Normal";
+    else if(GetUserAccess() < 50) $acc = "Extended";
+    else $acc = "Custom";
+    rexx("SendModem \(27)[36m     Access: \(27)[33m\(GetUserAccess()) (\($acc))\(13)\(10)\(13)\(10)");
+    rexx("SendModem \(27)[36m   Messages: \(27)[33m\(GetMessages())\(13)\(10)\(13)\(10)");
+    rexx("SendModem \(27)[36m   Uploaded: \(27)[33m\(GetFilesUploaded()) files, \(GetBytesUploaded()) bytes\(13)\(10)");
+    rexx("SendModem \(27)[36m Downloaded: \(27)[33m\(GetFilesDownloaded()) files, \(GetBytesDownloaded()) bytes\(13)\(10)");
+    $files = GetFilesLeft();
+    if($files < 0) $files = "Unlimited";
+    $bytes = GetBytesLeft();
+    if($bytes < 0) $bytes = "Unlimited";
+    rexx("SendModem \(27)[36m  Remaining: \(27)[33m\($files) files, \($bytes) bytes\(13)\(10)");
+    rexx("SendModem \(27)[36m      Ratio: \(27)[33m1:\(GetFileRatio()) files, 1:\(GetByteRatio()) bytes\(13)\(10)\(13)\(10)");
+    $time = GetTimeDay();
+    if($time < 0) $time = "Unlimited";
+    $tcall = GetTimeCall();
+    if($tcall < 0) $tcall = $time;
+    rexx("SendModem \(27)[36m       Time: \(27)[33m\($time) minutes/day, \($tcall) minutes/call\(13)\(10)");
+    $calls = GetCallsDay();
+    if($calls < 0) $calls = "Unlimited";
+    rexx("SendModem \(27)[36m      Calls: \(27)[33m\($calls) calls/day, \(GetTotalCalls()) calls total\(13)\(10)");
+    $tleft = GetTimeLeft();
+    if($tleft == "-") $tleft = "Unlimited";
+    $time = GetUserTimeLeft();
+    if($time < 0) $time = $tleft;
+    else $time = $time + $tleft;
+    $calls = GetCallsLeft();
+    if($calls < 0) $calls = "Unlimited";
+    rexx("SendModem \(27)[36m  Remaining: \(27)[33m\($tleft) minutes (\($time) today), \($calls) calls\(13)\(10)\(13)\(10)");
+    rexx("SendModem \(27)[36m      Other: \(27)[33m");
+    $mask = GetMask();
+    if($mask & 8) rexx("SendModem GigaNet, ");
+    if($mask & 2) rexx("SendModem GigaNet SysOp, ");
+    if($mask & 1) rexx("SendModem Registered TechnoBBS, ");
+    if($mask & 4) rexx("SendModem Shell, ");
+    rexx("SendModem \(13)\(10)\(13)\(10)");
+    GetHotkey("\(27)[32mPress any key to continue...\(27)[0m");
+    rexx("SendModem \(13)\(10)");
+};
+
+Command "clear" (G:) {
+    rexx("SendModem \(12)");
+};
+
+Command "cls" (G:) {
+    rexx("SendModem \(12)");
+};

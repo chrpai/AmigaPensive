@@ -1,0 +1,132 @@
+
+				DCRON.DOC
+
+			      UNIX-like CRON
+
+				  V2.00
+			      7 August 1989
+
+			      Matthew Dillon
+			      891 Regal Rd
+			      Berkeley, Ca. 94708
+
+			     dillon@ucbvax.Berkeley.edu
+			     ...!ucbvax!dillon
+
+DESCRIPTION:
+
+    Those not familar with the UNIX cron command probably do not need it.
+
+
+INSTALLATION:
+    the NULL: device must be mounted
+
+    an s:crontab file must exist (see instructions below)
+
+    1.3 RUN required so you can: run <nil: >nil: dcron <logfile>
+
+    copyadd l/null-handler into your l: and add the appropriate
+    Mountlist entry to your devs:Mountlist (see included Mountlist
+    file)
+
+    Create S:crontab with entries as you like.
+
+INSTRUCTIONS:
+
+    NOTE:   * All cron-commands are automatically RUN  in the background,
+	      you do not need to say 'run' in the command argument of the
+	      s:crontab file
+
+	    * You do not have to redirect standard command output.  I.E.
+	      if you do a 'List' from cron, the output is sent to the
+	      cia.
+
+	    * DCRON WORKS ONLY WITH 1.3, specifically, the 1.3 RUN command
+	      must be installed.
+
+	    * DO NOT RUNBACK CRON!!!  Use: run <nil: >nil:
+
+	    * You may want your PATH to be setup before running DCron so
+	      DCron gets your path.
+
+    Inspired by Rick Schaeffer's AmigaCron.  I decided to write this
+one from scratch.  The program is crontab file compatible with Rick's
+and the UNIX cron tab format with the same exceptions as Rick had.
+Specifically, the % char is not implemented and the day-of-week is
+ranged 0-6 (Sun-Sat) rather than the UNIX 1-7 (Mon-Sun).
+
+    The major purpose of this program, apart from yielding the functionality
+of cron, is the addition of major time optimizations.  The program loads
+s:crontab into memory and only reloads if the datestamp of the file has been
+modified (checked every 60 seconds).  DCron also checks if the user has
+modified the system time.
+
+    The result is that my cron takes virtually no CPU.
+
+    [run <nil: >nil:] DCron [-d] logfile
+
+    Using the 1.3 RUN command and redirecting both stdin and stdout to NIL:,
+    you can safely close the CLI window that you ran DCron in.
+
+    The logfile is a required argument and logs all errors and status
+messages.  Under normal conditions this file does not get very big.
+Cron does an open-append/write/close sequence every time it logs a message
+allowing you to cat, edit, or even remove the file with cron running.
+(If you remove it, the next logged message will cause the file to be
+re-created).
+
+    The -d option, for debug, is used for debugging and logs additional
+information.  (may not be implemented in release)
+
+    The control file is S:CRONTAB and may contain one of three types of
+lines:	(1) A blank line, (2) A line beginning with a hash ``#'' which
+introduces a comment, (3) A cron line of 5 or 6 fields:
+
+<min> <hour> <day> <month> <dayofweek>	[<command>]
+
+    Each field <min> to <dayofweek> can be either a single asterix ``*''
+which matches all times, or a comma delimited list of numbers or ranges
+which must be in numerical order.  Assume the control file is scanned
+every minute.  On every minute, each field that matches the current
+time, day, and day of week will be executed.
+
+    The <command> field is optional.  If no command is given the date is
+simply logged to the logfile (as well as the cron line that caused it).
+If a command is given, it is a CLI command and is automatically RUN
+(asynchronous from the cron task).  Standard in/out is NIL:  The cron line
+that ran the command is logged.
+
+* * * * *   Date
+
+    Would execute the Date command every minute.  The output is ignored.
+    I.E. useless.  Also, running something every minute wastes CPU.
+
+0-3,5,7,40-50 * * * *	Date
+
+    Would execute it at the hour, 1 past, 2 past, 3 past, 5 past, 7 past,
+    40 41 42 ... and 50 past every hour.  Combinations can be used to
+    yield more interesting results:
+
+0 0,12 * * 0	Date
+
+    Would run Date at midnight and 12 noon, but only on sunday.
+
+0 0 25 12 *	Echo >ram:x "Merry Cristmas"
+
+    Would execute the Echo command at midnight beginning christmas day and
+    stick it in ram:x.
+
+* * * * 2-3 Date
+
+    Is useless ... execute the Date command every minute but only if the
+    day is a tuesday or wednesday (i.e. 1440 times on tuesday, 1440
+    times on wednesday, nothing for any other day).
+
+0 4 * * 1     shell >ram:backups -c "ChangeTaskPri -1;dobackups"
+
+    Would run a shell script to do my HD backup at 4:00 A.M. every Monday.
+(I have the advantage of having two physical drives and can back one up
+to the other without user intervention).  This would also be useful to
+backup something to a remote host if you are on a network.
+
+

@@ -1,0 +1,301 @@
+@Database DOOR_WeekTop
+
+@Node Main "WeekTop"
+
+  WeekTop V1.10
+
+  @{" Description          " link Description}
+  @{" Installation         " link Installation}
+  @{" System Options       " link SystemOptions}
+  @{" Command Line Options " link CmdLineOptions}
+  @{" Screens Displayed    " link ScreensDisplayed}
+  @{" Doors Called         " link DoorsCalled}
+  @{" Returns              " link Returns}
+  @{" Config Files         " link ConfigFiles}
+  @{" ToDo                 " link ToDo}
+  @{" History              " link History}
+
+@EndNode
+
+@Node Description "Description"
+
+  Description
+  ===========
+
+    Weektop is a *simple* weekly top byte uploader chart.
+
+    It DOES:
+
+    * Auto post messages to the PUBLIC mail base
+
+    * create screen/bulletin files
+
+    * Let the sysop choose how many users are to appear on
+      the list
+
+    * Show the user's position in the weektop for the
+      last week's weektop.
+      (I.e  Position this week = 2 position last week = 5)
+
+    * Tell the sysop what it's doing.
+
+    It does NOT:
+
+    * Work out bytes per user per conf (ie, it's not a conference weektop)
+
+    * Let you change the output style (yet)
+
+    * Display any information to the user (as the carrier will have
+      been dropped by the time the door is called)
+
+    See @{"Todo" link ToDo}
+
+
+@EndNode
+
+@Node Installation "Installation"
+
+  Installation
+  ============
+
+    The door is stored as:
+
+    HBBS:Doors/System/WeekTop/WeekTop.HBBS
+
+    This is included and enabled with a fresh installation of HydraBBS
+    since V1.10.  Users of prior version should do this:
+
+    Add the following lines to a Commands/System file (HBBS:Commands/System is
+    recommended).
+
+    LogOut_Type_1=HBBS
+    LogOut_Door_1=HBBS:Doors/System/WeekTop/WeekTop.HBBS {N} <cmddline options>
+
+    InactivityTimeout_Type_1=HBBS
+    InactivityTimeout_Door_1=HBBS:Doors/System/WeekTop/WeekTop.HBBS {N} <cmddline options>
+
+    Add the following lines to a Commands/#?Level#? file (HBBS:Commands/All_Levels is
+    recommended).
+
+    G_Type_2=HBBS
+    G_Door_2=HBBS:Doors/System/WeekTop/WeekTop.HBBS {N} <cmddline options>
+
+    Note: Most HBBS doors use the {O} option in the _Door_ part of the config
+    but this door's option are best specified in each place the door can be called
+    from.
+
+    Everywhere you see "<cmddline options>" above, you should replace it with
+    the actual @{"Command Line Options" link CmdLineOptions}
+
+
+    Note:
+    -----
+
+    As with all HydraBBS door, you can create an alias for the door that can
+    be used by the sysop to test it.  Add the following to a
+    Commands/Level_255 file:
+
+    WEEKTOPTEST_Type_1=HBBS
+    WEEKTOPTEST_Door_1=HBBS:Doors/System/WeekTop/WeekTop.HBBS {N} <cmddline options>
+
+    or
+
+    WEEKTOPTEST_Type_1=HBBS
+    WEEKTOPTEST_Door_1=HBBS:Doors/System/WeekTop/WeekTop.HBBS {N} {O}
+
+    If you do the latter you'll be able to specify the paramaters from the command line
+    so you can play about with it.
+
+    e.g. If you were at the BBS prompt, you could type in the following
+
+    "WEEKTOPTEST CREATE Ram:TEST 50 NoScreenClear"
+
+
+@EndNode
+
+@Node SystemOptions "SystemOptions"
+
+  System Options
+  ==============
+
+    None
+
+@EndNode
+
+@Node CmdLineOptions "CmdLineOptions"
+
+  Command Line Options
+  ====================
+
+    [UPDATE <weekfinalfilename> <users>]
+    [CREATE <currentweektopfilename> <users> [NOSCREENCLEAR] [FORCE]]
+
+
+    This door has two modes of operation, one is just to create the weektop
+    file for the current week, the other is to add the current user's
+    stats to the weektop data, and generate a weektop final stats file for
+    the week is a week has passed since the last one was generated.
+
+    Stats are reset on a monday, or on the first call to the BBS after
+    a monday (so it still works if someone calls on a tuesday but
+    no-one calls on a monday).  The stats *always* start from a monday
+    even if no-one calls on a monday.
+
+    Here are the parameters in detail for the update mode, which must
+    be specified before the CREATE mode's parameters.
+
+    UPDATE                   - Specify UPDATE mode
+                               This will read the following two parameters
+                               from the command line, that *must* be specified
+                               Update mode only updated the data file and the
+                               weekfinal file.
+    <weekfinalfilename>      - Filename to store the updated weektop file as
+                               This file is only generated if a week has passed
+                               since the last weektop final stats was
+                               generated.  This file is also used to generate
+                               the mail message that is posted to the public
+                               mail base.
+
+    <users>                  - Specifies the amount of users to include in the
+                               weektop final file. (Max: 79)
+
+
+    Here are the parameters in detail for the create mode
+
+    CREATE                   - Specifies CREATE mode
+                               This will read in the next two options which
+                               must be specified, as well as any optional
+                               paramaters.
+                               Create mode is used to create the current
+                               weektop file.
+    <currentweektopfilename> - This specifies the name of the file to store
+                               the current week's stats as.
+    <users>                  - Specifies the amount of users to include in the
+                               current weektop stats file. (Max: 79)
+    [NOSCREENCLEAR]          - If this optional paramater is specified then
+                               a screen clear will not be present in the
+                               output file.
+    [FORCE]                  - Force creation of the file.
+                               Without this option the current weektop file
+                               will only be created if the week has changed
+                               or the current user uploaded some files.
+    eg:
+
+    UPDATE HBBS:Screens/Bulletins/WeekTop_DEF.TXT 20 CREATE HBBS:Screens/Special/WeekTop_DEF.TXT 15 NoScreenClear
+
+
+    So in commands/all_levels you'd add:
+
+    G_Type_2=HBBS
+    G_Door_2=HBBS:Doors/System/WeekTop/WeekTop.HBBS {N} UPDATE HBBS:Screens/Bulletins/WeekTop_DEF.TXT 20 CREATE HBBS:Screens/Special/WeekTop_DEF.TXT 10
+
+    And in commands/system you'd add:
+
+    LogOut_Type_2=HBBS
+    LogOut_Door_2=HBBS:Doors/System/WeekTop/WeekTop.HBBS {N} UPDATE HBBS:Screens/Bulletins/WeekTop_DEF.TXT 20 CREATE HBBS:Screens/Special/WeekTop_DEF.TXT 10
+
+    InactivityTimeOut_Type_1=HBBS
+    InactivityTimeOut_Door_1=HBBS:Doors/System/WeekTop/WeekTop.HBBS {N} UPDATE HBBS:Screens/Bulletins/WeekTop_DEF.TXT 20 CREATE HBBS:Screens/Special/WeekTop_DEF.TXT 10
+
+    (note: the above examples assume the BBS has more than one languagename_xx
+    defined in BBSGlobal, if you only use one Language_XX then change the
+    filenames from "#?_DEF.TXT" to "#?.TXT" (remove the "_DEF" part)
+
+    Here's what you *could* do to have the weektop stats file display to each
+    user when they change conferences, using the examples above.
+
+    Create a file called HBBS:Screens/Special/ConfJoined_DEF.TXT so that it
+    contains the following line:
+
+    @^@@^PAUSE^@@^SSCREEN^WEEKTOP@
+
+    Using the examples above, when a user joins a conference they will see the
+    conference logo, then a pause prompt, then the weektop screen.
+
+    They could also display a bulletin called "WEEKTOP" from the bulletin menu
+    (which should be updated, to let the users know there is a new bulletin
+    that they can display.
+
+    Please see the following example files:
+
+    HBBS:Storage/Example_Screens/Utopia/Special/ConfJoined_DEF.TXT
+    HBBS:Storage/Example_Screens/Special/Bulletins_LIST.TXT
+    HBBS:Storage/Example_Configs/Commands/System
+    HBBS:Storage/Example_Configs/Commands/All_Levels
+
+@EndNode
+
+@Node ScreensDisplayed "Screens Displayed"
+
+  Screens Displayed
+  =================
+
+    None
+
+@EndNode
+
+@Node DoorsCalled "Doors Called"
+
+  Doors Called
+  ============
+
+    MAIL_ADD - Called so that a message can be posted.  The following
+    parameters are used:
+
+      "<weekfinalfilename> TO ALL FROM <node sysopaccount> TYPE P
+      SUBJECT -=[ WeekTop for week commencing <weekstartdate> ]=-"
+
+@EndNode
+
+@Node Returns "Returns"
+
+  Returned Values (in N_ND->DoorReturn)
+  =====================================
+
+    None
+
+@EndNode
+
+@Node ConfigFiles "ConfigFiles"
+
+  Config Files
+  ============
+
+    Not yet!
+
+@EndNode
+
+@Node ToDo "ToDo"
+
+  ToDo
+  ====
+
+    Add a config file so that the sysop can specify more
+    options:
+
+      headers and footers for the files that are created.
+      from account (instead of the node's sysop account)
+      message flags (must read)
+      enable/disable auto posting
+
+    Let the sysop change the output style. (So it works
+    like HBBSMultiTop)
+
+    I might even change HBBSMultiTop so that it can
+    import the data from this program, and the data from the
+    lastcallers utility.  Now wouldn't that be nice, then
+    you could combine other info into the screens that are
+    created!
+
+@EndNode
+
+@Node History "History"
+
+  History
+  =======
+
+    V1.10 - First Version
+
+@EndNode
+
+

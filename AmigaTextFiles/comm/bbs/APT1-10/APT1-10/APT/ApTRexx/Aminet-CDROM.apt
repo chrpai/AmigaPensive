@@ -1,0 +1,321 @@
+/* Aminet-CDROM.apt
+**
+** $VER: CDROM Driver 0.0.1 (17.7.94)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright © 1994 ApT-Design All Rights Reserved,DM
+**
+** This is mearly to act as a very basic example of how you may wish
+** to do things, or at least start in the right direction.
+**
+** Editor TABS = Size of 3.
+**
+** NOTE: It is down to each of you to do your own 'LINE DROPPING' checks.
+** If your scripts fail to pick a dropped carrier then you have to debug
+** your own scripts, ... yourself :)
+**
+*/
+
+
+F1 = 240
+F2 = 241
+F3 = 242
+
+/* ######################################################################### */
+
+parse arg lineno
+
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+RootDir="net:cd0/aminet"
+tempdir="t:apt-misc-"lineno
+dirfile="cdrom-dir"
+
+'SETMORE' 0
+'RETURNCODE' 0
+
+var=getclip(MENUSET_VAR)	; 'GETVAR' var	; menuset=result
+
+'SETMORE' 1
+'INFORM' "In Aminet CDROM"
+
+/*
+** MAIN_MENU:
+**
+**/
+'msg' "%CLS.%BOLD=0.%CURSOR=1.%TC=2.%BC=0."
+'SHOWFILE' "aminet/Help-Menu"
+DO FOREVER
+	'SHOWFILE' "aminet/Main-CMDS"
+
+	'HOTKEY' "%TC=7.Enter choice => " ; command=upper(result)
+	'ISDROP'		; if(result=1) then break
+
+	select
+		when command="Q" then exit
+
+		when command="D" then do ; call TOPIC_MENU ; end
+
+		when command="F" then do ;
+		'CHAINAPT' "aminet/FINDFILE"
+		'msg' "\n" ; end
+
+		when command="A" then do
+		trace on ;
+		'XFEROPTS' 'CLEARLIST TAGFILE "tplates:aminet/Aminet.lha" SENDFILES' ; end
+
+		when command="H" then 'SHOWFILE' "aminet/Help-Menu"
+
+		otherwise
+		end
+	end
+
+END
+EXIT
+
+/*
+** TOPIC_MENU:
+**
+**/
+
+TOPIC_MENU: procedure expose RootDir tempdir dirfile
+asc=getclip(ASCII_FLT)
+info="%TC=7.Enter the Directory required using the full path.\n%TC=2.Example:  %TC=3.util/mouse\n"
+
+DO FOREVER
+	'INFORM' "In Aminet CDROM"
+	'SHOWFILE' "aminet/Root-Menu"
+
+	call PROMPT info"%TC=7.%BC=4. What Directory? %BC=0. Type ""Q"" to QUIT => ",1,"",1,30,asc ; command=upper(result)
+	'ISDROP'	; if(result=1) then return 0
+
+	if command = "Q" then return 0
+	if command = "" then return 0
+
+	ELSE do
+	'msg' "\n%TC=2.Generating Files list...%TC=7.\n"
+	call SELECT_MENU command
+	end
+
+END
+return 1
+
+/*
+** SELECT_MENU:
+**
+*/
+
+SELECT_MENU: procedure expose RootDir tempdir dirfile
+
+parse arg seldir
+asc=getclip(ASCII_FLT)
+
+DO FOREVER
+
+	/*  -------------------------------------------------------------------
+	address command 'list >'tempdir'/'dirfile' 'rootdir'/'seldir' lformat="%-24.24N   %L"'
+	fname = tempdir'/'dirfile
+	if ~exists(fname) then do
+		 'MESSAGE' "%BOLD=1.%TC=1.Couldn't open %TC=7.>%TC=3."||fname||"%TC=7.<%BOLD=0.%TC=7."
+		 'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	return 0 ; end
+	msg	"TC=6."
+	SHOWGLOBALFILE fname
+	--------------------------------------------------------------------- */
+
+	fname= rootdir'/'seldir'/INDEX'
+	if ~exists(fname) then do
+		 'MESSAGE' "%BOLD=1.%TC=1.\nCouldn't open %TC=7.>%TC=3."||fname||"%TC=7.<%BOLD=0.%TC=7."
+		 'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	return 0 ; end
+	msg	"\n%TC=6."
+	SHOWGLOBALFILE fname
+
+	info="\n%TC=7.Enter the filename required.\n%TC=2.Example...   %TC=3.demofile.lha\n"
+	call PROMPT info"%TC=7.%BC=4. What File? %BC=0. Type ""Q"" to exit => ",1,"",1,30,asc,0 ; file=upper(result)
+	'ISDROP' ; if(result=1) then return 0
+	if file="Q" then return 0
+
+	getfile = rootdir'/'seldir'/'file
+
+	if ~exists(getfile) then do
+		 'MESSAGE' "%NL.%BOLD=1.%TC=1.%BC=7.<"file"> Not Found. Please Re-enter the filename.%TC=7.%BC=0.%BOLD=0."
+		 'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7." ; end
+
+	ELSE DO
+	CALL FILE_MENU file,getfile
+	END
+
+END
+return 1
+
+
+/*
+** FILE_MENU:
+**
+**/
+
+FILE_MENU: procedure expose RootDir tempdir dirfile
+parse arg file,getfile
+i=LASTPOS(".",getfile)
+infofile=LEFT(getfile,i)"README"
+
+
+DO FOREVER
+	'msg'	"\n%TC=4.%BC=7. File Description: %BC=0.%TC=7.\n"
+	SHOWGLOBALFILE infofile
+	'HOTKEY' "\n%TC=3.<%TC=4.%BC=7. "file" %BC=0.%TC=3.> Selected.    %TC=7.[Q]%TC=2.uit  %TC=7.[V]%TC=2.iew  %TC=7.[D]%TC=2.ownload%TC=7.  =>" ; key=upper(result)
+	'ISDROP' ; if(result=1) then break
+
+	select
+		when key="Q" then do
+		return
+		end
+
+		when key="V" then do
+		'msg'	"\n"
+		'CHAINAPT' "VIEWARCHIVE "getfile
+		end
+
+		when key="D" then do
+		'XFEROPTS' 'CLEARLIST TAGFILE "'getfile'" SENDFILES'
+		return ; end
+
+		otherwise
+		end
+	end
+
+END
+return 1
+
+/* ######################################################################### */
+
+
+/*
+** PROCEDURE: PROMPT
+**
+** Used whenever requesting more than one charcter from user.
+**
+** Whatever = Text string or Template FileName
+**     Type = Is the above a string or file?
+**      Def = Default string to be used
+**   MinLen = Minimum amount of characters required
+**   MaxLen = Maximum length string can be
+**   Filter = Various Filter options
+**     Case = Turn all characters into Upper case?
+**
+** RETURNS: Entered string
+*/
+
+PROMPT: procedure
+
+STRING=getclip(STRING)
+FILE=getclip(FILE)
+FIREFILT_OPT=getclip(FIREFILT_OPT)
+FIRELEN_OPT=getclip(FIRELEN_OPT)
+FIRECASE_OPT=getclip(FIRECASE_OPT)
+
+parse arg Whatever,Type,Def,MinLen,MaxLen,Filter,Case
+
+	DataRequired=1
+	DO UNTIL (DataRequired==0)
+		IF (Type) THEN	'MSG' Whatever
+		ELSE		'SHOWFILE' Whatever
+		'FIREOPTS' FIRECASE_OPT Case
+		'FIREOPTS' FIREFILT_OPT Filter
+		'FIREOPTS' FIRELEN_OPT MaxLen
+		'FIREPROMPT' Def ; strval=result
+		'ISDROP' ; if(result=1) then break
+ 		if(LENGTH(strval) < MinLen) THEN DO
+			'MSG' "%NL.%NL.%BOLD=1.%TC=3.More text input needed!%BOLD=0.%TC=7.%NL.%NL."
+			DataRequired=1
+			END
+		ELSE DataRequired=0
+	END
+	return strval
+
+
+/*
+** PROCEDURE: NUMERIC_PROMPT
+**
+** Used whenever requesting a Integer value from the user.
+**
+** Whatever = Text string or Template FileName
+**     Type = Is the above a string or file?
+**      Def = Default value to be used
+**      Min = Values below this are not allowed
+**      Max = Values above this are not allowed
+**
+** RETURNS: Entered Integer value
+**
+*/
+
+NUMERIC_PROMPT: procedure
+
+STRING=getclip(STRING)
+FILE=getclip(FILE)
+FIREFILT_OPT=getclip(FIREFILT_OPT)
+FIRELEN_OPT=getclip(FIRELEN_OPT)
+NUMBER_FLT=getclip(NUMBER_FLT)
+
+parse arg Whatever,Type,Def,Min,Max
+
+	Width = LENGTH(max)
+	DataRequired=1
+	DO UNTIL (DataRequired==0)
+		IF (Type) THEN	'MSG' Whatever
+		ELSE		'SHOWFILE' Whatever
+		'FIREOPTS' FIREFILT_OPT NUMBER_FLT
+		'FIREOPTS' FIRELEN_OPT Width
+		'DOTIT' Width
+		'FIREPROMPT' Def ; strval=result
+		'ISDROP' ; if(result=1) then break
+		if(strval < Min | strval > Max) THEN DO
+			'MSG' "%NL.%BOLD=1.%TC=3.Value out of range, acceptable range between %TC=7." Min " %BOLD=3.and %TC=7." Max "%BOLD=0.%TC=7.%NL.%NL."
+			DataRequired=1
+			END
+		ELSE DataRequired=0
+	END
+	return strval
+
+/*
+** PROCEDURE: YESNO
+**
+** Used whenever requesting a [Y/n] [y/N] style hotkey input
+**
+** Flag = 1 for Default to YES, 0 for Default to NO on return
+**
+** RETURNS: 1 for YES and 0 for NO
+*/
+
+YESNO: procedure
+
+parse arg Flag
+
+'HOTKEY' ""
+Key=upper(result)
+if(Flag=0) THEN DO
+	if(Key='Y') THEN DO
+		'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+		Flag = 1
+	END
+	ELSE DO
+		'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+		Flag = 0
+	END
+END
+ELSE
+if(Key='N') THEN DO
+	'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+	Flag = 0
+END
+ELSE DO
+	'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+	Flag = 1
+END
+	return Flag
+
+

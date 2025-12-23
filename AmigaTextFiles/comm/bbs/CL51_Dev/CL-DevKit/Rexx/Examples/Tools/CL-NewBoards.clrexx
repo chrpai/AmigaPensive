@@ -1,0 +1,224 @@
+/*
+**  $VER: CL-NewBoards.clrexx 1.2 (24 Feb 1996)  **
+**
+**        © 1995-96 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-NewBoards.clrexx
+**
+**  FUNCTION:
+**
+**      Demonstrationsskript zur cl_rexx.library, Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl_rexx.library © 1995 Mathias Mischler
+**
+**      Scannt die Brettliste und sucht nach neuen, automatisch
+**      eingetragenen Brettern. Diese Liste wird dann verschickt.
+**
+**      Aufruf: rx CL-NewBoards.clrexx [param1 [param2]]
+**
+**      Optionale Parameter:
+**
+**      NOPROMPT = Es wird bei Programmende nicht auf einen Tas-
+**                 tendruck gewartet
+**      SETRO    = Gefundene Bretter werden auf RouteOnly gesetzt.
+**
+**      Konfiguration ähnlich Newfiles:
+**
+**      CONNECTLINE:Rexx/Data/CL-NewBoards.betreff beinhaltet ei-
+**      ne einzige Zeile, nämlich den Betreff der zu versendenden
+**      Mail. Wird diese Datei nicht gefunden, verwurschtelt das
+**      Skript einen Defaultwert.
+**      CONNECTLINE:Rexx/Data/CL-NewBoards.user beinhaltet eine
+**      Liste der Empfänger. Pro Zeile einer.
+**      CONNECTLINE:Rexx/Data/CL-NewBoards.header beinhaltet den
+**      Kopf, der der Liste vorangestellt wird.
+**      CONNECTLINE:Rexx/Data/CL-NewBoards.trailer dementsprech-
+**      end den Rattenschwanz, der in der Mail unter die Liste
+**      geklatscht wird.
+**      CONNECTLINE:Rexx/Data/CL-NewBoards.date wird vom Skript
+**      generiert und beinhaltet das jeweilige Bezugsdatum. Flos-
+**      sen weg! ;)
+**
+**  $HISTORY:
+**
+**   30 Dec 1995 : 1.0 : initial release
+**   31 Dec 1995 : 1.01: Wie üblich falscher Text im Fensterrahmen
+**   13 Jan 1996 : 1.02: Erster Empfänger wurde verschluckt
+**                       Dummy-Space nach Ausgabe eingefügt
+**   16 Jan 1996 : 1.03: Dämlichkeitsfehler beim Öffnen der rexxlib
+**   05 Feb 1996 : 1.1 : kosmetische Fixes
+**   24 Feb 1996 : 1.2 : Parameter SETRO eingebaut
+*/
+
+par=upper(arg(1))
+if (word(par,1)='NOPROMPT')|(word(par,2)='NOPROMPT') then noprompt=true
+else noprompt=false
+if (word(par,1)='SETRO')|(word(par,2)='SETRO') then setro=true
+else setro=false
+
+iomod='CONNECTLINE:Rexx/Modules/stdio.clrexxmod'
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then exit 10
+    end
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*50
+windowheight=Fontsize*15
+windowY=Fontsize+1
+WindowX=Fontsize
+
+/* Standard-IO umleiten */
+
+screen=CLGET_FrontScreenName()
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-NewBoards/SCREEN'screen,'W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+/* Bezugsdatum einlesen */
+
+address command
+
+'rx 'iomod' CURSOROFF'
+
+if open('bd','CONNECTLINE:Rexx/Data/CL-NewBoards.date','R') then do
+    bezdate=readln('bd')
+    call close 'bd'
+    end
+else bezdate='00000000000000'
+
+say 'Bezugsdatum: 'substr(bezdate,7,2)'.'substr(bezdate,5,2)'.'left(bezdate,4)' 'substr(bezdate,9,2)':'substr(bezdate,11,2)':'substr(bezdate,13,2)
+
+
+/* Empfänger einlesen */
+
+if exists('CONNECTLINE:Rexx/Data/CL-NewBoards.user') then
+     empanz=CL_GetText('CONNECTLINE:Rexx/Data/CL-NewBoards.user',emp)
+else empanz=0
+say 'Insgesamt wird an 'empanz' Empfänger verschickt.'
+say ''
+
+/* Betreff einlesen */
+
+betreff='Neue Bretter in der '||upper(CLGET_OwnSystemName())
+
+if open('bet','CONNECTLINE:Rexx/Data/CL-NewBoards.betreff','R') then do
+    betreff=readln('bet')
+    call close 'bet'
+    end
+
+
+/* Brettliste einlesen */
+say 'Lese Brettliste ...'
+banz=CLGET_BoardList(brett)-1
+if banz=-1 then exit
+
+/* Suche nach autoeingetragenen Brettern mit LastWrite > Bezugsdatum */
+
+x=0
+say 'Durchsuche Brettliste ...'
+call writech STDOUT,' '
+do i=0 to banz
+    if i//5=0 then do
+        select
+            when i//4=1 then call writech(STDOUT,'-')
+            when i//4=2 then call writech(STDOUT,'\')
+            when i//4=3 then call writech(STDOUT,'|')
+            otherwise call writech(STDOUT,'/')
+            end
+        end
+    test=CLIS_BoardAutoEntry(brett.i)
+    if test='1' then do
+        tempdate=translate(CLGET_BoardLastWrite(brett.i),'  ','.:')
+        lastdatum=word(tempdate,3)||word(tempdate,2)||word(tempdate,1)
+        lastdatum=lastdatum||word(tempdate,4)||word(tempdate,5)||word(tempdate,6)
+        if lastdatum~<bezdate then do
+            x=x+1
+            new.x='/'brett.i
+            say 'Gefunden: 'new.x
+            call writech STDOUT,' '
+            if setro=true then do
+                call CLSET_BoardAutoEntry(brett.i,1)
+                address command 'delete >NIL: 'CLGET_BoardPath(brett.i)'/* all'
+                end
+            end
+        end
+    end
+call writech STDOUT,'08'x
+datum=date(S)||compress(time(),':')
+
+/* Brettliste erstellen und versenden */
+
+say x' neue Bretter gefunden!'
+
+if x>0 then do
+    address command 'copy >NIL: CONNECTLINE:Rexx/Data/CL-NewBoards.header T:Brettliste'
+
+    if ~open('out','T:Brettliste','A') then do
+        if ~open('out','T:Brettliste','W') then do
+            say 'Konnte Tempdatei nicht öffnen!'
+            call ende
+            end
+        end
+
+    call writeln 'out',''
+
+    do i=1 to x
+        call writeln('out',new.i)
+        end
+
+    if exists('CONNECTLINE:Rexx/Data/CL-NewBoards.trailer') then do
+        zeilenanz=CL_GetText('CONNECTLINE:Rexx/Data/CL-NewBoards.trailer',zeile)
+        if zeile>0 then do
+            call writeln 'out',''
+            do x=0 to zeilenanz-1
+                call writeln 'out',zeile.x
+                end
+            end
+        end
+
+    call close 'out'
+
+    if ~open('out','CONNECTLINE:Rexx/Data/CL-NewBoards.date','W') then call ende
+
+    do x=0 to empanz-1
+        call CL_SendMailFull('Newboards',emp.x,'T:Brettliste','','','Neue Bretter in der 'upper(CLGET_OwnSystemName()),'TEXT','Z')
+        end
+
+    call writeln 'out',datum
+    call close 'out'
+
+    address command 'delete >NIL: T:Brettliste'
+    end
+
+ende:
+
+if noprompt=false then do
+    options prompt 'Bitte drücken Sie <RETURN>'
+    pull dummy
+    end
+'rx 'iomod' CURSORON'
+call close STDIN
+call close STDOUT
+exit

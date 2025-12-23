@@ -1,0 +1,446 @@
+
+/*
+
+Automatically repairs only your most fragmented subboards, skipping
+the others.
+
+RR_Check lists 6 pieces of info about each sub:
+ 1) Physical sub #.
+ 2) Number of "holes" that still remain after old msgs have been killed.
+ 3) Whether area is BASE or UDBASE.
+ 4) Path to that sub's data-files.
+ 5) Title of sub.
+ 6) Overall size of data "_Text" file.
+
+Item #2 will show you which subs need to be RR'ed.
+Item #6 will show which subs are consuming the most HD space overall.
+
+>Phys# Holes Type Path               Title                             Size
+> 158)    26 BASE M:9.9/             Fido Amiga: Tech. Hardware       1689K
+> 160)     2 BASE M:9.11/            Fido Amiga: Arexx                 638K
+> 162)     1 BASE M:9.13/            Fido Amiga: SAS/Lattice C         642K
+> 172)    12 BASE M:9.1.4/           Fido Amiga BBS: CNet             2698K
+> 190)    58 BASE M:15.1/            Non-Comp Fido: Film              2586K
+> 193)     1 BASE M:15.4/            Non-Comp Fido: Satellite TV       128K
+> 194)     1 BASE M:15.5/            Non-Comp Fido: Broadcast TV        64K
+> 195)     5 BASE M:15.6/            Non-Comp Fido: Pro-Video          379K
+> Total  110                                                         11092K
+
+You can also specify a different style of output with the "OUTP=2" option:
+> Threads Resps Full KBytes Byte/Msg Del-Day High-# Name
+>    220    720  99%   866K    942     400      896 Fido Amiga: Worldwide
+>    247   1531  55%  1896K   1091      12    16837 Fido Amiga: Tech. (Hardware)
+>    156    777  35%   921K   1010     200     1592 Fido Amiga: Arexx
+>    134    634  40%   950K   1265     122     2671 Fido Amiga: SAS/Lattice C
+>    101    830  22%   953K   1047      35     4488 Fido Amiga: Public Domain
+>     79    135  17%   168K    800      20     4249 Fido Amiga: For Sale #1
+>    146    957  65%  1019K    945       0     1589 Fido Amiga: Telecomm #1
+>     56    291  12%   695K   2045      33     5359 Fido Amiga: TrapDoor FDoor
+
+You can also run RR_Check as an event to automatically repair the subs
+that get listed.
+
+Runs online, or from the CLI.
+
+CLI Use:  (Acts only as a subboard-lister, no rebuilding is done.)
+CLI> rx Pfiles:RR_Check.rexx minH=0 outP=2  ; List all subs
+CLI> rx Pfiles:RR_Check.rexx minH=1         ; Only list subs with "holes"
+CLI> rx Pfiles:RR_Check.rexx minH=25        ; List subs with at least 25 "holes"
+CLI> rx Pfiles:RR_Check.rexx minH=5 maxH=25 ; List subs with 5-25 "holes"
+
+CLI> rx Pfiles:RR_Check.rexx minK=100     ; List subs with at least 100K data-files
+CLI> rx Pfiles:RR_Check.rexx minK=100 maxK=250 ; List subs with 100-250K data-files
+CLI> rx Pfiles:RR_Check.rexx minK=100 maxB=99  ; List subs with <99 block data-files
+
+CLI> Alias RRH rx Pfiles:RR_Check.rexx minH=10  ; Make an easy-to-use CLI alias
+CLI> Alias RRS rx Pfiles:RR_Check.rexx minH=0 minK=100 Outp=2
+
+You can also create a DOS-script containing 2 lines like:
+CLI> rx CNet:rexx/RR_Check.rexx minH=0 outP=2 >t:1
+CLI> c:Sort t:1 * COLSTART 15    ; Sort by "percent full"
+
+Or Online Installation:
+   1) Edit CNet:BBSMENU.
+      Onto the END of the cmd-list called "1; Maintenance menu" add:
+      > RRUdbases | {#1    Pfiles:RR_Check.rexx "minH=1  maxR=999 UDBASE"}
+      > RRRebuild | {#1    Pfiles:RR_check.rexx "minH=10 maxR=999"}
+                            (Only the last 2 need the double-quotes.)
+
+      If you wish to view the logs, you can optionally also add:
+      > GAin | {$0 Grep >t:1 -h " gain" SysData:log/Calls SysData:log/Port*} {*0 t:1}
+
+      Onto the END of the cmd-list called "2; Available everywhere" add:
+      > SIZes     | {#5 rx Pfiles:RR_Check.rexx minH=0  Outp=2}
+      > RRHoles   | {#5 rx Pfiles:RR_check.rexx minH=25 OutP=2}
+      > RRSizes   | {#5 rx Pfiles:RR_check.rexx minH=0  minK=1000}
+
+   2) Edit the variables below marked "SysOp-settable" items.
+
+   3) Copy RR_Check.rexx TO pfiles:RR_Check.rexx
+
+When running from the CLI, you can also re-direct RR_Check's output to
+a file, and then sort it based on fragmentation levels.
+CLI> rx  >t:RR.tmp Pfiles:RR_Check.rexx minH=1
+CLI> Sort t:RR.tmp * COLSTART 6
+
+Or it can be sorted based on data-file (_Text) size:
+CLI> Sort t:RR.tmp * COLSTART 72
+
+For automatic event installation:
+   1) Set-up a CNet v3.05 CONFIG/EVENT as:
+         Ports   : 0
+         Weekdays: SMTWRFS
+         Time    : 100
+         Valid   : 1
+         Interval: 0
+         Iterate : 1
+         Type    : Immediate--force system idle
+         Command : RunArexx
+         Args    : Pfiles:RR_Check.rexx "minH=50 maxR=9999"
+   That will run this pfile at 1am every morning forcing the person on
+   port #0 to log-off first.  (Don't forget the quotes.)
+   Feel free to change days/times/ports/etc as needed.
+
+   All subs that have more than 50 "holes" in them will be repaired.
+   (You can also set the "maxR" variable to limit the max # of subs
+   that will be repaired per night.)
+
+   You can also use:
+   > Args : Pfiles:RR_Check.rexx "minK=100 maxR=9999"
+   which would repair all subs with data-files larger than 100K.
+   (Regardless of their fragmented or non-fragmented status.)
+
+If you wish to add it to your pfile-menu...
+> Add as AREXX script
+> Filename   : Pfiles:RR_Check.rexx
+> Description: Just RR fragmented subs
+> Args       : "maxR=3 minH=20"     (Don't forget the double-quotes.)
+> Acc groups : 23-31                (or whatever)
+(That should RR 3 of your subs that have at least 20 holes in them.)
+
+================================================================
+
+Options allowed:
+   MINH=#    :  Only subs that have at least n holes.
+   MAXH=#    :  Only subs that have at most  n holes.
+
+   MINK=#    :  Only subs that have at least n Kbyte data-files.
+   MAXK=#    :  Only subs that have at most  n Kbyte data-files.
+
+   MINB=#    :  Only subs that have at least n block data-files.
+   MAXB=#    :  Only subs that have at most  n block data-files.
+
+   MAXR=#    :  Only repair (at most) n subs.
+             :  ("MAXR" is what tells RR_check to actually do rebuilding.)
+
+   TEST      :  Just test options, don't do any RR'ing.
+
+   BASE      :  Only effect bases.
+   UDBA      :  Only effect UDbases.
+
+   OUTP=#    :  Display output-list in style #1 or #2 format.
+
+================================================================
+
+From the CLI you can use any combination of minH maxH minK maxK MinB MaxB TEST options.
+
+From an online event you can use any comination of minH maxH minK maxK
+MinB MaxB maxR TEST options.  ("maxR=#" is what triggers the 'repairing' option.)
+
+The TEST option allows you to test your option-string event set-up
+without actually doing any 'repairing'.
+
+If you run RR_Check online, and want it to write to the logs, make
+sure you have your Config/Logs/ArexxSays and that user's log-flags
+turned on.
+
+You can file-requ "RR_Check" from 1:2410/207 and always be guaranteed
+to get the latest release.
+
+Bill Beogelein
+Box 530441
+Livonia, MI 48153
+Amiga ShareWare HeadQuarters BBS 1-810-473-2020
+Fido: 1:2410/207,  UUCP: ag775@detroit.freenet.org
+
+$VER: RR_Check.rexx v1.12 Tue 28-Feb-95 04:47:41
+   Added color to K-gain in logs.
+
+$VER: RR_Check.rexx v1.11 Wed 16-Nov-94 00:41:34
+   'ChangeWhere' now occurs sooner.
+
+$VER: RR_Check.rexx v1.10 Fri 04-Nov-94 10:05:30
+   Added output style #2.  (OUTP=2)
+   Added a FILE_ID.DIZ file.
+
+$VER: RR_Check.rexx v1.9 Fri 08-Jul-94 08:25:26
+   Added "signal on ioerr, halt, and break key" checks.
+
+$VER: RR_Check.rexx v1.8 Tue 03-May-94 19:22:12
+   Added "BASE" and "UDBASE" options to allow only repairing of bases or udbases.
+   Better described each cmd-line option.
+
+$VER: RR_Check.rexx v1.7 Wed 20-Apr-94 06:15:22
+   Added minB and maxB options for checking min/max data-sizes
+   in BLOCKS (512 bytes).
+
+$VER: RR_Check.rexx v1.6 Fri 25-Mar-94 08:40:01
+   Wouldn't display sub-names that were exactly 30 chars long (the max).
+   Removed () around BAS and UDB, changed to "BASE" or "UD".
+
+$VER: RR_Check.rexx v1.5 Sat 26-Feb-94 07:48:04
+   Logs repair time in "mins:secs" as "12:34", not just rounded-off "12 mins".
+   Added docs about running RR_Check from pfile-menu.
+   Added docs about adding RR_Check to BBSmenu for online rebuilding with RRR.
+
+$VER: RR_Check.rexx v1.4 Tue 22-Feb-94 07:34:03
+   Log showed all repair times as taking "0 mins".  (Fixed)
+
+$VER: RR_Check.rexx v1.3 Mon 21-Feb-94 07:47:30
+   Fixed bug that displayed hole-count 8x larger than it should be.
+   The time it takes RR to run is also displayed in log.
+   Disabled "MORE?" prompt online.
+
+$VER: RR_Check.rexx v1.2 Fri 18-Feb-94 19:30:20
+   Writes HD space gain/loss to logs.
+   Added "TEST" option.
+   Added "maxR" option which repairs subs (when run as an event).
+   Added "maxR" variable to limit the # of subs that get repaired per
+   night.
+
+$VER: RR_Check.rexx v1.1 Wed 16-Feb-94 17:39:29
+   Total-up all the holes and sizes.
+   Added min and max hole options.
+   Added min and max K  options.
+   Added "help" template.
+   Added date in "totals" line.
+
+$VER: RR_Check.rexx v1.0 Wed 16-Feb-94 00:26:20
+   Written/tested for CNet v3.05c-beta.
+   Uploaded to user FW804.
+
+Future plans and known bugs:
+   Allow "NETW=3" for individual network listing/rebuilding.
+   "BLCK" option: Show sizes in blocks
+   Exit if Amaint or CNetToss is running.
+   Skip Amaint "Locked" subs.
+   RR all subs with 0 items left.
+   Also allow checking for "_Killed" msgs.
+   Remove need for double-quotes around options. (???)
+   Report total space-gains in totals-line.
+   Add MinN=# and MaxN=# options to effect only those physical sub #s.
+   Add bigH=# and bigK=# options to effect only the x largest subs.
+   Use abbrev() for option check
+   Add option: Just show "totals" line.
+   Automatically set the maxK to the max space available.
+   Also write 0 gains to log.
+   And option for "MORE"-prompts.
+
+   Please report ALL bugs.
+   (Always mention the prg name and version #.  "c:Version RR_Check.rexx")
+
+Ignore:
+   lz u CNet3:RR_Check.LHA CNet:rexx/RR_Check.rexx Help:BB_CMDS a:zzzBBSad
+
+*/
+
+/**************** Top of SysOp-settable variables ************************/
+
+pri    = (-1)     /* Run task at this priority */
+useRam = 3000     /* Do repairs in "RAM:" if data-file is less than n Kbytes  */
+pfile  = "Pfiles:Maintenance/Repair_Sub" /* Full path & name of your RR pfile */
+
+c3 = '19'x || "c3"     /* \c3 for yellow logs */
+c7 = '19'x || "c7"     /* \c7 to reset color  */
+
+/***************** End of SysOp-settable variables ***********************/
+
+signal ON error
+signal ON syntax
+signal ON ioerr
+signal ON halt
+signal ON break_c; signal ON break_d; signal ON break_e; signal ON break_f;
+
+parse arg opts
+options results
+opts=upper(opts)
+
+LF = '0a'x; BELL = '07'x
+
+if( opts="" ) then
+do
+   say LF "RR_Check.rexx by Bill Beogelein, 1-810-473-2020, 1:2410/207"
+   say " Usage: rx RR_Check.rexx   BASE UDBASE   minH=# maxH=#   minK=# maxK=#   MinB=# maxB=# maxR=#   Outp=[1|2]   TEST" LF
+   exit
+end
+
+call pragma('PRIORITY', pri)
+
+minH=1; maxH=999999              /* The defaults... */
+minK=0; maxK=999999
+minB=0; maxB=999999
+maxR=0; test=0; output=1
+base=0; udbase=0
+w=words(opts)
+do i=1 to w                         /* minH=47 */
+   o =   left(word(opts, i), 4)     /* minH=   */
+   v = substr(word(opts, i), 6)     /* 47      */
+   if( o="OUTP" ) then output=v
+
+   if( o="MINH" ) then minH=v
+   if( o="MAXH" ) then maxH=v
+
+   if( o="MINK" ) then minK=v
+   if( o="MAXK" ) then maxK=v
+
+   if( o="MINB" ) then minB=v
+   if( o="MAXB" ) then maxB=v
+
+   if( o="MAXR" ) then maxR=v
+   if( o="TEST" ) then test=1
+
+   if( o="BASE" ) then   base=1
+   if( o="UDBA" ) then udbase=1
+end
+/* say XXX minH XXX maxH XXXXXX minK XXX maxK XXXXXX maxR XXXXXX */
+
+if( maxR>0 ) then
+   'changeWhere' "RR_Check.rexx" /* If run as event with "MaxR=#" opt */
+
+if(~show(l, "rexxsupport.library")) then
+   if(~addlib('rexxsupport.library', 0, -30)) then     /* add to library list */
+   do
+      call prt(LF "*** libs:rexxsupport.library is unavailable.")
+      exit
+   end
+
+dat = compress(date('NORMAL'))     /* 31Dec1994 */
+dat = left(dat,5) || right(dat,2)  /* 31Dec94   */
+
+if(output==1) then header="Phys# Holes Type Path               Title                                Size"
+if(output==2) then header="Threads Resps Full KBytes Byte/Msg Del-Day High-# Name"
+call prt(LF center("RR_Check.rexx by Bill Beogelein...",75) LF LF || header)
+
+ /* Threads Resps Full KBytes Byte/Msg Del-Day High-# Name       */
+ /*  12345  12345 100% 12345K  12345     9999  123467 AMIGA_PROG */
+
+if( open(fp, "sysData:subboards3", 'READ') ) then
+do
+   phys= -1
+   totalH=0; totalK=0
+   count=1
+   do forever
+      buf  = readCH(fp, 488)
+      if(eof(fp)) then leave
+      phys=phys+1
+
+      desc = Chop(substr(buf,   1, 31))
+      path = Chop(substr(buf,  53, 40))
+
+      type =  c2d(substr(buf, 270,  1))
+      sub  =  c2d(substr(buf, 161,  1))
+      exch =  c2d(substr(buf, 157,  1))
+
+      if( type>1 | sub>0 | exch>0 ) then
+         iterate     /* Skip killed subs, subdirs, and direct-exchange subs */
+
+      if(type=0) then type="BASE"     /* Msg bases  */
+      if(type=1) then type="UD  "     /* File areas */
+
+      sizeH = word(statef(path || "data/_free"), 2)
+      if( sizeH="" ) then sizeH=0      /* Not fragmented at all */
+      sizeH = sizeH/8
+
+      sizeB = word(statef(path || "data/_text"), 2)
+      if(sizeB="") then sizeB=0        /* No _text file at all */
+      sizeK = trunc(sizeB/1024)
+
+      if( sizeH<minH    |  sizeH>maxH      ) then iterate  /* User said to skip these */
+      if( sizeK<minK    |  sizeK>maxK      ) then iterate
+      if((sizeK*2)<minB | (sizeK*2)>maxB   ) then iterate
+      if(   base=1 & type="UD  " & ~udbase ) then iterate
+      if( udbase=1 & type="BASE" & ~base   ) then iterate
+
+      totalH=totalH+sizeH
+      totalK=totalK+sizeK
+
+      if(output==1) then call prt(right(phys,4) || ")" right(sizeH,5) type left(path,18) left(desc,34) right(sizeK,5) || "K")
+      if(output==2) then
+      do
+         thr     = c2d(substr(buf, 465, 2))
+         resps   = c2d(substr(buf, 461, 4)) -thr
+         max_thr = c2d(substr(buf, 441, 2))
+         perc    = 100; if(max_thr  >0) then perc = trunc((thr/max_thr)*100)
+         bpm     =   0; if(thr+resps>0) then bpm  = sizeB%(thr+resps)  /* Bytes per msg */
+         days    = c2d(substr(buf, 235, 2))
+         high    = c2d(substr(buf, 287, 4))
+         call prt(right(thr,6) right(resps,6) right(perc,3) || "%" right(sizeK,5) || "K" right(bpm,6) right(days,7) right(high,8) left(desc,28))
+      end
+
+      if( maxR>0 ) then       /* If run as event with "MaxR=#" opt */
+      do
+         count=count+1
+
+         if( sizeK<=useRam ) then rrOpt="RAM"; else rrOpt="   "
+         'transmit' "@4Running pfile:" pfile phys rrOpt "..."
+         call time('RESET')
+         if(~test) then 'transmit' "#3" pfile phys rrOpt "}"
+         secs=time('ELAPSED')
+         mins=secs%60
+         secs=trunc(secs//60)       /* Drop decimal */
+
+         newK = word(statef(path || "data/_text"), 2)
+         if(newK="") then newK=0        /* No _text file at all */
+         newK = trunc(newK/1024)
+         'LogEntry' "RR_Check.rexx" right(phys,4) rrOpt || ";" c3 || right(sizeK-newK, 4) || "K" || c7 "gain;" right(mins,2) || ":" || right(secs,2,'0') || ";" dat
+
+         if( count>maxR ) then
+         do
+            'transmit' " (Only RR'ing first" maxR "matches.)" BELL
+            leave
+         end
+      end
+   end
+end
+else
+   call prt(LF "*** Can't open CNet-BBS SysData:subboards3 for reading." LF)
+
+if(output==1) then call prt("Total" right(totalH,5) "Holes                (" || dat || ")" right(totalK,33) || "K")
+if(output==2) then call prt(header)
+
+exit  /********** End of main **********/
+
+Chop:                               /* Chop string-var to 1st \0 */
+   parse arg str
+   p=index(str, '0'x)
+   if(p<2) then return "[none]"     /* If null-string, make "[none]" */
+   if(p>1) then p=p-1
+return left(str, p)
+
+Error:
+IOerr:
+Syntax:
+   call prt(LF "*** Err #" || RC || " on line #" || SIGL "(" || errortext(RC) || ")")
+   call prt("See:" strip(sourceLine(SIGL)))
+exit
+
+Halt:
+Break_C:
+Break_D:
+Break_E:
+Break_F:
+   if(output==1) then call prt("Total" right(totalH,5) "Holes                (" || dat || ")" right(totalK,33) || "K")
+   if(output==2) then call prt(header)
+   call prt(LF "*** Halted:  Err #" || RC || " on line #" || SIGL "(" || errortext(RC) || ")")
+   /* call prt("See:" strip(sourceLine(SIGL))) */
+exit
+
+Prt:
+   parse arg str
+   if( maxR>0 ) then
+      'transmit' str
+   else
+      say str
+return
+
+/*** EOF BBS: 1-810-473-2020, Fido: 1:2410/207 ***/

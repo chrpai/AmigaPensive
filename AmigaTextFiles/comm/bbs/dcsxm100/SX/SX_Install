@@ -1,0 +1,145 @@
+; System-X
+
+; -- SET UP STRINGS ---------------------------------------
+(set MSG_ASKDEST "Where would you like System-X to be installed?\nA drawer called SX will be created.")
+(set MSG_COPY "Please Wait - Copying Files\n")
+(set MSG_THANKS "System-X 1.00 now installed!\n\nYou may want to assign BBS: and DAYDREAM: to SX: for compatability with DayDream, AmiExpress and MAXsBBS doors.\n\n")
+(set MSG_STARTUP "The Installer will now modify your\nS:User-Startup file.\nThe SX: assign will be added.\n")
+
+
+; -- GET DESTINATION DIR ----------------------------------
+(set dest_dir
+  (tackon
+   (askdir (prompt MSG_ASKDEST ) 
+                   (help @askdir-help)
+                   (default @default-dest)
+   )
+   "SX"
+  )
+)
+
+
+; -- MAKE DIRECTORIES --------------------------------------
+(set @default-dest dest_dir)      
+(makedir dest_dir (infos))
+(makedir (tackon dest_dir "LogFiles"))
+(makedir (tackon dest_dir "Batch"))
+(makedir (tackon dest_dir "Commands"))
+(makedir (tackon dest_dir "Developer"))
+(makedir (tackon dest_dir "Doc"))
+(makedir (tackon dest_dir "Doors"))
+(makedir (tackon dest_dir "Confs"))
+(makedir (tackon dest_dir "Node1"))
+(makedir (tackon dest_dir "Node2"))
+(makedir (tackon dest_dir "Node3"))
+(makedir (tackon dest_dir "Prefs"))
+(makedir (tackon dest_dir "Screens"))
+(makedir (tackon dest_dir "TXT"))
+(makedir (tackon dest_dir "Users"))
+(makedir (tackon dest_dir "Utils"))
+(makedir (tackon dest_dir "Configs"))
+
+
+; -- COPY FILES --------------------------------------------
+
+(copyfiles (prompt MSG_COPY)
+      	    (help @copyfiles-help)
+      	    (source "/libs")
+      	    (dest "LIBS:")
+            (pattern "#?.library")
+      	    (infos)
+)
+
+
+(set machine (database "cpu"))
+
+(if (OR (= machine "68000") (= machine "68010"))
+(
+	(copyfiles (prompt MSG_COPY)
+       	    (help @copyfiles-help)
+       	    (source "sx_000")
+       	    (dest dest_dir)
+       	    (newname "sx")
+       	    (infos)
+	)
+	(copyfiles (prompt MSG_COPY)
+       	    (help @copyfiles-help)
+       	    (source "/devs/kalacon.device")
+       	    (dest "DEVS:")
+       	    (infos)
+	)
+)
+)
+
+(if (OR (= machine "68020") (= machine "68030") (= machine "68040") (= machine "68060"))
+(
+	(copyfiles (prompt MSG_COPY)
+       	    (help @copyfiles-help)
+       	    (source "sx_020")
+       	    (dest dest_dir)
+       	    (newname "sx")
+       	    (infos)
+	)
+	(copyfiles (prompt MSG_COPY)
+       	    (help @copyfiles-help)
+       	    (source "/devs/kalacon.device.020")
+       	    (newname "kalacon.device")
+       	    (dest "DEVS:")
+       	    (infos)
+	)
+)
+)
+
+(copyfiles (prompt MSG_COPY)
+      	    (help @copyfiles-help)
+      	    (source "")
+      	    (dest dest_dir)
+      	    (pattern "~(sx_#?)")
+      	    (infos)
+)
+
+
+; -- CHANGE USER-STARTUP --------------------------------------
+
+(run	"c:Assign SX: "dest_dir" >NIL:"
+	(help "no help")
+)
+
+(run	"c:Assign Doors: SX:Doors >NIL:"
+	(help "no help")
+)
+
+(run	"c:Path SX:Utils ADD >NIL:"
+	(help "no help")
+)
+
+(if (not (exists "c:move" (noreq)))
+
+		(copyfiles (prompt MSG_COPY)
+			(help @copyfiles-help)
+			(source "/c/move")
+			(dest "c:")
+		)
+
+		(run	"c:protect c:move +s"
+			(help "no help")
+		)
+)
+
+(startup   "System-X"   
+	(prompt MSG_STARTUP)
+	(help @startup-help)
+	(command " Assign SX: \"" dest_dir "\"\n")
+	(command " Assign DOORS: SX:Doors\n")
+	(command " Path SX:Utils ADD\n");
+)
+
+
+(run	"utils/MakeAC"
+	(help "Just choose yes!")
+	(prompt	"Now we'll make a SysOp account. You'll be prompted for a few simple pieces of information. If you wish to convert a userbase from another BBS, you may convert DayDream/MAXsBBS userbases after this install has finished, using the converters in SX:Utils/\nMake sure you read the section on userbase converters in SX.GUIDE\n")
+	(confirm)
+)
+
+(exit MSG_THANKS)
+(exit)

@@ -1,0 +1,63 @@
+/* 
+
+MCP-REXX Test
+
+   To run this program, just type this from shell:
+
+	rx test.rexx
+
+*/
+
+
+ADDRESS "SX-MCP-REXX"
+OPTIONS RESULTS
+parse arg args
+
+TOTALNODES; nodes = RC
+
+ONLINENODES; onnodes = RC
+
+freenodes = nodes-onnodes
+
+SAY "There are "freenodes"/"nodes" nodes free."
+
+SAY "-- WHO IS ONLINE --"
+
+do node=1 to nodes
+
+	NODEINFO node 0		/* check if node is active */
+
+	IF RC = 0 THEN do;
+		SAY "Node ("node"): Shutdown"
+	End
+
+	IF RC ~= 0 THEN do;
+
+		NODEINFO node 1		/* check if user online */
+
+		IF RC = 0 THEN do;
+			SAY "Node ("node"): Waiting for call.."
+		End
+
+		IF RC ~= 0 THEN do;
+
+			NODEINFO node 2
+			handle = RESULT
+
+			NODEINFO node 4
+			group = RESULT
+
+			NODEINFO node 5
+			action = RESULT
+
+			line = "Node ("node"): "
+
+			line = line || left(handle, 20)" "left(group, 20)" "left(action, 20)
+
+			SAY line
+
+		End;
+	End
+End
+
+EXIT 0

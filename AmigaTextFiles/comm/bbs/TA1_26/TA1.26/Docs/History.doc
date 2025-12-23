@@ -1,0 +1,837 @@
+
+This  file  lists most of the interesting changes that have been made since
+TransAmiga v1.11  release  version.  This list is not at all complete. Many
+information that is really boring if you are no beta tester is filtered.
+
+All changes from v1.25 to v1.26 are related to the 2000+ date handling.
+
+Preferred  report  way  is  e-mail to transdev@gmx.net.  You can also place
+your question/problem on the mailing list.
+
+***********************
+* commandline changes *
+***********************
+
+- NEW COMMANDLINE OPTION: -pen
+  If  this  option  is  specified  at  the command line the drawpens of the
+  screen TransAmiga opens it's window(s) on  are changed.
+  On  public  screens  you may get ugly colours, depends on the palette. If
+  you  use a standard palette DON'T use this option. If you opened your own
+  public  screen with ANSI compatible order of colours and 3+ bitplanes you
+  should get a nice look.
+  If  you use a custom screen for TransAmiga you don't have to specify this
+  option as it is executed always.
+  HINT:
+   If you use screenmanager to open a public screen you should use
+   something like this:
+   ScreenManager TA open TITLE "TA PublicScreen" PLANES 4 MODE HL
+   DISPID 40120003 FONT Times FONTSIZE 13
+   COLORS=000,bbb,181,eb0,22c,91d,3ae,c22,777,fff,3b3,ff2,35e,a5f,6cf,f11
+   (-> all at one CLI line!)
+
+   DISPID  has  to be changed to match the displayid of the screen you want
+   to  open.  You  may  also  want to use a different font. The only really
+   important  part  of  this  example  is  the colour setting.
+   The colours are (pen 0 to pen 15): black,  light grey,  dark green, dark
+   yellow,  dark blue,  dark purple, dark cyan, dark red, dark grey, white,
+   light green,  light yellow,  light blue, light purple, light cyan, light
+   red
+
+   If you are using just 3 bitplanes the the colours are different:
+   (pen 0 to pen 7): black,  white,  green, yellow, blue, purple, cyan, red
+   The definitions fo ScrrenManager would be:
+   COLORS=000,fff,383,fd1,35c,93e,6bf,d44
+
+   For  those  who  don't  know  ScreenManager (by Bernhard Moellemann) the
+   three digits are hexadecimal. The three digits represent RGB. 0 is none
+   of the colour and F is full intensity.
+   If you need further help contact me.
+- NEW COMMANDLINE OPTION: -a<PublicScreenName>
+  This option allows you to specify on which allread existing public screen
+  TransAmiga  should open it's windows on. -p cmd line option is not needed
+  if this one is used, it's activated too. NOTE: You have to specify public
+  screen  in  the  main config if this shall work. If there is still custom
+  screen set this has no effect.
+  Example:
+   You want TA to open it's windows on a public screen named TA. At the cmd
+   line you would add: -ATA
+- NEW COMMANDLINE OPTION: -h .
+  It  executes ScreenToBack as soon as the screen and windows have been set
+  up.  If  you use TransAmiga in workbench mode you have to specify -p also
+  if  you  want that it works! Attention: -p has no effect with AmigaOS 1.3
+  and earlier.
+- NEW COMMANDLINE OPTION: -ki
+  If  this  switch is given at the command line TA will not make an appicon
+  while iconified. This feature has been requested.
+- NEW COMMANDLINE OPTION: -m<modem connect message>
+  This  is the same as the ARexx command MDMCONNECT. The difference is that
+  it  is  used  in  the  command  line.  Use  this option only if you start
+  TransAmiga from TrapDoor or GMS.
+- NEW COMMANDLINE OPTION: -p
+  If  -p  is  specified at the commandline and TA is iconified it looks for
+  the pubscreen it has been opened on initially. If the screen is found the
+  windows are opened there otherwise the default public screen is used.
+- NEW COMMANDLINE OPTION: -0
+  Swiches  OFF  the carrier check. This is extremely usefull for null modem
+  lines. You no longer need a cable that supports carrier detection.
+
+
+***************************
+* config/userfile changes *
+***************************
+
+userfile
+========
+
+- Implemented  KBytes  ratio.  Line # 32  of  the userfile keeps the kbytes
+  ratio.  0  disables  the kbytes ratio. Both 0 and 255 disable FILE ratio.
+  It's  your  decision  -  you  can  now  choose  if  you want fileratio or
+  byteratio, both or none of them. Check the Tech.doc for more information.
+- The  sysop can now write a comment to the userfile. The comment has to be
+  written to line # 33 and should not exceed 60 characters. This comment is
+  displayed  in  the  window title bar of the terminal window when the user
+  logs  on.  If  this  line is empty the old string is displayed (City,...)
+  Remark: Username  is  not automatically added. If you want to know who is
+   online you should have the name in your text.
+- New  entry  in the userfile: RIP active/inactive. Line 34 keeps the value
+  at the moment.
+- Screen  clearing codes are now on the user's decision. They are stored in
+  the  userfile. Check the included settings.cmds.
+- The transferprotocol is now stored in the user file. The user has just to
+  select it once when he joins. The protocol choose is added to the join
+  sequence. The protocol can also be changed from the file menu. This made
+  it necessary to change some other things: SETPROTOCOL now sets the
+  protocol of the user not only the protocol for PROTOCOLRECEIVE and
+  PROTOCOLSEND. LISTPROTOCOLS is not affected from this. It just lists the
+  available protocols.
+
+main config
+===========
+
+- NEW  MAIN  CONFIG  OPTION:  line  49 is used for domain toggeling. If you
+  place  a  1  in  this  line  domains  are  inserted to the origin line of
+  fidonet  mails.  If  you  don 't want them to be inserted place a 0 here.
+  The  default  action  is  to  insert  the domain. You can disable domains
+  for  single  nets by leaving the corresponding line of message.cfg blank.
+  The  default  value is used if there is no entry in that config line - TA
+  just acts like it did till now.
+- NEW MAIN CONFIG OPTION!: Line 48 of the master config file:
+  Place  a  1 here if you want all running lines to be notified when a user
+  logs  on.  If  you  specify  a 0 or the line is blank the notification is
+  deactivated.  If you want TA to act like it did befor you have to specify
+  1.
+- New  line  added  to MAIN CONFIG. This line indicates if user's left time
+  should  be  decreased  while chat or not. 0=decrease it, 1=don't decrease
+  it.  It's  line  #  47  in the master config file. It only works for Chat
+  invocation  with  Amiga-C-/Chat  start  menu-command and not for possible
+  additions  to  the  menus  like  an  ANSI-Chat ARexx script. Don't get me
+  wrong, it works for CChat.trans, but not for scripts that are started via
+  the .Rx files...
+- The  MAIN  CONFIG  file  has  an additional line: Taskpriority. It's line
+  46  in  the  master  configuration file. See Tech.doc for more info about
+  master configuration file.
+- Line 42 of the MASTER CONFIG file has changed! It is no longer blank. The
+  NEW  line  42  now  holds  the  MODEM  ANSWER  command.  This  means that
+  TransAmiga  does  no  longer  need  the  modem to answer incomming calls,
+  instead it waits for a RING from the modem, sends the modem answer string
+  and waits for the connect message. The recommended modem answer string is
+  ATA|  (Don't  use  anything  else  that needs more time... something like
+  ATZ|~~  really  should  not be used. It may be necessary to add some ~ in
+  front  of  the  ATA - this  depends on your modem. Play around with it to
+  find your setting).
+- You can use the old method also when the you leave the NEW line 42 blank.
+  Especially  for  null-modem  lines  this  is  helpfull  as  you  can send
+  CONNECT 19200  to  TransAmiga  and  it recognizes it! null-modem line has
+  been tested heavily (with an A2232).
+- Implemented loglevels. This is a NEW line in the MASTERCONFIG!!! If there
+  is  a blank line loglevel 5 is used. Valid loglevel range is 1-11. If the
+  entry  is  lower or higher it gets adjusted to the minimum/maximum. Don't
+  use  numbers  higher  254!  I suggest 6 as loglevel. Higher loglevels may
+  slow down the BBS dramatically as they write very much to the logfile...
+  Here is the loglevel list:
+  1 : lowest  level. Basic and important things are stored. Everything that
+      is not mentioned later.
+  2 : oneliner from user
+  3 : Deleted Message/File
+  4 : Viewed archive/bulletin
+  5 : saved/forwarded msg/moved file
+  6 : password should be/ARexx result codes
+  7 : start/stop of editor/marked message
+  8 : menu commands
+  9 : saving message
+  10: execute dos cmds
+  11: waiting for ARexx message
+
+language files
+==============
+
+- Two more lines are added to the LANGUAGE FILES caused by two new outputs:
+  when  a  user has no access to upload or download a file in a filearea he
+  is toled that. Check the language file for self explanation.
+- Two more lines in the LANGUAGE FILE: POSITIVE string and NEGATIVE string.
+  The  first  letter of both is taken for queryy and queryn! The whole word
+  is  displayed when the user has hotkeys on and selects one of them. Y and
+  N work always additionally...
+- NEW LINE IN THE LANGUAGE FILES: 261 !!! Don't forget to update!!
+  "just logged onto line" This  is displayed at the logon of a user between
+  the  username  and the line number. ATTENTION: IF THIS LINE IS MISSING IN
+  THE LANGUAGE FILES TA SHUTS DOWN!
+
+file.cfg
+========
+
+- You  can now mark as many files as the sysop specified in the second line
+  of Files.cfg. Don't use more than 255 here. 100 files is tested. When the
+  user  marks  more  files than you allowed he is notified that the file is
+  not marked. This option made an other entry to the .lang file necessary..
+
+
+***********************
+* USERINFO/SYSTEMINFO *
+***********************
+
+- CTRL-U. It is the same as CTRL-A without any output. Thought for RIPscrip
+  files that need the BBS to wait for return e.g. title.rip.
+
+- SYSTEMINFO F returns/displays the sysop's name
+- SYSTEMINFO G returns the name of the BBS
+- SYSTEMINFO K returns the loglevel
+- SYSTEMINFO L returns  the  ANSI  status  of the last ansi detection. ANSI
+  detection  is  done  when  a  user  logs on. If ANSI was detected ANSI is
+  returned. If the detection fails ASCII is returned.
+- SYSTEMINFO N returns  the  status  of  the  local display. ON is returned
+  when  it's  active and OFF if it is not. You can now make an entry in the
+  pull  down  menu  for  toggling  the  display.  An example .trans file is
+  provided with this package.
+- SYSTEMINFO O returns the number of available filetransfer protocols.
+- SYSTEMINFO P returns  the complete connect message that has been set with
+  ARexx  commands  or  TA  itself.  As  of this point of developement it is
+  impossible  to  guarantee  that  the  complete  string  is  returned when
+  TransAmiga  serves  the  modem  answer  itself.  This  procedure  is time
+  critical  although  it  should be enough time for the modem to return the
+  complete string.
+- SYSTEMINFO S returns  LOCAL  if  a  user  logs on locally (most times the
+  sysop  on  his  local  line)  and  REMOTE  if a user logs on via a serial
+  device.
+- SYSTEMINFO T returns  ON  if  linemsgs  are  active  and  OFF if they are
+  disabled.
+- SYSTEMINFO U returns  ON  if  carrier  check  is  enabled and OFF if it's
+  disabled (by command line option -0).
+- SYSTEMINFO V returns  the  state  of  iconify. If iconify is active ON is
+  returned otherwise OFF is returned.
+- SYSTEMINFO W returns idle timeout value
+
+- USERINFO % returns the name of the protocol the user has active.
+- USERINFO & returns the ammount of currently marked files.
+- USERINFO = returns  the  status of RIP. ON is returned if it's active and
+  OFF otherwise. Remember if there is no .RIP file the BBS checks DEPENDING
+  on the ANSI setting for .ANSI files.
+- USERINFO ! returns  the  kbyte a user can download untill the ratio comes
+  in.
+- USERINFO $ returns the kbyte ratio of the user.
+- USERINFO ? returns the usernumber of the online user.
+- USERINFO I returns the protocol that's stored in the user file.
+- USERINFO Y returns ON  if  the  user  wants screen clearing codes and OFF
+  when  the  user  does  not want them. This naturally effects the settings
+  menu that now has one line more.
+- USERINFO Z returns  the files a user can download before he has to upload
+  one.
+
+
+**********************
+* NEW AREXX COMMANDS *
+**********************
+
+Online:
+=======
+
+- GETMSGAREAADDR <areanumber>
+  Returns  the  net address of the given area. If the value is out of range
+  or  the  area  is  no  network area (PRIVILEGED/LOCAL) ERROR is returned.
+  Otherwise  the  address  is  returned  in  fidonet  format as it has been
+  configured  in  Message.cfg.  If  no  domain  is  in the config 4D format
+  is used otherwise you get 5D format.
+  Example: GETMSGAREAADDR 10
+- GETMSGAREATYPE <areanumber>
+  Returns  the  type  of  the  specified area. If the value is out of range
+  ERROR  is  returned.  Otherwise  you  will  get  LOCAL,  MATRIX,  ECHO or
+  PRIVILEGED. Check TA's manual about the meaning if you are not sure.
+  Example: GETMSGAREATYPE 5
+- DROPDTR
+  Closes the serial device which leads to a droped DTR. This terminates the
+  connect if the modem is set to destructuve DTR handling (recommanded)
+- RAISEDTR
+  Couterpart  to  DROPDTR.  Just reopens the serial device which leads to a
+  raised  DTR.  You  can  use the two commands to let TA release the serial
+  device  if  a program does not know about shared mode. ATTENTION: In this
+  case you have to set the modem to non-destructive DTR operations.
+- SINGLERESCAN
+  Rescans the current message area. No parameters, no special return value.
+- TIMESTATS
+  It's the same as the time command from the main menu.
+- ARexx command BROWSEMODE never existed. The command name is LISTMODE.
+  The new library remaps BROWSEMODE to LISTMODE so you can use both command
+  names for the same.
+- SETRIP <0|1>
+  Sets the status of user's RIP Script setting. 0=RIP off, 1=RIP on.
+  Returns nothing.
+  Example: SETRIP 1
+- VERSION
+  Returns  the version number of TransAmiga running on that line. It's just
+  for ARexx compatibility with some standard.
+  Example: VERSION
+- INFO <AUTHOR|BASE|COPYRIGHT|DESCRIPTION|SCREEN|TITLE|VERSION>
+  This is also for compatibility with some standards.
+  INFO AUTHOR returns the names of the authors.
+  INFO BASE  returns  the name of the ARexx port although I don't know what
+   use it should have as everyone knows it...
+  INFO COPYRIGHT returns the copyright notice.
+  INFO DESCRIPTION returns a really short description of the program.
+  INFO SCREEN should  return  the  name  of  the screen TransAmiga has it's
+   windows  on.  As  this info is not available with HiSoft BASIC it is not
+   supported at the moment.
+  INFO TITLE returns the name of the program.
+  INFO VERSION returns the same as VERSION ARexx command.
+  Example: INFO AUTHOR
+- ICONIFY <ON|OFF>
+  As  the  name  says  ICONIFY ON activates TransAmiga's new iconify option
+  and  ICONIFY OFF  disactivates  it.  A  lot  of  time was spent to get it
+  working.  Programs  that use transamiga.library have not to be aware that
+  they  can't  print  to  the  window  as the library knows itself if it is
+  allowed to use a window. The icon can be double clicked to reactivate the
+  window(s).  The  same happens if something is droped on the icon. Nothing
+  is returned.
+  ---> not available in unregistred mode <---
+  Remark: Make sure your chat program does not use CHR(7) to call the sysop
+   or  you  will  never  see  a  flash/hear  the system beep as with active
+   iconify no system displaybeep is executed...
+  Example: ICONIFY ON
+- SCREENTOBACK
+  Puts TransAmiga's screen behind all others. Nothing is returned.
+  Example: SCREENTOBACK
+- WINDOWTOFRONT
+  Puts TransAmiga's terminal window in front of all others on the screen.
+  Nothing is returned.
+  Example: WONDOWTOFRONT
+- WINDOWTOBACK
+  Puts  TransAmiga's  terminal  window  behind  all  other  windows on that
+  screen. Nothing is returned.
+  Example: WINDOWTOBACK
+- STOREMSG filename//subject//touser[//address]
+  The part in [] is only needed in echo/netmail areas. In local areas it is
+  ignored.  This  command  stores  the  textfile  'filename' in the current
+  conference  as  a  new mail. 'filename' is the compleate path and name of
+  the  textfile.  As  'subject'  indicates it's the subject of the message.
+  'touser'  is  the  person  the  message should be send to. 'address' is a
+  fidonet  compatible  addess.  There  are no real checks if the address is
+  correct so be sure it is! It was a lot of work and I hope I thought about
+  every aspect. Nothing is returned.
+  Remark: not fully tested
+  Example: STOREMSG ram:testmsg//Testmail//Sami Radwan
+- SETNETMAIL <0|1>
+  This  command  sets the value NETMAIL will return. 1 is TRUE (netmail was
+  written) and 0 is FALSE (No netmail was written). Nothing is returned.
+  Example: SETNETMAIL 1
+- SETECHOMAIL <0|1>
+  This command sets the value ECHOMAIL will return. 1 is TRUE (echomail was
+  written) and 0 is FALSE (No echomail was written). Nothing is returned.
+  Example: SETECHOMAIL 1
+- SETLOCALMAIL <0|1>
+  This  command sets the value LOCALMAIL will return. 1 is TRUE (local mail
+  was  written)  and  0  is  FALSE  (No local mail was written). Nothing is
+  returned.
+  Example: SETLOCALMAIL 1
+- SETFEEDMAIL <0|1>
+  This command sets the value FEEDMAIL will return. 1 is TRUE (feedback was
+  written) and 0 is FALSE (No feedback was written). Nothing is returned.
+  Remark: The  terminal  window's  title  is changed to tell the sysop that
+   feedback  was  written.  This info gets lost when something else changes
+   the wondow title again. (e.g. logoff).
+  Example: SETFEEDMAIL 1
+- SETUSERCOMMENT <string>
+  Stores  a  sysop comment in the userfile when SAVEUSERFILE is used or the
+  user  logs  off.  As soon as TA receives this command the window title is
+  updated  if  <string>  is  not empty. When the user logs on next time the
+  terminal  window's  title  will  be  changed  to  this string. Nothing is
+  returned.
+  Remark: The  name  of the user is not automatically added. If you want to
+   know who is online you should use the name in the string.
+  Example: SETUSERCOMMENT Mr. Elite is so ugly.
+- MASKOUT <conference number>
+  Masks out a conference of the given number. Nothing is returned.
+  Example: MASKOUT 5
+- CLEARMARKEDMSGS
+  Runs through all conferences and clears the marked messages string.
+  When this command is executed no messages are marked any more. Nothing is
+  returned.
+  Example: CLEARMARKEDMSGS
+- LSTMARKEDFILES <path+filename>
+  Creates a new file with specified parameter. The file lists all the files
+  that are currently marked. One at each line. If no file is marked nothing
+  is  done  and FAILED is returned. If everything worked SAVED is returned.
+  Be  carefull, it has to be possible to write the file or HiSoft BASIC may
+  display  a runtime error so pay attention that there is no lock on a file
+  of the same name and that the path exists.
+  Example: LSTMARKEDFILES Ram:MarkedFiles
+- SETCLEAR <ON|OFF>
+  Activates  clearcodes if ON is specified and sets the user's value to it.
+  OFF  naturally has the opposite effect. Returns FAIL if something else is
+  specified and SET if the value is ok.
+  Example: SETCLEAR ON
+- GOTOFILE
+- GOTOSET
+- GOTOMSG
+- GOTOMAIN
+- GOTOEXTRAS
+- GOTOBLLTN
+  The above 5 commands jump to the corresponding menus and continue there.
+  ***ATTENTION!***
+  This  is  very  tricky  and special! Use these command only at the end of
+  your  ARexx script! BTW: they only work within a script. The only command
+  after these should be EXIT.
+  Example: GOTOEXTRAS
+- RELOGIN
+  As  the  name  states  the  user  is  logged  off and presented the login
+  sequence  without  dropping  the  carrier. The logoff of the user is just
+  virtual. This means TransAmiga resets everything that is needed and saves
+  the  userfile.  Then TransAmiga jumps to the connect-part. It restarts at
+  ANSI  DETECTION.  Again ATTENTION! THIS HAS TO BE THE LAST COMMAND before
+  an EXIT command and only works within an ARexx script.
+  Example: RELOGIN
+- RENAMEUSER newname
+  Renames  the  user  to  the given newname. Saves a new userfile, corrects
+  HANDLE if there was one and deletes the old userfile.
+  Example: RENAMEUSER Obi Wan Kenobi
+- FEEDMAIL
+  When a user used feedback FEEDMAIL ARexx command returns TRUE.
+  Example: FEEDMAIL
+- UNMARKFILE filename
+  Unmarks  a  previously  marked  file.  If  the  file could be unmarked it
+  returns UNMARKED if it couldn't be unmarked FAIL is returned.
+  Example: UNMARKFILE test.lha
+- CLEARMARK
+  The  user  is  taken  to  the clear marked files routine that can also be
+  activated from the file menu.
+  Example: CLEARMARK
+- DOWNLOAD
+  executes  the download subroutine. PROTOCOLSEND can be used to send files
+  but  not  the  marked  files... So it is necessary to have a command that
+  allows the download of marked files... Thanks to Rolf Max Rotvel for this
+  suggestion - how could I not think about that? :-)
+  Example: DOWNLOAD
+- GETCHARSTACK
+  This  command returns the current command stack of TransAmiga and deletes
+  it. This means you can examine the command stack of TransAmiga and use it
+  for your own programs.
+  Example: GETCHARSTACK
+- SETCHARSTACK <string>
+  You can use this command to clear the command stack when you use an empty
+  string ("") or set it to anything you want. In Conjunction with the above
+  command  you  can  examine  the  command  stack and react as your program
+  should  and then set the command stack to the string that continous after
+  your program.
+  Example: SETCHARSTACK +B1
+- CHECKMSG
+  Don't mix it up with CHECKMSGS !!! Checkmsg basically does the same thing
+  as  CHECKMSGS.  The  difference  is that CHECKMSG just scanns the current
+  conference. The number of the found messages is returned.
+  Example: CHECKMSG
+- LOCALDISPLAY <ON|OFF>
+  LOCALDISPLAY OFF turns the output of the terminalwindow OFF.
+  LOCALDISPLAY ON naturally  reactivates  the  local  display.  You can use
+  this  as  a  kind  of  Iconify.  This makes the output to the serial port
+  independant from the local display speed.
+  ATTENTION: on  local  lines  you  may  fool yourself when you turn it off
+  as you then can not see what happens :-)
+  Example: LOCALDISPLAY ON
+- MOVEFILE filename\\areanumber
+  MOVEFILE moves  a  file  from  the  current  conference  to the specified
+  conference  -  if  that  conference  exists.  There  are  several  things
+  returned.  If  the  file  does  not exist NOFILE is returned. If the file
+  would  be  moved to the same are it allreaddy is SAMEAREA is returned. If
+  the  move  worked  SUCCESS is returned. Any other failtrue returns FAILED
+  (e.g.  the  file  library  number  does not exist). The parameter of this
+  command has a special format.
+  Example: MOVEFILE testfile\\5
+    moves the file 'testfile' from the current area to file library 5.
+- SCREENTOFRONT
+  Brings  the  screen  TransAmiga's line has it's terminal window on to the
+  front.  You  can  use  this e.g. if you want TA's screen to come to front
+  when  your  chat  script  is  run. This seems not to work when you opened
+  a screen with ScreenManager and run TransAmiga in Workbench mode...
+  Example: SCREENTOFRONT
+- SETBYTERATIO <value>
+  Sets  the  kbyteratio  to  the specified value. Maximum for this value is
+  2^(31-1). 0 disables Ratio.
+  Example: SETBYTERATIO 10240000
+    User's byteratio is 10000 Kb from now on.
+
+Offline:
+========
+
+- LOGONPSWD <password>
+  <password>  is  checked  while  the normal login sequence (initiated with
+  LOGON  ARexx  command).  If  the  check fails the normal password routine
+  is activated. Nothing is returned.
+  Remark: Part of EMSI Login support
+  Example: LOGONPSWD SECRET
+- MDMCONNECT <modem connect message>
+  This  ARexx command is a preperation for TrapDoor v1.84. The new TrapDoor
+  has  % C  as  new  option  that returns the connect message of the modem.
+  <modem connect message>  should  be  replaced  by that string. Nothing is
+  returned.
+  Example: MDMCONNECT CONNECT 14400/ARQ
+- ICONIFY
+  Added  ICONIFY  ARexx  command  to offline ARexx commands. Attention! The
+  icon can not be maintenanced in this mode. If you double click it nothing
+  happens. You have to use ICONIFY OFF ARexx command to reactivate TA while
+  no user is online.
+  ---> not available in unregistred mode <---
+  Example: ICONIFY ON
+
+
+*********************
+* new possebilities *
+*********************
+
+- NEW OPTIONAL MAGIC FILE:
+  UploadSuccess.trans ARexx script is executed when a successful upload was
+  done.
+- NEW OPTIONAL MAGIC FILE:
+  NoNotify.cfg.  If  this  file  is present in the configs directory of the
+  line,  it  is  scanned.  Each  line  of  the file has to contain a single
+  username.
+  ATTENTION! SPACING BETWEEN THE PARTS OF THE NAME IS IMPORTANT!!
+  If  someone  logs  on  who is listed in this file the other lines are NOT
+  informed.
+- At  logon  the current free stack is written to the logfile at loglevel 5
+  and above.
+- Marked  files  are now sent in non-batch filetransfers one after an other
+  within a single call of the download routine.
+- There  is  no  longer a logentry done when a BBS line is started a second
+  time.
+- If  a  RIP  menu file was displayed the next input is not echoed. This is
+  done to prevent garbeled RIP menus.
+- Added handling of replyaddr kludge for internet gateways. The To: line is
+  inserted at the top of the quote buffer.
+- The   filelist   routines  now  recognize  File_ID.DIZ  descriptions  and
+  display  them  in  normal  file listing mode. In browse mode they are not
+  displayed as they are allready in the long description.
+- If  the  BBS  is  in ARexx mode and iconified it is uniconified for local
+  logons and reiconifyed on logoff.
+- added pull down menu hotkeys K R and #
+- The  status  line  now  displays also the name of the ARexx command while
+  localdisplay is turned off.
+- TrXPR  now opens it's window on the screen TA's windows are located on no
+  matter  if  it  is a public screen or not. You have to use -p commandline
+  option  of TA if you want the window on a public screen other than the WB
+  screen!
+  (AmigaOS v36+ required)
+- CHR(0)  and  CHR(10) are filtered by input routines (does not touch ARexx
+  commands). Makes TA compatible with telnet sessions.
+- Empty  or  space  filled lines in Files.BBS are now filtered when listing
+  files.
+- Added File_ID.DIZ checking to the batch upload routine.
+- JOIN command now returns 1 on success and 0 on failure.
+- Mail  can  now  be written to users that are not a member of the BBS. The
+  writer  is  warned  and asked if he wishes to continue. The language file
+  got a new line.
+- Added  bl_CarrierCheck  to  BBSLine  structure.  This  flag  indicates if
+  carrier  check  is  allowed  or  not. It is read only, do not change this
+  value!
+- NEW  magic textfile: MenuHeader[.access][.language][.(ANSI|RIP)]. If this
+  file  exists  it  is  displayed before every internal menu. If you have a
+  header  for  your  menus  e.g. your BBS name you can put it in this file.
+  Saves  disk  space as it is no longer necessary to have the header in all
+  the single menu files.
+  ATTENTION!  If  you  do  not  use  a menu file for one menu but have this
+  header  the  header  is  displayed  and  then  TransAmigas  internal menu
+  generation!  This may cause funny displayeffects if the user has clearing
+  codes  active...  :-)  Anyway it would not look very well so I suggest to
+  make menufiles for all internal menus if you use this feature.
+- SAVEUSERFILE  canged:  If the user has not joined till now a new userfile
+  is  created similar to the join sequence. He gets a new usernumber and is
+  written to NewUsers.BBS. If he allready joind the userfile is just saved.
+  In  both  cases  the  user's access has to be higher than 0 or nothing is
+  done.
+- TA  now makes an ENV-variable on startup: ENV:TA.<linenumber> . Currently
+  it contains only one line: path and name of the master configuration file
+  as  specified  with -c commandline or if not specified the defailt value.
+  May be expanded in future versions.
+- File_ID.DIZ  support  is now added to the local upload routine within the
+  BBS.
+- Improved storing File_ID.DIZ in Files.BBS. Now looks really fine - if the
+  File_ID.DIZ does it also.... :-)
+- Change  screen  length  in  settings  menu now asks for the screen length
+  before  displaying  the  line counting help. It uses the same type as the
+  logon question.
+- start  of  RIPScript  support.  TransAmiga  does  not  display  RIP files
+  correctly  at  the local window but now is aware that there may be a .RIP
+  file  in  the  text directory. All files that can have .ANSI can now have
+  .RIP.  If  the user has RIP active ANSI is ignored. Real RIP support will
+  have  to wait for v2.00. This is just a little help for those who want to
+  use  RIP  menus  and textfiles with TransAmiga to have a nice GUI for the
+  user.
+- Laguage  files  can  also  have  .RIP  versions now. I don't know if it's
+  really necessary or makes any sense. I leave it up to you. Use it or not.
+- Iconify  is  now  disabled  for  users  without keyfile. It's part of the
+  cripple concept.
+- ARexx  command   LISTPROTOCOLS  now  additionally  returns  the number of
+  available protocols.
+- Added 'Again' to message readprompt. Messages can be read as often as the
+  user wish without the need to abort the display.
+- 30  seconds before idle timeout TA sends CHR$(7) to the serial port. Only
+  works while waiting for input.
+- Added  loop  that deletes mails in a local area if the number of messages
+  is  too  high.  This  loop  is  in  the  message save routine and is only
+  executed when the BBS saves a message.
+- Goodbye.trans returns to the BBS when the script uses EXIT 10 or above.
+- Pull down menu option Reload Config has now a check if someone is online.
+  If there is someone online reconfig routine is aborted.
+- Added NoTime[.ANSI] to the welcome sequence. If a user who currently logs
+  on  has no time left for that day he is shown this file if present in the
+  text directory. It is displayed before the message that is taken from the
+  language file.
+- NoTimeLeft[.ANSI]  is  a  new  'magic' textfile. It is displayed when the
+  user's  onlinetime  is exceeded for the current day. Don't mix it up with
+  NoTime[.ANSI] that is displayed during logon...
+- Reload  config  now  works  from  the pull down menu and as ARexx command
+  (RECONFIG).  It  closes  the  window(s)  [/screen]  frees some memory and
+  starts the setup with reading configfiles.
+- Added  sysop  logon  to  the  'Project'  pull  down  menu.  There  is  no
+  corresponding  ARexx  command so you can't do that if you run TA in ARexx
+  mode.
+- TransAmiga  can  now  be  locked  for  local  access with a password. The
+  'Project'  pull  down  menu has a new entry for this: Lock TransAmiga. If
+  you select this a window comes up asking for a password. ATTENTION! Don't
+  forget  the  password  or you will have to reset to reaccess the line. As
+  soon as you activated this function the menus will be disabled except the
+  Lock  TransAmiga function. This function will display a checkmark. Select
+  it  again  and  the  unlock  window  will  come up. You have to enter the
+  password for unlocking. The password is NOT case sensitive.
+- With  activated  clearcodes the screen is cleared when the more prompt is
+  answered positive. Speed up display on terminals like Terminus.
+- Added  carriercheck  to  ARexx command server. It now returns ###PANIC on
+  any  command if the carrier is lost. Make your programs exiting when they
+  get  ###PANIC  returned  from any ARexx command. If you code in ARexx you
+  don't  have  to  check  all returns, but those you expect something to be
+  returned...
+- Added  language  choosage  for  new  users  while  logon if more than one
+  languages are installed.
+- New  users  are asked for the screenlength before the screenlength count.
+  If they enter nothing the screenlenth count help is displayed. Line 11 of
+  the  language file was of no use so I used it for the question. Check the
+  supplied language files.
+- Idle timeout is disabled for local logon.
+- Local logon:  when  only  2  minutes are left the left time is set to the
+  timelimit  defined  in  the userfile. (No more timelimit logoffs in local
+  mode)
+- Improved  clearing  marked files. You can use * to unselect all. One more
+  entry in the language file.
+- When  a  user  wrote  a  feedback TA tells this the sysop in the terminal
+  window title.
+- Linemessages  are  now  displayed  in  the  last  two lines of the user's
+  terminal if ANSI is active. If you use SENDNODEMSG then your text has not
+  to exceed two lines! You have to insert the CR yourself but don't use one
+  in  front and at the end of the text! There is only one CR allowed in the
+  text.
+- AREXX COMMAND SCREENTOFRONT  improved.  Now  brings  the screen where the
+  terminal  window  is  on  to  the  front  in any case. It is tested using
+  ScreenManager  to  bring TransAmiga's terminal window on a public screen.
+  ATTENTION! To achive this you have to specify the new COMMAND LINE option
+  -p  and  TransAmiga  will grabb the ScreenPtr of the screen it is started
+  on (if it is a public screen). As this function uses an AmigaOS 2.0 (v36)
+  system  routine DON'T SPECIFY THIS OPTION ON A SYSTEM THAT HAS AN EARLIER
+  AmigaOS  INSTALLED!  Don't  use  it  if TransAmiga has to open the screen
+  itself - I can't predict the effect on your system!
+- TransAmiga  no  longer  accepts user names that have no space in it. If a
+  username  without  spaces  allready exists or an allready existing handle
+  has  no  space  the  user is accepted. Handles are not checked for space.
+  This is only a test, I wait for your reports if you like/dislike it.
+- ANSI  cursor  up  and  cursor  down  can  now be used to walk through the
+  history buffer (20 lines).
+- The  file  PasswordFailed is now checked for CTRL-K and CTRL-F codes. You
+  can now use them in this file.
+- Username and handle are limited to chr(32)-chr(126) as otherwise AmigaDOS
+  can return an error that leads to runtime error 63.
+- AREXX  COMMAND  NEWMSGS  now  returns the number of the new messages that
+  where found. ATTENTION! As the user can breake the scan you can't be sure
+  that there are no more new messages...
+- Custom.menu  defines  an  additional  pull-down  menu  called "User". The
+  pull-down  menu  that  was  called  "User" before is renamed to "Online".
+  Custom.menu  has to be located in the configs directory. It has a special
+  format. The first line contains the number of entries you wish to have in
+  this  menu.  Every  following  line  represents an entry to the menu. The
+  first  19  characters  are the name that is displayed in the menu. Then a
+  space  must  follow.  The rest of the line is the name of the ARexx macro
+  that  sould  be  execuded.  The ARexx macro has to be located in the rexx
+  directory  of  TransAmiga.  E.g. you could use trshell.trans there. Check
+  the  delivered Custom.menu to see how it works. ATTENTION! AFTER THE LAST
+  ENTRY  THERE  SHOULD  BE  A  BLANK  LINE.  Otherwise  TransAmiga  may not
+  initialize correctly and exit with a cryptic error message... This option
+  has  been tested very intensive - use it at your own risk. there may come
+  up  some  problems  I  just  did  not  come accross.... The RX command of
+  AmigaDOS  really should be resident or you surely will have problems when
+  you use an entry while an ARexx script is running. Avoid use of this menu
+  when  allready  an  ARexx script is running or test it on your local line
+  while nobody is online.
+- Now ANSI versions of the language file is possible: #?.LANG.ANSI Whenever
+  the  language  is loaded and the user has ANSI active the ANSI version of
+  the language file is loaded if it exists.
+- NEW SETTINGS MENU COMMAND: Change language. Language is now stored in the
+  user  file  at line 29. It doesn't matter if there is none. When the user
+  logs  off  the  first  time after you installed this version the language
+  will  be  written  to  the userfile. Settings.cmds has one entry more! be
+  sure  you  use  the  new one and don't forget to remove your own language
+  choosing  routine.  The  language  file  has now two more entries for the
+  selection  in  the  settings  menu.  The  ARexx command loadlanguage also
+  changes the language that is stored in the userfile.
+- RETURN  at  a  menu  no  longer  brings  up the illegal command error. It
+  displays the menu just like ?. (except message menu)
+- If  the  file  PasswordFailed  exists in the text directory it is used as
+  body  of  a mail that is created when a user failed to enter the password
+  correctly. The user should be toled to change his password as that failed
+  try could be a hack of someone else...
+- Banned.trans  is  a  new  magic arexx macro. It is executed when a banned
+  user  tried  to  log on and the line from the .lang file is displayed but
+  before the logoff of the user.
+- PassFail.trans  is an other magic arexx macro. It is executed when a user
+  failed  to  enter  the  password. It is executed after the PasswordFailed
+  mail  to  the user has been generated and before logoff. You can use this
+  to let the user write a feedback to the sysop or anything else... Perhaps
+  a beepig that tells you to have a look at the BBS or write something to a
+  seperate file or ....
+
+
+*************************
+* bugfixes/minor things *
+*************************
+
+- Changed  Too_Slow  magic  textfile to TooSlow to match the description of
+  the manual. :-)
+- Added all known connect rates to internal list (including ISDN Master)
+- If  there is a space in the password that is entered in the join sequence
+  the user is asked for the password again.
+- The  day  of the date sould get a leading 0 instead of a leading space in
+  case the day number is lower 10. (e.g. while saving messages)
+- Batch upload now really can handle more than 10 files. There is no direct
+  limit any more, but you shouldn't use more than 30 without testing.
+- ARexx scripts no loger get ###PANIC if -0 swich is active.
+- TrXPR  has been improved: 255 files can be send in one transfer now! Some
+  other problems of TrXPR are solved also. *MANY THANKS TO Peter Jack*
+- The  library  now  converts  all  incomming  ARexx commands to upper case
+  itself as ARexx sometimes does not do it itself in every case.
+- Screen clearing is now active by default if a guest user calls.
+- feedback  variable  is  cleared  while  logoff.  Fixes  the  invalid data
+  FEEDMAIL returned.
+- Message Menu:  View  message,  list headers and continous read now adjust
+  the user's input to the low/high message if the input is out of range.
+- Search  for  new mail addressed to the user now can be aborted if no mail
+  is found.
+- ARexx  commands  never  should  use  more  than 999 characters at a line.
+  That's the new limit (before it was 255).
+- 3 days of hard work and the source was updated. HiSoft BASIC 2.00 is used
+  for  compilation, This should wipe out all incompatibilities to 68040 and
+  AmigaOS 3.x. I tried the debugger to track down a problem, but as it is a
+  LOW-LEVEL  debugger  it was wasted time. It takes too long to execute one
+  BASIC  instruction  as  every  assembler  command  that  is  executed  is
+  displayed...  I  found  some  Bugs in the new compiler that can be worked
+  around easily, nothing serious.
+- Imbedded  control codes CTRL-D/CTRL-E operated vice versa. Now they do as
+  the docs describe. Special thanks to Neil Roy for reporting.
+- Finally  found a workaround for the HiSoft bug that prevented a new gamma
+  release. *MANY MANY MANY _SPECIAL_ THANKS* to Alex Kiernan, HiSoft.
+- Searching  a  string  in  a  message  header now adjusts the input to the
+  lowest available message if the user input is too low.
+- Characters above 127 are now displayed when a message is read.
+- Improved filemark clearing routine a bit.
+- user  is  logged  off  while logon when he enters RETURN 15 times at name
+  prompt. There is no comment displayed.
+- Message  readprompt:  If  a  number  is  entered  that is higher than the
+  highest message in the conference it is now adjusted to the highest one.
+- TransCfg now accepts 0 as value for node instead of adjusting it to 1.
+- All .Temp files of a line are now deleted after user logs off.
+- maximum screen length increased to 120 lines.
+- Added an empty-handle-check to join sequence.
+- the  list  of the files when a batch download is started is now formatted
+  and not written to one line.
+- If a file is searched the current library is searched first.
+- added  handle  check  for : and /  to  join  sequence  and  settings menu
+  command.
+- CHANGE IN LOGLEVELS: When an up-/download is done and loglevel is ABOVE 5
+  the  Cmd:  and  Cmd  Result:  are  written  to the logfile. Some download
+  counting programs need these lines.
+- username  and handle no longer allowed characters greater than ASCII code
+  126! If  you  have  user that have used characters above this rename them
+  and tell people in CONNECTED[.ANSI] what you've done! This should prevent
+  the guru to come up when a user has a different font than the BBS.
+  AmigaDOS  does  not  accept all characters above 126... ATTENTION: If you
+  use  RENAMEUSER  you have to check the username yourself! I can't be made
+  responsible for gurus that are caused by your missing check.
+- The  default  buffer for texts that are edited with the Full-Screen-Ed is
+  now  200  lines.  If this is exceeded the buffer is increased by one line
+  dynamically. This means the edit buffer always has one line more than the
+  text  itself. Messagen should no longer be truncated. I have to warn you:
+  several  fidonet  software for MS-DOS/Windows have allow a maximum of 16k
+  for one message and cut the rest....
+- The  AREXX(!)  command  MAYGETCHAR now returns NOCHAR as described in the
+  docs.  It did return nothing when no char was there. This does not effect
+  the MayGetChar() routine in the library.
+- At bulletin menu the CONTINUE prompt is no longer displayed always. It is
+  just  displayed  when an error occurs and novice mode is active. That was
+  the way it had been planned...
+- A  guest has no longer guess his screen length. The same method as in the
+  settings menu is used.
+- The  join procedure now asks if the user wants to cancel when he does not
+  enter anything at a question after the HANDLE question.
+- If  the  user  wants  to  read  a message that is below the lowest in the
+  conference he is taken to the lowest available.
+- SEARCHFILES arexx command returns FOUND if new files where found and NONE
+  if none are found and in this case return code is set to 5.
+- The more prompt is now deleted when the user has ANSI active.
+- Added  check  to  markfile at filelistprompt to detect if a file is to be
+  marked  twice.  Actually  the  user  is  not  informed  that the file was
+  allready marked. The mark prompt comes up without any further message.
+- GETCHAR  now  returns only UPPER case characters. Some ARexx scripts that
+  were  not  coded in good style caused problems... GETCCHAR is the replace
+  and returns case sensitive characters (->GETCasesensitiveCHAR)
+- The  Yell  command  no  longer uses CHR$(7) to beep, it now uses the Beep
+  function  of HiSoft. This is done as the sysop can turn off local display
+  and  then CHR$(7) would not call him. Side effect: The user has no longer
+  a beeping terminal when he yells.
+- Tech.doc now includes a list of all HiSoft BASIC runtime errors.
+- FEEDBACK  arexx  command  now  returns  CANCELED if the mail has not been
+  saved  and  STORED  when  the  message is saved. Returncode is 5 when the
+  message was canceled.
+- Fixed  colour  mapping  problem  on  public  screens  with  more  than  2
+  bitplanes.
+  ATTENTION! You have to specify the number of bitplanes in the main config
+  as you would if you open a custom screen.
+- While  relogin  the  modem  is  no longer initialized (to prevent carrier
+  losses).
+- The  times_read  field  of fido messages is now checked for the Foozle ID
+  instead of !=0 to identify Foozle-mails on read.
+- TA  now  saves  Foozle  type  messages when it detects a .map file in the
+  directory of the area.
+- editor.trans  is  now  started  even  when  the  editor is called from an
+  ARexx  script.  THIS  IS  FOR  TESTING ONLY! IF YOU ENCOUNTER ANY PROBLEM
+  WITH THIS REPORT IT IMMEDIATELY!
+- Added  chat  in progress check to GOTO* ARexx commands for CChat.trans to
+  prevent pull down menu locks when chat is finished with such a command.
+- multiple spaces in usernames/passwords/... are reduced to one.
+- While  displaying textfiles TA checks for carrierloss/abort/... no longer
+  every  70  chars,  now  it  checks  every 350 chars. This increases local
+  display speed.
+- If  there  is  no  "new user" access (or it's lower 1) in the main config
+  file the access level for new users is set to 10.
+- The ANSI routines now handle 10 stacked ANSI commands.
+- finally removed 100 lines limitation on message length.
+- If  a  runtime error occurs TA tries to inform the user on the other side
+  before shutting down. The text is not configurable currently.
+- The  free  drivespace  is  now calculated correctly if the blocksize of a
+  volume is not 512 bytes. (-> library function FreeDriveSpace)
+
+
+***************************************************************************
+*                               end of file                               *
+***************************************************************************

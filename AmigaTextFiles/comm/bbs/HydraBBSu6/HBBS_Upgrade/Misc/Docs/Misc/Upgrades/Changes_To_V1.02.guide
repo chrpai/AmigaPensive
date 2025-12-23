@@ -1,0 +1,255 @@
+@Database Changes_To_V1.02.guide
+
+@Node Main "Changes to HydraBBS between V1.01 and V1.02"
+
+  Changes to HydraBBS between V1.01 and V1.02
+  ===========================================
+
+  Please read *ALL* of this file, or you won't know about some of the great
+  new features of this release.
+
+  Go on, it'll only take you a couple of minutes.
+
+  This document is stored as HBBS:Docs/Misc/Upgrades/Changes_To_V1.02.Guide
+
+
+  Details
+  =======
+
+  Sysop Information     - @{"More..." link SysopInformation}
+
+  Developer Information - N/A
+
+  Files Changed         - @{"More..." link FilesChanged}
+
+@EndNode
+
+@Node SysopInformation "Sysop Information"
+
+  Sysop Information
+  =================
+
+  * Control
+
+    After a couple of people tried to run HBBS without reading the quickstart
+    guide (tut, bloody tut) I have changed the way Control starts and have
+    added more error messages to it if something should fail early on.
+
+    Added @{"NodeDescription_XX" link HBBS:Docs/Configuration/NodeList.guide/NodeDescription_XX} option to @{"HBBS:Nodes/NodeList" link HBBS:Docs/Configuration/NodeList.guide/Main}
+    Control displays the first 10 chars instead of "Node xx" in it's window
+    for each node that you specify a description for.
+
+    Locks out the user data file until it's existance has been checked.
+
+  * HBBSCommon.library
+
+    Developers, please read @{" HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.02.guide " link HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.02.guide/MAIN}
+
+    Changed SendMessage() to NOT call Forbit() and Permit() when sending a
+    message from one task to another, this results in all door
+    communications being faster and a better overall system speed on
+    multinode or heavily multitasking machines.
+
+    Fixed HBBS_RunDOSCMD, it wouldn't run any commands until struct BBSGlobal
+    had been initialised. (i.e. this ever happens unless you manually
+    screw about with the assigns or don't run the "Setup" script!!)
+
+    HBBS_DoErrorMessage() was adding an extra space to the end of the command
+    line, fixed. This caused no problems however...
+
+    Optimized UpperCase(), smaller and faster now.
+
+    Added better low memory checking and handling to quite a few routines.
+
+    Two new functions added: HBBS_LockUserData() and HBBS_UnLockUserData()
+
+    HBBS_AddCfgItemQuick(), Added low memory checking.
+
+    HBBS_HandleNameOK(), Made smaller, faster and checks for more
+    characters now.
+
+    HBBS_AddUser(), fixed a potential loss of the last user in the user
+    data file when overwriting an existing user failed. (Extremley unlikely!)
+
+    Finished the HBBS_LoadUser() function, and changed the way it works.
+
+    HBBS_ValidUserHandle(), recoded routine to use HBBS_LoadUser()
+
+    HBBS_SaveUserData(), Now logs error messages if things don't go as
+    planned.
+
+    HBBS_ApplyAccountDefaults(), Added
+
+    HBBS_AccessName(), Added
+
+  * BulletinViewer
+
+    When called with the name of a bulletin that exists, a pause
+    prompt is displays.
+
+    When in interactive mode the door will not display a pause prompt before
+    returning you to the menu (the same as a pause prompt).  So now you can
+    go through the bulletins much easier!
+
+  * Node
+
+    The node now shows you the name of the serial device name and unit number
+    if it fails to open the device.
+
+  * ErrorMessage (the program used to display error messages that is..)
+
+    Wasn't displaying error messages with space's in the strings correctly
+
+  * XPR
+
+    It now updates the node window's CPS/BAUD with the current CPS rate.
+
+  * Hydra
+
+    It now displays both rx and tx CPS rates in the window.
+
+    It now updates the node window's CPS/BAUD with the tx CPS rate.
+    (i.e. the user's download CPS rate)
+
+  * UserViewer
+
+    Now displays CPS when a user is transferring a file
+
+    GUI changed so that the colours are correct on an 8+ colour screen
+
+  * AccountEditor
+
+    When changing the user's handle, it now checks for invalid characters
+    using HBBS_HandleNameOK()
+
+    It also used HBBS_ApplyAccountDefaults().
+
+    See @{"HBBS:Docs/Doors/AccountEdit.guide" link HBBS:Docs/Doors/AccountEdit.guide/ValidatingAUser} and
+    @{"HBBS:Docs/Configuration/AccountDefaults.Guide" link HBBS:Docs/Configuration/AccountDefaults.Guide/MAIN} for details.
+
+  * NewUser
+
+    Added call to HBBS_ApplyAccountDefaults(), so when a new user joins
+    they will have the account defaults applied for what ever level is
+    given to a new user as specified in the newuser door's config file.
+
+    See also:
+
+    HBBS:Doors/System/NewUser/NewUser.CFG
+    @{"HBBS:Docs/Configuration/AccountDefaults.Guide" link HBBS:Docs/Configuration/AccountDefaults.Guide/MAIN}
+
+  * Example Configs
+
+    Created some default "AccountDefaults" template files.  The installer
+    will have copied them to:
+
+    HBBS:Storage/Example_Configs/System/Data/AccountDefaults/
+
+    *AND*
+
+    HBBS:System/Data/AccountDefaults/
+
+    Even when upgrading from V1.01.  (They're new configs!)
+
+  * UserSettings
+
+    Changed to use HBBS_HandleInUse(), so that it doesn't write to the user
+    data file twice, possibly resulting in incorrect data in the user file
+    if the system was rebooted between the two writes.  It now only writes
+    to the file once, with the correct data!
+
+    Also, it uses HBBS_HandleNameOK() now to check for invalid characters
+    in the handle! (oops!)  But with the default configs the users can't
+    change their handle anyway, so i doubt you have a problem.
+
+    To be sure, check all user accounts for the following characters and
+    change if needed: =;?*#
+
+  * Spelling Mistakes
+
+    Fixed spelling misake of "Preferred" (was "Prefered")
+
+    Updated the following parts of the system:
+
+      HBBS:Developer/Include/HBBS/structures.h
+      HBBS:Doors/System/Node
+      HBBS:Docs/Reference/Screens.guide
+      HBBS:Doors/User/AccountEditor/AccountEditor.HBBS
+      HBBS:Doors/User/Joinconference/JoinConference.HBBS
+      HBBS:Doors/User/Joinconference/OldJoinConference.HBBS
+
+@EndNode
+
+@Node FilesChanged "Files Changed"
+
+
+  Files Changed for V1.02
+  =======================
+
+  Core Files
+  ----------
+  HBBS:Control
+  HBBS:System/Amiga/Libs/HBBSCommon.library
+  HBBS:System/Amiga/Libs/HBBSNode.library
+  HBBS:Doors/System/Node
+  HBBS:Doors/System/ErrorMessage/ErrorMessage
+  HBBS:Doors/System/ErrorMessage/ErrorMessage.TXT
+  HBBS:Doors/System/Hydra/Hydra.HBBS
+  HBBS:Doors/System/XPR/XPR.HBBS
+  HBBS:Doors/System/NewUser/NewUser.HBBS
+  HBBS:Doors/User/AccountEdit/AccountEdit.HBBS
+  HBBS:Doors/User/BulletinViewer/BulletinViewer.HBBS
+  HBBS:Doors/User/UserSettings/BulletinViewer.HBBS
+  *HBBS:Doors/User/Joinconference/JoinConference.HBBS
+  *HBBS:Doors/User/Joinconference/OldJoinConference.HBBS
+  HBBS:Utils/UserViewer
+  HBBS:Utils/HBBSMultiTop
+
+  Misc
+  ----
+  HBBS:Storage/Example_Configs/Nodes/Node2/Device
+  HBBS:Storage/Example_Configs/Nodes/NodeList
+  HBBS:Docs/Configuration/AccountDefaults.Guide
+  HBBS:Docs/Configuration/NodeList.Guide
+  HBBS:Docs/Reference/Screens.guide
+  HBBS:Docs/Reference/Directories.guide
+  HBBS:Docs/Doors/AccountEdit.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.02.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.02.guide.info
+  HBBS:Storage/Example_Configs/System/Data/AccountDefaults/New.CFG
+  HBBS:Storage/Example_Configs/System/Data/AccountDefaults/Normal.CFG
+  HBBS:Storage/Example_Configs/System/Data/AccountDefaults/Group.CFG
+  HBBS:Storage/Example_Configs/System/Data/AccountDefaults/CoSysop.CFG
+  HBBS:Storage/Example_Configs/System/Data/AccountDefaults/Sysop.CFG
+
+  NewConfigs
+  ----------
+  HBBS:System/Data/AccountDefaults/New.CFG
+  HBBS:System/Data/AccountDefaults/Normal.CFG
+  HBBS:System/Data/AccountDefaults/Group.CFG
+  HBBS:System/Data/AccountDefaults/CoSysop.CFG
+  HBBS:System/Data/AccountDefaults/Sysop.CFG
+
+
+  Developer Files
+  ---------------
+  HBBS:Developer/Include/HBBS/Defines.h
+  HBBS:Developer/Include/HBBS/Errors.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_protos.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas_sas.h
+  HBBS:Developer/Include/HBBS/HBBSNode_protos.h
+  HBBS:Developer/Include/HBBS/HBBSNode_pragmas.h
+  HBBS:Developer/Include/HBBS/HBBSNode_pragmas_sas.h
+  HBBS:Developer/Include/HBBS/release.h
+  HBBS:Developer/Include/HBBS/Structures.h
+  HBBS:Developer/FD/HBBSCommon_lib.fd
+  HBBS:Developer/FD/HBBSCommon_lib.fd.info
+  HBBS:Developer/FD/HBBSNode_lib.fd
+  HBBS:Developer/FD/HBBSNode_lib.fd.info
+  HBBS:Developer/Docs/Upgrades.info
+  HBBS:Developer/Docs/Dev_Changes_V1.02.guide
+  HBBS:Developer/Docs/Dev_Changes_V1.02.guide.info
+  HBBS:Developer/Developer.Readme
+
+@EndNode

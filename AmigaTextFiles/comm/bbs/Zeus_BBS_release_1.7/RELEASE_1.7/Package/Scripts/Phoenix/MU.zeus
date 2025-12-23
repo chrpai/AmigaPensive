@@ -1,0 +1,135 @@
+/*
+** Message Upload © 1995 CeCom.
+** $VER: MU.zeus 0.7 (31.8.95)
+**
+** By Gunnar Skeid/CeCom.
+*/
+Options Results
+Parse Arg Line
+
+   ChkCarrier
+   If RC ~= 0 Then Exit
+
+   endmsg = ''
+
+   Call AddLib('rexxsupport.library',0,-30)
+
+/***************************** GET SOME INFO **/
+
+   /* Packet type */
+   PnxGetConfig 'PktType'
+   pkttp = RESULT
+
+   /* BBS ID */
+   PnxGetPnxConfig 'BBSID'
+   bbsid = RESULT
+
+   Select
+      /* Qwk */
+      When pkttp == 0 Then name = bbsid'.REP'
+      /* Bluewave */
+      When pkttp == 1 Then name = bbsid'.NEW'
+
+      Otherwise Do
+         endmsg = 'This packet format doesn''t support reply packets!'
+         Signal CleanUp
+         End
+      End
+
+   /* Find, and make, the work dir
+   */
+   ExpandCC '"%50|"'
+   uname = RESULT
+   PnxGetPnxConfig 'WORK'
+   work = RESULT || Translate(uname, '_', ' ') || '@'
+   Address Command 'C:Delete 'work'/#?'
+   Call Makedir(work)
+
+   /* Find upload dir
+   */
+   ExpandCC '"%129|"'
+   path = RESULT'Upload'Line'/'
+
+/***************************** UPLOAD **/
+
+   Write '"Upload protocol is %1070|. Packet format is %3115|\n\n"'
+   GetProtocolInfo 'BATCH'
+   If RC ~= 0 Then AddToUploadList '"'name'"'
+
+   Write '"[32mReady to upload reply file(s) ('name').  Continue? "'
+   GetYesNo 'Yes'
+   If RC ~= 0 Then Signal CleanUp
+
+   Write '"\nPress CTRL-X to abort transfer.\n"'
+
+   Upload
+   urc = RC
+
+   Select
+      When urc == 10 Then endmsg = 'No file protocol selected!'
+      When urc == 12 Then endmsg = 'No upload directory present!'
+      When urc == 15 Then endmsg = 'No files queued for upload'
+      When urc == 20 Then endmsg = 'Fatal error!'
+      Otherwise NOP
+      End
+
+   If urc > 0 Then Do
+      RemoveUploadList
+      Signal CleanUp
+      End
+
+/***************************** PROCESS UPLOADED FILES **/
+
+   GetTransferFile 'RECV' 'FIRST'
+   If RC ~= 0 Then Do
+      endmsg = 'No file(s) uploaded'
+      Signal CleanUp
+      End
+
+   Do While RC == 0
+      ExpandCC '"%1220|"'
+      file = RESULT
+      upath = path || file
+
+      Write '"Processing: 'file'\n"'
+
+      PnxGetFileArc upath
+      If RC == 0 Then Do
+         arcno = RESULT
+         Address Command 'C:Copy 'upath' TO 'work''
+
+         PnxGetExtractStr '"'arcno'"'
+         extstr = RESULT
+
+         no = Pos('~a', extstr)
+         If no == 0 Then Return 2
+
+         startext = Left(extstr, no-1)
+         endext = Right(extstr, Length(extstr)-no-1)
+
+         extstr = startext || work'/'file || endext
+
+         CLIDoor '"'extstr'"' DIR '"'work'"'
+         If pkttp == 0 Then CLIDoor '"ZEUS:Bin/Phoenix/QwkImport \"'uname'\""'
+         Else CLIDoor '"ZEUS:Bin/Phoenix/BWImport \"'uname'\""'
+
+         Address Command 'C:Delete 'work'/#?'
+         End
+
+      Call Delete(upath)
+      GetTransferFile 'RECV' 'NEXT'
+      End
+
+   RemoveUploadList
+
+/***************************** CLEAN UP **/
+
+CleanUp:
+   If endmsg ~= '' Then Do
+      Write '"Error: 'endmsg'\n"'
+      WaitReturn
+      End
+
+   Call Delete(work)
+   LastScript
+   Exit

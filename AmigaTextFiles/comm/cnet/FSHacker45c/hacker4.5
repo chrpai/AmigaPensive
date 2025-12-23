@@ -1,0 +1,275 @@
+/* C-Net Hacker v4.5 Beta
+
+              Original programming/concept by : Patrick Baker
+              Modifications for v4.0 by       : Bob Maple
+              Modifications for v4.5 by       : Joseph Barrero
+
+   This P-File is authorized to be run on legal, LEGITIMATE C-Net AMIGA
+   systems ONLY.  You may modify this however you like for your own use,
+   but you must notify me first if you intend to re-distributed and send
+   me a copy of your modifications.
+
+   Found a bug?  Leave EMail to 'Diamond Back' on Future World, or call
+                  THE FLIPSIDE (305)596-6711.
+*/
+options results;signal on syntax;signal on error;signal on ioerr;signal on halt
+save   = 'PFiles:Hacker/'              /*  Main path for all Hacker files  */
+play   = save'Players/'                /*  Where user files are stored     */
+misc   = save'Misc/'                   /*  BBS intro files, menus, etc..   */
+mess   = save'MESSAGES/'               /*  Inter-User Email                */
+phones = save'PHONEs/'                 /*  Where BBS numers are kept       */
+bnk    = save'BANK/'                   /*  People's banking accounts       */
+minbyte= 150000         /*  Minimum amount of memory that needs to be free */
+                        /*  at all times during the game                   */
+tr=transmit;sf=sendfile;ss=sendstring;spawn misc||"rxx.maint";BEGIN:
+if storage() < minbyte then do;tr '\n1\caNot enough memory to run the game safely!';tr '\cbEither contact your sysop or if this is a multiline BBS, wait for another'
+tr 'user to finish playing a game (if applicable) and try again.\n1';exit;end;call ext("setup");if ~exists(phones'HAA') then call ext("generatehaa");LOGIN:;if ~exists(play||name) then do
+tr '\f1\c3\n1Welcome \cb'NAME'\c1.. \c3You must be a new Hacker\c1.';tr '\n1\c3   Enter an alias to use in the game\c1:';Query'-> \c7';ALIAS = UPPER(result)
+if ALIAS = '' | alias = '###PANIC' then signal quickexit;if exists(play'TOTAL') then do;call open file, (play'TOTAL'), 'R';TOTALUSERS = readln(file);call close file;end
+if ~exists(play'TOTAL') then do;call open file, (play'TOTAL'), 'W';call writeln file, 0;call close file;end;if exists(play'ALIASES') then do;call open file, (play'TOTAL'), 'R'
+totalusers = readln(file);call close file;call open file, (play'ALIASES'), 'R';do i = 1 to TOTALUSERS;tempa = readln(file);j = readln(file)
+if upper(tempa) = alias then do;tr '\n1\c5That alias already exists, pick another\c1.';signal LOGIN;end;end;call close file;end;tr '\n1\c2Setting up an account\c1...'
+call open file, (play'TOTAL'), 'W';TOTALUSERS = TOTALUSERS + 1;call writeln file, TOTALUSERS;call close file;call open file, (mess''name), 'W';call writeln file, '0';call close file
+call open file, (play''NAME), 'W';call ext("savestats");call close file;if ~exists(play'ALIASES') then do;call open file, (play'ALIASES'), 'W'
+call writeln file, ALIAS;call writeln file, NAME;call close file;end;else do;call open file, (play'ALIASES'), 'A';call writeln file, ALIAS;call writeln file, NAME;call close file;end
+if exists(play'REALNAMES') then do;call open file, (play'REALNAMES'), 'A';call writeln file, NAME;call close file;end;if ~exists(play'REALNAMES') then do;call open file, (play'REALNAMES'), 'W'
+call writeln file, NAME;call close file;end;ss '\n1\c3Do you wish to read the instructions of the game\c1? (\c7Y\c1/n) : \cf';getchar;ans=result;if ans~='N' then sf misc'sys.docs';else tr 'No.\n2';END
+if exists(misc'winners') then do;sf misc''winners;Query RETURN;tr cls;end;call open file, (play'TOTAL'), 'R';TOTALUSERS = readln(file);call close file
+call open file, (play''NAME), 'R';call ext("readstats");call close file;bg = 0;dateonly=date('S');call checklplay;if access=23 then signal goon;if totalplays < 1 then signal goon;GOON:
+if ~exists(mess''name) then do;call open gag, (mess''name), 'W';call writeln gag, '0';call close gag;end;tr '\cbWelcome back\c1, \c3'name'\c1.\n2\c7Checking for inter-hacker messages\c1..'
+call open file, (MESS''NAME), 'R';messtotal = readln(file);if messtotal=0 then do;call close file;signal gooon;end;if messtotal > 0 then do
+tr '\n1\c3You have \c7'messtotal'\c3 messages\c1.';Query'\n1'RETURN;do u = 1 to MESSTOTAL;from=readln(file);tr '\f1\caTransmission #\c2'u'\c9, \caFrom \c2'from'\c9:'
+do i = 1 to 3;line.i=readln(file);end;tr '\n1\cb'line.1'\n1'line.2'\n1'line.3;Query'\n1'RETURN;end;tr '\^1\caEnd of Messages\c1...';call close file;end
+call open file, (MESS''NAME), 'W';call writeln file, '0';call close file;GOOON:;call CONVERSION;if money = 0 & savings < 100 then do;loan = random(1,250,time('s'))
+tr '\n1\c2You are broke 'alias'! \c3The HAA gives you a loan of \c7$\cf'loan'\c1.';money = money + loan;bankmoney = bankmoney - loan;Query'\n1'RETURN;end;LOTTO:
+if money < 2 then do;tr '\n1\caYou have no money to play the lotto\c1.\n1\w1';signal main;end;tr '\f1\n1\c4Hacker-Lotto\c1:\n2\c3The hacker lottery costs \c1$\c72.00 \c3per ticket\c1.'
+tr '\c3You currently have \c1$\c7'money'.00\c3 in your pocket\c1.';ss '\n1\cbDo you wish to play\c1? (y/\c7N\c1) \c3';getchar;tempmon=0;ans = upper(result);if ans = '#' then exit
+if ans ~= 'Y' then do;tr 'No';call checkwardial;signal main;end;tix=money/2;if money > 198 then tix=99;if length(tix)=4 then tix=left(tix,2);if length(tix)=3 then tix=left(tix,1)
+Query'Yes\n2\c3How many tickets \c1(\c7Maximum of 'tix'\c1)? \c7';numtickets = upper(result);if numtickets <= 99 then do;if numtickets*2 > money then do;tr 'You do not have enough money!\n1'
+Query RETURN;signal main;end;tr '\n1';money = money - numtickets*2;bankmoney = bankmoney + numtickets*2;do i = 1 to numtickets;ranwin = random(1,4,time('s'));if ranwin = 1 then do
+moneywon = random(1,100,time('s'));tr '\^1\c9Ticket \c1#'left(i,2)' \cdWinner of \c9$\cf'moneywon'\c1!\n1';money = money + moneywon;tempmon=tempmon+moneywon;bankmoney = bankmoney - moneywon;end
+if ranwin = 2 | ranwin = 3 | ranwin = 4 then do;tr '\^1\c1#'left(i,2)' \c2Loser\c1!';end;end;end
+tr '\n1\c3You spent \c1$\c7'numtickets*2'.00 \c3on lottery tickets, and won a total of \c1$\c7'tempmon'.00\c1.';temp=tempmon-(numtickets*2);tr '\c3You made a "profit" of \c1$\c7'temp'.00\c1.\n1'
+query return;call checkwardial;MAIN:;bufferflush;if mk = '' then mk = 0;if mkused = '' then mkused = 0;call nc;call conversion;Query '\n1\c9\cbSYS\c1:\c3'MAXTURNS-MAINCOUNTER'\c9> \cf'
+ANS=upper(result);call NC;if ANS = 'LAST' then do;call ext("lastfights");signal main;end;if ANS = 'WHO' then do;bbscommand who;query '\n1'return;signal main;end
+if left(ans,3)='OLM' then do;bbscommand ans;query'\n1'return;signal main;end;if ANS = 'BANK' then signal bank;if left(ANS,3) = 'HAC' then do;call turns;call HACKOTHER;signal main;end
+if ANS = 'SPY' then do;call turns;signal SPY;end;if ANS = 'ENDCLI' then signal bexit;if ANS = 'Q' | ans = 'QUIT' then signal bexit
+if ANS = 'DIR' | ANS = '?' then do; sf misc'sys.maindir';tr '\c310 files - 1 directory - 173 blocks - 88342 bytes - 'megs'MB Free';signal main;end;if ans = 'HAA' then do
+tr '\f1\c3Connecting to the Hackers Association of America\c1\s5....\s0\n2';call turns;call HAA;end;if ANS = 'SCAN' then do;call turns;call scan;signal main;end
+if (Access = 23) & (ANS = 'CHECK') then do;wd=1;call checkwardial;signal main;end;if ANS = 'CD DIAL' | ans = 'DIAL' then signal dial;if ANS = 'USER' then do;call ext("USERLIST");signal main;end
+if ANS = 'TRANS' then do;call ext("SENDMESS");signal main;end;if ANS = 'STATS' then do;call ext("YOURSTATS");signal main;end;tr '\n1\c3Unknown command \cb'ans'\c1.';signal main;HACKOTHER:
+tr '\f1\caAttack another user\c9:\n1';if megs=0 then do;tr '\n1\cbYour hard drive is totaled!  \c3Fix it first\c1.';query '\n1'return;signal main;end
+txt='\c3Hack';call listusers;if toget='###' then signal main;call open file, (play''toget),'R';call ext("readostats");call close file;oname=toget;if OMEGS = 0 then do
+tr '\c5He is already trashed\c1, \c5try hacking some boards\c1!\n1';Query RETURN;signal main;end;CALL OCONVERSION2;otnm = left(otnm,20);ODRIVENAME = left(ODRIVENAME,20);Stnm = left(tnm,20)
+SDRIVENAME = left(DRIVENAME,20);if olfght = ALIAS then do;sf misc'sys.hacklaw';query '\n1'RETURN;signal main;end;tr '\f1\c3'Oalias', 'OMegs' Megs'
+tr '\cbHardware: \c7'ODRIVENAME'  \cbSoftware: \c7'otnm;tr '\n1                   \c9--\cbVS\c9--\n1';tr '\c3'alias', 'megs' Megs';tr '\c3Hardware:\c7 'SDRIVENAME'  \c3Software:\c7 'Stnm
+ss '\n1\c2Are you sure you want to fight\c1? (y/\c7N\c1) \c7';getchar;ANS = result;if ans='#' then signal quickexit;call NC;if ans ~= 'Y' then signal main;tr 'Yes\f1';oldmegs = megs;othermegs = omegs
+HACKHIM:;YOURTEMPMEGS = MEGS;tr '\f1\n1\c5'OALIAS'\c1: \c7'OMEGS' Megs    \c5You\c1: \c7'MEGS' Megs\n1';tr '\c2No viruses allowed here\c1! \c3This is a fight of power\c1!'
+tr '\n1\c1[\c31\c1] \c7Fight     \c1[\c32\c1] \c7Run\n1';Query'\c1[\c31,2\c1] \c7';ANS = upper(result);call NC;if ans = '' | ans='Q' then call HACKHIM;if ANS = '2' then do
+ranhit = random(1,10,time('s'));if ranhit < odrtyp then do;tr '\n1\c2&^!@*&%$#*^%(*^%!(*@^%$#*&%$&(^%!@)*#%(&^%$!(@^#%';tr '\n1\c3Wow!  \cbWhat a blow!'
+dam = random(1,omegs,time('s'));if dam > megs then dam = megs;megs = megs - dam;if megs < 0 then tr '\n1\c2You''re WASTED!';tr '\n1\c3'dam' Megs were trashed on your drive\c1!'
+OMONEY = OMONEY + MONEY%2;if MONEY > 1 then MONEY = MONEY%2;If megs <= 0 then do;txt = "\c7"ALIAS"\c3 fought\c7 "OALIAS"\c3 on" DATE" and \caLOST!";call toptensave;oxper = oxper + YOURTEMPMEGS*100
+if ttyp > ottyp then do;ottyp = ttyp;if ttyp > 1 then ttyp = ttyp - 1;if ttyp < 1 then ttyp = 1;end;if drty > odrtyp then do;odrtyp = drty;if drty > 1 then drty = drty - 1;if drty < 1 then drty = 1;end
+if SCA > 1 then do;OSCA = OSCA + SCA;SCA = SCA%2;end;if TROJ > 1 then do;OTROJ = OTROJ + TROJ;TROJ = TROJ %2;end;if BW > 1 then do;OBW = OBW + BW;BW = BW %2;end;end;TOTALLOSS = TOTALLOSS + 1
+otwin = otwin + 1;olfght = ALIAS;otmcr = otmcr+DAM;call WRITEHIM;call CONVERSION;end;TOTALLOSS = TOTALLOSS + 1;otwin = otwin + 1;if money > 1 then do;moneylost = random(1,100,time('s'))
+if moneylost > money then moneylost = money;money = money - moneylost+10;OMONEY = OMONEY + MONEYLOST;tr 'You just lost $'moneylost+10'!';call WRITEHIM;tr '';end;signal main;END;if ANS = '1' then do
+TOHIT = random(1,10,time('s'));if TOHIT < ttyp+1 then do;ydam = random(1,megs,time('s'));if ydam > OMEGS then ydam = OMEGS;OMEGS = OMEGS - YDAM;tr '\n1\c3You plaster \c2'YDAM' megs \c3 on his drive!'
+if OMEGS <= 0 then do;txt = "\c7"ALIAS"\c3 fought\c7 "OALIAS"\c3 on" DATE" and \cdWON!";call toptensave;tr '\n1\c2He is obliterated\c1!';xrp = xrp + othermegs*1000;money = money + OMONEY%2
+findmoney = omoney%2;omoney = omoney - OMONEY%2;tr '\n1\c3You get \cb'othermegs*1000'\c3 experience points.';if OMONEY > 0 then tr 'You find $'FINDMONEY'!'
+if OTROJ > 0 then tr 'You find 'OTROJ' Trojans!';if OBW > 0 then tr 'You find 'OBW' Byte Warriors!';if OSCA > 0 then tr 'You find 'OSCA' SCAs!';ss '\q1';if ottyp > ttyp then do;ttyp = ottyp
+if ottyp > 1 then ottyp = ottyp - 1;if ottyp < 1 then ottyp = 1;end;if odrtyp > drty then do;drty = odrtyp;if odrtyp > 1 then odrtyp = odrtyp - 1;if odrtyp < 1 then odrtyp = 1;end;if OSCA >= 1 then do
+SCA = OSCA + SCA;OSCA = OSCA%2;if OSCA <=1 then OSCA = 0;end;if OTROJ >= 1 then do;TROJ = OTROJ + TROJ;OTROJ = OTROJ %2;if OTROJ <=1 then OTROJ = 0;end;if OBW >= 1 then do;BW = BW + OBW;OBW = OBW %2
+if OBW <=1 then OBW = 0;end;TOTALWINS = TOTALWINS + 1;otloss = otloss + 1;call WRITEHIM;end;end;if TOHIT >= ttyp+1 then do;ranmess = random(1,3,time('s'));ss '\c2'
+if ranmess = 1 then tr 'You missed him!';if ranmess = 2 then tr 'He eludes you!';if ranmess = 3 then tr 'Nothing happens!';end;tr '\q1';OTOHIT = random(1,10,time('s'));if OTOHIT < ottyp+1 then do
+hdam = random(1,Omegs,time('s'));if hdam > MEGS then hdam = MEGS;MEGS = MEGS - hDAM;tr '\c2He smashes \q1'hDAM'\c2 megs on your drive!\q1';if MEGS <= 0 then do
+txt = "\c7"ALIAS"\c3 fought\c7 "OALIAS"\c3 on" DATE" and \caLOST!";call toptensave;ss '\c7';ranlose = random(1,5,time('s'));if ranlose = 1 then tr 'You are TOAST!'
+if ranlose = 2 then tr 'He over powers you!';if ranlose = 3 then tr 'You didnt have a chance!';if ranlose = 4 then tr ALIAS's funeral services are Thursday at 2pm!'
+if ranlose = 5 then tr OALIAS' devastates your entire drive!';ss '\q1';oxper = oxper + oldmegs*1000;Omoney = Omoney + MONEY%2;money = money - MONEY%2;if ttyp > ottyp then do;ottyp = ttyp
+if ttyp > 1 then ttyp = ttyp - 1;if ttyp < 1 then ttyp = 1;end;if drty > odrtyp then do;odrtyp = drty;if drty > 1 then drty = drty - 1;if drty < 1 then drty = 1;end;if SCA >= 1 then do
+OSCA = OSCA + SCA;SCA = SCA%2;if SCA <=1 then SCA = 0;end;if TROJ >= 1 then do;OTROJ = OTROJ + TROJ;TROJ = TROJ %2;if TROJ <=1 then TROJ = 0;end;if BW >= 1 then do;OBW = BW + OBW;BW = BW %2
+if BW <=1 then BW = 0;end;otwin = otwin + 1;TOTALLOSS = TOTALLOSS + 1;call WRITEHIM;end;end;if OTOHIT >= ottyp+1 then do;ss '\c4';ranmess = random(1,5,time('s'))
+if ranmess = 1 then tr 'He doesnt do anything!';if ranmess = 2 then tr 'You out witted him!';if ranmess = 3 then tr 'Nothing happens to you!';if ranmess = 4 then tr 'Your drive is safe this time!'
+if ranmess = 5 then tr 'Your drive is safe this time!';end;ss '\q1';Query RETURN;call HACKHIM;end;WRITEHIM:;olfght = ALIAS;call open file, (play||ONAME),'W';call ext("saveostats");call close file
+LASTFIGHT = OALIAS;call open file, (play''NAME), 'W';call ext("savestats");call close file;Query'\n1'RETURN;tr '\n2\caExiting Hacker combat\c9..\n1';signal main;HAA:;sf misc'sys.haa'
+ss '\n1  \c9[\cbHAA Main\c9]: \c3';getchar;ANS = upper(result);call NC;if ANS='Q' | ans='8' | ans='CD /' then do;tr '\caDisconnecting\c9..';signal main;end;if ans = '1' then call fixdrive
+if ans = '2' then do;if money <= 0 then do;tr '\c4You need money first\c1!!\n1';Query RETURN;call HAA;end;signal creditcards;end;if ANS = '3' then do;sf misc'sys.terminal'
+tr '\n1\c3You are currently using \cb'tnm'\c3 and have \c1$\c7'money'\c1.\n1';Query'\c3Terminals \c1(\c7S\c1=\cfSell\c1, \c7Q\c1=\cfQuit\c1)? \c9';ANS=upper(result);call NC;if ans = ttyp then do
+tr '\n1\c2You are already using 'tnm'\c1!\n1';Query RETURN;signal HAA;end;if ans = 'Q' | ans = '' then signal HAA;if ans = 'S' then do
+if ttyp=1 then do;tr '\n1\caYou have the worst term\c9!  \c2Selling not possible\c1.\n1\w2';signal haa;end
+ans=ttyp;call termcost;tr '\n1\c3The HAA will give you \c1$\cb'cost/2' \c3for your \cb'tnm'\c1.';ss '\c3Do you still wish to sell it\c1?  (y/\c7N\c1) \cf';getchar;ans=result
+if ans ~='Y' then signal haa;tr 'Sold.';money=money+(cost/2);ttyp=1;call conversion;signal haa;end;if ans = '1' | ans < ttyp then do;if ans = ttyp then tr '\n1\caYou already have that\c1!'
+if ans < ttyp then tr '\n1\caThat is a worse terminal than what you have\c1!';Query '\n1'RETURN;signal haa;end;if ans > 1 & ans < 10 then do;call termcost;if money < cost then do
+tr '\n1\caYou do not have enough money\c1!';Query'\n1'RETURN;signal haa;end;money = money - cost;bankmoney = bankmoney + cost;ttyp = ans;call conversion
+tr '\n1\c3'tnm' bought for the price of \c1$\c7'cost'\c1.\n1';Query RETURN;end;signal haa;end;if ans = '4' then do;sf misc'sys.hardware'
+tr '\n1\c3You are currently using a \cb'drivename'\c3 and have \c1$\c7'money'\c1.';Query '\n1\c3Hardware \c1(\c7S\c1=\cfSell, \c7Q\c1=\c7Quit\c1)? \c7';ANS=upper(result);call NC;if ans='S' then do
+if drty=1 then do;tr '\n1\caYou are using the worst backup method\c9! \c2Selling not possible\c1.\n1\w2';signal haa;end
+ans=drty;call hardcost;tr '\n1\c3The HAA will give you \c1$\cb'cost/2' \c3for your \cb'drivename'\c1.';ss '\c3Do you still wish to sell it\c1?  (y/\c7N\c1) \cf';getchar;ans=result
+if ans ~='Y' then signal main;tr 'Sold.';money=money+(cost/2);drty=1;call conversion;signal haa;end;if ans = drty then do;tr '\n1\c4You are already using 'drivename'\c1!\n1';Query RETURN;signal haa;end
+if ans = 'Q' | ans = '' then signal haa;if ans = '1' | ans < drty then do;if ans = ttyp then tr '\n1\caYou already have that\c9!'
+if ans < ttyp then tr '\ca\n1That backup is worse than what you have\c9!';Query'\n1'RETURN;signal haa;end;if ans >= 2 & ans <= 7 then do;call hardcost;end;if money < cost then do
+tr '\n1\c2You do not have enough money\c1!\n1';Query RETURN;signal haa;end;money = money - cost;bankmoney = bankmoney + cost;drty = ans;call conversion
+tr '\n1\c3'drivename' Backup bought for the price of \c1$\c7'cost'\c1!\n1';Query RETURN;signal haa;end;if ans = '5' then do;sf misc'sys.virus';tr '\n1\c3You have \c1$\c7'money'.00\c1\n1'
+Query'\c3Viruses \c1(\c7Q\c1=\c7Quit\c1)? \cf';ANS=upper(result);call NC;if ans = 'Q' | ans = '' then signal haa;if ans = 1 then cost = 100;if ans = 2 then cost = 1000;if ans = 3 then cost = 2500
+if money < cost then do;tr '\n1\caYou do not have enough money\c9';Query'\n1'RETURN;signal haa;end;if ans = 1 then virusbought = 'Byte Warrior'
+if ans = 2 then virusbought = 'SCA';if ans = 3 then virusbought = 'Trojan';Query '\n1\cbBuy how many\c1? \c7';numbought = upper(result);call NC;if numbought = '' | numbought ~< 99 then signal haa
+if money < numbought * cost then do;tr '\n1\caYou do not have enough money\c1!\n1';Query RETURN;signal haa;end;totalcost = numbought * cost
+if numbought > 1 then tr '\n1\c7'numbought'\cf 'virusbought's bought for \c1$\c7'totalcost'\c1.';if ans = 1 then BW = BW + NUMBOUGHT;if ans = 2 then SCA = SCA + NUMBOUGHT
+if ans = 3 then TROJ = TROJ + NUMBOUGHT;money = money - totalcost;bankmoney = bankmoney + totalcost;Query'\n1'RETURN;signal haa;end;if ans = '6' then do
+tr '\f1\cbGambling is a bad habit\c1!  \cbYou have a \c350%\cb chance of losing\c1!\n1';tr '\ca  Gamble how much money \c1(\c30 to quit\c1)?';Query'\c1> \cf';ANS=upper(result);call NC
+if ANS = 0 | ANS='Q' | ANS='' then signal haa;if ANS > MONEY then do;tr '\caNot enough money\c1..\n1';Query RETURN;signal haa;end;RANWIN = RANDOM(1,2,time('s'));if RANWIN = 1 then do;tr ''
+ranmess = random(1,3,time('s'));if ranmess = 1 then tr 'You are a loser!';if ranmess = 2 then tr 'What a waste of money!';if ranmess = 3 then tr 'You would do lousy in Vegas!';MONEY = MONEY - ANS
+bankmoney = bankmoney + ans;Query'\n1'RETURN;signal haa;end;tr '';if ANS <= 1000 then do;MONEY = MONEY + (ANS * 2);bankmoney = bankmoney - ans*2;tr 'You won $'ANS*2'  What luck!';end
+if ANS > 1000 then do;tr 'You won $'ANS*2'! Outstanding!';MONEY = MONEY + (ANS * 2);bankmoney = bankmoney - ans*2;end;Query'\n1'RETURN;signal haa;END;if ans = '7' then do;call wardial;signal haa;end
+if ans = '?' then do;signal haa;end;FIXDRIVE:;if ans='1' then do;tofixcost = level*5;maxmegs = level * 10;canfix = maxmegs - megs;if megs = maxmegs then do;tr '\c3Your hard drive isn''t damaged\c1.'
+Query'\n1'RETURN;signal haa;end;if MONEY <=0 & savings < 100 then do;tr '\n2\caYou are out of money\c1!  \cbYou are given \c1$\c3100\cb from the HAA\c9.';money = money + 100;bankmoney = bankmoney - 100
+end;tr '\n2\c3You have \c7'canfix' \c3megabytes of damage\c1.';tr '\c3Repair costs run \c1$\c7'tofixcost'\c3 per meg to fix\c1.';Query '\n1\c3Fix how many\c1? \c7';tofix = upper(result);call NC
+if tofix > maxmegs | tofix > canfix then do;tr '\n1\c5You don''t even have that big of a hard drive\c1.\n1';Query RETURN;signal haa;end;if tofix = '' then signal haa
+if tofix = '###PANIC' then signal quickexit;if money < tofixcost*tofix then do;tr '\n1\c2Not enough money\c1!\n1';Query RETURN;signal haa;end;megs = megs + tofix;money = money - tofixcost*tofix
+bankmoney = bankmoney + tofixcost*tofix;tr '\n1\c7'tofix'\c3 megs repaired at a total cost of \c1$\c7'tofixcost*tofix'\c1.\n1';QUery RETURN;signal haa;END;signal haa;CREDITCARDS:
+if thecard > 10 then do;tr '\n1\caYou''ve hacked enough cards today\c9.\w2';signal haa;end;tr 'Credit Cards\f1\n1\c3Hacking credit cards is dangerous but if you succeed you can get a large'
+tr 'sum of money.  There are several different cards which you can hack\c1.\n1';tr '\c1[\c5H\c1]\cdack a card     \c1[\c5L\c1]\cdist Credit Cards to hack\n1\c1[\c5Q\c1]\cduit to HAA\n1'
+Query'\c1[\cfCards\c1> \c7';ans = upper(result);call NC;if ans = 'Q' | ans='' then signal haa;if ans = 'H' then do;tr '\n1  \c3Hack which card \c1[\c71-12; 12 being most difficult\c1]'
+Query'> \c5';card = upper(result);if card <= 0 | card > 12 then do;tr '\n1\c2That card does not exist\c1...\n1';Query RETURN;signal creditcards;end;call ext("cardconvrt")
+ss '\n1\c3Hacking \c5'CCARD'\c1... \c2Please hold\c1..\w1';thecard=thecard+1;cchack = random(1,14,time('s'));if cchack < CARD then do;tr '\c2You are CAUGHT by the FEDS\c1!'
+ranpen = random(1,5,time('s'));if ranpen = 1 | ranpen = 2 then do;tr '\c3You get off easy with a slap on the wrists!\n1';Query RETURN;signal haa;end;if ranpen = 3 then do;moneylos = maxwin
+if moneylos > money then moneylos = money;tr '\n1\c2You are caught by the FEDS\c1! \c5They penalize you \c1$\c7'moneylos'\c1!!';money = money - moneylos;bankmoney = bankmoney + moneylos
+Query'\n1'RETURN;signal haa;end;if ranpen = 4 then do;if xrp > 30000 then do;tr '\c5The HAA is rather embarassed, they penalize you';tr '30000 experience points\c1.';xrp = xrp - 30000
+tr '\n1\c3They formatted your hard drive as well\c1.\n1';megs = 0;Query RETURN;signal haa;end;xrp = 0;tr '\c3The HAA is rather embarassed, you are penalized to level 1\c1.'
+tr '\c2Sorry\c1!  \c3It will teach you for the future\c1!\n1';xrp = 0;megs = 0;Query RETURN;signal haa;end;if ranpen = 5 then do;if money < maxwin then maxwin = money
+tr '\c3The FBI catches you and fines you \c1$\c7'MAXWIN'\c3 for your crimes\c1.\n1';money = money - maxwin;bankmoney = bankmoney + maxwin;Query RETURN;signal haa;end;end
+tr '\c3You got away with \c1$\c5'maxwin'\c1!\n1';money = money + maxwin;bankmoney = bankmoney - maxwin;Query RETURN;signal haa;end;if ans = 'L' then do;sf misc'sys.CreditCards'
+Query RETURN;signal creditcards;end;signal haa;DIAL:;sf misc'sys.dialer';Query'\n1\c9[\cbSYS:Terms ('maxturns-maincounter') \c9> \cf';ANS = upper(result);call NC
+if ANS = 'TERM' then do;call turns;signal dialOUT;end;if ANS = 'DIR' then do;signal dial;end;if ANS = 'ENDCLI' then signal bexit;if ANS = 'Q' | ans = 'QUIT' then signal bexit
+if (Access = 23) & (ANS = 'ADD') then call AddNumbers;if ANS = 'CD ROOT' | ans = 'ROOT' | ans = 'CD /' then signal main;if ANS = 'NUMBERS' then signal NUMBERLIST;tr '\n1\c3Unkown command.\n1\w2'
+signal dial;DIALOUT:;if MEGS <= 0 then do;tr '\n1\c3You do not have enough storage to do this\c1.  \c3Contact the';tr '\c7Hackers Association of America\c3 and repair your hard drive\c1.\n1'
+Query RETURN;signal dial;end;CALLINGFLAG = 0;FOUNDFLAG = 0;tr '\c1(\c3SYS\c1:\c3Terms/\c1>\w1 \s0[CLI 2]\n1\w2\c1(\c3SYS\c1:\c3Terms/\c1>\s9 \s0';tr '\f1\c3'tnm' v 1.0 All Rights Reserved';WW=0;HAH=0
+tr '\c7Initializing Modem\c1...\n2\s2AT&C1H0E0X1S2=1M1\s0\n2';Query'\c3ATDT *70\c1,\c7';TODIAL = UPPER(RESULT);if todial='' then signal dial;if exists(PHONES'LOCAL') then do
+call open file, (PHONES'LOCAL'), 'R';telnum = readln(file);do i = 1 to telnum;locnm.i = readln(file);LOCALNUM.i = readln(file);locmg.i = readln(file);locwin.i = readln(file);loclos.i = readln(file)
+if LOCALNUM.i = TODIAL then do;fndnum = TODIAL;fndnm = locnm.i;fndmeg = locmg.i;fndloss = loclos.i;FOUNDWINS = FOUNDWINS.i;FOUNDLOOP = I;FOUNDFLAG = 1;CALLINGFLAG = 1;end;end;call close file
+if foundflag = 0 then do;call open file, (PHONES'HAA'), 'R';telnum = readln(file);do i = 1 to telnum;locnm.i = readln(file);LOCALNUM.i = readln(file);locmg.i = readln(file);locwin.i = readln(file)
+loclos.i = readln(file);if LOCALNUM.i = TODIAL then do;fndnum = TODIAL;fndnm = locnm.i;fndmeg = locmg.i;fndloss = loclos.i;FOUNDWINS = FOUNDWINS.i;FOUNDLOOP = I;WW=1;HAH=1;FOUNDFLAG = 1;CALLINGFLAG = 5
+end;end;call close file;end;if foundflag = 0 then do;call open file, (PHONES'WAR'), 'R';telnum = readln(file);do i = 1 to telnum;locnm.i = readln(file);LOCALNUM.i = readln(file)
+locmg.i = readln(file);locwin.i = readln(file);loclos.i = readln(file);if LOCALNUM.i = TODIAL then do;fndnum = TODIAL;fndnm = locnm.i;fndmeg = locmg.i;fndloss = loclos.i;FOUNDWINS = FOUNDWINS.i
+FOUNDLOOP = I;WW=1;FOUNDFLAG = 1;CALLINGFLAG = 4;end;end;call close file;end;if foundflag = 0 then do;call open file, (PHONES'MAINFRAMES'), 'R';telnum = readln(file);do i = 1 to telnum
+locnm.i = readln(file);LOCALNUM.i = readln(file);locmg.i = readln(file);locwin.i = readln(file);loclos.i = readln(file);if LOCALNUM.i = TODIAL then do;fndnum = TODIAL;fndnm = locnm.i;fndmeg = locmg.i
+fndloss = loclos.i;FOUNDWINS = FOUNDWINS.i;FOUNDLOOP = I;FOUNDFLAG = 1;CALLINGFLAG = 2;end;end;call close file;end;if foundflag = 0 then do;call open file, (PHONES'GOV'), 'R';telnum = readln(file)
+do i = 1 to telnum;locnm.i = readln(file);LOCALNUM.i = readln(file);locmg.i = readln(file);locwin.i = readln(file);loclos.i = readln(file);if LOCALNUM.i = TODIAL then do
+fndnum = TODIAL;fndnm = locnm.i;fndmeg = locmg.i;fndloss = loclos.i;FOUNDWINS = FOUNDWINS.i;FOUNDFLAG = 1;CALLINGFLAG = 3;FOUNDLOOP = I;end;end;call close file;end;if FOUNDFLAG = 0 then do
+tr '\n1\caThat number is not listed\c1!  \cbTry typing ''Numbers'' for a listing';tr 'of possible numbers to dial\c1.\n1';maincounter=maincounter-1;Query RETURN;signal dial;end
+if fndmeg > 999 then do;tr '\n2\caBBS Over 999 Megs! Error\c9..\w1';signal dial;end;if lastfight=fndnm then do;tr '\n1\c3You already hacked that BBS.  Try a diferent one.\n1\w2';signal dial;end
+Query '\n1'RETURN;tr '\f1\c2Dialing\c1..';tr '\n1\c3ATDT *70,'fndnum;OTHERMEGS = fndmeg;tr '\w3';gaga=random(1,10,time(s));if gaga='1' | gaga = '2' then do;tr '\n1\c1BUSY\n1\w2';signal dial;end
+if gaga='9' | gaga='10' then do;tr '\n1\c1NO CARRIER\n1\w2';signal dial;end;tr '\f1\b1';if ttyp <= 2 then tr '\s2CONNECT 300\n1\w2';if ttyp >= 3 & ttyp <= 4 then tr '\s1CONNECT 1200\n1\w2'
+if ttyp >= 5 & ttyp <= 6 then tr 'CONNECT 2400\w2';if ttyp >= 7 & ttyp <= 8 then tr 'CONNECT 9600\w2';if ttyp >= 9 & ttyp <= 15 then tr 'CONNECT 19200\w2'
+if (CALLINGFLAG = 1) | (Callingflag=4) | (CallingFlag=5) then do;if exists(misc||fndnm) then do;sf misc||fndnm;end;else sf misc'sys.Generic';end;if CALLINGFLAG = 2 then do
+tr '\c2VAX VMS MAINFRAME V5.12\q1';tr '\n1\c3Licensed to 'fndnm;tr '\n1\q1Local>_\n2';end;if CALLINGFLAG = 3 then do;tr fndnm' \c2computer\q1'
+tr '\c2This is a Goverment restricted area.  If you are not authorized log off at';tr 'once!  Federal law prohibits any hacking or piracy anywhere!\q1\n2'
+tr '\c3To login, enter information using this format\c1:';tr ' \c3[USERNAME] \q1/ \c3[PASSWORD#1]\q1 / \c3[PASSWORD#2]\q1 / \c3[USERID#]\q1\n2@>';end
+tr '\c9  ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿';tr '  ³       \cdNow is your chance\c1!  \c5Should you hack or run\c1?                \c9³'
+tr '  ³                                                                   ³';tr '  ³             \c1[\c3H\c1]\c3ack\c1                                                \c9³'
+tr '  ³             \c1[\c3R\c1]\c3un\c1                                                 \c9³';tr '  ³                                                                   ³'
+tr '  ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ\n1';ss '\^3\>4\c2Choice\c1? \c7';getchar;ANS = result;call NC;if ANS = 'H' then do;tr 'Hack';call FIGHTINIT;end
+tr '\n2+++\n1\w2\s1NO CARRIER\s0\n1\w1';signal dial;FIGHTINIT:;TFM = left(fndmeg,5);TFN = left(fndnm,20);TYM = left(MEGS,4);TBW = left(BW,5);TTR = left(TROJ,5);TSC = left(SCA,5);TMK = left(MK,5)
+tr '\w2\f1\n1\caYou are currently using \q1'tnm'\ca and use \q1'DRIVENAME'\ca backup\c1.\n1';tr ' \cbHis megs:\q1 'TFM'\cb   Name: \q1'TFN;tr '\cdYour megs:\q1 'tym'\n1';flag=1
+if TROJ>0 then do;txt=left('\c1[3] \cbTrojans\c1:       \c7'ttr,51);ss txt;flag=flag+1;end
+if SCA>0 then do;txt=left('\c1[4] \cbSCAs\c1:          \c7'TSC,51);if flag=2 then do;tr txt;flag=1;end;else do;ss txt;flag=flag+1;end;end
+if BW>0 then do;txt=left('\c1[5] \cbByte Warriors\c1: \c7'tbw,51);if flag=2 then do;tr txt;flag=1;end;else do;ss txt;flag=flag+1;end;end;if MK>0 then tr left('\c1[6] \cbMemory Killers\c1:\c7'TMK,51)
+Query'\n2\c1   \c21\c1=\c3Line Noise,  \c22\c1=\c3Normal Hack, \c2Q\c1=\c3Run  or  enter a Virus number.\n1\c1-> \c7';ANS = upper(RESULT);if ANS = '?' then do;signal FIGHTINIT;end
+if ANS = 'Q' | ans = 'D' | ans = '' then signal trydisc;if ans = '1' then call HACKEM;if ans = '2' then call HACKEM;if ans = '3' then do;if TROJ <=0 then do;tr 'You have no Trojans!';signal fightinit
+end;TROJUSED = TROJUSED + 1;TROJ = TROJ - 1;call HACKEM;end;if ans = '4' then do;if SCA <= 0 then do;tr 'You have no SCA Viruses!';signal fightinit;end;SCAUSED = SCAUSED + 1;SCA = SCA - 1;signal HACKEM
+end;if ans = '5' then do;if BW <= 0 then do;tr 'You have no Byte Warriors!';signal fightinit;end;BWUSED = BWUSED + 1;BW = BW - 1;signal HACKEM;end;if ans = '6' then do;if MK <= 0 then do
+tr 'You have no Memory Killers!';signal fightinit;end;MKUSED = MKUSED + 1;MK = MK - 1;signal HACKEM;end;if ans = '9' then do;if xrp > 3000000 then do
+tr 'President of the HAA automatic termination.....';tr 'That computer is totally destroyed, 'ALIAS'!';winflag = 0;fndmeg = 0;call WRITEBBS;end;tr 'Security breach!';end;signal trydisc;HACKEM:
+tr;call rndc;if ANS = 1 then ss '&^#@G!$KG*&%!@#($&^Yµ¡¤þ¾¼þ«·¾½¼¢tiyuTIYT^*!%#@$  ';if ANS = 2 then ss 'You try to hack at his computer\c1..';if ANS = 3 then ss 'You try to upload a Trojan\c1..'
+if ANS = 4 then ss 'You try to upload an SCA\c1..';if ANS = 5 then ss 'You try to upload a Byte Warrior\c1..';if ANS = 6 then ss 'You try to upload a Memory Killer\c1..';call rndc
+if ANS = 1 then THRAN = random(1,2,time('s'));if ANS = 2 then THRAN = random(1,3,time('s'));if ANS = 3 then THRAN = random(1,ttyp,time('s'));if ANS = 4 then THRAN = random(1,ttyp,time('s'))
+if ANS = 5 then THRAN = random(1,ttyp,time('s'));if ANS = 6 then THRAN = random(1,ttyp,time('s'));if THRAN <= ttyp then do;call RANDOMHITMESS;if ANS = 1 then THdam = random(1,10,time('s'))
+if ANS = 2 then THdam = random(1,15,time('s'));if ANS = 3 then do;THdam = random(1,100,time('s'));tr 'The Trojan succeeds!';end;if ANS = 4 then do;THdam = random(1,75,time('s'))
+tr 'The SCA messes him up!';end;if ANS = 5 then do;THdam = random(1,50,time('s'));tr 'Byte Warrior city on his end!';end;if ANS = 6 then do;THdam = random(100,200,time('s'))
+tr 'The memory killer plasters his drive!';end;if THDAM > fndmeg then THDAM = fndmeg;tr thdam' megs of his drive are jelly!';fndmeg = fndmeg - THdam;if fndmeg <= 0 then do;winflag = 0;call WRITEBBS;end
+totmgcr = totmgcr + THDAM;tr;end;if THRAN > ttyp then do;if ANS = 1 | ANS = 2 then tr 'You fail!';if ANS = 3 then do;tr 'The Trojan fails!';end;if ANS = 4 then do;tr 'The SCA fails!';end
+if ANS = 5 then do;tr 'The Byte Warrior does not succeed!';end;if ANS = 6 then do;tr 'The Memory Killer does not work!';end;end;tr;call ext("histurn");call rndc;HISCOMBAT:
+if HEHIT = 0 then do;tr 'He doesnt do anything!';signal fightinit;end;rng=fndmeg%2;if rng=0 then rng=1;hisdam = random(1,rng,time('s'));if hisdam > megs then hisdam = megs
+tr 'He trashes 'hisdam' megs on your computer!';megs = megs - hisdam;megslost = megslost + hisdam;if megs <= 0 then do;winflag = 1;signal WRITEBBS;end;signal fightinit;TRYDISC:;call ext("trydisc")
+WRITEBBS:;LASTFIGHT = fndnm;if winflag = 0 then do;extrabonus = random(1,3,time('s'));if extrabonus = 1 then do;exbtype = random(1,othermegs,time('s'));exbon = exbtype * 350
+tr 'You get a special extra bonus of $'ExBon'!';money = money + exbon;bankmoney = bankmoney - exbon;end;moneyfound = (random(1,othermegs,time('s')))*175
+if othermegs > 500 then moneyfound = moneyfound * 2;findvir = random(1,2,time('s'));vir = 'no';numvir = '';if findvir = 1 | findvir = 2 then do;numvir = random(1,othermegs%5,time('s'))
+virtyp = random(1,4,time('s'));if virtyp = 1 then do;bw = bw + numvir;vir = 'Byte Warrior';end;if virtyp = 2 then do;troj = troj + numvir;vir = 'Trojan';end
+if virtyp = 4 then do;sca = sca + numvir;vir = 'SCA';end;if virtyp = 3  then do;numvir = 1;mk = mk + 1;vir = 'Memory Killer';end;end;TOTALwins = TOTALwins + 1;if WW=1 then xbns = othermegs*200
+else xbns = othermegs*100;xrp = xrp + xbns;money = money + moneyfound;bankmoney = bankmoney - moneyfound;tr '\n1\c3The HAA rewards you with \cb'xbns'\c3 experience points and a cash'
+tr 'bonus of \cb$'moneyfound'\c1.';tr '\n1\c5You also find \c7'numvir' 'vir'\c5 virus(s)\c1.';end;if winflag = 1 then do;TOTALLOSS = TOTALLOSS + 1;tr '\n1\c5You lost\c1!';end;Query '\n1'RETURN
+call ext("callflags");telnum = readln(file);do i = 1 to telnum;locnm.i = readln(file);LOCALNUM.i = readln(file);locmg.i = readln(file);locwin.i = readln(file);loclos.i = readln(file);end
+call close file;locnm.FOUNDLOOP = fndnm;LOCALNUM.FOUNDLOOP = fndnum;locmg.FOUNDLOOP = OTHERMEGS;if WINFLAG = 1 then locwin.FOUNDLOOP = locwin.FOUNDLOOP + 1
+if WINFLAG = 0 then loclos.FOUNDLOOP = loclos.FOUNDLOOP + 1;call ext("callflags");call writeln file, TELNUM;do i = 1 to telnum;call writeln file, locnm.i;call writeln file, LOCALNUM.i
+call writeln file, locmg.i;call writeln file, locwin.i;call writeln file, loclos.i;end;call close file;if WINFLAG=0 and HAH=1 then call ext("wingame");signal dial;RANDOMHITMESS:;call ext("rndhitmess")
+RETURN;NUMBERLIST:;tr '\f1\c3Listing of\c1:\n1';tr '\c3A. \cdLocal Boards              \cdEasy\n1\c3B. \c5Mainframes                \cfModerate\n1\c3C. \c5Government Computers      \caHard\n1'
+ss '?\c1] \c7';getchar;ANS = RESULT;call nc;if ANS='A' | ans='' then do;call ext("local");signal dial;end;if ANS = 'B' then do;call ext("mainframes");signal dial;end
+if ANS = 'C' then do;call ext("govt");signal dial;end;tr 'What?';signal dial;CONVERSION:;do x = 2 to 60;xprmod.x = ((1.2**x)*1000);if xrp < xprmod.x then do;level = x-1;x=61;end
+if level=60 then signal wingame;end;call ext2("levconvert");do x = 2 to 60;drop xprmod.x;end;RETURN;OCONVERSION2:;do x=2 to 60;xprmod.x=(1.2**x)*1000;if oxper < xprmod.x then do;olevel = x-1;x=61;end
+end;call ext2("oconvert2");do x=2 to 60;drop xprmod.x;end;RETURN;RndC: /* Random Color Generator */;color = random(1,7,time('s'));ss '\c'color;RETURN;SPY:
+tr '\f1\caSpy on another user\c1:\n1';txt='\cbSpy on';call listusers;call NC;if toget='###' then signal main;call open file, (play''toget), 'R';call ext("readostats");call close file;call OCONVERSION2
+tr '\n1\c3It will cost you \c1$\c7'OLEVEL*100'\c3 to spy on that person\c1.';costtospy = OLEVEL *100;if money < costtospy then do;tr '\n1\cbYou do not have enough money\c1!\n1';Query RETURN;signal main
+end;ss '\c3Spy on him? \c1(y/\c7N\c1) \c7';getchar;SPYANS = result;call NC;if spyans ~= 'Y' then signal main;OTEX = left(oxper,20);OTMO = left(OMONEY,10);OTDT = left(odrtyp,10)
+OTST = left(OMEGS,10);OTML = left(omlst,10);OTSC = left(OSCA,10);OTBW = left(OBW,10);OUBW = left(OBWUSED,10);OUSC = left(OSCAUSED,10);OTMK = left(OMK,10);Otlv = left(OLEVEL,10)
+tr '\f1\c3Stats for \cb'Oalias'\c1:\n1';tr '\cb    Money\c1: $\c3'OTMO'   \cbExperience\c1: \c3'Oxper;tr '\cb    Level\c1: \c3'Otlv'    \cbLevel Name\c1: \c3'Olevname
+tr '\cbDrivetype\c1: \c3'OTDT'      \cbTerminal\c1: \c3'Ottyp;tr '\cb  Storage\c1: \c3'OTST'     \cbMegs lost\c1: \c3'OTML' \cbMegs Crashed\c1: \c3'Otmcr
+tr '\cb     SCAs\c1: \c3'OTSC' \cbByte Warriors\c1: \c3'OTBW'      \cbTrojans\c1: \c3'otroj;tr '\cbSCAs used\c1: \c3'OUSC'      \cbBWs Used\c1: \c3'OUBW' \cbTrojans Used\c1: \c3'otrojused
+tr '\cb Mem Kill\c1: \c3'OTMK'      \cbMKs Used\c1: \c3'Omkused'\n1';tr '  \cdWin/Loss/Play Statistics\c1:\n1';tr '\cb  Last Fight\c1: \c3'OLfght;tr '\cb   Last Play\c1: \c3'Odate
+tr '\cb Total Plays\c1: \c3'Otpl;tr '\cb  Total Wins\c1: \c3'Otwin;tr '\cbTotal Losses\c1: \c3'OTloss'\n1';Query '\n1'RETURN;money = money - olevel*200
+stor=alias;alias='Hacker v4.5';line.1=stor' Spied on you!';line.2='';line.3='';call mailmessage;alias=stor;signal main;BANK:;pmo = left(money,23);psa = left(savings,22);bmo = left(bankmoney,20)
+tr '\f1  \c9ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿';tr '  \c9³    \cdPocket Money            Savings Account        Bank Money           \c9³'
+tr '  \c9³    \c1$\c5'pmo'\c1$\c5'psa'\c1$\c5'bmo'\c9³';tr '  \c9ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ';sf misc'sys.bank'
+ss '\c1-> \cf';getchar;ans=result;if ans='#' then signal quickexit;if ans = 'E' then do;tr 'Exit';signal main;end;if ans = 'D' then do;if money <=0 then do
+tr 'Deposit\n2\c2You are holding no money\c1!\n1';QUery RETURN;signal main;end;Query'Desposit\c1.\n2\c3Deposit how much \c1(\c7Q\c1=\c7Quit\c1)?   \c1$\c7';ans = result;call NC;if ans > money then do
+tr '\n1\c2You do not have that much\c1!';Query'\n1'RETURN;signal main;end;if ans = '' then signal main;money = money - ans;savings = savings + ans
+call open file, (BNK''NAME), 'W';call writeln file, SAVINGS;call close file
+tr '\n1\c1$\c7'ANS' \c3deposited\c1.  \c3You now have \c1$\c7'SAVINGS'\c3 in your savings account\c1, \c3and \c1$\c7'money'\c3';tr 'in your pocket\c1.';Query'\n1'RETURN;signal main;end
+if ans = 'W' then do;if ~exists(BNK''NAME) then do;tr 'Withdraw\c1.\n2\c5You have no Savings Account\c1.\n1';Query RETURN;signal main;end
+Query'Withdraw\c1.\n2\c3Withdraw how much \c1(\c7Q\c1=\c7Quit\c1)?   $\c7';ANS = result;call NC;if ans = '' | ans = 'Q' | ans = 'q' then signal main;if ans > savings then do
+tr '\n1\c2Not enough in account\c1.\n1';Query RETURN;signal main;end;money = money + ans;savings = savings - ans;call open file, (BNK''NAME), 'W';call writeln file, SAVINGS;call close file
+tr '\n1\c1$\c7'ans'\c3 withdrawn\c1.  \c3You now have \c1$\c7'money'\c1.\n1';Query RETURN;signal main;end;signal main;end;NC:;GETCARRIER;carrier = result;if carrier=='FALSE' then signal bexit
+if maincounter >= MAXTURNS then do;tr '\n1\cbYou are out of turns for this call\c1.  \c3Try tomorrow\c1.\n1';Query RETURN;signal bexit;end
+if storage() < minbyte then do;tr '\n1\caMemory running low\c1! \c2Exiting game\ca..';logentry '\h1Hacker 4.5 ran low on memory!';signal bexit2;end;return;BEXIT:
+tr 'Process 4 ending\n1endcli\w1\n2\caSaving your stats\c1..';BEXIT2:;call open file, (BNK'MONBANK'), 'W';call writeln file, BANKMONEY;call close file;TOTALPLAYS=TOTALPLAYS+1
+logentry '\h1'name' played Hacker v4.5';call open file, (play''NAME), 'W';call ext("savestats");call close file;bufferflush
+tr '\n2\c3Hacker v4.0 \c1- \c3Originaly by \cbPatrick Baker\c3, modified by \cbThe Brazilian\c3';tr '\c3Hacker v4.5 \c1- \c3Modified by \cfDiamond Back\c3 for the \cfFLIPSIDE \c3(305)596-6711';exit
+TERMCOST:    /* Used to determine how much terminals cost */;if ans = 2 then cost = 1000;if ans = 3 then cost = 10000;if ans = 4 then cost = 50000;if ans = 5 then cost = 100000
+if ans = 6 then cost = 200000;if ans = 7 then cost = 500000;if ans = 8 then cost = 1000000;if ans = 9 then cost = 200000;return;HARDCOST:    /* Used to determine how much hardware costs */
+if ans = 2 then cost = 1000;if ans = 3 then cost = 10000;if ans = 4 then cost = 50000;if ans = 5 then cost = 100000;if ans = 6 then cost = 150000;if ans = 7 then cost = 200000;return;MAILMESSAGE:
+if ~exists(mess''toget) then do;call open file, (mess''toget), 'W';call writeln file, '0';call close file;end;call open file, (MESS''toget), 'R';newflag = readln(file)
+do i = 1 to newflag;do x = 1 to 4;dat.i.x=readln(file);end;end;call close file;call open file, (mess''toget), 'W';newflag=newflag+1;call writeln file, newflag
+do i = 1 to newflag-1;do x = 1 to 4;call writeln file, dat.i.x;end;end;call writeln file, alias;do i = 1 to 3;call writeln file, line.i;end;call close file;return;TOPTENSAVE:
+if ~exists(play'last10') then do;call open file, (play'last10'),'W';do i = 1 to 10;call writeln file, ' ---- ';end;call close file;end
+call open file, (play'last10'), 'R';do i = 1 to 10;temp.i=readln(file);end;call close file;call open file, (play'last10'), 'W';call writeln file, txt
+do i = 1 to 9;call writeln file, temp.i;end;call close file;return;LISTUSERS:;call open file, (play'Aliases'), 'R';flag=0;do i=1 to totalusers;tempa.i=readln(file);tempb.i=readln(file);flag=flag+1
+if flag=2 then do;tr '\c1'left(i,2)'. \cb'tempa.i;flag=0;end;else ss '\c1'left(i,2)'. \cb'left(tempa.i,35);end;if flag=1 then tr;call close file;ss '\n1'txt' whom? \c1(\c3Q\c1=\c3Quit\c1) : \cf'
+bufferflush;if totalusers >= 10 then do;getchar;ja=result;ss ja;getchar;jaja=result;ss '\h1';if c2d(jaja)=13 then ans=ja;else ans=ja||jaja;end;else do;getchar;ans=result;end
+if ans='Q' then do;tr '\caAborted.';toget='###';return;end;if tempa.ans=alias then do;tr '\caThats you!';toget='###';return;end
+if ans > totalusers | ans <= 0 then do;tr '\caInvalid user.';toget='###';return;end;tr tempa.ans;toget=tempb.ans;return;QUICKEXIT:;bufferflush;exit;ERROR:
+tr '\n1\caAn error has occured in the game\c1.. \c2Exiting\c1..';logentry '\h1\caError in Hacker, line \c2'sigl'\c9.. \caPlease contact\q1'
+logentry '\h1\caDiamond Back at \c2(305)595-6711\ca, data.\q1';exit;SYNTAX:;tr '\n1\caAn error has occured in the game\c1.. \c2Exiting\c1..'
+logentry '\h1\caSyntax error in Hacker, line \c2'sigl'\c9.. \caPlease contact\q1';logentry '\h1\caDiamond Back at \c2(305)596-6711\ca, data.\q1';exit;IOERR:
+tr '\n1\caAn error has occured in the game\c1.. \c2Exiting\c1..';logentry '\h1\caI/O Error in Hacker, line \c2'sigl'\c9.. \caPlease contact\q1'
+logentry '\h1\caDiamond Back at \c2(305)596-6711\ca, data.\q1';exit;HALT:;tr '\n1\caARexx HALT issued by the sysop \c1- \c2Shutting down\c1..';signal bexit2;TURNS:;MAINCOUNTER=MAINCOUNTER+1
+If MAINCOUNTER > MAXTURNS then do;tr "\n1\c2You're out of turns for today!\n1Try again tommorow!\q1\n1";Query RETURN;signal bexit;end;return;CHECKLPLAY:
+If Access = 23 Then do; MainCounter = 0; return; end;If DATEONLY ~= LASTDPLAYED then do;Maincounter=0;return;end
+If Maincounter > Maxturns then do;tr '\f1\c2Sorry, you have used up all your turns for today.\n1Try again tommorrow.\n2\q1';signal quickexit;end;return;AddNumbers:;if access ~= 23 then signal dial
+tr cls;sf misc||'AddNumber.Menu';ss '\c3Enter Number: \c4';getchar;ans=upper(result);tr ans;call nc;if ans = 'Q' then signal dial;else if ans = '1' then numfile = 'local'
+else if ans = '2' then numfile = 'mainframe';else if ans = '3' then numfile = 'gov';else if ans = '4' then numfile = 'war';else call addnumbers;if ~exists(phones''numfile) then do
+open nfile,(phones''numfile), 'W';writeln nfile,'1';mnx=1;end;else do;call open nfile, (phones''numfile), 'R';telnum=readln(nfile);do i=1 to telnum;locnm.i=readln(nfile);localnum.i=readln(nfile)
+locmg.i=readln(nfile);locwin.i=readln(nfile);locloss.i=readln(nfile);end;call close nfile;call open nfile, (phones''numfile), 'W';telnum=telnum+1;call writeln nfile, telnum;end;tr CLS
+Query '\c3Enter the name\n1: \c4';locnm.telnum=result;call nc;Query '\c3Enter the number\n1: \c4';localnum.telnum=result;call nc;Query '\c3Enter the storage in Megs\n1: \c4';locmg.telnum=result;call nc
+locwin.telnum=0;locloss.telnum=0;do i=1 to telnum;call writeln nfile,locnm.i;call writeln nfile,localnum.i;call writeln nfile,locmg.i;call writeln nfile,locwin.i;call writeln nfile,locloss.i;end
+call close nfile;signal dial;WARDIAL:;tr CLS;If WD=1 then do;tr 'WarDialer is already running!';return;end;sf misc'wardial.txt';ss '\n1\c7Run wardialer? ';getchar;ans=upper(result)
+if ans ~= 'Y' then return;tr 'Yes';if money<10000 then do;tr 'You can''t afford it.';return;end;wd=1;if access ~= 23 then money=money-10000;tr '\n2\c4Wardialer should have results ready by tommorrow.'
+tr '\c3Thank you for using \c7Global WarDialer v1.0\w2\q1';call turns;return;CHECKWARDIAL:;If (WD ~= 1) | ((Access ~= 23) & (Dateonly = LastDPlayed)) then return
+tr '\f1\c5Checking WarDialer Results...\q1';call open file, (phones''war), 'R';wnum=readln(file);do i=1 to wnum;locnm.i=readln(file);localnum.i=readln(file);locmg.i=readln(file);locwin.i=readln(file)
+locloss.i=readln(file);end;call close file;call open file, (phones''HAA), 'R';blah=readln(file);locnm.0=readln(file);localnum.0=readln(file);locmg.0=readln(file);call close file;do
+wfnd=random(0,wnum%8);If wfnd = 0 then do;tr '\n1\c2You found no numbers this time!\q1\w2';wd=0;return;end;do i=1 to wfnd;fndw=random(0,(wnum+2));if (fndw=wnum+1) | (fndw=wnum+2) then fndw=0
+do j=1 to i-1;if fndw=wn.j then i=i-1;end;wn.i=fndw;end;tr '\n1\c3You found these numbers...  \c4Write them down!';do i=1 to wfnd;k=wn.i
+tr '\c7Name:\c3['||locnm.k'] \c7Phone Number:\c3['||localnum.k'] \c7Storage:\c3['||locmg.k' Megs]';end;tr '\n1\c4Hit Any Key to Continue \g1\q1';WD=0;return;SCAN:;j=0;sf misc'sys.scanner'
+ss '\c7Do you wish to do a fight scan? ';getchar;ans=upper(result);if ans ~= 'Y' then return;tr 'Yes\n1';if (money < 15000) & (access ~= 23) then do;tr '\n1\c2You can not afford it!\n1';return;end
+if access ~= 23 then money=money-15000;call open file, (play'Aliases'), 'R';do i=1 to totalusers;tempa=readln(file);tempb=readln(file);call open nfile, (play''tempb), 'R'
+oalias=readln(nfile);omoney=readln(nfile);omegs=readln(nfile);if (omegs > 0) & (oalias ~= alias) then do;j=j+1;tr '\c5'||j')\c2' oalias;end;call close nfile;end;call close file
+if j=0 then tr '\c2Everyone is trashed!\q1\n1';else tr '\c7End of scan.\q1\n1';return;EXT:;arg fn;boom=0;call open fnn,(misc"rxx."||fn),'R'
+do until (eof(fnn)) | (boom=1);temp = readln(fnn);interpret temp;end;call close fnn;return;EXT2:;arg fn;boom=0;call open fnn2,(misc"rxx."||fn),'R'
+do until (eof(fnn2)) | (boom=1);temp = readln(fnn2);interpret temp;end;call close fnn2;return

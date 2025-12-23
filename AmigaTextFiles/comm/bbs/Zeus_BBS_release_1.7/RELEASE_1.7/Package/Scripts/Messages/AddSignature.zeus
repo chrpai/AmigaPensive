@@ -1,0 +1,51 @@
+/*
+** AddSigniture.zeus - Adds signitures to the messages.
+*/
+
+Options Results
+Parse Arg Line
+
+ChkCarrier
+if RC ~= 0 then exit
+
+/*
+**                       >>>> CONFIG BELOW <<<<
+**
+** Add you're addresses to the lines below in full I.e '2:254/277.0'
+** Just replace the examples with you're own
+** You may then want to cut and paist the lines to the duplicate version
+** in the EditSigniture.zeus. Dont worry if you haven't got them all
+** just do the one's you have or none if it's just you're local base!.
+*/
+
+   FidoNet = '2:203/807.0'
+   ZeusNet = '85:1/31.0'
+
+/*
+** Dont touch the rest unless you know what you're doing although it's
+** not hard to add loads more nets as you get them.
+*/
+
+        ExpandCC '"%2037|"'
+        Address = RESULT
+        ExpandCC '"%2044|"'
+        Localbase = RESULT
+		  ExpandCC '"%90|"'
+
+		if Address ~= FidoNet then UserSig = RESULT||'/FidoSig'
+      if Address ~= ZeusNet then UserSig = RESULT||'/ZeusSig'
+
+      if LocalBase = 0 then UserSig = RESULT||'/LocalSig'
+
+	If EXISTS(UserSig) then do
+		Write '"\n"'
+		Display 'Messages/AddSig'
+		Write '"\n"'
+		Address Command 'Type >>T:MSGText.'||line||' '||UserSig
+	        end
+	else do
+		Write '"\n"'
+		Display 'Messages/Nosig'
+		Write '"\n"'
+	        end
+	exit

@@ -1,0 +1,44 @@
+.KEY device/A,unit/A
+.BRA {
+.KET }
+
+; Let's wait until Carrier-Detect goes low what means
+; that the user has terminated the connection ...
+;
+MB:C/SyncCD {device} {unit} POLL
+
+; Quit the "Getty" started in the previous script ...
+;
+Getty -S{device} -U{unit} -0
+
+; Give Getty enough time to clean up and to start "uuxqt".
+; Continue when "uuxqt" has finished its job ...
+;
+Wait 10
+Lab uuxqtwait
+MB:C/Exist T:UUXQT#?.LOCK
+If $RC GT 0 VAL
+	;Echo "UUXQT still running ..."
+	Wait 3
+	Skip BACK uuxqtwait
+EndIf
+
+; Lower priority ...
+; (EazyBBS resets it when the scripts ends)
+;
+ChangeTaskPri -1 PROCESS $process
+
+; Unbatch incoming messages ...
+; (and update our newsreader's database)
+;
+UnBatch
+ArnMaster
+;
+; for use with Crash-CNews: NewsBin:Relay/UnBatch
+
+; And now batch the news for all connected sites ...
+;
+SendBatches
+;
+; for use with Crash-CNews: NewsBin:Batch/DoBatch
+

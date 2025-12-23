@@ -1,0 +1,42 @@
+/*
+    $VER: V0.2 (24.11.96)
+
+    Skript für FRequest in ZPoint.
+
+    Installation:
+
+    Kopieren sie dieses Skript in  das  Rexx-Verzeichnis  von  ZP  und
+    fügen  sie  danach  der  Datei  'fkeys.zp'  auf Wunsch den Eintrag
+    "F1:SYS:Rexxc/RX ZPOINT:Rexx/FRequest.zprx %s" hinzu.
+
+    Alternativ hierzu können Sie auch folgende  Zeilen  in  die  Datei
+    usermenus.zp einfügen:
+
+    SYS:Rexxc/RX ZPOINT:Rexx/FRequest.zprx %s
+
+*/
+
+PARSE ARG zpRexxPort
+IF (zpRexxPort = '') THEN
+    zpRexxPort = 'ZPoint'   /* Standard-Portname */
+
+address value zpRexxPort
+options results
+
+/* aktuelle Mail extrahieren */
+savemessagebody 't:Point-Info-Req'
+if rc=0 then exit()
+
+/* Nachricht auf alt setzen */
+MARKASOLD ONE
+
+/* FRequest aufrufen */
+address command 'c:FRequest T:Point-Info-Req T:PI-REQUEST'
+
+/* nur wenn auch wirklich was requested wurde */
+
+if (rc=0) then
+WRITEMESSAGE 'FILE T:PI-REQUEST RECEIVER MAPS SUBJECT REQUEST SAVE'
+
+/* Aufräumen */
+address command 'delete >nil: T:Point-Info-Req t:PI-REQUEST quiet'

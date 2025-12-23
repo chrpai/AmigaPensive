@@ -1,0 +1,185 @@
+
+   Befehl : {VAR20 28}Kurz : {VAR21}
+
+Parameter : <FILENAME>
+
+ Funktion : Dieser Befehl ist die Import-Schnittstelle unter AMMS fuer das
+{TAB 12}Fastnet-Format II.
+{TAB 12}Er importiert auch bei fehlerhaften Daten das Fastnet-Pointfile
+{TAB 12}FILENAME komplett ein. Die fehlerhaften Positionen im Pointfile
+{TAB 12}werden mitprotokolliert.
+
+{TAB 12}Folgende Zusatzfunktionen bietet der Befehl :
+{TAB 12}- Gate-Konvertierung
+{TAB 12}- LocalGate-Konvertierung
+{TAB 12}- User-Point-Konvertierung
+{TAB 12}- Verschiendene Filter- und Konvertierungs-Funktionen
+{TAB 12}- Groessenvorgabe des Header-Buffers
+{TAB 12}- Cache-Funktion fuer unsortierte Daten (Turbo-Import)
+{TAB 12}- Alle Fehler beim Importieren werden ausfuehrlich im Brett
+{TAB 14}:SYSTEM/REPORT mitprotokolliert
+{TAB 12}- Alle gefilterten Nachrichten (z.B. DUPES) werden im Brett
+{TAB 14}:SYSTEM/TRASHCAN mit Filterursache im Thema importiert
+{TAB 14}(Filterungen ueber die Option /{VAR2}=x sind ausgenommen)
+{TAB 12}- Alle gefilterten Files (z.B. DUPES) werden im Brett
+{TAB 14}:SYSTEM/FILETRASHCAN mit Filterursache im Thema importiert
+{TAB 14}(Filterungen ueber die Option /{VAR2}=x sind ausgenommen)
+{TAB 12}- Die MID-Dupe-Erkennung bei oeffentlichen Nachrichten erfolgt
+{TAB 14}brettweise ueber CRC32-Summen (1600 CRC32-MIDs pro Brett).
+{TAB 14}Die CRC32-MIDs erhalten brettweise das File
+{TAB 14}MBNET:CRCTABS/MSG_<Brettnummer> (z.B. MBNET:CRCTABS/MSG_1)
+{TAB 12}- Die MID-Dupe-Erkennung bei privaten Nachrichten erfolgt ebenfalls
+{TAB 14}ueber 2000 CRC32-Summen. Die CRC32-MIDs werden im File
+{TAB 14}MBNET:CRCTABS/PM gespeichert.
+{TAB 12}- Die FID-Dupe-Erkennung bei oeffentlichen Files erfolgt
+{TAB 14}brettweise ueber CRC32-Summen (1400 CRC32-MIDs pro Brett).
+{TAB 14}Die CRC32-FIDs erhalten brettweise das File
+{TAB 14}MBNET:CRCTABS/FILE_<Brettnummer> (z.B. MBNET:CRCTABS/FILE_1)
+
+{TAB 12}Folgende Userdaten werden fuer die Datenasuwertung benoetigt :
+{TAB 12}- USERNAME: Name des Fremdsystems, mit dem der Datenaustausch
+{TAB 24}stattfindet (nur beim NETCALL). Beim USER-POINT handelt
+{TAB 24}es sich um den User, der seine Daten pollt.
+{TAB 24}Besteht der Name aus zwei Teilen durch einen Klammer-
+{TAB 24}affen (@) getrennten Teilen, so wird nur der zweite
+{TAB 24}Teil des Namens als Fremdsystem- bzw. Username genommen
+{TAB 24}(z.B. NET@PHASE1 -> PHASE1)
+{TAB 12}- VORNAME : Name des Fremdnetzes (GATE/LOCALGATE : XNET)
+{TAB 12}- NACHNAME: Name des eigenen Netzes im Fremdnetz (GATE : FNET)
+
+
+ Optionen : /{VAR1 13}Folgende Filterfunktionen muessen dieser Option
+{TAB 26}als Zahl (Summe aller aktivierten Filterfunktionen)
+{TAB 26}uebergeben werden (z.B. /{VAR2}=3) :
+{TAB 26}-      1: Filtere alle oeffentlichen Nachrichten
+{TAB 26}-      2: Filtere alle privaten Nachrichten
+{TAB 26}-      4: Filtere alle oeffentlichen Files
+{TAB 26}-      8: Filtere alle privaten Files
+{TAB 26}-     16: Filtere Textinhalte - Die Zeichen
+{TAB 36}0-8/11-12/14-26/28-31/255 werden gefiltert
+{TAB 26}-     32: Konvertiere AMMS-Textfunktionen in allen
+{TAB 36}Texten
+{TAB 26}-     64: Konvertiere AMMS-Emulationsfunktionen in
+{TAB 36}allen Texten
+{TAB 26}-    128: Konvertiere AMMS-Text- und Emulations-
+{TAB 36}funktionen ueber Usereinstellung
+{TAB 26}-    256: Filtere den unsichtbaren Zusatzheader
+{TAB 36}in allen Nachrichten
+{TAB 26}-    512: Konvertiere IBM-Umlaute statt die vom
+{TAB 36}User eingestellten Umlaute
+{TAB 36}ae=132, oe=148, ue=129, sz=225,
+{TAB 36}AE=142, OE=153, UE=154
+{TAB 26}-   1024: Konvertiere ISO-Umlaute statt die vom
+{TAB 36}User eingestellten Umlaute
+{TAB 36}ae=228, oe=246, ue=252, sz=223,
+{TAB 36}AE=196, OE=214, UE=220
+{TAB 26}-   2048: Filtere Systemnachricht SID:0
+{TAB 36}(Nodeliste)
+{TAB 26}-   4096: Filtere Systemnachricht SID:1
+{TAB 36}(Nodeinfotexte)
+{TAB 26}-   8192: Filtere Systemnachricht SID:2
+{TAB 36}(Nodeinfotext-Requests)
+{TAB 26}-  16384: Filtere Systemnachricht SID:3
+{TAB 36}(Localgate-Nodeliste)
+{TAB 26}-  32768: Fremdnode direkt in Nodeliste auch
+{TAB 36}ohne Systemnachricht aufnehmen
+{TAB 26}-  65536: Benutze bei der Gate- bzw. LocalGate-
+{TAB 36}Konvertierung statt eines %-Zeichens das
+{TAB 36}@-Zeichen.
+{TAB 26}- 131072: Node ist direkt verbunden, auch wenn sie
+{TAB 36}in der Nodeliste keinen Direktverbund hat
+
+{TAB 12}/{VAR4 13}Mit dieser Option kann die 16 kb Defaultgroesse
+{TAB 26}des Headerbuffers in kb veraendert werden.
+{TAB 26}Der Headerbuffer dient als Cache fuer das Laden und
+{TAB 26}Auswerten des Headers. Zusaetzlich werden ganze
+{TAB 26}Nachrichten daraus importiert, sofern sie komplett
+{TAB 26}im Buffer stehen.
+{TAB 26}Beispiel: /{VAR5}=30 setzt die Groesse des
+{TAB 36}Headerbuffers auf 30kbyte
+
+{TAB 12}/{VAR7 13}Mit dieser Option wird ein Cache-Mechanismus
+{TAB 26}angestellt, der komplette Nachrichten und Fileheader
+{TAB 26}solange zwischenspeichert, bis der Cache voll ist.
+{TAB 26}In diesem Cache werden alle Nachrichten und Files
+{TAB 26}brettweise sortiert, so dass beim Abbau des Caches
+{TAB 26}unsortierte Pointfiles sortiert importiert werden.
+{TAB 26}Das hat den Vorteil, dass der Aufwand des Ladens der
+{TAB 26}Verwaltungsdaten fuer die Message-, PM- und File-
+{TAB 26}Systeme erheblich reduziert wird.
+{TAB 26}Bei entsprechender Groesse verschnellert dieser Cache
+{TAB 26}das Importierten unsortierte Daten um ein vielfaches.
+{TAB 26}Die max. Groesse des Caches wird der Option in kb
+{TAB 26}uebergeben. Der Speicher fuer den Cache wird nicht
+{TAB 26}vorreserviert, sondern immer nur pro Eintrag
+{TAB 26}reserviert. Dennoch sollte immer darauf geachtet
+{TAB 26}werden, dass kein Speichermangel zu Stande kommt.
+{TAB 26}Beispiel: /{VAR8}=300 setzt die max. Groesse
+{TAB 36}des Caches auf 300kbyte
+
+{TAB 12}/{VAR10 13}Folgende Adressenkonvertierungen sind
+{TAB 26}ueber diese Option einstellbar:
+{TAB 26}- 0: Normaler Netcall (Defaultwert)
+{TAB 31}Die Adressen werden nicht konvertierung
+{TAB 26}- 1: Gate
+{TAB 31}Die Adressen werden wie folgt konvertiert:
+{TAB 31}- Username:
+{TAB 33}<User%FNode>@<FNet> -> <User>@<FNode>
+{TAB 33}<User>@<XNode> -> <User%XNode>@<XNet>
+{TAB 31}- Transfernode-String:
+{TAB 33}<XNode-String> -> <XNet>
+{TAB 26}- 2: Localgate
+{TAB 31}Ein Localgate stellt ein einseitiges Gate dar,
+{TAB 31}womit Fremdnetze importiert werden koennen,
+{TAB 31}deren Nodenamen im Fastnet nicht bekannt sind.
+{TAB 31}Damit Fremdnetze neben dem Hauptnetz auch
+{TAB 31}an andere AMMS-Nodes weitergeleitet werden
+{TAB 31}koennen, existiert das File
+{TAB 31}MBNET:LOCALNODES/<Fremdnetzname>
+{TAB 31}(z.B. MBNET:LOCALNODES/Z-NETZ),
+{TAB 31}in dem alle Fastnet-Nodenamen, die das Fremd-
+{TAB 31}netz parallel zum Hauptnetz auch empfangen,
+{TAB 31}zeilenweise wie folgt eingetragen werden :
+{TAB 31}<FASTNET-NODENAME> <FREMDNETZ-NODENAME>
+{TAB 31}Der Fremdnetz-Nodename (XNode) ist der Name der
+{TAB 31}Fastnetnode im Fremdnetz. Dies ermoeglicht, dass
+{TAB 31}Fastnet-Nodes im Fremdnetz einen anderen Namen
+{TAB 31}haben duerfen als im Hauptnetz. In der Regel
+{TAB 31}traegt man aber auch fuer den Fremdnetznamen
+{TAB 31}den Fastnet-Nodenamen ein.
+{TAB 31}Existiert das File nicht oder steht der
+{TAB 31}Fastnet-Nodename der Node nicht drin, die
+{TAB 31}als Localgate-Schnittstelle arbeitet, so
+{TAB 31}wird diese Node automatisch in die Liste
+{TAB 31}eingefuegt.
+{TAB 31}Die Adressen werden wie folgt konvertiert:
+{TAB 31}- Username:
+{TAB 31}<User>@<XNode> -> <User>@<FNode>
+{TAB 31}<User>@<XNode> -> <User%XNode>@<XNet>
+{TAB 31}- Transfernode-String:
+{TAB 33}<XNode-String> -> <XNet>
+{TAB 26}- 3: User-Point
+{TAB 31}Die Adressen werden wie folgt konvertiert:
+{TAB 31}- Der akt. User wird als Sender eingetragen
+{TAB 31}- Der Transfernode-String wird geloescht
+
+
+Beispiele :
+
+Importiere das Pointfile "RAM:A" :
+
+{VAR20} RAM:A
+
+Importiere das Pointfile "RAM:A" mit einem 500kbyte Cache:
+
+{VAR20}/{VAR8}=500 RAM:A
+
+Importiere als Gate das Pointfile "RAM:A" :
+
+{VAR20}/{VAR11}=1 RAM:A
+
+Importiere das Pointfile "RAM:A" und filtere alle Systemnachrichten :
+
+{VAR20}/{VAR2}=30720 RAM:A
+
+

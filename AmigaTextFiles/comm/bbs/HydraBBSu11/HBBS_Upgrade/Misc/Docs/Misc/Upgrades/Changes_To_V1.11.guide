@@ -1,0 +1,304 @@
+@Database Changes_To_V1.11.guide
+
+@Node Main "Changes to HydraBBS between V1.10 and V1.11"
+
+  Changes to HydraBBS between V1.10 and V1.11
+  ===========================================
+
+  Please read *ALL* of this file, or you won't know about some of the great
+  new features of this release.
+
+  Go on, it'll only take you a couple of minutes.
+
+  This document is stored as HBBS:Docs/Misc/Upgrades/Changes_To_V1.11.Guide
+
+  Details
+  =======
+
+  Sysop Information     - @{"More..." link SysopInformation}
+
+  Developer Information - @{"More..." link HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.11.guide/MAIN}
+
+  Files Changed         - @{"More..." link FilesChanged}
+
+@EndNode
+
+@Node SysopInformation "Sysop Information"
+
+  Sysop Information
+  =================
+
+  I'd just like to point out that my coding skills kick ass....
+
+  * HBBSMultiTop
+
+    You'll love me...  I know it...
+
+    HBBSMULTITOP NOW CREATES CONFTOP SCREENS!
+
+    Told ya. :^)
+
+    And god damn, the things I had to do to code it..
+
+    check this out:
+
+    /* overview of how to access data for conf weektop.
+
+    TopBWeekConfUploaders list               (struct List)
+      conf 1 week uploaders list             (struct ConfListNode)  (first node in List)
+        userlist                             (struct List)
+          usernode                           (struct UserNode) (first node in userlist)
+            UserInfo                         (struct UserInfo)
+              confstats list                 (struct List)
+                conf info <-- use this one   (struct ConfInfo) (first node in confstats list)
+                conf info
+                conf info
+          usernode
+            ...
+
+      conf 2 week uploaders list
+        userlist
+          usernode
+            UserInfo
+              confstats list
+                conf info
+                conf info <-- use this one
+                conf info
+            usernode
+              ...
+
+    */
+
+    Talk about nodes in lists in a structure in a nodes in lists in nodes in lists,
+    but this is getting silly..
+
+    And if you can understand that, then you'll know what I mean and just how
+    good I am..  And if you don't understand, they it doesn't matter, just use
+    the damn software... :-)
+
+    Added a FROM option so you can create a file with a list of files to
+    process rather than specifiying them all on a *very* long command line.
+
+    Added loads of error messages
+
+    Added a load of new @^@ codes
+
+    Checked and debugged with Enforcer and CodeWatcher, there are no memory
+    leaks any more.
+
+    Speeded up creation of the user lists in memory by locking the user data
+    file and reading all the data from it in one go, rather than by using
+    HBBS_LoadUser() which keeps locking, opening, seeking, reading and closing
+    the data file.  So now it's loads quicker if you've got lots of users!
+
+    Fixed some @^@ codes that weren't working prior to V1.11.
+
+    Created some (very nice) example conftop screens for conferences 2 and 3
+    for the example configs, see HBBS:Storage/Example_Configs/
+
+    Read the docs for more info and installation of the stats generator counterpart
+
+  * FrontEnd
+
+    Uh
+
+    Uh
+
+    Uh
+
+    Uhhhh...  I just spunked over it..
+
+    Erm, sorry 'bout that. (Hydra removes white sticky stuff from keyboard
+    and screen)..
+
+    Right...
+
+    Because I'm so fantastically GREAT, I've updated this door.  So now you
+    can create a screen and get the door to ask for a username and password
+    wthout distrubing on-screen ansi.  So you can create screens like:
+
+    -- cut here --
+
+          @^16.16^BBSNAME@ @^TIME@ @^DATE@
+
+      Username : [ ------------------------- ]
+      Password : [ ------------------------- ]
+
+    -- cut here --
+
+    And put the prompt for the username and password where the '-'s begin
+    using ansi cursor position (ESC[r;cH) (row,column e.g. y,x not x,y)
+
+    Now is that something to spank the money over or what ?
+
+
+    Check out the example BBSTitle.TXT and Frontend.CFG files in:
+    HBBS:Storage/Example_Screens/Utopia
+
+    See the docs for more info: HBBS:Docs/Doors/FrontEng.Guide/MAIN
+
+  * Node
+
+    Implemented File,Path and CallsThisWeek @^@ screen codes and documented
+    Time/Date/File/Path in the list of supported @^@ codes
+    (see HBBS:Docs/Reference/Screens.Guide/SupportedItems)
+
+    Tweaked the operation of the GL_NODISTURB GetLine() tag so that the
+    background colour of the text is preserved.
+
+    Fixed the combination of the passwordchar GetLine() parameter and
+    the GL_EDIT flag.  Previously, you could enter a password
+    then use the left and right cursor keys to insert letters, but
+    instead of the password character being displayed (e.g. '*') the
+    actual key would be displayed (oops!)  so you might see "***b***"
+    instead of "*******".  Probably not something you'd ever notice
+    anyway..
+
+    If GL_NODISTURB was used and you pressed Ctrl-X to erase the line
+    the entire line would be erased, now when you press ctrl-x only
+    the text you've typed in will be erased.
+
+    DOOR_GetLine() and the GL_NODISTURB flag now works great with the
+    improved frontend door after of these changes!
+
+  * Node/Control/HBBSCommon.library/HBBSNode.library
+
+    Fixed interprocess communication, free'd memory was being referenced
+    after messages were sent, sometimes causing the node to hang or
+    other un-predicdable results.
+
+    So I guess HydraBBS just got even more stable.
+
+    I spent a good few hours going over all the messaging routines with
+    a fine toothcombe so there shouldn't be any more problems relating
+    to messaging now.  Hopefully.
+
+    No-one else seems to have noticed this mind you..
+
+  * CheckFiles
+
+    Fixed bug where it would pass the control program a null pointer
+    for a filename if you deleted a file from the playpen while it was
+    checking other files.  This caused the Node program to cause
+    enforcer hits.
+
+  * HBBSCommon.library
+
+    Changed the HBBS_GetAmigaTime() so it doesn't require a battery
+    backed up clock.  (might speed things up a bit too...)
+
+    HBBS_GetTime, HBBS_GetDate and HBBS_GetDateString now return
+    a pointer to the string they produce (which is the same as
+    the paramater they're passed) so you can do stuff like:
+
+    char MyDate[LEN_DATESTR+1];
+
+    puts( HBBS_GetDate(MyDate) );
+
+    HBBS_LogError() now uses a different time/date format:
+    "DD-MMM-YYYY HH:MM:SS" instead of "DAY MMM DD HH:MM:SS YYYY"
+
+    This is so that it's easier to scan the log files that use
+    this function.
+
+    Changed remaining routines that used ReadBattClock() to use
+    HBBS_GetAmigaTime().
+
+  * StatsGenerator
+
+    Created this door, which is currently only called by AddCreds
+    to add credits to a per-user stats file, for use with HBBSMultiTop
+    (or any other program that wants the stats...)
+
+  * AddCreds
+
+    Changed the format of the log file that it produces.
+
+    Now it's even easier to create weektops/conftops etc from it's
+    log files.
+
+    Now logs data for uploaded files into HBBS:Logs/Upload.LOG and
+    HBBS:system/Data/Users/<UserID>/Upload.LOG.
+
+    (for easy retrival by stats gathering programs/doors)
+
+  * Docs
+
+    Documented BBSColours.CFG.
+
+  * HBBSNode.library
+
+    Adjusted the HBBS_SetCols() routine to translate {E}'s into an escape
+    character for the BBSColours.CFG file
+
+  * MailScan and MailRead
+
+    Oops, I fudged it so that a user couldn't quit if they didn't have
+    any messages witht the MustRead flag set.  Fixed!
+
+@EndNode
+
+@Node FilesChanged "Files Changed"
+
+  Files Changed for V1.11
+  =======================
+
+  Core Files
+  ----------
+  HBBS:Control
+
+  HBBS:System/Amiga/Libs/HBBSCommon.library
+  HBBS:System/Amiga/Libs/HBBSNode.library
+
+  HBBS:Doors/System/Node
+
+  HBBS:Doors/System/AddCreds/AddCreds.HBBS
+  HBBS:Doors/System/AddDIZToList/AddDIZToList.HBBS
+  HBBS:Doors/System/CheckFiles/CheckFiles.HBBS
+  HBBS:Doors/System/FrontEnd/FrontEnd.HBBS
+  HBBS:Doors/System/StatsGenerator/StatsGenerator.HBBS
+  HBBS:Doors/System/WeekTop/WeekTop.HBBS
+
+  HBBS:Doors/Mail/Mail_Scan.HBBS
+  HBBS:Doors/Mail/Mail_Read.HBBS
+
+  HBBS:Utils/HBBSMultiTop
+
+  Misc Files
+  ----------
+  HBBS:Docs/Misc/Upgrades/UpgradeIndex.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.11.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.11.guide.info
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.10.guide.info
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.08.guide.info
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.07.guide.info
+  HBBS:Docs/Configuration/BBSColours.Guide
+  HBBS:Docs/Reference/Directories.Guide
+  HBBS:Docs/Reference/Screens.Guide
+  HBBS:Docs/Doors/DoorIndex.Guide
+  HBBS:Docs/Doors/StatsGenerator.Guide
+
+  HBBS:Utils/HBBSMultiTop.Guide
+
+  HBBS:Storage/Example_Screens/Special/ConfJoined.txt
+  HBBS:Storage/Example_Configs/Scripts/LogOff_Global.script
+  HBBS:Storage/Example_Configs/Utils/HBBSMultiTop_MTs/Conf3Top.mt
+  HBBS:Storage/Example_Configs/Utils/HBBSMultiTop_MTs/Conf2Top.mt
+  HBBS:Storage/Example_Configs/Utils/HBBSMultiTop_MTs/All.lst
+  HBBS:Storage/Example_Configs/Commands/System
+  HBBS:Storage/Example_Configs/System/Data/BBSColours.CFG
+
+  Developer Files
+  ---------------
+  HBBS:Developer/Include/HBBS/release.h
+  HBBS:Developer/Include/HBBS/structures.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_protos.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas_sas.h
+  HBBS:Developer/FD/HBBSCommon_lib.fd
+  HBBS:Developer/Autodocs/hbbscommon.library.doc
+  HBBS:Developer/Autodocs/hbbsnode.library.doc
+  HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.11.guide
+  HBBS:Developer/Docs/Upgrades/Dev_Changes_V1.11.guide.info
+
+@EndNode

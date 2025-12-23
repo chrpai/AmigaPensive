@@ -1,0 +1,246 @@
+@DATABASE ZSamm.guide
+
+@node MAIN "ANUBIS ZSamm"
+                              T.O.M. Software
+            _______         _____     __________     __   _______
+           / ___  /\ /\    / ___ \   / ___  ___ \   /_/\ / _____/\
+          / /__/ / //  \  / /\_/ /\ / /\_/ /__/ /\ _\_\// /\____\/
+         / ___  / //    \/ / // / // / // ___  / // /\ /____  /\
+        / /\_/ /_// /\    / // /_// / // /__/ / // /_/_\___/ / /
+       /_/ //______/ /\_ / //______/ //______/ //___________/ /
+       \_\/ \______\/  \_\/ \______\/ \______\/ \___________\/
+
+        Allgemeines Nachrichten - und Binär - Informations - System
+
+-----------------------------------------------------------------------------
+                            ANUBIS ZSamm V 1.06
+                  ©1992-95; Oliver Graf - T.O.M. Software
+-----------------------------------------------------------------------------
+
+   @{" Einleitung         " link EINL}	Was macht ZSamm ?
+   @{" Aufruf             " link AUFRUF}	Die möglichen Optionen
+   @{" Der Sammelvorgang  " link SAMMEL}	Arbeitsweise
+   @{" Domainrouting      " link DOMAINROUTE}	Funktionsweise des Domainrouting
+   @{" MsgIDs             " link MSGIDS}	Behandlung der MsgIDs
+   @{" Brettumbenennungen " link ALIAS}	Umbenennung von Brettern im Netz
+   @{" Längenbeschränkung " link LENGTH}	Wie lang dürfen Nachrichten sein ?
+   @{" Versionen          " link VERSIONEN}	bisherige Versionen
+
+-----------------------------------------------------------------------------
+                        29.05.95 * 17:21:29 * Olli
+-----------------------------------------------------------------------------
+@endnode
+
+@node EINL "Einleitung"
+Der ANUBIS Z-Netz Sammler dient dazu, ZCONNECT(tm) kompatible Netzpuffer
+für die Serverbox und alle angeschlossenen Points und Systeme zu er-
+stellen. Er wird nur dazu benutzt, online in der Box geschriebene Nachrichten
+aus der Box ins Netz zu exportieren und Netz-PMs und Fehlermeldungen an
+verschiedene Systeme zu leiten.
+
+ZSamm benötigt die anubisroute.library ab Version 1.06 und eine installierte
+MUI Version ab V 10.0 (Release 2.3).
+@endnode
+
+@node AUFRUF "Aufruf"
+Die Aufruf Syntax des Sammlers ist "ZSamm [optionen].
+
+Mögliche Optionen :
+
+ -c<config>	- lädt die MailerConfig <config> nach. Defaultmäßig wird
+		  von ZSort die Config "ZNetz" verwendet. Der Configname
+		  darf keine Pfadangabe enthalten und muß ohne Space
+		  dem -c folgen.
+
+ -l		- LogFile Ausgabe einschalten. Wird diese Option angegeben,
+		  werden alle Meldungen nach "Anubis:Statistik/ZSort.log"
+		  gespeichert, wo sie später abgerufen werden können.
+
+Die Pufferdateien für die einzelnen Points und Boxen werden in dem jewei-
+ligen Directory im Pufferpfad angelegt bzw. erweitert.
+Im folgenden wird als Beispiel von der Configdatei ZNetz ausgegangen.
+@endnode
+
+@node SAMMEL "Der Sammelvorgang"
+Der Sammler geht nach dem Aufruf zunächst alle Nachrichten durch, die
+in der Datei "Anubis:Spool/ZNetz/ZNetz" stehen. In dieser Datei werden
+von ANUBIS Pointer auf die Nachrichten geschrieben, die seit dem
+letzten NetCall in die Netz-Bretter geschrieben wurden, aber noch nicht
+versandt wurden. Der Reihe nach werden diese Dateien jetzt geladen,
+die Amigaumlaute in IBM Umlaute konvertiert. Dann wird die Liste der ein-
+zelnen Points/Boxen durchlaufen und geprüft, ob das Brett, zu dem die Nach-
+richt gehört, von diesem System bestellt worden ist. Ist dies der Fall,
+wird die Nachricht an den Puffer angehängt. Der Sammler gibt während dieser
+Zeit immer den Pfadnamen der Nachricht aus. Es werden nur Points beachtet,
+bei denen das PollFormat auf "ZNetz" steht.
+
+In einem zweiten Durchgang wird die Datei "Anubis:Spool/Mails/Index" aus-
+gewertet, in der die Netz-PMs verwaltet werden. Auch diese werden ins
+Z 3.8 oder ZConnect Format konvertiert und dann an den Puffer, über den
+dieses System geroutet wird, angehängt. Bei Points wird die PM direkt an
+den Pointpuffer angehängt (ebenso bei direkt angeschlossenen Boxen),
+ansonsten wird der Puffer genommen, über den diese Box geroutet wird
+(Übernahme aus der Routingdatei oder den Routing Dateien). In diesem Durch-
+lauf wird dann zu jeder PM der Empfänger ausgegeben.
+Am Ende des Sammelvorgangs stehen die erzeugten Pufferdateien im jeweiligen
+Directory für ein System unter dem Namen "Puffer.neu" und werden dann durch
+einen Aufruf von "PreArc" weiterverarbeitet.
+
+Ab Version 1.03 ist es wichtig, daß nach jedem ZSamm Aufruf das Programm
+PreArc gestartet werden, da die Systeme ihre Nachrichten erst nach dem Aufruf
+bereitgestellt bekommen.
+@endnode
+
+@node MSGIDS "MsgIDs"
+Während des Sammelvorgangs werden alle MsgIDs, die ANUBIS zu einer Nach-
+richt erzeugt, in die Datei "Anubis:Config/MsgIDs.neu" geschrieben. Nach
+Beendigung des Sammelvorgangs wird diese temporäre Datei an die Datei
+"Anubis:Config/MsgIDs" angehängt. Auf diese Weise kann der Sorter diese
+Nachrichten, falls sie von einem System zurückgeleitet werden, aussortieren.
+Genaueres zum Thema "MsgIDs und DupeCheck" finden Sie in der Anleitung zu
+ZSort.
+@endnode
+
+@node LENGTH "Längenbeschränkungen"
+ZSamm orientiert sich an drei verschiedenen Längenbegrenzungen :
+
+1) Bei PMs wird immer das Routelimit der geladenen Configdatei beachtet.
+   Dies wird mit dem Programm MailerConfig eingestellt und kann mittels
+   der Option -c nachgeladen werden.
+   Sollte allerdings eine PM an eine Box oder einen Point gehen, die
+   direkt an das eigene System angeschlossen ist, wird jede PM gleich
+   welcher Länge weitergeroutet.
+
+2) Bei Brettmails wird zwischen angeschlossenen Boxen und Points unter-
+   schieden :
+
+   Bei Boxen wird das für ein Brett eingestellte Routelimit beachtet.
+   Alles, was diesen Wert nicht überschreitet, wird an Systeme mit gesetz-
+   tem Box-Status Flag weitergeroutet.
+
+   Für Points ist das in der Brettliste gespeicherte "Routelimit Points"
+   gültig. Dort kann etwas völlig anderes stehen, als im normalen
+   Routelimit. Dies verhindert u.a., daß Points mit gemapsten FRAS/BIN
+   Brettern 200 kB Mails oder mehr bekommen (bei 10 Points wären das
+   schon 2 MB mehr Plattenplatz !).
+@endnode
+
+@node ALIAS "Bretter umbenennen"
+Häufig kommt es vor, daß man Bretter in der Box anders benennen muß als im
+Netz. Dies kann daran liegen, daß die Brettnamen zu lang sind oder daß
+Nachrichtenbretter weitere Bretter enthalten, was ANUBIS derzeit technisch
+nicht unterstützt.
+Zu diesem Zweck kann man ZSamm und ZSort eine Tabelle übergeben, in der
+die Namen der Bretter im Netz und in der Box eingetragen sind. Die Tabelle
+wird unter dem Namen "Anubis:Config/ZAlias" mit einem normalen Texteditor
+gespeichert. Der Syntax ist wie folgt :
+
+#rein:<brettname>		- Name des Brettes in der Box. Dieser Name
+				  wird durch ZSamm zur Identifikation des
+				  Brettes benutzt.
+#raus:<brettname>		- Name des Brettes in der Box. ZSamm ersetzt
+				  den Originalnamen durch diesen String. Dies
+				  geschieht ausnahmslos in allen Puffern.
+###				- Schließt einen Eintrag ab.
+
+<brettname> kann in beiden Fällen einen führenden Slash '/' enthalten oder
+nicht, die Laderoutine erkennt dies automatisch und paßt den Name ent-
+sprechend an.
+
+Stößt ZSamm bei der Arbeit auf ein Brett, das mit einem "#rein:" Eintrag in
+der Liste steht, wird der Originalbrettname aus der Box ersetzt durch den
+String, der im gleichen Eintrag unter "#raus:" steht. Hierbei müssen Sie
+selber auf die korrekte Schreibweise achten, da ZSamm den Brettnamen nicht
+überprüfen kann.
+
+Beispiel :
+
+#rein:T-NETZ/SUPPORT/MICRODOT-BETA
+#raus:T-NETZ/SUPPORT/MICRODOT/BETA
+###
+
+Das Brett /T-NETZ/SUPPORT/MICRODOT/BETA kann von ANUBIS aus technischen
+Gründen nicht benutzt werden, das /T-NETZ/SUPPORT/MICRODOT ein Netz-
+Brett mit Nachrichten ist. Deshalb wurde ersatzweise ein Brett unter
+dem Namen .../MICRODOT-BETA eingerichtet. ZSamm ersetzt jetzt in jeder
+Nachricht, die aus MICRODOT-BETA gesammelt wird, den Brettnamen durch
+/T-NETZ/SUPPORT/MICRODOT/BETA und hängt diese Nachricht mit genau diesem
+Namen an die verschiedenen Puffer. Dadurch bekommt das Netz von der Änderung
+in der Box nichts mit.
+@endnode
+
+@node DOMAINROUTE "Das Domainrouting"
+Es ist für einen Boxbetreiber im Netz eine Pflichtaufgabe, sich zumindestens
+rudimentär mit den Möglichkeiten und der Funktionsweise des Domainrouting
+auseinander zu setzen. Aus diesem Grund wurde ein WorkShop zu diesem Thema
+geschrieben, der dieses dem Sysop näher bringt.
+Den Domainrouting-WorkShop finden Sie in jeder ANUBIS Box, in der Sie als
+registrierter Sysop eingetragen sind, im Brett ANUBIS/WorkShop und befindet
+sich auch auf Ihrer Original Diskette.
+@endnode
+
+@node VERSIONEN "Versionen"
+Version Datum		Anmerkung
+0.58	----		erste Version für den ersten Netz Release, davor Beta
+0.59	14.02.93	Für PMs wird jetzt zuerst in der Routingdatei ge-
+			sucht, dann erst in der internen Boxliste.
+	20.02.93	Kleinere Fehler beim Routestring, MsgID und laden der
+	27.02.93	Konfigzeile behoben.
+	13.03.93	ZSamm wurde etwas schneller.
+	02.04.93	neue Schnittstelle zur Brettliste
+	26.04.93	lokal erzeugte MsgIDs wurden mehrmals an die Datei
+			gehängt.
+			ZSamm wurde erneut etwas schneller.
+0.60	04.06.93	Bugfix : Bei automatischen Meldungen wegen zu langer
+			Nachrichten an Points wurde kein Slash '/' an vor
+			den Brettnamen gehängt.
+0.61	06.08.93	Umstellung der Doku auf AmigaGuide Format.
+	16.08.93	Umbau von ZSamm auf das neue EilConfig Format.
+0.62	05.10.93	Umstellung auf das neue Format der Routing Tabelle.
+0.63	09.11.93	Das Sammeln von Binärnachrichten ist erheblich
+			schneller geworden.
+			XPK-Gepackte Textnachrichten werden von dem Sammeln
+			entpackt.
+	14.12.93	Für den CD-ROM Support wird geprüft, ob der Daten-
+			träger vorhanden ist.
+1.00	23.12.93	Alle Ausgaben, die früher ins CLI gemacht wurden,
+			werden jetzt auf einem MUI Fenster auf dem ANUBIS
+			Screen dargestellt.
+	26.12.93	Die Alias Tabelle wird jetzt geladen und verwendet.
+			neue Fehlermeldungen eingebaut.
+1.01	11.02.94	Das Routen von PMs an Points geht wesentlich schneller,
+			das Suchen des Routewegs entfällt.
+1.02	21.02.94	Das MUI Window wurde nicht sofort aktualisert, wenn
+			der Sysop die Größe änderte.
+			Nachrichten, die der User eines Points online ge-
+			schrieben werden, werden nicht mehr an dessen Point
+			geroutet.
+1.03	15.06.94	Anpassung an neue Pointliste
+	24.06.94	ZSamm ist jetzt in der Lage, ZC-Header ungeprüft in
+			einen Puffer zu übernehmen und für private Mails
+			mehrfache Empfänger zu generieren.
+1.04	09.09.94	ZSamm kann theoretisch CrossPostings für OM anlegen.
+			UserProfile wird, wenn vorhanden und aktiviert, aus-
+			gelesen und die Header TELEFON: und POST: erzeugt.
+			Routeinformationen werden ins "Route.log" ge-
+			schrieben.
+	24.10.94	Durch Auswerten des Sommerzeit Flag in den System-
+			Daten wird jetzt ein korrekter ZC-Datumsstring
+			erzeugt (W+1).
+1.05	15.02.95	ZSamm kann X-Postings erzeugen, wenn die Nachrichten
+			über ANUBIS 0.550 oder einen Tool erzeugt wurden,
+			die die entsprechenden Routinen benutzen.
+			Das Progress-Window wird nicht mehr auf den ANUBIS
+			Screen gezwungen.
+	07.03.95	Absicherung gegen parallele Prozesse endlich fehler-
+			frei.
+			absendergesteuertes Routing.
+1.06	18.04.95	Umstellung auf neues MsgID Konzept, nur in Zusammen-
+			arbeit mit ZSort ab Version 1.42.
+			Commandline-Parameter -fast entfällt.
+			ZSamm schreibt jetzt Level 2 Route.log Einträge.
+			An jede Mail wird ein VIA: Header angefügt.
+			In der MAILER: Zeile steht die Version des ANUBIS
+			Hauptprogramms.
+	29.05.95	Benutzung der anubisroute.library.
+@endnode

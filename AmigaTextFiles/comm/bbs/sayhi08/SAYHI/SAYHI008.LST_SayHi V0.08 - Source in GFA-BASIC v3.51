@@ -1,0 +1,1944 @@
+'
+' ################
+'  SayHi by PKN
+' ################
+'
+versnum$="$VER: SayHi 0.08 "
+versnum$="0.08"
+versdate$="7-Jan-95"
+progname$="SayHi"
+author$=" by Peter Nicolas. "
+'
+MODE 1
+ON ERROR GOSUB woops
+'
+timeon%=CINT(TIMER/200)
+@timeconv
+time.o$=pd.time$
+sysop%=9
+'
+DIM ansi$(12)
+DIM sayline$(500)
+'
+cr$=CHR$(13)+CHR$(10)
+de$=CHR$(8)+" "+CHR$(8)
+esc$=CHR$(27)
+'
+' ###########################
+'  So we need some variables.
+' ###########################
+'
+sayrdlev%=1
+saywrlev%=2
+sayturns%=5
+saylines%=20
+'
+' #################################################################
+' Investigate our working environment from the s:metro.config file.
+' #################################################################
+'
+IF EXIST("S:Metro.cfg")
+  config$="S:Metro.cfg"
+ELSE IF EXIST("BBS:Metro.cfg")
+  config$="BBS:Metro.cfg"
+ELSE IF EXIST("Metro.cfg")
+  config$="Metro.cfg"
+ELSE
+  config$="XXX"
+ENDIF
+'
+' Defaults
+'
+bbsname$="The OzMetro BBS"
+sfd$="BBS:"
+sysopname$="The Sysop"
+winw$="640"
+winh$="200"
+'
+IF config$<>"XXX"
+  '
+  OPEN "I",#2,config$,128
+  DO WHILE (NOT EOF(#2))
+    LINE INPUT #2,xx$
+    xx$=TRIM$(xx$)
+    xxu$=UPPER$(xx$)
+    '
+    IF xxu$="" OR LEFT$(xxu$,1)=";"
+      ' Do nothing
+    ELSE IF LEFT$(xxu$,7)="BBSNAME"
+      xx$=MID$(xx$,8,255)
+      xx$=TRIM$(xx$)
+      bbsname$=xx$
+    ELSE IF LEFT$(xxu$,9)="SYSOPNAME"
+      xx$=MID$(xx$,10,255)
+      xx$=TRIM$(xx$)
+      sysopname$=xx$
+    ELSE IF LEFT$(xxu$,11)="WINDOWWIDTH"
+      xx$=MID$(xx$,12,255)
+      xx$=TRIM$(xx$)
+      winw$=xx$
+    ELSE IF LEFT$(xxu$,12)="WINDOWHEIGHT"
+      xx$=MID$(xx$,13,255)
+      xx$=TRIM$(xx$)
+      winh$=xx$
+    ENDIF
+    '
+  LOOP UNTIL EOF(#2)
+  CLOSE #2
+ENDIF
+'
+'
+' ###########################################
+' find screen size required from Metro.config
+' ###########################################
+'
+' this will open the screen at the size the SYSOP wants, and is extremely
+' desirable rather than just hardcoding a 640*200 screen in. Some of us
+' have the extremely nice video system called 'PAL' allowing for 640*256,
+' which is far superior to the US 'Never Twice the Same Colour' (NTSC).
+'
+sw%=VAL(winw$)
+sh%=VAL(winh$)
+sx%=0
+sy%=0
+'
+'
+IF EXIST("RAM:Userdata")
+  OPEN "I",#2,"RAM:Userdata",1024
+  LINE INPUT #2,tpc$      ! Remaining time in minutes
+  LINE INPUT #2,uname$    ! User's name
+  LINE INPUT #2,id$       ! User number
+  LINE INPUT #2,lev$      ! Security of caller (1-9)
+  LINE INPUT #2,baud$     ! Baud rate
+  LINE INPUT #2,ring$     ! Local (=0) or remote (=1)
+  LINE INPUT #2,path$     ! The pathname for the door to use
+  CLOSE #2
+  '
+ELSE
+  '
+  ' We have no ram:userdata, so we immediately assume that the
+  ' door is being used in local mode (as a test while developing)
+  ' or perhaps just being run by a sysop for the hell of it!
+  '
+  ' so we have a bit of a dodgy-up of the variables. The door will
+  ' NOT work without these variables.
+  '
+  tpc$="60"                  ! An hour should do us nicely
+  uname$="BORIS YELTZIK"     ! Well maybe someone else?
+  id$="42"                   ! The ultimate answer
+  lev$="9"                   ! Sysop clearance - maybe lower??
+  baud$="19200"              ! Won't play a part in things here
+  ring$="0"                  ! Very important. Now it's local and no modem
+  '                          ! stuff is used. (Doesn't even open it)
+  path$=""                   ! Sets to current directory..
+  '
+ENDIF
+'
+bd%=VAL(baud$)
+tpc%=VAL(tpc$)
+id%=VAL(id$)
+lev%=VAL(lev$)
+IF VAL(ring$)
+  ring!=TRUE
+ELSE
+  ring!=FALSE
+ENDIF
+'
+icon!=FALSE     ! let's open a screen and print locally, eh?
+'
+' scrnht% should be set to 1 line less than you actually have,
+' to make room for the More? prompt itself
+'
+scrnht%=23
+'
+' and for the local screen, well, we KNOW how many lines there are anyway.
+'
+IF ring!=FALSE
+  IF sh%>201
+    scrnht%=27   ! See how much better PAL is? the extra lines are nice
+  ELSE
+    scrnht%=21   ! This may be 21 lines - anyway, figure it out yourself!
+  ENDIF
+ENDIF
+'
+@open_screen
+@getstats
+@status_window
+@main_window
+IF ring!=TRUE
+  @open_serial
+  DELAY 1    ! this is required for some (but not all) modems.
+  '          ! only prob is if the modem needs it, and it's not here,
+  '          ! it's either GURU or Task Held time. Mine doesn't need it.
+  @set_baud(bd%)
+ENDIF
+'
+' ###############################
+' clear screen and send titles
+' ###############################
+'
+@msend(CHR$(27)+"[0;37m"+CHR$(12)+cr$+cr$)
+@centre("Presenting for your enjoyment!")
+@msend(centred$+cr$+cr$)
+@centre(progname$)
+@msend(centred$+cr$)
+@centre("(V"+versnum$+")")
+@msend(centred$+cr$+cr$)
+@centre("by Peter Nicolas")
+@msend(centred$+cr$)
+@centre("("+versdate$+")")
+@msend(centred$+cr$+cr$)
+@centre("Another OzMetro door by PKN!")
+@msend(centred$+cr$+cr$)
+'
+' ###############################################
+' get values from config and set levels and ansi.
+' ###############################################
+'
+@config
+@checklev
+@checkansi
+@setansi
+'
+' ###########################
+' shorten some filenames for later
+' ###########################
+'
+da.o$=path$+progname$+".dat.old"
+da$=path$+progname$+".dat"
+da.r$="RAM:"+progname$+".dat"
+'
+qu.o$=path$+progname$+".quota.old"
+qu$=path$+progname$+".quota"
+qu.r$="RAM:"+progname$+".quota"
+'
+' ======================================================================
+main:
+' ======================================================================
+IF car%>0
+  @finish
+ENDIF
+@timeconv
+@dateconv(DATE$)
+@msend(CHR$(27)+"[0;37m"+CHR$(12))
+PRINT CHR$(27)+"[0 p"
+'
+@sayhimain
+'
+@tchk
+IF car%>0
+  @finish
+ENDIF
+IF ansi!=TRUE
+  @msend(ansi$(7))
+ENDIF
+'
+PRINT CHR$(27)+"[1 p"
+@msend(SPACE$(40)+"Your Selection: ")
+@mget(9,1,0,1)
+PRINT CHR$(27)+"[0 p"
+'
+IF in$=""
+  GOTO main
+ENDIF
+'
+' Then you include a stack of IF-THEN statements dependent on what you want
+' to do. Use IF-THENs, and NOT! SELECT/CASE so you can GOTO out of them
+' in case the carrier's been dropped or they've run out of time.
+'
+'
+IF in$="Q" OR car%>0
+  in$=""
+  @finish
+ENDIF
+'
+IF in$="T"
+  in$=""
+  @timeconv
+  @dateconv(DATE$)
+  @msend(CHR$(27)+"[0;37m"+CHR$(12)+cr$+cr$+cr$)
+  IF rtime%=1
+    @msend(ansi$(2)+SPACE$(3)+"Time Remaining: "+ansi$(3)+STR$(rtime%)+" minute."+cr$+cr$)
+  ELSE IF rtime%>1
+    @msend(ansi$(2)+SPACE$(3)+"Time Remaining: "+ansi$(3)+STR$(rtime%)+" minutes"+cr$+cr$)
+  ENDIF
+  @msend(ansi$(2)+SPACE$(5)+"System Date:  "+ansi$(1)+pd.date$+cr$)
+  @msend(ansi$(2)+SPACE$(5)+"System Time: "+ansi$(1)+pd.time$+cr$+cr$)
+  IF car%>0
+    @finish
+  ENDIF
+  @press
+  GOTO main
+ENDIF
+'
+IF in$="R"
+  in$=""
+  @msend(CHR$(12)+ansi$(3))
+  @checkansi
+  IF car%>0
+    @finish
+  ENDIF
+  @setansi
+  @setpagepause
+  IF car%>0
+    @finish
+  ENDIF
+  @setabscon
+  IF car%>0
+    @finish
+  ENDIF
+  GOTO main
+ENDIF
+'
+IF in$="I"
+  in$=""
+  @sendtext
+  IF car%>0
+    @finish
+  ENDIF
+  GOTO main
+ENDIF
+'
+IF in$="D"
+  in$=""
+  @msend(CHR$(27)+"[0;37m"+CHR$(12)+cr$)
+  IF lev%>=sayrdlev%
+    @seq.out(da$)
+  ELSE
+    @msend(cr$+ansi$(1)+"  Sorry.. Access denied!"+cr$+cr$)
+  ENDIF
+  IF car%>0
+    @finish
+  ENDIF
+  @press
+  GOTO main
+ENDIF
+'
+IF in$="S"
+  nlines%=0
+  in$=""
+  retry:
+  IF car%>0
+    @finish
+  ENDIF
+  @msend(CHR$(27)+"[0;37m"+CHR$(12)+cr$)
+  @msend(ansi$(6)+" Say Hi, "+uname$+".."+cr$)
+  IF lev%>=saywrlev%
+    ' So first check if they've entered maximum messages allowed..
+    @sayquota
+    IF saylimit!=TRUE
+      @msend(cr$+ansi$(2)+" Sorry, You've reached your quota for today!"+cr$)
+      @press
+      in$=""
+      GOTO main
+    ENDIF
+    '
+    PRINT CHR$(27)+"[1 p"
+    @msend(cr$+ansi$(2)+" Enter Your 1-Line Message Here! (Maximum 78 characters)"+cr$+cr$+ansi$(1)+" >"+ansi$(3))
+    @mget(1,78,0,1)
+    PRINT CHR$(27)+"[0 p"
+    saymsg$=TRIM$(in$)
+    '
+    IF in$=""
+      @msend(cr$+ansi$(6)+" Are you sure you want to enter a blank line? (y/N) ")
+      @mget(3,1,0,1)
+      IF in$="NO"
+        in$=""
+        @tryagain
+        IF go2menu!
+          go2menu!=FALSE
+          GOTO main
+        ENDIF
+        GOTO retry
+      ELSE
+        in$=""
+        @saylines
+      ENDIF
+    ELSE
+      in$=""
+      @correct
+      IF NOT in$="YES"
+        in$=""
+        @tryagain
+        IF go2menu!
+          go2menu!=FALSE
+          GOTO main
+        ENDIF
+        GOTO retry
+      ELSE
+        in$=""
+        @checkline
+        IF glife!
+          glife!=FALSE
+          GOTO main
+        ENDIF
+        @saylines
+      ENDIF
+    ENDIF
+    '
+  ELSE
+    @msend(cr$+ansi$(1)+"  Sorry.. Access denied!"+cr$+cr$)
+    @press
+  ENDIF
+ENDIF
+'
+in$=""
+GOTO main
+'
+' ###############################################################
+' ###############################################################
+' #                                                             #
+' #  P R O C E D U R E S   F O L L O W   T H I S   N O T I C E  #
+' #                                                             #
+' ###############################################################
+'
+' ###################################################
+' #####################(P. DEANE)#######(Mod.PKN)####
+' ###################################################
+'
+PROCEDURE woops
+  '
+  ' For this to work properly of course, you must compile with
+  ' English error messages turned on! (-E &E)
+  '
+  @msend(cr$+CHR$(7)+cr$+ansi$(1)+"Woops - FATAL ERROR!!"+cr$)
+  @msend(cr$+CHR$(7)+"This will be logged for the sysop. You may even be able"+cr$)
+  @msend("to re-run the door, and have it work fine - just try to avoid what you"+cr$)
+  @msend("just did then!"+cr$)
+  @msend(cr$+cr$+"Exiting door now. Please hold")
+  @log(progname$+" crashed!!",1)
+  @log("--> "+ERR$(ERR),0)
+  DELAY 4
+  '
+  RESUME finish
+  '
+RETURN
+'
+' ############################################
+' ############################################
+' This procedure finishes the game up & exits.
+' ############################################
+'
+PROCEDURE finish
+  '
+  @msend(CHR$(12)+cr$)
+  @centre(progname$)
+  @msend(ansi$(2)+centred$+cr$+cr$)
+  @centre("by Peter Nicolas")
+  @msend(ansi$(3)+centred$+cr$+cr$)
+  @centre("Written in GFA-BASIC V3.51")
+  @msend(ansi$(1)+centred$+cr$+cr$)
+  @centre("Call 'Budgie BBS' on:")
+  @msend(ansi$(6)+centred$+cr$+cr$)
+  @centre("61-43-99-2590")
+  @msend(ansi$(3)+centred$+cr$+cr$+cr$)
+  IF EXIST(qu.r$)
+    KILL qu.r$
+  ENDIF
+  IF EXIST(da.r$)
+    KILL da.r$
+  ENDIF
+  IF EXIST("RAM:Userdata")
+    KILL "RAM:Userdata"
+  ENDIF
+  DELAY 1
+  @msend(cr$+cr$+ansi$(7)+SPACE$(4)+"Please hold - Reloading "+bbsname$)
+  '
+  IF ring!=TRUE
+    @close_serial
+  ENDIF
+  '
+  DELAY 1
+  END
+  '
+RETURN
+'
+' ###################################################
+' #####################(Author??)####################
+' ###################################################
+'
+PROCEDURE open_serial
+  '
+  ' First thing is to setup the variables to simulate a C structure
+  ' (originally this was a PROC, but why not just do it when you open
+  ' the modem. Saves using this mem for local logins).
+  '
+  ' May I also add that I don't know who wrote these shared modem routines
+  ' but I love them!!!! and he deserves to take a bow.
+  '
+  cmd_read%=2              ! Similar to INPUT #1,
+  cmd_write%=3             ! Similar to PRINT #1,
+  cmd_clear%=5
+  sdcmd_break%=10          ! Special Serial Device commands
+  sdcmd_query%=9           ! This command polls the serial device for how many chars to read
+  sdcmd_setparams%=11      ! We will use this to adjust the buffer size **********
+  '
+  '
+  ' These are the offsets into the IOExtSer structure (ie. we poke the commands
+  ' like cmd_read into the io.command member, then DoIO to perform the read
+  '
+  io.command%=28           ! 2 byte command to perform (see directly above)
+  io.flags%=30             ! 1 byte
+  io.error%=31             ! 1 byte error # of last command
+  io.actual%=32            ! 4 byte actual bytes read or written
+  io.length%=36            ! 4 byte length of data to read or write
+  io.data%=40              ! 4 byte address of data to send or recieve
+  io.offset%=44            ! 4 byte ???
+  io.ctlchar%=48           ! 4 byte handshaking = $11130000
+  io.rbufflen%=52          ! 4 byte suggested size of the hardware buffer (16K ?)
+  io.extflags%=56          ! 4 byte parity flags for serial port/modem
+  io.baud%=60              ! 4 byte actual baud rate to use (1200, 2400, etc.)
+  io.brktime%=64           ! 4 byte break time in micro seconds (250000 ?)
+  io.termarray%=68         ! 8 byte a list of 8 termination characters (???????)
+  io.readlen%=76           ! 1 byte # of bits per read character (7-8)
+  io.writelen%=77          ! 1 byte # of bits per write character (should be same as read)
+  io.stopbits%=78          ! 1 byte # of stop bits (1 or 2)
+  io.serflags%=79          ! 1 byte serial port flags -
+  '
+  iof_quick%=1
+  '
+  serf_7wire|=4
+  serf_eofmode|=64
+  serf_parity_odd|=2
+  serf_parity_on|=1
+  serf_queuedbrk|=8
+  serf_rad_boogie|=16
+  serf_shared|=32         !This is the flag to set at OpenDevice for shared mode
+  serf_xdisabled|=128     !this flag should also be set at OpenDevice
+  '
+  io.status%=80           ! 2 bytes set when we issue a SDCMD_QUERY
+  '                      Bit# | what its for
+  '                         0 = reserved
+  '                         1 = reserved
+  '                         2 = ring indicator on 500/2000
+  '                         3 = Data set ready      (DSR)
+  '                         4 = Clear To Send       (CTS)
+  '                         5 = Carrier Detect      (CD)
+  '                         6 = Ready to send       (RTS)
+  '                         7 = Data Terminal Ready (DTR)
+  '                         8 = Read overrun
+  '                         9 = Break sent
+  '                        10 = Break recieved
+  '                        11 = transmit x-OFFed
+  '                        12 = receive x-OFFed
+  '
+  sizeof_extserio%=82      ! The size of the ExtSerIO struct
+  '
+  '
+  ' open the modem
+  '
+  device_name$="serial.device"+CHR$(0)
+  '
+  write_port%=CreatePort(0,0)
+  write_io%=CreateExtIO(write_port%,sizeof_extserio%)
+  read_port%=CreatePort(0,0)
+  read_io%=CreateExtIO(read_port%,sizeof_extserio%)
+  '
+  POKE write_io%+io.serflags%,serf_7wire|+serf_shared|+serf_xdisabled|
+  '
+  ~OpenDevice(V:device_name$,0,write_io%,0)      ! Open the device
+  '
+  '
+  LPOKE write_io%+io.baud%,19200                ! baud rate
+  POKE write_io%+io.readlen%,8                  ! # read bits
+  POKE write_io%+io.writelen%,8                 ! # write bits
+  POKE write_io%+io.stopbits,1                  ! Stop bits - 1 please
+  LPOKE write_io%+io.ctlchar%,&H1113000         ! handshaking
+  LPOKE write_io%+io.rbufflen%,1024             ! hardware buffer size
+  DPOKE write_io%+io.command%,sdcmd_setparams%
+  ~DoIO(write_io%)
+  '
+  ' now copy the write_io request into the read_io request
+  '
+  FOR a%=20 TO sizeof_extserio%
+    POKE read_io%+a%,PEEK(write_io%+a%)
+  NEXT a%
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE close_serial
+  ' close the modem
+  ~AbortIO(write_io%)
+  ~WaitIO(write_io%)
+  ~CloseDevice(write_io%)
+  '
+  ' free up the memory of the IO request structure (must be 88!)
+  '
+  ~MFREE(write_io%,88)
+  ~MFREE(read_io%,88)
+  '
+  ' Delete the message port
+  '
+  ~DeletePort(write_port%)
+  ~DeletePort(read_port%)
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE ser_recv1
+  ' read in data 1 byte at a time like a$=INPUT$(1,1)
+  '
+  ' first we check to see if there is any incoming data, and if so store the
+  ' number of characters waiting in the variable waiting%
+  '
+  r_data$=""
+  DPOKE read_io%+io.command%,sdcmd_query%
+  ~DoIO(read_io%)
+  waiting%=LPEEK(read_io%+io.actual%)
+  IF waiting%<>0
+    r_data$=SPACE$(1)
+    DPOKE read_io%+io.command%,cmd_read%
+    LPOKE read_io%+io.length%,1
+    LPOKE read_io%+io.data%,V:r_data$
+    ~DoIO(read_io%)
+  ENDIF
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE ser_purge
+  DPOKE read_io%+io.command%,cmd_clear%
+  ~DoIO(read_io%)
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE chk_car
+  ' no carrier=-1  |  valid carrier=0
+  '
+  DPOKE write_io%+io.command%,sdcmd_query%
+  ~DoIO(write_io%)
+  status&=DPEEK(write_io%+io.status%)
+  car!=BTST(status&,5)
+  IF car!=TRUE
+    car%=20
+  ENDIF
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE set_baud(baud%)
+  '
+  ' baud%        = actual baud rate (300,1200,2400,etc)
+  '
+  LPOKE write_io%+io.baud%,baud%
+  DPOKE write_io%+io.command%,sdcmd_setparams%
+  ~DoIO(write_io%)
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE msend(fred$)
+  '
+  ' [Sends the string out to the screen and modem if needed]
+  '
+  ' This will NOT send ANY text if the carrier has been dropped
+  ' but WILL send text if car% is a value in case they've run out
+  ' of time, etc.
+  '
+  IF icon!=FALSE
+    PRINT fred$;
+  ENDIF
+  '
+  IF ring!=TRUE
+    @chk_car
+    IF car!=FALSE
+      ' send data string fred$ out to modem
+      DPOKE write_io%+io.command%,cmd_write%
+      LPOKE write_io%+io.length%,LEN(fred$)
+      LPOKE write_io%+io.data%,V:fred$
+      ~DoIO(write_io%)
+    ENDIF
+  ENDIF
+  fred$=""
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE mget(intype%,inlength%,yesdef!,wait!)
+  '
+  ' [Usage @mget(intype%,inlength%,yesdef!,wait!) ]
+  '
+  ' input type= 0  Hot key response. Converted to uppercase. Always 1 char
+  '           = 1  Normal Upper/Lowercase text input.
+  '           = 2  UPPERCASE only text input
+  '           = 3  Yes/No response. Will default to YES if yesdef!=TRUE
+  '           = 4  Numerical input only
+  '           = 5  For the Metro Line Editor's use
+  '           = 9  No echoing, converted to uppercase.
+  '
+  ' input length   Just how many chars you want (max)
+  '
+  ' yesdef!   = TRUE then if <rtn> pressed, default is 'YES'+cr$
+  '           = FALSE then if <rtn> pressed, default is 'NO'+cr$
+  '             only applies for type 3 input, so can be anything otherwise
+  '
+  ' wait!     = TRUE, we'll wait until something is input
+  '           = FALSE then if nothing pressed, we'll return and return
+  '             in$=""
+  '
+  '
+  LOCAL cd%,a$,key$,keyy%,b%,in1$,idle%
+  '
+  idle%=CINT(TIMER/200)
+  ' /\ can't have them taking all day!
+  '
+  key$=""
+  in$=""
+  in1$=""
+  a%=0
+  keyy!=FALSE
+  b%=0
+  car%=0
+  abort!=FALSE
+  '
+  ' Remember if car!=TRUE, then they DROPPED carrier!!!!!!
+  '
+  DO
+    '
+    IF MOUSEK=3
+      ALERT 0,"REALLY kill "+progname$+" ?",2,"Yes|No",xx%
+      IF xx%=1
+        CLOSES 1
+        IF ring!=TRUE
+          @close_serial
+        ENDIF
+        END
+      ENDIF
+    ENDIF
+    ' /\ a way out...
+    '
+    IF ring!=TRUE
+      @chk_car
+      IF car!=TRUE
+        keyy!=TRUE
+        abort!=TRUE
+        ' set all the flags for an early departure! :-)
+      ENDIF
+    ENDIF
+    '
+    key$=INKEY$
+    '
+    ' Here we parse the Fkeys, they will only work when the door
+    ' is waiting for input (most of the time). If not, then they WILL go
+    ' into a buffer, and next time the serial sequence is entered they
+    ' will go to work.
+    '
+    IF LEN(key$)>1 AND LEFT$(key$,1)=CHR$(155)
+      '
+      xx%=ASC(MID$(key$,2,1))
+      IF xx%=48         ! F1
+        ALERT 0,"Really kick em off?",2,"Yes|No",xx%
+        IF xx%=1
+          car%=20
+          keyy!=TRUE
+          abort!=TRUE
+        ENDIF
+      ENDIF
+      IF xx%=50         ! F3
+        IF icon!=TRUE
+          icon!=FALSE
+          CLOSEW #2
+        ELSE
+          icon!=TRUE
+          CLOSEW #2
+        ENDIF
+        @main_window
+        ~ActivateWindow(WINDOW(2))
+      ENDIF
+    ENDIF
+    '
+    EXIT IF car!=TRUE
+    '
+    ' no point going on, they've dropped carrier. Get rid of them!
+    '
+    IF ring!=TRUE AND key$=""
+      ' sep test for ring!=TRUE cos if no user - no modem!
+      @ser_recv1
+      IF r_data$<>""
+        key$=r_data$
+      ENDIF
+    ENDIF
+    '
+    IF key$=CHR$(19)
+      ' Wow, they pressed ctrl-S. Let's pause a bit.
+      pau$=""
+      hold%=CINT(TIMER/200)
+      '
+      WHILE CINT(TIMER/200)<hold%+45
+        ' pause for a MAXIMUM of /\ 45 seconds
+        pau$=INKEY$
+        IF ring!=TRUE
+          IF LOC(#1)>0
+            pau$=INPUT$(1,#1)
+          ENDIF
+        ENDIF
+        EXIT IF pau$<>""
+      WEND
+      '
+      key$=""
+      pau$=""
+    ENDIF
+    '
+    '
+    IF wait!=FALSE
+      keyy!=TRUE
+      IF key$=" " OR key$="N" OR key$="S" OR key$="n" OR key$="s" OR key$=CHR$(3)
+        abort!=TRUE
+      ENDIF
+    ENDIF
+    '
+    EXIT IF abort!=TRUE
+    '
+    IF key$=""
+      GOTO getjump1
+      ' /\ not worth running through the processing any further
+    ENDIF
+    '
+    '
+    a%=ASC(key$)
+    b%=LEN(in$)
+    '
+    IF (a%=8 OR a%=127) AND LEN(in$)>=1
+      in$=LEFT$(in$,b%-1)
+      DEC b%
+      @msend(de$)
+    ENDIF
+    '
+    IF b%=inlength%
+      GOTO getjump1
+    ENDIF
+    '
+    IF intype%=0
+      IF a%>31 AND a%<126
+        key$=UPPER$(key$)
+        @msend(key$+cr$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=1 AND a%>31 AND a%<126
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=2 AND a%>31 AND a%<126
+      key$=UPPER$(key$)
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=3
+      IF a%=13 AND yesdef!=TRUE
+        @msend("YES")
+        in$="YES"
+        keyy!=TRUE
+      ELSE IF a%=13 AND yesdef!=FALSE
+        @msend("NO")
+        in$="NO"
+        keyy!=TRUE
+      ELSE IF a%=89 OR a%=121
+        @msend("YES"+cr$)
+        in$="YES"
+        keyy!=TRUE
+      ELSE IF a%=78 OR a%=110
+        @msend("NO"+cr$)
+        in$="NO"
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=4 AND a%>47 AND a%<58
+      @msend(key$)
+      in$=in$+key$
+      '
+    ELSE IF intype%=5
+      '
+      ' intype% needed for the Metro Line Editor.
+      '
+      ' DO NOT USE THIS unless using the Metro Line editor!!
+      '
+      ' this will rely on dim'ing ln$() and keeping ln% as the line #
+      ' for an application of this, the BBBase door is the one to check out
+      '
+      IF (a%=8 OR a%=127) AND LEN(ln$(ln%))>=1
+        ln$(ln%)=LEFT$(ln$(ln%),LEN(ln$(ln%))-1)
+        @msend(de$)
+        keyy!=TRUE
+      ELSE IF a%=13
+        in$=key$
+        keyy!=TRUE
+      ELSE IF a%=9
+        @msend("        ")
+        in$="        "
+        keyy!=TRUE
+      ELSE IF a%>=loascii% AND a%<>126 AND a%<=hiascii%
+        @msend(key$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+    ELSE IF intype%=9
+      ' no echoing of input and conversion to uppercase
+      IF a%>31 AND a%<126
+        key$=UPPER$(key$)
+        in$=key$
+        keyy!=TRUE
+      ENDIF
+      '
+      ' \/ Of modem get types!
+    ENDIF
+    '
+    ' Well, if we needed to jump, come to here...
+    getjump1:
+    '
+    ' Handle our carriage returns..
+    IF a%=13
+      IF (intype%<>5 AND intype%<>9)
+        @msend(cr$)
+      ENDIF
+      keyy!=TRUE
+    ENDIF
+    ' Look after idle timer
+    '
+    IF CINT(TIMER/200)>idle%+300
+      IF lev%>=sysop% AND CINT(TIMER/200)>idle%+600
+        car%=5
+        keyy!=TRUE
+        abort!=TRUE
+      ELSE IF lev%<sysop%
+        car%=5
+        keyy!=TRUE
+        abort!=TRUE
+      ENDIF
+    ENDIF
+    '
+  LOOP UNTIL keyy!=TRUE
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE mpos(line%,col%)
+  '
+  ' [Locates the cursor at the position specified]
+  @msend(esc$+"["+STR$(line%)+";"+STR$(col%)+"H")
+RETURN
+'
+'
+' ###################################################
+' #####################(P. DEANE)#######(mod.PKN)####
+' ###################################################
+'
+PROCEDURE open_screen
+  OPENS 1,sx%,sy%,sw%,sh%,3,32768
+  '
+  IF ring!=TRUE
+    FRONTS 1
+  ENDIF
+  '
+  SETCOLOR 0,&H0
+  SETCOLOR 1,&HF11
+  SETCOLOR 2,&H1F1
+  SETCOLOR 3,&HFF1
+  SETCOLOR 4,&H55F
+  SETCOLOR 5,&HF1F
+  SETCOLOR 6,&H1FF
+  SETCOLOR 7,&HFFF
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE getstats
+  IF EXIST(sfd$+"BBSFILES/stats")
+    OPEN "I",#2,sfd$+"BBSFILES/stats",512
+    LINE INPUT #2,calls$
+    LINE INPUT #2,msgs$
+    LINE INPUT #2,uls$
+    LINE INPUT #2,dls$
+    LINE INPUT #2,fdbk$
+    LINE INPUT #2,newu$
+    LINE INPUT #2,newd$
+    LINE INPUT #2,lastuser$
+    LINE INPUT #2,email$
+    CLOSE #2
+  ELSE
+    calls$="0"
+    msgs$="0"
+    uls$="0"
+    dls$="0"
+    fdbk$="0"
+    newu$="0"
+    newd$="0"
+    lastuser$="NOBODY"
+    email$="0"
+  ENDIF
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE status_window
+  '
+  OPENW #1,0,(sh%-8),sw%,8,0,2304,1
+  PRINT esc$+"[35;43m"
+  PRINT AT(1,1);" CALLS:    MSG:    PMSG:    FBK:    DLS:    ULS:    NEW:    BD:      CHT:    ";
+  PRINT AT(8,1);esc$+"[34m"+calls$;
+  PRINT AT(16,1);msgs$;
+  PRINT AT(25,1);email$;
+  PRINT AT(33,1);fdbk$;
+  PRINT AT(41,1);dls$;
+  PRINT AT(49,1);uls$;
+  PRINT AT(57,1);newu$;
+  PRINT AT(64,1);bd%;
+  IF chat$="YES"
+    PRINT AT(74,1);chat$;
+  ELSE
+    PRINT AT(74,1);"NO";
+  ENDIF
+RETURN
+'
+' ###################################################
+' ####################(P. DEANE)#######(mod.PKN)#####
+' ###################################################
+'
+PROCEDURE main_window
+  '
+  OPENW #2,0,11,sw%,sh%-20,0,2304,1
+  '
+  IF icon!=TRUE
+    PRINT
+    PRINT
+    PRINT ansi4$+"                        Now running in ICONISED mode"
+    PRINT
+    PRINT ansi3$+"                           NO local console output"
+    PRINT
+    PRINT ansi5$+"                       Press F3 to un-iconise the door"
+  ENDIF
+  '
+  ' ######################################################
+  ' Set titles for window and screen and insert user data.
+  ' ######################################################
+  '
+  title$=progname$+" (V"+versnum$+") by PKN  ID:"+id$+"  ("+uname$+")  Lev:"+lev$+"  "
+  IF ring!=TRUE
+    title$=title$+"Remote"
+  ELSE
+    title$=title$+"Local"
+  ENDIF
+  TITLEW #1,"",title$
+  TITLEW #2,"",title$
+  TITLES #1,title$
+  '  TITLES #1,progname$+" (V"+versnum$+")  (C)1994  by Peter Nicolas"
+  '
+  IF ring!=FALSE
+    ~ActivateWindow(WINDOW(2))
+  ENDIF
+  '
+RETURN
+'
+'
+' ###################################################
+' #####################(P. DEANE)#######(mod.PKN)####
+' ###################################################
+'
+PROCEDURE log(text$,how%)
+  '
+  ' Creates a log entry
+  '
+  ' text$ =log entry
+  ' how% 0=Verbatim
+  '    <>0=add the time at the start
+  '
+  IF EXIST(path$+progname$+".err")
+    OPEN "A",#2,path$+progname$+".err",256
+  ELSE
+    OPEN "O",#2,path$+progname$+".err",256
+  ENDIF
+  IF how%=0
+    PRINT #2,text$
+  ELSE
+    @timeconv
+    PRINT #2,text$+"  "+pd.time$+" on "+pd.date$+" - "+uname$+" - ID:"+id$
+  ENDIF
+  CLOSE #2
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE spaceout(thing$,col%)
+  '
+  ' [Needs the string to format, and the column width it's going to fill]
+  ' [Returns spc% - the number of spaces required - 0 if field overflow]
+  '
+  xx%=FRE(1)
+  IF LEN(thing$)>col%
+    spc%=0
+  ELSE
+    spc%=(col%-LEN(thing$))
+  ENDIF
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)#######(mod.PKN)####
+' ###################################################
+'
+' Now displays in ANSI if user has it turned on!
+'
+PROCEDURE seq.out(file$)
+  '
+  ' Simply will send out a text file to the user with page pausing, and
+  ' an abort option (currently the space, 'N', 'S' or Ctrl-C will abort!)
+  ' Abortions will take place once the current line has been printed.
+  '
+  ' we also support Xon/Xoff. Ctrl-S to pause, any other key will restart.
+  '
+  @msend(ansi$(4)+"ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ"+cr$)
+  @msend(ansi$(3)+"  SayHi (V"+versnum$+") by Peter Nicolas. (c)1994. All rights reserved.  Greetings!"+cr$)
+  @msend(ansi$(4)+"ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ"+cr$)
+  '
+  lncount%=4
+  IF NOT EXIST(file$)
+    @msend(ansi$(1)+"> "+cr$)
+    @msend(ansi$(1)+"> "+ansi$(2)+"Looks like you're the first to Say Hi!"+ansi$(7)+cr$)
+    @msend(ansi$(1)+"> "+cr$)
+  ELSE
+    OPEN "I",#2,file$,4096
+    '
+    DO UNTIL EOF(#2)
+      LINE INPUT #2,text$
+      INC lncount%
+      @msend(ansi$(1)+"> "+ansi$(6)+text$+cr$)
+      @mget(9,1,0,0)
+      IF lncount%>=scrnht%
+        @msend(ansi$(3))
+        @pagepause
+        ' we go down to pagepause, even if the setting is continuous,
+        ' because pagepause does a time check, so will kick em off.
+      ENDIF
+      '
+      EXIT IF (car%>0) OR abort!=TRUE
+      EXIT IF EOF(#2)
+    LOOP
+    '
+    CLOSE #2
+  ENDIF
+  '
+  IF car%<=0
+    abort!=FALSE
+    contin!=FALSE
+    @msend(ansi$(0))
+  ENDIF
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE centre(some$)
+  '
+  ' [takes a string - MUST BE less than 76 chars - if not, no action]
+  ' [returns centred$]
+  '
+  IF LEN(some$)<76
+    centred$=SPACE$(38-(LEN(some$)/2))+some$
+  ELSE
+    centred$=some$
+  ENDIF
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)#######(mod.PKN)####
+' ###################################################
+'
+PROCEDURE press
+  @msend(cr$+ansi$(7)+" [Any_Key] ")
+  @mget(9,1,1,1)
+  in$=""
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)#######(mod.PKN)####
+' ###################################################
+'
+PROCEDURE correct
+  @msend(cr$+ansi$(6)+SPACE$(4)+"Sound Okay (Y/n)? ")
+  @mget(3,1,1,1)
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE pagepause
+  '
+  @tchk
+  IF contin!=TRUE OR abscontin!=TRUE
+    GOTO pagepauseexit
+  ENDIF
+  abort!=FALSE
+  '
+  @msend(" More (Y/n/c)?")
+  @mget(9,1,0,1)
+  IF car%>0
+    GOTO pagepauseexit
+  ENDIF
+  @msend(de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$)
+  '
+  IF in$=" " OR in$="N" OR in$="S"
+    abort!=TRUE
+  ELSE IF in$="C"
+    contin!=TRUE
+  ENDIF
+  '
+  pagepauseexit:
+  lncount%=0
+  '
+RETURN
+'
+' ######################################################
+' ######################################################
+' This procedure does the time conversions. (P.Broadnax)
+' ######################################################
+'
+PROCEDURE timeconv
+  '
+  ' Originally Percy's code, but optimised by P.Deane and
+  ' gives pd.time$ based on the 12 hour (not 24 hour) clock.
+  ' Pd.time$ is always 'HH:MM:SS xM' (ie 11 chars long)
+  '
+  LOCAL t.t%
+  '
+  time1$=TIME$
+  t.t%=VAL(LEFT$(time1$,2))
+  IF t.t%>11
+    a$=" PM"
+  ELSE
+    a$=" AM"
+  ENDIF
+  '
+  IF t.t%=0
+    t.t%=12
+    time1$=STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%<10
+    time1$="0"+STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%>21
+    t.t%=t.t%-12
+    time1$=STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%>12
+    t.t%=t.t%-12
+    time1$="0"+STR$(t.t%)+RIGHT$(time1$,6)
+  ENDIF
+  pd.time$=time1$+a$
+  '
+RETURN
+'
+' ###################################################
+' ###################################################
+' This procedure does the date conversions. (P.Deane)
+' ###################################################
+'
+PROCEDURE dateconv(pddt$)
+  '
+  ' converts date to Fido style DD-Mmm-YY
+  ' string to use in program is pd.date$
+  '
+  ' generally you call this with dateconv(DATE$) to convert the
+  ' current date, however, other dates in MM/DD/YYYY format could
+  ' be converted, just give it the string...
+  '
+  ' pd.date$ is always of the form DD-Mmm-YY (ie 9 chars long)
+  '
+  LOCAL pd.temp$,pd.date1$,pd.date2$,pd.date3$,pd.month%,pd.month$
+  '
+  ' (Only thing this returns is the pd.date$)
+  '
+  pd.date1$=LEFT$(pddt$,2)
+  pd.date2$=MID$(pddt$,4,2)
+  pd.date3$=RIGHT$(pddt$,2)
+  pd.month%=VAL(pddt$)
+  '
+  SELECT pd.month%
+    '
+  CASE 1
+    pd.month$="Jan"
+  CASE 2
+    pd.month$="Feb"
+  CASE 3
+    pd.month$="Mar"
+  CASE 4
+    pd.month$="Apr"
+  CASE 5
+    pd.month$="May"
+  CASE 6
+    pd.month$="Jun"
+  CASE 7
+    pd.month$="Jul"
+  CASE 8
+    pd.month$="Aug"
+  CASE 9
+    pd.month$="Sep"
+  CASE 10
+    pd.month$="Oct"
+  CASE 11
+    pd.month$="Nov"
+  CASE 12
+    pd.month$="Dec"
+  DEFAULT
+    pd.month$="???"
+  ENDSELECT
+  pd.date$=pd.date2$+"-"+pd.month$+"-"+pd.date3$
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)#######(mod.PKN)####
+' ###################################################
+'
+PROCEDURE tchk
+  timenow%=CINT(TIMER/200)
+  ctime%=(timenow%-timeon%)
+  ctime%=CINT(ctime%/60)
+  rtime%=tpc%-ctime%
+  '
+  IF rtime%>5
+    timewarn0!=FALSE
+    timewarn1!=FALSE
+    timewarn2!=FALSE
+    timewarn5!=FALSE
+    GOTO jumpwarn
+  ELSE IF rtime%<=0
+    @msend(ansi$(1)+cr$+cr$+" Sorry, Time Limit Exceeded!"+CHR$(7))
+    DELAY 2
+    car%=2
+    timewarn0!=TRUE
+    timewarn1!=TRUE
+    timewarn2!=TRUE
+    timewarn5!=TRUE
+    GOTO jumpwarn
+  ENDIF
+  '
+  IF rtime%<=1 AND timewarn1!=FALSE
+    @msend(ansi$(1)+cr$+" WARNING: 1 Minute or Less Remaining This Call!"+cr$)
+    DELAY 2
+    timewarn1!=TRUE
+    timewarn2!=TRUE
+    timewarn5!=TRUE
+    GOTO jumpwarn
+  ENDIF
+  IF rtime%<=2 AND timewarn2!=FALSE
+    @msend(ansi$(1)+cr$+" WARNING: 2 Minutes or Less Remaining This Call!"+cr$)
+    DELAY 1
+    timewarn2!=TRUE
+    timewarn5!=TRUE
+    GOTO jumpwarn
+  ENDIF
+  IF rtime%<=5 AND timewarn5!=FALSE
+    @msend(ansi$(1)+cr$+" WARNING: 5 Minutes or Less Remaining This Call!"+cr$)
+    DELAY 1
+    timewarn5!=TRUE
+  ENDIF
+  '
+  jumpwarn:
+  IF timewarn0!=TRUE
+    @finish
+  ENDIF
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE setpagepause
+  oldscrnht%=scrnht%
+  @msend(cr$+cr$+ansi$(2)+"Current Screen Height: "+ansi$(5)+STR$(oldscrnht%))
+  @msend(cr$+cr$+ansi$(3)+"Change Screen Height (y/N)? ")
+  @mget(3,1,0,1)
+  IF in$="NO" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  @msend(cr$+ansi$(2)+"New Screen Height: "+ansi$(1))
+  @mget(4,2,0,1)
+  IF in$="" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=VAL(in$)
+  @msend(cr$+ansi$(3)+"Are "+ansi$(1)+STR$(scrnht%)+ansi$(3)+" lines okay (Y/n)? ")
+  @mget(3,1,1,1)
+  IF in$="YES" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=oldscrnht%
+  @msend(cr$+ansi$(1)+"No change to screen height.")
+  '
+  pauseexit:
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE checkansi
+  '
+  @msend(cr$+cr$+"Do you want ANSI (Y/n)? ")
+  @mget(3,1,1,1)
+  IF car%>0
+    GOTO checkansiexit
+  ENDIF
+  '
+  IF in$="YES"
+    ansi!=TRUE
+  ELSE
+    ansi!=FALSE
+  ENDIF
+  checkansiexit:
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE setansi
+  '
+  IF ansi!=TRUE
+    ansi$(1)=esc$+"[31m"
+    ansi$(2)=esc$+"[32m"
+    ansi$(3)=esc$+"[33m"
+    ansi$(4)=esc$+"[34m"
+    ansi$(5)=esc$+"[35m"
+    ansi$(6)=esc$+"[36m"
+    ansi$(7)=esc$+"[37m"
+    ansi$(8)=esc$+"[1m"
+    ansi$(9)=esc$+"[3m"
+    ansi$(10)=esc$+"[4m"
+    ansi$(11)=esc$+"[40m"
+    ansi$(12)=esc$+"[44m"
+  ELSE
+    FOR kk%=1 TO 12
+      ansi$(kk%)=""
+    NEXT kk%
+  ENDIF
+  ' regardless of setting, this is needed for safety!
+  ansi$(0)=esc$+"[0;37;40m"
+  @msend(ansi$(0))
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)#######(mod.PKN)####
+' ###################################################
+'
+PROCEDURE setabscon
+  @msend(cr$+cr$+ansi$(2)+"Current Read Mode: "+ansi$(5))
+  '
+  IF abscontin!=TRUE
+    @msend("NO page-pausing")
+  ELSE
+    @msend("Page-pausing on")
+  ENDIF
+  '
+  @msend(cr$+cr$+ansi$(3)+"Toggle Read Mode (y/N)? ")
+  @mget(3,1,0,1)
+  IF in$="NO" OR car%>0
+    @msend(cr$+ansi$(6)+"No change to read mode!"+cr$+cr$)
+    GOTO absconexit
+  ENDIF
+  '
+  IF abscontin!=TRUE
+    abscontin!=FALSE
+    @msend(cr$+ansi$(6)+"Page pausing now turned ON"+cr$+cr$)
+  ELSE
+    abscontin!=TRUE
+    @msend(cr$+ansi$(1)+"Page pausing now turned OFF"+cr$+cr$)
+  ENDIF
+  '
+  absconexit:
+  @press
+  '
+RETURN
+'
+' ###################################################
+' #####################(P. DEANE)####################
+' ###################################################
+'
+PROCEDURE checkhotkey(hot$)
+  '
+  ' This function will not work at the moment. You'll need to put a list
+  ' of valid commands in the array cmd$() and test each one.
+  ' See this in action in a few of my other doors.
+  '
+  LOCAL jj%
+  gotone!=FALSE
+  cmd%=0
+  '
+  IF hot$=""
+    GOTO checkhotexit
+  ENDIF
+  '
+  jj%=1
+  WHILE jj%<=50
+    IF cmd$(jj%,2)=hot$
+      gotone!=TRUE
+      cmd%=jj%
+    ENDIF
+    EXIT IF gotone!=TRUE
+    INC jj%
+  WEND
+  checkhotexit:
+RETURN
+'
+' ##########################################
+' ### | ####     ### ### ###  ### #### | ###
+' ### | #### ### ### ## #### # ## #### | ###
+' ### | ####     ###   ##### ## # #### | ###
+' ### | #### ####### ## #### ###  #### | ###
+' ### V #### ####### ### ### #### #### V ###
+' ##########################################
+'
+' ######################################
+' ######################################
+' This procedure displays the main menu!
+' ######################################
+'
+PROCEDURE sayhimain
+  '
+  ans.m1$=ansi$(11)+SPACE$(4)+ansi$(8)+ansi$(2)+ansi$(12)+SPACE$(1)
+  ans.m2$=ansi$(4)+"²"+ansi$(5)
+  ans.m3$=ansi$(2)+ansi$(12)
+  @msend(cr$)
+  @msend(ans.m1$+"ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ» "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(59)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(4)+ansi$(5)+"±±±±±"+ans.m2$+"  ±±±±"+ans.m2$+"  ±±"+ans.m2$+" ±±"+ansi$(4)+"²"+ansi$(2)+SPACE$(33)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(4)+ansi$(5)+"±±"+ans.m2$+"    ±±"+ans.m2$+" ±±"+ans.m2$+" ±±"+ans.m2$+" ±±"+ansi$(4)+"²"+ansi$(3)+"   Scribe a 1-Line message"+ansi$(1)+"-["+ansi$(7)+"S"+ansi$(1)+"]   "+ans.m3$+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(4)+ansi$(5)+"±±±±±"+ans.m2$+" ±±"+ans.m2$+" ±±"+ans.m2$+" ±±±±±±"+ansi$(4)+"²"+ansi$(2)+SPACE$(33)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(4)+ansi$(5)+"   ±±"+ans.m2$+" ±±±±±±"+ans.m2$+"   ±±"+ansi$(4)+"²"+ansi$(6)+SPACE$(5)+"Display 'em all for me!"+ansi$(1)+"-["+ansi$(7)+"D"+ansi$(1)+"]   "+ans.m3$+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(4)+ansi$(5)+"±±±±±"+ans.m2$+" ±±"+ans.m2$+" ±±"+ans.m2$+"   ±±"+ansi$(4)+"²"+ansi$(2)+SPACE$(35)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(28)+ansi$(2)+" Reconfigure my settings"+ansi$(1)+"-["+ansi$(7)+"R"+ansi$(1)+"]   "+ans.m3$+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(6)+ansi$(5)+"±±"+ans.m2$+"  ±±"+ans.m2$+" ±±±±±±"+ans.m2$+" ±"+ansi$(4)+"²"+ansi$(2)+SPACE$(34)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(6)+ansi$(5)+"±±"+ans.m2$+"  ±±"+ans.m2$+"   ±±"+ans.m2$+"   ±"+ansi$(4)+"²"+ansi$(3)+"    I bet there's some Info"+ansi$(1)+"-["+ansi$(7)+"I"+ansi$(1)+"]   "+ans.m3$+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(6)+ansi$(5)+"±±±±±±±"+ans.m2$+"   ±±"+ans.m2$+"   ±"+ansi$(4)+"²"+ansi$(2)+SPACE$(34)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(6)+ansi$(5)+"±±"+ans.m2$+"  ±±"+ans.m2$+"   ±±"+ansi$(4)+"²"+ansi$(6)+SPACE$(9)+"Time to check the Time!"+ansi$(1)+"-["+ansi$(7)+"T"+ansi$(1)+"]   "+ans.m3$+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(6)+ansi$(5)+"±±"+ans.m2$+"  ±±"+ans.m2$+" ±±±±±±"+ans.m2$+" ±"+ansi$(4)+"²"+ansi$(2)+SPACE$(34)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(28)+ansi$(2)+" Quit me back to the BBS"+ansi$(1)+"-["+ansi$(7)+"Q"+ansi$(1)+"]   "+ans.m3$+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(7)+ansi$(12)+"by Peter Nicolas"+ansi$(11)+SPACE$(36)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"º"+ansi$(11)+SPACE$(59)+ansi$(12)+"º "+cr$)
+  @msend(ans.m1$+"ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼ "+ansi$(0)+cr$+cr$)
+  '
+RETURN
+'
+' ##########################################
+' ##########################################
+' This procedure sets up the config values.
+' #########################################
+'
+PROCEDURE config
+  '
+  flnm$=path$+progname$+".cfg"
+  IF EXIST(flnm$)
+    OPEN "I",#5,flnm$,1024
+    WHILE NOT EOF(#5)
+      LINE INPUT #5,sayrdlev$
+      EXIT IF EOF(#5)
+      LINE INPUT #5,saywrlev$
+      EXIT IF EOF(#5)
+      LINE INPUT #5,sayturns$
+      EXIT IF EOF(#5)
+      LINE INPUT #5,saylines$
+      EXIT IF EOF(#5)
+      LINE INPUT #5,skipem$
+      EXIT IF skipem$=""
+      EXIT IF skipem$<>""
+    WEND
+    CLOSE #5
+  ENDIF
+  '
+RETURN
+'
+' ###################################################
+' ###################################################
+' Check for user level and allocate time accordingly.
+' ###################################################
+'
+PROCEDURE checklev
+  '
+  semi$=sayrdlev$
+  @strip.semi
+  sayrdlev$=semi$
+  sayrdlev.ck%=VAL(sayrdlev$)
+  IF sayrdlev.ck%>=1 AND sayrdlev.ck<=9
+    sayrdlev%=sayrdlev.ck%
+  ENDIF
+  '
+  semi$=saywrlev$
+  @strip.semi
+  saywrlev$=semi$
+  saywrlev.ck%=VAL(saywrlev$)
+  IF saywrlev.ck%>=1 AND saywrlev.ck<=9
+    saywrlev%=saywrlev.ck%
+  ENDIF
+  '
+  semi$=sayturns$
+  @strip.semi
+  sayturns$=semi$
+  sayturns.ck%=VAL(sayturns$)
+  IF sayturns.ck%>=1 AND sayturns.ck<=50
+    sayturns%=sayturns.ck%
+  ENDIF
+  '
+  semi$=saylines$
+  @strip.semi
+  saylines$=semi$
+  saylines.ck%=VAL(saylines$)
+  IF saylines.ck%>=5 AND saylines.ck<=500
+    saylines%=saylines.ck%
+  ENDIF
+  '
+RETURN
+'
+' ##############################################
+' ##############################################
+' Procedure to strip comments from config lines.
+' ##############################################
+'
+PROCEDURE strip.semi
+  '
+  IF INSTR(semi$,";")<>0
+    scolon%=INSTR(semi$,";")
+    semi$=TRIM$(LEFT$(semi$,scolon%-1))
+  ENDIF
+  '
+RETURN
+'
+' #############################################
+' #############################################
+' This procedure returns to menu, or continues.
+' #############################################
+'
+PROCEDURE tryagain
+  '
+  IF car%>0
+    @finish
+  ENDIF
+  @msend(cr$+cr$+ansi$(2)+"        ["+ansi$(7)+"T"+ansi$(2)+"]ry Again.. or ("+ansi$(7)+"M"+ansi$(2)+")ain Menu? ")
+  @mget(9,1,1,1)
+  IF in$="M"
+    in$=""
+    go2menu!=TRUE
+  ELSE
+    in$=""
+  ENDIF
+  '
+RETURN
+'
+' ###########################################
+' ###########################################
+' This procedure displays Information text.
+' ###########################################
+'
+PROCEDURE sendtext
+  '
+  page1:
+  on1now!=TRUE
+  @msend(CHR$(27)+"[0;37m"+CHR$(12)+cr$+cr$)
+  @msend(ansi$(4)+"     ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ"+cr$)
+  @msend(ansi$(2)+"      SayHi (V"+versnum$+")  by Peter Nicolas. (c)1994. All rights reserved. "+cr$)
+  @msend(ansi$(4)+"     ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ"+cr$)
+  @msend(ansi$(6)+"     This simple door allows a user to enter '1-Line' messages for all"+cr$)
+  @msend("     other users on the BBS.  The sysop has full control of the number"+cr$)
+  @msend("     of lines that are stored, and the user levels that can read/write"+cr$)
+  @msend("     messages.  Leave your sysop feedback should you like any settings"+cr$)
+  @msend("     adjusted!  There's not much more to it.  I hope you like SayHi!"+cr$)
+  @msend(ansi$(4)+"     ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ"+ansi$(0)+cr$)
+  IF car%>0
+    @finish
+  ENDIF
+  @getpage
+  GOTO skipsend
+  '
+  page2:
+  on2now!=TRUE
+  @msend(CHR$(27)+"[0;37m"+CHR$(12)+cr$+cr$)
+  @msend(ansi$(4)+"     ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ"+cr$)
+  @msend(ansi$(2)+"      SayHi (V"+versnum$+")  by Peter Nicolas. (c)1994. All rights reserved."+cr$)
+  @msend(ansi$(4)+"     ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ"+cr$)
+  @msend(ansi$(6)+"     The author can be contacted via Netmail at fidonet (3:711/439) or"+cr$)
+  @msend("     GlobalNet (54:6100/439) or AmigaNet (41:200/439).  Or call direct"+cr$)
+  @msend("     to Budgie BBS.  In Australia: (043)99-2590.  Intl: 61-43-99-2590."+cr$)
+  @msend(ansi$(4)+"     ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ"+ansi$(0)+cr$)
+  IF car%>0
+    @finish
+  ENDIF
+  @getpage
+  GOTO skipsend
+  '
+  page3:
+  '
+  skipsend:
+  IF go1now!
+    go1now!=FALSE
+    GOTO page1
+  ELSE IF go2now!
+    go2now!=FALSE
+    GOTO page2
+  ENDIF
+  '
+RETURN
+'
+' #############################################
+' #############################################
+' This procedure sets up page selection prompt.
+' #############################################
+'
+PROCEDURE getpage
+  '
+  @tchk
+  @msend(cr$+ansi$(1)+"       <---("+ansi$(7)+"L"+ansi$(1)+")ast page         ("+ansi$(7)+"Q"+ansi$(1)+")uit to menu        ("+ansi$(7)+"N"+ansi$(1)+")ext page--->")
+  '
+  checkpage:
+  @mget(9,1,0,1)
+  IF car%>0
+    @finish
+  ENDIF
+  '
+  IF in$="Q"
+    in$=""
+    '
+  ELSE IF in$="N" OR in$=""
+    in$=""
+    IF on1now!
+      on1now!=FALSE
+      go2now!=TRUE
+    ELSE IF on2now!
+      on2now!=FALSE
+    ENDIF
+    '
+  ELSE IF in$="L"
+    in$=""
+    IF on1now!
+      on1now!=FALSE
+    ELSE IF on2now!
+      on2now!=FALSE
+      go1now!=TRUE
+    ENDIF
+    '
+  ELSE
+    in$=""
+    GOTO checkpage
+  ENDIF
+  '
+RETURN
+'
+' ###########################################
+' ###########################################
+' This procedure checks the SayHi line input.
+' ###########################################
+'
+PROCEDURE checkline
+  '
+  lchk$=UPPER$(saymsg$)
+  IF INSTR(lchk$,"SHIT-")<>0 OR INSTR(lchk$,"SHITHEAD")<>0 OR INSTR(lchk$,"SHITFACE")<>0 OR INSTR(lchk$,"PISS OFF")<>0 OR INSTR(lchk$,"PISS-OFF")<>0 OR INSTR(lchk$,"FUCK")<>0 OR INSTR(lchk$,"CUNT")<>0 OR INSTR(lchk$,"CLIT")<>0
+    @msend(cr$+cr$+ansi$(7)+"       GET A LIFE, BUDDY!"+cr$)
+    glife!=TRUE
+    DELAY 2
+  ELSE IF INSTR(lchk$,"DICK-")<>0 OR INSTR(lchk$,"DICKHEAD")<>0 OR INSTR(lchk$,"DICKFACE")<>0 OR INSTR(lchk$,"COCK-")<>0 OR INSTR(lchk$,"COCKSUC")<>0 OR INSTR(lchk$,"COCKFACE")<>0 OR INSTR(lchk$,"COCKBRE")<>0
+    @msend(cr$+cr$+ansi$(7)+"       GET A LIFE, BUDDY!"+cr$)
+    glife!=TRUE
+    DELAY 2
+  ELSE IF INSTR(lchk$,"ASS-")<>0 OR INSTR(lchk$,"ASSWIPE")<>0 OR INSTR(lchk$,"ASSHOLE")<>0 OR INSTR(lchk$,"LICK MY")<>0 OR INSTR(lchk$,"SUCK MY")<>0
+    @msend(cr$+cr$+ansi$(7)+"       GET A LIFE, BUDDY!"+cr$)
+    glife!=TRUE
+    DELAY 2
+  ENDIF
+  IF car%>0
+    @finish
+  ENDIF
+  '
+RETURN
+'
+' #########################################
+' #########################################
+' This procedure handles the limit per day.
+' #########################################
+'
+PROCEDURE sayquota
+  '
+  ' Check for "sayhi.quota" file
+  jumpquota!=FALSE
+  IF EXIST(qu$)
+    OPEN "I",#31,qu$,4096
+    WHILE NOT EOF(#31)
+      LINE INPUT #31,xx$
+      xx$=UPPER$(xx$)
+      IF xx$=uname$
+        LINE INPUT #31,xx$
+        saycheck$=xx$
+        jumpquota!=TRUE
+      ELSE
+        LINE INPUT #31,xx$
+      ENDIF
+      '
+      EXIT IF jumpquota!
+    WEND
+    CLOSE #31
+  ENDIF
+  '
+  IF jumpquota!
+    IF LEFT$(saycheck$,9)=pd.date$
+      IF saycheck$=pd.date$+" LINES:"+sayturns$
+        saylimit!=TRUE
+      ENDIF
+    ENDIF
+  ENDIF
+  '
+RETURN
+'
+' #########################################
+' #########################################
+' This procedure increments the quota file.
+' #########################################
+'
+PROCEDURE sayupdate
+  '
+  IF NOT EXIST(qu$)
+    OPEN "O",#31,qu$,1024
+    PRINT #31,uname$
+    PRINT #31,pd.date$+" LINES:1"
+    CLOSE #31
+  ELSE IF EXIST(qu$)
+    ex$="copy "+qu$+" TO "+qu.o$
+    EXEC ex$,-1,-1
+    IF NOT jumpquota!
+      OPEN "A",#31,qu$,1024
+      PRINT #31,uname$
+      PRINT #31,pd.date$+" LINES:1"
+      CLOSE #31
+    ELSE
+      ' so the file exists AND the uname$ was found in it
+      ' we had best shuffle it all over to a new file..
+      ' So first determine what line needs to be added.
+      '
+      IF NOT LEFT$(saycheck$,9)=pd.date$
+        ' ie there's an entry but it's not todays date..
+        saynuline$=pd.date$+" LINES:1"
+      ELSE
+        ' this is the tricky one. Todays date so increment the value
+        numadded$=TRIM$(MID$(saycheck$,17,3))
+        numadded%=VAL(numadded$)
+        numadded%=numadded%+1
+        saynumt$=STR$(numadded%)
+        saynuline$=pd.date$+" LINES:"+saynumt$
+      ENDIF
+      '
+      ' open our quota file for input.
+      OPEN "I",#31,qu$,4096
+      '
+      ' open our work file for output.
+      OPEN "O",#32,qu.r$,4096
+      '
+      WHILE NOT EOF(#31)
+        LINE INPUT #31,xx$
+        xx$=UPPER$(xx$)
+        xname$=xx$
+        IF NOT xx$=uname$
+          LINE INPUT #31,xx$
+          ' While we're here, trim old entries..
+          IF LEFT$(xx$,9)=pd.date$
+            PRINT #32,xname$
+            PRINT #32,xx$
+          ENDIF
+        ELSE
+          LINE INPUT #31,xx$
+          PRINT #32,xname$
+          PRINT #32,saynuline$
+        ENDIF
+        EXIT IF EOF(#31)
+      WEND
+      CLOSE #32
+      CLOSE #31
+      ' copy work file to path$
+      ex$="Copy "+qu.r$+" TO "+qu$
+      EXEC ex$,-1,-1
+      '
+    ENDIF
+  ENDIF
+  '
+RETURN
+'
+' #########################################
+' #########################################
+' This procedure handles the saylines file.
+' #########################################
+'
+PROCEDURE saylines
+  '
+  @sayupdate
+  '
+  ' see if "sayhi.dat" exists.
+  IF EXIST(da$)
+    OPEN "I",#34,da$,4096
+    WHILE NOT EOF(#34)
+      LINE INPUT #34,xx$
+      sayline$(nlines%)=TRIM$(xx$)
+      nlines%=nlines%+1
+      EXIT IF EOF(#34)
+    WEND
+  ENDIF
+  CLOSE #34
+  ' so add the new line to the array here.
+  sayline$(nlines%)=saymsg$
+  totlines%=nlines%+1
+  IF totlines%>saylines%
+    uselines%=saylines%
+    lowline%=totlines%-saylines%
+  ELSE
+    uselines%=totlines%
+    lowline%=0
+  ENDIF
+  '
+  ' so open our work file.
+  OPEN "O",#33,da.r$,4096
+  WHILE (lowline%<nlines%+1)
+    ' now PRINT to #33 the oldest line to be included..
+    PRINT #33,sayline$(lowline%)
+    lowline%=lowline%+1
+    EXIT IF (lowline%=nlines%+2)
+  WEND
+  '
+  ' rename old file for safety..
+  ' may as well leave it there too!
+  IF EXIST(da$)
+    ex$="copy "+da$+" TO "+da.o$
+    EXEC ex$,-1,-1
+  ENDIF
+  CLOSE #33
+  ex$="Copy "+da.r$+" TO "+da$
+  EXEC ex$,-1,-1
+  '
+RETURN
+'
+'
+'

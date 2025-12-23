@@ -1,0 +1,207 @@
+    XRPzedzap.doc by Robert Williamson
+
+   XPRzedzap.library is an enhanced version of xprzmodem.library for use in
+FTN   sessions.    The  xprzedzap.library  uses  the  3.1  version  of  the
+xprzmodem.library   as   its   base   and   uses   the   0.85   version  of
+xprzedzap.library  by  Yves  Konigshofer  for FTN-related extensions.  This
+version  was  audited  by  Yves and released with his approval of myself as
+KOTS for zedzap.
+
+      Since  the  version  0.55  sources  were written for lattice C, I had
+decided  to  forget  about them AND the .85 and .90 sources and build a new
+one  from xprzmodem v3.1 source.  This source is compilable with SASc v6.51
+and  uses  the  libent  and  libinit  modules instead of the old latticelib
+assembly stubs.
+
+  The  new  version has virtually all the useful xprzedzap v1.0 options and
+features  DirectZap  as  well  and ZedZap, ZedZip, SZmodem and Zmodem.  The
+protocol currently active is displayed in the xpr status window.
+
+Mailers and XPR Protocols 
+
+    Many  Mailers  make  use  of  XPR  protocols  to  provide file transfer
+capabilities  and  to  gain the advantage of easy addition of new protocols
+when they become available.  Those known to use XPP protocols include:
+
+    POP, JAZ, RAP, UMBRELLA, GAZEBO, PORTICUS, ROOF, NORM and JAMMAIL.
+
+   Since  Mailers  perform  a  fast  turaround  from  send  to  receive and
+vise-versa,  the XPR design must insure that both echoed characters and any
+left  unread  from  the previous transfer do not cause detrimental effects.
+While the changes to avoid these problems will not affect term programs and
+BBS's   using   xprzedzap.library,   the   lack   of   these   'fixes'   in
+xprzmodem.library make it near useless in mailers.
+
+    Mailers  require that a session can be accomplished without reporting a
+failure  if  there were no files sent and/or received.  The enhancements in
+XPRzedzap.library address this problem.
+
+    Mailers  also  require notification of the status of each file transfer
+in a batch.  This is provided by the XPR 3 function upd_status().
+
+    Calculation  of CPS and expected transfer times are based upon the baud
+rate.  If the mailer does not set this to the linked rate, the calculations
+will  be  based  either  upon  the  Locked  rate or the prefs setting.  The
+C<baud> option allows passing the LINK rate for more accurate and realistic
+results.
+
+    The maximum packet size can be set with a maximum/default at 8192 and a
+mimimum  of  64.   This  will  vary  when  sending  and will be static when
+receiving.   When  receiving, it should be 8192 but the maximum packet size
+can be set to less than if the local system has a slow HD.
+  When sending the maximum packet size will be baud rate dependant, and the
+size is calculated with the formula:
+                MAX_PACKET = (BPS_RATE * 8192 / 9600).
+If C(baud) is passed, the link rate will be used for these allocations.
+
+    The  IO  Buffer  for  reading/writing to/from the disk must be equal to
+twice   the   maximum   packet  size  (or  the  maximum  packet  size  will
+automatically be decreased).
+
+    Example Protocol Setups for xprzedzap.library and Mailers:
+
+    The defaults for xprzedzap.library are set in such as way as to require
+minimal changes for each protocol.
+
+
+    TN       No Text translation
+    OR       Overwrite Resume
+    B16      Buffer size 16KB 
+    F0       Frame size = filelength 
+    E30      Error count 30 
+    SN       Do not send full directory path  
+    RN       Do not use received full directory path  
+    AN       Disable Auto-activate mode  
+    DN       Do not Delete after sending  
+    KY       Keep partial files  
+    P""      Comm progrmas provides Path to use for received files  
+    M8192    Maximum packet size 8K 
+    C0       Set Link BPS Rate  
+    NY       Alow Send if there are no files  
+    QN       Disable DirectZap escape only CAN  
+    ZY       Enable FTN mode  
+
+
+    Zmodem      used for user uploads/downloads (GRAB, for example)
+                M1024,ZN,C$(Baud)
+
+    SZmodem     It is possible that M8192 will work if the user is using
+                SZmodem or 8K-Zmodem.
+                M8192,ZN,C$(Baud)
+
+    DirectZap   uses 8K blocks, allows NoFiles transfer, escapes only ZDLE
+                and ZDLEE
+                QY,C$(Baud)
+
+    ZedZip      uses 1K blocks, allows Nofiles transfer
+                M1024,C$(Baud)
+
+    ZedZap      up to 8K Blocks, allows NoFiles transfer
+                C$(Baud)
+
+    If  your  mailer  does  not  support  inbound RESUME, you must add 'ON'
+(OverWrite Never) to the setup string in order to override the default 'OR'
+(OverWrite Resume) and 'KN' (Keep Never) to override the default 'KP' (Keep
+Partial).
+
+    The New Setup options: 
+
+    Z   - FTN mode
+    The Z option enables FTN operation, when Y, the following is in effect:
+        - RxTimeOut is restored to 600ms
+        - transfers start with blocksize specified in M option.
+        - serialbuffer is cleared before sending/recving.  In FTN
+          mode the turnaround from sending to receiveng (and vis-versa)
+          is quite fast, clearing the buffer avoids reading echos of our
+          own characters or leftovers from the previous transfer.
+        - affects selection of protocol name
+    
+    C<link bps>
+    Buffer allocations and calculations of CPS will be based upon LINK rate
+    if  passed  with  C<baud> option, otherwise they will be based upon the
+    LOCKED rate.
+        
+
+    N   - send no files mode (DirectZap,  ZedZip  and  ZedZap protocols)
+    It is permitted to have a session without sending or receiving files if
+    N  option is Y.  This is required with some protocols in FTN mode so as
+    not  to  generate a spurious failure after a mailer session.  This also
+    chnages EOF mode from sending CAN's to just sending ZFIN.
+        
+    Q   - DirectZap mode
+    Only ZDLE adn ZDLEE will be escaped is Q option is Y (DirectZap protocol)
+
+
+Status Display:
+
+    XPR  2.001  support  for  dual-status windows added.  (tested, but note
+that  there is no publically available version of wpl.library that supports
+this)
+
+    Protocol name displayed will be one of: 
+        Zmodem, 1K blocks standard, up to 8K, non-ftn mode
+        ZedZap, up to 8K Blocks based upon bps rate, ftn mode
+        ZedZip, 1k blocks , ftn mode
+        DirectZap, up to 8k blocks, minimum escaping, ftn mode
+
+    Added  localization  for  new  options.   These  are NOT translated for
+    german catalog, so that catalog has been removed from distribution.
+
+    During  batch  transfers,  Error  message  field is set to "None" when
+    starting to send or receive next file.
+
+wpl concerns:
+    XprSetup  does  not  read  any  variables,  so you must set option C to
+$(baud)  so  that  all calculations are based upon the actual link rate and
+not the locked rate.
+
+   XprSetup makes an XPR library ready for a transfer.  The first parameter
+given  is the xpr library name, and the second parameter is a string passed
+to  the xpr library with XProtocolSetup().  The variable $(XprSetup) is set
+to  the  numeric  return  of  XProtocolSetup().   A  value of 0 indicates a
+failure, otherwise the setup was successful.
+
+   Return Values in $(Setup) are or'ed from the following:
+
+        XPRS_FAILURE    0x00000000L 
+        XPRS_SUCCESS    0x00000001L
+        XPRS_NORECREQ   0x00000002L
+        XPRS_NOSNDREQ   0x00000004L
+        XPRS_HOSTMON    0x00000008L
+        XPRS_USERMON    0x00000010L
+        XPRS_HOSTNOWAIT 0x00000020L
+        XPRS_NOUPDATE   0x00008000L
+        XPRS_XPR2001    0x00010000L *
+        XPRS_DOUBLE     0x00020000L *
+
+    *  Note:  private jammail versions of wl.library required both returned
+to  enable  dual-status  display.  This is WRONG.  Only XPRS_XPR2001 should
+trigger use of dual-status display.
+
+        Normally returns:
+    XPRS_SUCCESS | XPRS_NORECREQ | XPRS_HOSTMON 
+        | XPRS_DOUBLE | XPRS_XPR2001
+    or
+    XPRS_SUCCESS | XPRS_NORECREQ | XPRS_DOUBLE | XPRS_XPR2001
+
+
+   Return values in $(RC) are as follows:
+      0 - All OK.
+      1 - XProtocolSetup returned FALSE.
+      2 - Library not able to be opened
+      3 - Out of memory.
+      4 - Wasn't given required modem.
+
+    -Robert Williamson
+
+Credits:
+-Chuck Forsberg for the original ZMODEM specs
+-Rick Huebner for the original xprzmodem.library (--> v2.10)
+-William M. Perkins for the 32bit CRC improvements (2.50)
+-Yves Konigshofer for the changes to allow ZedZap-type transfers
+ and a lot of advice by phone during the conversion process
+-Rainer Hess for addition of locale support
+
+Debits:
+-Rainer  Hess  for  NOT acknowledging Yves's development.  Many features he
+claimed he added first appeared in Yves's sources.

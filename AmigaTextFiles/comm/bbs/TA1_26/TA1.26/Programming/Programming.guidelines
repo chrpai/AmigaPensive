@@ -1,0 +1,103 @@
+             PROGRAMMING GUIDE LINES FOR TransAmiga BBS DOORS
+             ================================================
+
+Introduction:
+-------------
+
+I found that several doors for TransAmiga are not very well coded. Not at all
+safe for future versions of the BBS. I am happy that there are several people
+who write scripts and fine programs around TransAmiga, but v1.12 of TransAmiga
+BBS really makes it necessary to tell programmers what they have to care for.
+
+General:
+--------
+
+*
+If you use ARexx commands from the BBS and need a special case (upper or lower)
+then convert it yourself! The BBS may return case sensitive strings where
+actually upper case is returned.
+
+*
+Don't use TransAmiga's config files if not really necessary. Use SystemInfo
+and UserInfo commands to get all needed information.
+
+*
+If your program needs the sysop to watch then turn the LOCALDISPLAY ON. You
+have to set the local display to the mode it was before your program started!
+Use SYSTEMINFO N to get the status at the beginning.
+
+*
+You can use GETCHARSTACK to get TransAmiga's command stack. If you use this
+command TransAmiga's stack is deleted. Examine the string you get. Delete
+the part that is for your application and send the rest TransAmiga. Use
+SETCHARSTACK at the end of your program to send the left string to
+TransAmiga.
+
+*
+If you use CHR(12) [FF] or clear the screen in an other way you have to
+check if the user has clearcodes activated. Use USERINFO Y to get the
+setting. If you TA tells you that they are OFF you *should* NOT clear the
+screen. If it is really necessary to clear the screen then ignore the
+setting. e.g. when a full-screen-ed is finished
+
+*
+Don't use a fixed language where possible. As USERINFO H returns the language
+it is possible to use different strings in your program. Don't expect English
+to be the default language! An example for ARexx scripts:
+
+/* test script */
+
+options results
+userinfo h
+language=RESULT
+IF language='DEFAULT' THEN
+  PRINT 'This is a language test'
+ELSE IF language='GERMAN' THEN
+  PRINT 'Dies ist ein Sprachentest'
+ELSE PRINT 'What a strange language did you choose?'
+EXIT 0
+
+BTW: This script is not tested, it's just to show you how it works.
+
+*
+If you use SENDNODEMSG ARexx command your text has NOT to exceed two lines.
+The CR to seperate the two lines has to be inserted by yourself but there
+has to be NO CR in front or at the end of the text.
+
+ARexx macros:
+-------------
+
+*
+Check for ###PANIC whenever you used a command that waits for input from the
+user.
+
+*
+If you use CarrierChecking OFF in your script you HAVE TO MAKE SURE your
+script executes CarrierChecking ON in any case even if it is terminated
+somehow. This is essential as you switch on/off the global carrier checking
+of the BBS. CarrierChecking is a very DANGEROUS ARexx command especially
+if you are not an ARexx expert. KEEP YOUR FINGERS OFF THIS COMMAN UNLESS
+YOU KNOW EXACTLY WHAT YOU DO!!!!
+
+Direct Library Access from high-level languages (C, Modula-2, Oberon,...):
+--------------------------------------------------------------------------
+
+*
+Get the status of the local display via SYSTEMINFO N. When it returns OFF
+disable your writing to the screen (Don't call ANSIWrite()). Really test the
+string OFF and NOT ON. You can test if ON is returned but you have to use
+ANSIWrite() if nothing is returned. When nothing is returned the version of
+TransAmiga actually running is lower 1.12.
+
+*
+If you use the library to get user input you have to filter CHR(10) (LF)
+yourself. LFs should be ignored by your program.
+
+*
+If you use the library function PostNodeMsg you have to position the text
+yourself! Start at screenlength-1 but don't forget to save the cursor
+position before and restore it afterwards. Check TransAmiga.doc for ANSI
+codes of these functions.
+
+Make fine programs! :-)
+- Sami Radwan -

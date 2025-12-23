@@ -1,0 +1,545 @@
+;
+;	$VER: AMMS DISK TOOL 2.04 [Deutsch] / 01.04.1995
+;
+;
+;
+
+
+
+;	Bekannte Variablen im gesamten Requester :
+;
+;	Var18: Anzahl der angezeigten Files
+;	Var19: Anzahl der angezeigten Dirs
+;	Var21: Pfadname
+;	Var22: ZONE Reqester-Window
+;	Var23: ZONE Kommentar-Window
+;	Var24: SETLINE Infozeile
+;	Var25: SETPOS Infozeile (Spalte 40)
+;	Var26: SETLINE Kommentar-Window
+
+;
+; Bildschirm
+; ----------
+*
+#EOFF##RESET##RELOFF##ZONEOFF##HOME##CLS#
+Files: {var18 6}Dirs: {var19 12}#FARBE 1,7# DISK TOOL V{VERSION}.{REVISION} #RESET#
+{tab 23}[h=Hilfe]#RESET##HOME#^J
+#FARBE 7,4##INVERS# X Filename                      Laenge  Datum   Kommentar                       {var24}
+                                                                                {var25}
+{limspaceon}{var21 40}#RESET#{limspaceoff}{var22}
+*
+;
+; Hilfe: Seite 1 von 4
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 1 von 4                    #RESET#^J#CLB#
+u: Sende File               r: Aendere Filename    p: Zurueck in's Parentdir^J
+CTRL-U: Sende File weiter   e: Aendere Kommentar  CR: Wechsel in's Unterdir^J
+S: Suche ab Cursor          F: Suche ab Anfang     d: Markiere File f. Download^J
+s: Suche weiter             f: Suche weiter        D: Starte Download
+{var22}
+*
+; >>UP: 2.0
+; Hilfe: Seite 2 von 4
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 2 von 4                    #RESET#^J#CLB#
+t: Zeige Textfile      a: Zeige Laenge aller Files  v: Liste Archiv^J
+T: Zeige Rohtextfile   l: Zeige Uebertragungszeit   C: Pruefe Archiv^J
+H: Zeige Hexdump       i: Zeige Fileinfo          1-8: Starte Spezial-Funktion^J
+h: Naechste Hilfeseite
+{var22}
+*
+; >>UP: 2.0
+; Hilfe: Seite 3 von 4
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 3 von 4                    #RESET#^J#CLB#
+CTRL-A: Alpha/Datum-Sortierung aendern     CTRL-T/B: Erste/Letzte Seite^J
+CTRL-O: Dir/File-Sortierung aendern        CTRL-N/L: Seite vor/zurueck^J
+CTRL-Y: Erneuere Bildschirm                CTRL-XC : Erneuere Fenster^J
+CTRL-D: Loesche File
+{var22}
+*
+;
+; Hilfe: Seite 4 von 4
+; --------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Hilfe: Seite 4 von 4                    #RESET#^J#CLB#
+c: Kopiere File                    m: Bewege File^J
+W: Speichere Fastdir-File          R: Directory neu einscannen^J
+w: Speichere Settings            x,q: Ende
+{var22}
+*
+;
+; Anzahl der Zeilen ueber dem Requester-Window
+; --------------------------------------------
+*
+3
+*
+;
+; Uebertragungszeit fuer die Downloads
+; ------------------------------------
+;	Var8 : Laenge der Files (Bytes)
+;	Var9 : Laenge der Files (Mbytes)
+;	Var27: Anzahl der Files
+;	Var28: Erwartete Uebertragungszeit
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Uebertragungszeit fuer die Downloads    #RESET#^J#CLB#^J
+Anzahl der Files : {var27}^J
+Erwartete Zeit   : {var28} Min.^J
+Laenge der Files : {var9} MByte [{var8} Bytes]
+{var22}
+*
+;
+; Dattyp: Gesamte Zeile
+; ---------------------
+;	Var1 : X-Flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Datum (xx-xx-xx)
+;	Var6 : Datum (x-xx-xx)
+;	Var7 : Kommentar
+*
+^M#CL# {var1} {var2 28} {var3 8}{var5 9}{var7}
+*
+;
+; Dattyp2: Gesamte Zeile
+; ----------------------
+;	Var1 : X-Flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Datum (xx-xx-xx)
+;	Var6 : Datum (x-xx-xx)
+;	Var7 : Kommentar
+*
+^M#CL#   #vfarbe 2#{var2 28}  Drawer {var5 9}{var7}#reset#
+*
+;
+; Dattyp3: Gesamte Zeile (geloescht)
+; ----------------------------------
+*
+^M#CL#    <GELOESCHT>
+*
+;
+; Dattyp3: Gesamte Zeile (keine Files)
+; ------------------------------------
+*
+^M#CL#    K e i n e   F i l e s
+*
+;
+; Dattyp: Kurze Zeile (erneuere XX-Flags)
+; ---------------------------------------
+;	Var1 : X-Flags
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Datum (xx-xx-xx)
+;	Var6 : Datum (x-xx-xx)
+;	Var7 : Kommentar
+*
+ {Var1}
+*
+;
+; Cursor
+; ------
+*
+>#LEFT#
+*
+;
+; Cursor loeschen
+; ---------------
+*
+ 
+*
+;
+; Datumsformat (Var 6)
+; --------------------
+*
+1-4-5
+*
+;
+; Datumsformat (Var 7)
+; --------------------
+*
+1-3-6
+*
+;
+; Suche Filename
+; --------------
+*
+#FARBE 7,4##INVERS#{var25}
+Suche :                                 #HFARBE 1#{var24}#RIGHT 48#
+*
+;
+; Erneuere Boardname
+; ------------------
+*
+#FARBE 7,4##INVERS#{var25}{limspaceon}{var21 40}#RESET#{limspaceoff}
+*
+;
+; Status (Suche) : FILE NICHT GEFUNDEN
+; ------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File nicht gefunden !                   #RESET#
+*
+;
+; Setze Position fuer Kommentar aendern
+; -------------------------------------
+*
+#VFARBE 5#^M#RIGHT 49#
+*
+;
+; Gib Filename ein
+; ----------------
+*
+#FARBE 7,4##INVERS#{var25}Name :                                  #HFARBE 1#
+{var24}#RIGHT 47#
+*
+;
+; Gib kurzen Kommentar ein
+; ------------------------
+*
+#FARBE 7,4##INVERS#{var25}Kommen.:                                #HFARBE 1#
+{var24}#RIGHT 49#
+*
+;
+; Status (import) : FILE NICHT GEFUNDEN
+; -------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Kann File nicht finden !                #RESET#
+*
+;
+; Verlasse FILES (Bildschirm loeschen)
+; ------------------------------------
+*
+#ZONEOFF##RESET##HOME##CLS#
+*
+;
+; Frage: File wirklich loeschen ?
+; -------------------------------
+*
+#FARBE 7,4##INVERS#{var25}FILE wirklich loeschen (j/n) ?          {var24}#RIGHT 71#
+*
+;
+; Frage: Pfad wirklich loeschen ?
+; -------------------------------
+*
+#FARBE 7,4##INVERS#{var25}PFAD wirklich loeschen (j/n) ?          {var24}#RIGHT 71#
+*
+;
+; Starte Download
+; ---------------
+*
+#FARBE 7,5##INVERS#{var24}Download mit {limspaceon}
+{protocol 27}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Starte Upload
+; -------------
+*
+#FARBE 7,5##INVERS#{var24}Upload mit {limspaceon}
+{protocol 29}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Starte Upload-Resume
+; --------------------
+*
+#FARBE 7,5##INVERS#{var24}Upload-Resume mit {limspaceon}
+{protocol 22}{limspaceoff}#RESET#{var23}{var26}#CLB#
+*
+;
+; Status (upload,download) : FILE(S) SIND UEBERTRAGEN
+; ----------------------------------------------------
+*
+#FARBE 7,5##INVERS#{var24}File(s) sind uebertragen !              #RESET#{var22}
+*
+;
+; Status (upload,download) : XPR-LIB IST NICHT VORHANDEN
+; ------------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}XPR-Library ist nicht vorhanden !       #RESET#{var22}
+*
+;
+; Status (upload) : UPLOAD ABGEBROCHEN
+; ------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Upload abgebrochen !                    #RESET#{var22}
+*
+;
+; Status (upload) : File existiert schon
+; --------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}File existiert schon !                  #RESET#{var22}
+*
+;
+; Setze Position (Aendere Filename)
+; ---------------------------------
+*
+#VFARBE 5#^M#RIGHT 3#
+*
+;
+; Status : DISK ERROR
+; -------------------
+*
+#FARBE 7,1##INVERS#{var24}Fehler auf Disk ! Bitte Info an Sysop ! #RESET#
+*
+;
+; Loesche Ausgaben
+; ----------------
+*
+#ZONEOFF##FARBE 7,1##INVERS#{var24}                                        #RESET#
+^J#CLB#{var22}
+*
+;
+; Status (download) : KEINE RESTDOWNLOADS FREI
+; --------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Keine Restdownloads frei !              #RESET#
+*
+;
+; Status (download) : DOWNLOAD UEBERSPRUNGEN
+; ------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Downloads uebersprungen (zu wenig Zeit)!#RESET#
+*
+;
+; Status (download) : DOWNLOAD ABGEBROCHEN
+; ----------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Download abgebrochen !                  #RESET#
+*
+;
+; Zeige Rohtext (Loesche Bildschirm)
+; ----------------------------------
+*
+#RESET##ZONEOFF##HOME##CLS#
+*
+;
+; Zeige Text (Loesche Bildschirm)
+; -------------------------------
+*
+#RESET##ZONEOFF##HOME##CLS#{moreon}
+*
+;
+; Zeige Text (Warte auf Taste Space oder Return)
+; ----------------------------------------------
+*
+^J^J#RESET##VFARBE 2#Druecke SPACE oder RETURN fuer weiter !
+*
+;
+; Laenge aller Files
+; ------------------
+;	Var8: Laenge aller Files (Bytes)
+;	Var9: Laenge aller Files (Mbytes)
+*
+#ZONEOFF##FARBE 7,5##INVERS#
+{var24}Laenge aller Files ...                  #RESET#^J#CLB#^J
+Laenge aller Files : {var9} MByte [{var8} Bytes]{var22}
+*
+;
+; TASTEN : Tasten fuer NEIN bei Frage
+; -----------------------------------
+*
+Nn
+*
+;
+; TASTEN : Tasten fuer JA bei Frage
+; ---------------------------------
+*
+JjYy
+*
+;
+; Pfad: Filelist
+; --------------
+*
+mbbatch:filelist/
+*
+; >>UP: 2.0
+; RunFileBatch: Loesche Bildschirm
+; --------------------------------
+*
+#ZONEOFF##RESET##HOME##CLS#
+*
+; >>UP: 2.0
+; RunFileBatch: Keine Filebatch fuer Endung gefunden
+; --------------------------------------------------
+*
+#FARBE 7,1##INVERS#{var24}Keine Filebatch fuer Endung gefunden !  #RESET#
+*
+;
+; Pfad: Upload
+; ------------
+*
+mbbatch:upload/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 1
+; -----------------
+*
+mbbatch:filebatch1/
+*
+;
+; Pfad: Filebatch 2
+; -----------------
+*
+mbbatch:filebatch2/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 3
+; -----------------
+*
+mbbatch:filebatch3/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 4
+; -----------------
+*
+mbbatch:filebatch4/
+*
+; >>UP: 2.0
+; RunFileBatch: STATUS OK
+; -----------------------
+*
+#FARBE 7,5##INVERS#{var24}Status : OK                             #RESET#
+*
+; >>UP: 2.0
+; RunFileBatch: STATUS FEHLER
+; ---------------------------
+*
+#FARBE 7,1##INVERS#{var24}Status : FEHLER                         #RESET#
+*
+;
+; Pfad: Checkpath
+; ---------------
+*
+mbbatch:filecheck/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 5
+; -----------------
+*
+mbbatch:filebatch5/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 6
+; -----------------
+*
+mbbatch:filebatch6/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 7
+; -----------------
+*
+mbbatch:filebatch7/
+*
+; >>UP: 2.0
+; Pfad: Filebatch 8
+; -----------------
+*
+mbbatch:filebatch8/
+*
+;
+; Filename des Settings-Files
+; ---------------------------
+*
+{userdir}/disk_tool.cfg
+*
+;
+; Status (Speichere Settings)
+; ---------------------------
+*
+#FARBE 7,1##INVERS#{var24}Settings werden gespeichert ...         #RESET#
+*
+;
+; Filename des Fastdir-Files
+; --------------------------
+*
+.DISKTOOL
+*
+;
+; Status (Speichere Fastdir-File)
+; -------------------------------
+*
+#FARBE 7,1##INVERS#{var24}FASTDIR-File ist gespeichert ...        #RESET#
+*
+;
+; Filename des Download-Files
+; ---------------------------
+*
+{userdir}/download.dat
+*
+;
+; File-Info
+; ---------
+;	Var2 : Filename
+;	Var3 : Filelaenge (rechtsbuendig)
+;	Var4 : Filelaenge (linksbuendig)
+;	Var5 : Datum (xx-xx-xx)
+;	Var6 : Datum (x-xx-xx)
+;	Var7-9: Kommentar (max. 116 Bytes)
+;	Var10: Zeit
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+File-Info ...                           #RESET#^J#CLB#
+Filename : {var2}^J
+Laenge   : {var4}^J
+Datum    : {var5} / {var10}^J
+Kommentar: {var7}
+{var22}
+*
+;
+; Gib Zielpfad an (Kopiere ein File/Pfad)
+; ---------------------------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Kopiere ein File oder Pfad ...          #RESET#^J#CLB#
+^J
+Gib Zielpfad an :^J
+*
+;
+; Gib Zielpfad an (Bewege ein File)
+; ---------------------------------
+*
+#ZONEOFF##FARBE 7,5##INVERS#{var24}
+Verschiebe ein File ...                 #RESET#^J#CLB#
+^J
+Gib Zielpfad an :^J
+*
+;
+; Scanne Directory ein
+; --------------------
+*
+#FARBE 7,1##INVERS#{var24}Scanne Directory ein ...                #RESET#
+*
+;
+; Frage: Soll Dir gescannt werden ?
+; ---------------------------------
+*
+#FARBE 7,4##INVERS#{var25}Directory scannen (j/n) ?               {var24}#RIGHT 66#
+*
+; >>ADD: 2.0
+; Prompt : Directory
+; ------------------
+*
+Directory : 
+*
+; >>ADD: 2.0
+; RENAME: File existiert schon
+; ----------------------------
+*
+#FARBE 7,1##INVERS#{var24}RENAME: File existiert bereits          #RESET#
+*
+; >>ADD: 2.0
+; Pfad: Download
+; --------------
+*
+mbbatch:download/
+*

@@ -1,0 +1,270 @@
+
+
+        _____     _                  _     _              _    ___
+       |_   _|_ _(_) ___  _ __      | |__ | |__  ___     / |  / _ \
+         | | | '_| |/ _ \| '_ \     | '_ \| '_ \/ __|    | | | | | |
+         | | | | | | (_) | | | |    | |_) | |_) \__ \    | |_| |_| |
+         |_| |_| |_|\___/|_| |_|    |____/|____/|___/    |_(_)\___/
+
+                        © 1994/98 by Paul Spijkerman
+                             All Rights Reserved
+
+
+     Update from V1.04B to V1.05
+
+
+     Worked at RIPscrip BBS graphics because that's the biggest
+     problem in the BBS package at the time.
+
+     Testing RIP code is very difficult, because it is very very
+     hard to make a RIP screen by hand.
+     Also the RIP editor I have (RipGraf V0.90) i very hard to
+     use because it works like a drawing programm. When you
+     want to make a mouse button you click on 2 points and
+     that defines the button. When you make a lot of
+     buttons the result isn't that great.
+     Also the RipGraf program has some troubles to show
+     the RIP files as the really look like.
+
+     So I have written door code to use a lot of the RIPscrip
+     commands by function calls.
+     This makes it a lot easier to test RIP functions and make
+     little programs that produce RIP screens.
+
+     With RIPscrip graphics you can make BBS screens like you
+     are drawing in a hires drawing program, and because you
+     can use more colors and buttons you can make screens that
+     look a bit like web sites and control your BBS with
+     mouse clicks.
+
+     To see RIPscrip on other BBS's you need the Trion terminal
+     mode or a terminal program that supports RIP.
+     
+     If you want to see what you can do call Frank's BBS with
+     the new BBS in terminal mode (interlace and 16 colors)
+     and choose the (R)ip option when loging in.
+
+     Note that you maybe the only one that uses the RIP menus
+     on your BBS, because not many people seem to use it.
+
+
+     On my BBS there are some RIP related files, some editors
+     for Amiga and PC, some terminals for Amiga and PC,
+     the RIP specs and some screens.
+
+     RIPSC154.ARJ    71 KB RIPscrip graphics protocol specification
+     RIPCOMMF21.LHA 146 KB Amiga RIP terminal program
+     RIPTM154.ARJ   429 KB PC Rip terminal program
+
+
+     Utils:   BBS, TrionRM, menu, Areafix
+     Doors:   Riptest, Ripdoor
+     Cfg:     RIP menu set
+
+
+
+   -Changed GUI checkmark code .. so it is a little smaller.
+
+   -Changed the PID line in messages a bit to be FTSC compliant
+
+   -Checked all the BBS input handlers, and changed the Arexx
+    handler a bit.
+
+   -Just noticed you can't upload anymore in the Trion Terminal
+    since the auto download feature was added. :b
+
+   -Checked all RipScrip code and made a load of changes.
+
+    Checked FloodFills in rendered drawings seemed to be stabil.
+
+    Checked default color palette and color code.
+
+    There was a problem that a command to draw an ellipse
+    that was filled crashed the system.
+
+    Removed ANSI and log warnings when an RIP ICON couldn't
+    be loaded because in a screen it made the stack overflow.
+
+    Fixed it so bezier curves can't be started with a count of
+    zero which would crash the machine with a "division by zero"
+    error. It turned out that in a screen I found somewhere
+    most of the bezier codes where to short.
+
+    Fixed the problem of the "shrunken cursor" after floodfills,
+    when you use floodfill you set the AOlPen with a macro to
+    the color that is the border of the section to be filled.
+    This macro also set a flag in the screen data which means
+    that the AOlPen is to be used to make a border around
+    sections when you use the RectFill() command. Though one.
+
+    One RIP screen crashed on a command that draws a filled
+    rectangle .. the problem was that in the screen the
+    'rigth point' was left of the 'left point', this is
+    fixed.
+
+    All 35+ screens I found now work without crashing the
+    system.
+
+    Checked graphical commands.
+    Rewritten Mouse regions and Mouse buttons.
+
+    Mouse regions are sections of the screen that will send
+    a character if clicked on (no default graphics).
+    Mouse regions now reqcognize control characters (^M, ^G, ^C)
+    with capital characters
+    Changed the way the buttons are listed in memory, inversed
+    like the doc describes.
+
+    Written Mouse button code, in previous versions the
+    mouse buttons worked as mouse regions with some
+    primitive border. But that didn't work because it
+    still used the mouse region root pointer.
+
+    Mouse button are a little like the buttons in programms
+    with a GUI, so you can control your BBS with a mouse.
+    You can have a lot of different types of buttons, with
+    all kinds of borders, colors. When you define a button
+    you not only give the text that has to be placed in it
+    (or above, left, rigth or under it) but you also give
+    a bit of text that has to be send by the terminal when
+    you click it. So what your terminal does when you click
+    on the position where the button is drawn by the terminal
+    is send an "F" to the BBS. (same in local mode).
+
+    There is still the Font problem, in the RipScrip standard
+    is written that there are 10 Fonts each with a carefully
+    defined style that has to be scallable with magnifications
+    from 1 to 10 times. And 4 from the Fonts should be
+    smooth when scalled (so called Vector fonts).
+    Also all the fonts can have 5 sizes (8x8, 7x8, 8x14, 7x14, 16x14).
+
+    Note that options not supported (yet) only show up locally.
+    On the remote machine it probably is shown as it should be.
+    (depends on the RipScrip capabilities of the terminal program)
+
+
+
+   -Added a menu flag "NOSCREEN" , if you put this after flags
+    in the first part of the menu (where hotkeyable is) then
+    the menu screen will not be printed.
+    This is usefull if there is no menu screen file, because
+    with this flag you don't get a warning that there is no
+    screen.
+    This flag is meant for use with FX (effects) doors that
+    can build a screen on there own.
+
+    Flags should be separated with a comma !!
+
+    For instance:     flags  hotkeyable, noscreen
+    Or:               FLAGS  NOSCREEN
+
+
+   -Included a RIPscrip BBS graphics test door.
+    I used this to debug RIP code, and to write a functions
+    to use RIP codes in doors.
+    This door is a good example of some things that are
+    possible with RIPscrip, for the people who want
+    to experiment with it, the source is included.
+    With this in your menu you can view it.
+
+    Cmd "T" , 0-255
+       CliDoor  "trion:utils/riptest"
+    EndCmd
+
+
+   -RIP menus..
+
+    It is now possible to make a menu set the is for a great
+    part controlled with a mouse.
+    This is basically a demo to demonstrate just that.
+
+    The problem with RIP is that you have to give an ANSI code
+    to switch it on and off, because if you have it on the ANSI
+    colors don't work, and if you turn it off the mouse button
+    definitions are gone.
+
+    You can make a normal menu set with RIP screens instead of
+    the ANSI screens but you have to place print menu commands
+    to switch on/off the RIP mode all over the place.
+    (see BBS.doc for info about this.
+
+    So what you basically want is an FX type of door that switches
+    RIP on when the screen is build and switch RIP off after the
+    input of a user.
+    That is what I have done .. I made an FX door that can
+    produce a screen with icons for every menu.
+    And because it is an FX door, it has a little graphicall
+    effect in it when it waits for input.
+
+    On my BBS I made a copy of the menuset especially for
+    RIP so it can be viewed with ANSI or RIP.
+    When you arrive in the start menu you can go to the
+    "normal" menu with return but with R you end up in
+    the RIP menu set.
+
+    (RIP menuset, Door and source of door is included)
+
+    The new menuset is named like this:
+
+    xxxxxxxxxx.src       ->      xxxxxxxx_rip.src
+
+    In all RIP menus I added the "NOSCREEN" flag, because
+    it doesn't needs an ANSI file just the RipDoor FX door.
+    But when you've made a screen yourself you can remove
+    the NOSCREEN flag and use a normal file for a screen.
+    Or when you know a little C you can change the
+    door yourself.
+
+    Added this to every RIP menu:
+
+
+    BuildScreen
+       CliDoor  "trion:utils/ripdoor ~50 0"
+    EndCmd
+
+
+    You have to replace the Zero with a different number
+    for each menu like this:
+
+
+      main menu      0
+      file menu      1
+      Mail menu      2
+      Bulletin menu  3
+      Door menu      4
+      Logout menu    5
+      Sysop menu     6
+      User edit menu 7
+      test menu      8
+      Browse menu    10
+      List menu      11
+      Download menu  12
+      Read msgs menu 13
+      Scan msgs menu 14
+      Editor menu    15
+
+
+
+   -Changed the BBS a little so you can create message sections
+    that users can't disconnect with Areafix.
+
+    This is usefull if you have an echomail section to inform
+    your points of all sort of matters around the BBS.
+    If you have such an echo the tell users that you for
+    instance will change the phone number of the BBS,
+    you don't want everybody to disconnect.
+
+    If you have such a section you can add the "O" flag
+    for "Obligatory" in the mailareas.cfg
+
+    If a user get's a list with sections it now will
+    say "obligatory" where it said "connected" before.
+
+    The section can no longer be disconnected with a command
+    to DISconnect a section of disconnect all sections.
+    (new sysop curse)
+
+    If a user writes a MESSAGE to areafix all the obligatory
+    sections will be connected if they werent connected before.
+
+

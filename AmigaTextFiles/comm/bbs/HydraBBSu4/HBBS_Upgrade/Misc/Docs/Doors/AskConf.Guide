@@ -1,0 +1,246 @@
+@Database DOOR_AskConf
+
+@Node Main "AskConf"
+
+  AskConf V1.04
+
+  @{" Description          " link Description}
+  @{" Installation         " link Installation}
+  @{" System Options       " link SystemOptions}
+  @{" Command Line Options " link CmdLineOptions}
+  @{" Screens Displayed    " link ScreensDisplayed}
+  @{" Doors Called         " link DoorsCalled}
+  @{" Returns              " link Returns}
+  @{" Config Files         " link ConfigFiles}
+  @{" ToDo                 " link ToDo}
+  @{" History              " link History}
+
+  Note: Docs last updated for V1.04
+
+@EndNode
+
+@Node Description "Description"
+
+  Description
+  ===========
+
+    The AskConf door is used to check that the uploads files are
+    for the current conference.
+
+    This door can be removed if you don't want it's functionality,
+    just remove it from any "Commnds/System" file that is used in.
+
+@EndNode
+
+@Node Installation "Installation"
+
+  Installation
+  ============
+
+    The doors is stored as HBBS:Doors/System/AskConf/AskConf.HBBS
+
+    This is included and enabled with a fresh installation of HydraBBS
+    since V1.0.  V1.04 introduced a @{"config file" link ConfigFiles} which you
+    should edit.
+
+    There are two entries for this door in the commands/system file:
+
+    AskConf_Type_1=HBBS
+    AskConf_Door_1=HBBS:Doors/System/AskConf/AskConf.HBBS {N} {O}
+
+    PreCheck_Type_1=HBBS
+    PreCheck_Door_1=HBBS:Doors/System/AskConf/AskConf.HBBS {N} {O}
+    PreCheck_Param_1=REMOVEFLAG
+
+    See HBBS:Storage/Example_Configs/Commands/System.
+
+@EndNode
+
+@Node SystemOptions "SystemOptions"
+
+  System Options
+  ==============
+
+    REMOVEFLAG - If specified the door will remove it's flag file.
+                 this option is used before CheckFiles starts, via
+                 the PreCheck system door name.
+
+@EndNode
+
+@Node CmdLineOptions "CmdLineOptions"
+
+  Command Line Options
+  ====================
+
+    <filename> - Filename of uploaded file to be checked, Must be specified
+    if REMOVEFLAG system option is not specified.
+
+@EndNode
+
+@Node ScreensDisplayed "Screens Displayed"
+
+  Screens Displayed
+  =================
+
+    None
+
+@EndNode
+
+@Node DoorsCalled "Doors Called"
+
+  Doors Called
+  ============
+
+    None
+
+@EndNode
+
+@Node Returns "Returns"
+
+  Returned Values (in N_ND->DoorReturn)
+  =====================================
+
+    "0" if no conference was picked for some reason.
+    <confnum> if a conference was picked.
+
+
+@EndNode
+
+@Node ConfigFiles "ConfigFiles"
+
+  Config Files
+  ============
+
+    This door now has an optional config file since V1.04.
+
+    It is opened using "Progdir:AskConf.CFG", e.g.
+
+    HBBS:Doors/System/AskConf/AskConf.CFG
+
+    You cannot use comments in this file, and trailing spaces
+    will NOT be stripped from config items.
+
+    ANSI escape sequences *CAN* be used.
+
+  Options
+  =======
+
+    AllForThisConf=<String>    @{" More... " link CFG_AllForThisConf}
+    ForThisConf=<String>       @{" More... " link CFG_ForThisConf}
+    RemainingFiles=<String>    @{" More... " link CFG_RemainingFiles}
+    UsingConf=<String>         @{" More... " link CFG_UsingConf}
+
+@EndNode
+
+@Node CFG_AllForThisConf "AllForThisConf"
+
+  AllForThisConf=<string>
+
+    E.G.
+
+    AllForThisConf=Are all files for the @C@ conference ?
+
+    Default is internal any may be changed.
+
+    When the door is called with the REMOVEFLAG option, the user
+    will be asked this question.
+
+    If the string contains @C@, it will be replaced with the conference name
+
+@EndNode
+
+@Node CFG_ForThisConf "ForThisConf"
+
+  ForThisConf=<String>
+
+    E.G.
+
+    ForThisConf=Use the @C@ conference for @F@ ?
+
+    Default is internal and may be changed.
+
+    When the door is called with a filename as the option (e.g. by CheckFiles
+    just after the file ID has been displayed) the user is asked this question
+
+    If they answer NO, then they will be shown a list of conferences to use
+    instead of the one they're in.
+
+    They will then be asked if the wish to use the selected conference for the
+    rest of the uploaded files.  See @{"RemainingFiles" link CFG_RemainingFiles}
+
+    If the string contains @C@, it will be replaced with the conference name
+    If the string contains @F@, it will be replaced by the filename
+
+@EndNode
+
+@Node CFG_RemainingFiles "RemainingFiles"
+
+  RemainingFiles=<string>
+
+    E.G.
+
+    RemainingFiles=Use the @C@ conference for remaining files ?
+
+    Default is internal and may be changed.
+
+    This is shown if the user picked a different conference for the file,
+    and there are more files to be checked after the current one.
+
+    If the string contains @C@, it will be replaced with the conference name
+
+@EndNode
+
+@Node CFG_UsingConf "UsingConf"
+
+  UsingConf=<string>
+
+    E.G.
+
+    UsingConf=Using the @C@ conference for @F@
+
+    Default is internal and may be changed.
+
+    This message is displayed when the user has selected a conference to use
+    for all the files or the remaining files.
+
+    If the string contains @C@, it will be replaced with the conference name
+    If the string contains @F@, it will be replaced by the filename
+
+@EndNode
+
+@Node ToDo "ToDo"
+
+  ToDo
+  ====
+
+    Optimise, so that the AskConflist.TXT's are not loaded several times
+    when checking more than one tag at a time. (Arghh..)
+
+    Option for free download dates and times (i.e. if the user calls between
+    two times or between two times on a specified date or on a specified date
+    then make *all* the downloads free! add another flag called
+    TF_FREEDOWNLOADTHISCALL so that the TF_FREEDOWNLOAD flag could be removed
+    at loggoff.
+
+    This requires working around the fact that a user could call, flag files
+    and log off with them still flagged.  so the best way of getting round
+    this would be to call the AskConf door, when the user logs off, with
+    another option so that it can remove the TF_FREEDOWNLOAD flag if the
+    TF_FREEDOWNLOADTHISCALL is set.
+
+    Then at login time, all flagged files with TF_FREEDOWNLOADTHISCALL
+    have to be rechecked, simply by calling this door with no paramaters.
+
+@EndNode
+
+@Node History "History"
+
+  History
+  =======
+
+    V1.00 - First Version
+
+    V1.04 - Added config file.
+
+@EndNode
+

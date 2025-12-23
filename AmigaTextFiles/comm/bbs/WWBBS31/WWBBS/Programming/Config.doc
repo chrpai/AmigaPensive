@@ -1,0 +1,167 @@
+Using config functions in wwbbs.library
+---
+These functions access the stuff you can set using BBSPrefs.  There are
+four functions (actually eight), all of which are tag-based:
+
+     ULONG GetConfig(struct TagItem *); - Gets configuration data
+     ULONG GetConfigTags(Tag,...);
+
+     ULONG SetConfig(struct TagItem *); - Sets configuration data
+     ULONG SetConfigTags(Tag,...);
+
+     BOOL AddConfig(struct TagItem *); - Adds a new config entry
+     BOOL AddConfigTags(Tag,...);
+
+     BOOL RemConfig(struct TagItem *); - Removes a config entry
+     BOOL RemConfigTags(Tag,...);
+
+Get and Set return the number of tags successfully processed.  Add and Rem
+return success or failure.
+
+---
+
+There are two tags that must be present in all function calls.  They are
+CFGTAG_Path and CFGTAG_Name.  All of the configuration data is arranged in
+a heirarchal manner similar to a disk with files and directories.  The
+structure is as follows:
+
+     AccessGroups/
+     Archivers/
+     Editors/
+     FileBases/ (*)
+     Menus/ (*)
+     MessageBases/ (*)
+     News/
+     Nodes/
+     Protocols/
+     System (this is not a directory)
+
+In each directory exists any number of "files", which correspond to the
+directory they reside in.  For example, a file in the path "Protocols" may
+have a "file" named "Zmodem".  To access this particular file you would
+pass "Protocols" as the CFGTAG_Path and "Zmodem" as the CFGTAG_Name.
+
+In the directories marked with an (*), these directories may not only
+contain these so-called files, but also sub-directories.  The reason for
+this is to allow these config items to form a tree for more functionality.
+For example, the directory "FileBases" can have a sub-directory in it
+called "Amiga", which can have a entry named "Games", so to access this
+particular entry you would pass "FileBases/Amiga" as the CFGTAG_Path and
+"Games" as the CFGTAG_Name.  Note that sub-directories can also have
+sub-directories.
+
+---
+Description of tags common to the four functions (but not necessarily all)
+
+     CFGTAG_Type
+          This specifies the type of data that the entry (or file has), and
+          it also specifies which tags you are allowed to use with it to
+          get/set information.  The types are enumerated in wwbbs.h,
+          CFGTYP_*.
+     CFGTAG_DontSave
+          Set(), Add(), and Rem() automatically save the config file after
+          each call.  If you are performing several function calls, it
+          would be best to wait until you are done to perform the save.
+          This can be conveniently performed with the CFGTAG_ForceSave tag
+          and the Set() function.
+
+---
+Using Add()
+
+You can use the following tags with Add()
+
+     CFGTAG_Path (*)
+     CFGTAG_Name (*)
+     CFGTAG_Type (*)
+     CFGTAG_DontSave
+
+          (*) required
+
+{
+  AddConfigTags(
+    CFGTAG_Path,"FileBases",
+    CFGTAG_Name,"Games",
+    CFGTAG_Type,CFGTYP_FileBase, /* this is a UBYTE */
+    CFGTAG_DontSave,FALSE, /* this is a BOOL */
+    TAG_END);
+}
+
+This function will add a config entry of the type specified by CFGTAG_Type.
+Note that by adding a config entry to a "file", it will turn that "file"
+into a directory.  For example, if you added a "file" called "Arcade" to
+"FileBases/Games", and if "FileBases/Games" was previously considered a
+file, it will now be considered a directory since it has a child entry.
+
+---
+Using Rem()
+
+You can use the following tags with Rem():
+
+     CFGTAG_Path (*)
+     CFGTAG_Name (*)
+     CFGTAG_DontSave
+
+          (*) required
+{
+  RemConfigTags(
+    CFGTAG_Path,"FileBases"
+    CFGTAG_Name,"Games",
+    CFGTAG_DontSave,FALSE, /* this is a BOOL */
+    TAG_END);
+}
+
+This function will remove a config entry.  You cannot remove a config entry
+if it has child entries (i.e. it is a directory)
+
+---
+Using Get()
+
+In addition to the actual tags used for accessing entry-specific data, you
+can use the following tags with Get():
+
+     CFGTAG_Path (*)
+     CFGTAG_Name (*)
+     CFGTAG_Type
+     CFGTAG_Exists - use this to find out if a entry exists
+     CFGTAG_Parent - use this to find out if this entry has a parent
+                     directory
+     CFGTAG_Child - use this to find out if this entry has a child entry,
+                    which would make it a directory
+     CFGTAG_GetFirst - get the name of the first entry in this directory
+     CFGTAG_GetLast - get the name of the last entry in this directory
+     CFGTAG_GetNext - get the name of the next entry in this directory
+     CFGTAG_GetPrevious - get the name of the previoous entry in this
+                          directory
+     CFGTAG_Next (**)
+     CFGTAG_NextReturn (**)
+
+          (*) required
+          (**) used for special mode, explained below
+
+{
+  if(GetConfigTags(
+       CFGTAG_Path,"MessageBases",
+       CFGTAG_Name,"Clone-Talk",
+       CFGTAG_Exists,TRUE, /* since the value that is returned is the
+                              number of tags processed, besides CFGTAG_Path
+                              and CFGTAG_Name */
+       TAG_END))
+     printf("Yes MessageBases/Clone-Talk exists\n");
+}
+
+{
+  BOOL parent,child;
+  BYTE first[33],last[33],next[33],previous[33];
+  GetConfigTags(
+    CFGTAG_Path,"MessageBases",
+    CFGTAG_Name,"Clone-Talk",
+    CFGTAG_Parent,&parent,
+    CFGTAG_Child,&child,
+    CFGTAG_GetFirst,first,
+    CFGTAG_GetLast,last,
+    CFGTAG_GetNext,next,
+    CFGTAG_GetPrevious,previous,
+    TAG_END);
+}
+
+/*** UNFINISHED ***/

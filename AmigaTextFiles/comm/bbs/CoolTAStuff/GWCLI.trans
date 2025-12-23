@@ -1,0 +1,43 @@
+/* Just a little extra .trans file for TransAmiga BBS Software
+   to run if you're having problems getting the Global War II
+   online game to work with TA1.2+ . It's not TA's fault, it's
+   just that sometimes it's weird getting CLI/Shell doors to
+   work just right....
+
+   For more info on TransAmiga, call the official UKHQ, GateWAY
+   BBS, on + 44 (0)1375 393816
+
+*/
+
+OPTIONS FAILAT 999          /* Keeps users out of the shell! */
+OPTIONS RESULTS
+
+CALL PRAGMA('stack',50000)
+
+USERINFO A ; name = UPPER(RESULT)
+sname=word(name,1)
+nname=word(name,2)
+SYSTEMINFO M ; time = RESULT
+SYSTEMINFO 8 ; line = RESULT
+USERINFO o ; access = result
+USERINFO v ; plen = result
+id=time(s)
+
+CLS
+transmit "Loading GWII..."
+
+SetNodeLocation Name' is playing GWII'
+
+path='t:gw-'||sname||nname||'.'line   /* change this to reflect your directory path */
+
+OPEN(temp,path,'W')
+WRITELN(temp,'FailAt 99999')
+WRITELN(temp,'Doors:GlobalWar/GlobalWar '||name||' ACCESS '||access||' PAGELENGTH '||plen||' TIMELEFT '||time||'')
+WRITELN(temp,'endcli')
+CLOSE(temp)
+
+ADDRESS COMMAND 'NewShell FIFO:gw'id'/rwkecs from 'path
+ADDRESS COMMAND 'BBS:Bin/TrShell -n'line' -d -e -fds'id 
+ADDRESS COMMAND 'Delete 'path' quiet'
+
+EXIT 0

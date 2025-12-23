@@ -1,0 +1,86 @@
+/* interlog.apt
+**
+** $VER: interlog.apt 0.0.1 (28.2.93)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright © 1993 ApT-Design All Rights Reserved,AG
+**
+*/
+
+/* ######################################################################### */
+
+/*
+** TABLE LIST AND DEFINES:
+**
+** Just the required defines taken from the actual TABLELIST.DEF file.
+**
+*/
+
+USER_MEMBER			= 0	/* For the MOVEUSER function */
+USER_NEW				= 1
+USER_REVIEW			= 2
+
+/* ######################################################################### */
+
+parse arg lineno
+
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+/*
+** INTERLOG:
+**
+** Controlls the checking of the users 'review' date. If the user has
+** been found to have come up for 'review' then we promptly move his
+** account over to the review directory and then display some text
+** before dropping the line.
+*/
+
+'SETMORE' 0
+
+'HASEXPIRED'
+if(result) THEN DO
+	'MOVEUSER' USER_REVIEW
+	'SHOWFILE' "review/review"
+	'DROPLINE'
+END
+
+'GETSTR' 0 					; UserName	= result
+'GETUSERDIR' UserName	; UserDir 	= result
+
+/*
+** ALERTLOG CHECK:
+**
+** We check to see if the users Alert.Log is present, if this
+** is so then we make sure that we display it to the user before
+** deleting it so that we are up to date.
+*/
+
+logfile = UserDir||Alert.Log
+call OPEN('readlog',logfile,'R')
+if(result) THEN DO
+	call CLOSE('readlog')
+	'MSG' "%NL.%NL.%BOLD=1.%TC=3.Found user log.....%BOLD=0.%TC=7.%NL.%NL."
+	'MSG' "%BOLD=1.%TC=7.Date      Time     Action%NL."
+	'MSG' "%TC=6.--------- -------- ----------------------------------------------------------%BOLD=0.%TC=7.%NL."
+
+	'SHOWGLOBALFILE' UserDir||Alert.Log
+	'MSG' "%NL.%BOLD=1.%TC=1.Press a key....%BOLD=0.%TC=7." ; HOTKEY ""
+	'REMOVEFILE'  logfile
+END
+
+'SETMORE' 1
+'SMALLCMD' "SETUPDLG"
+'gfxflag' "test 1" ; ansipos = result
+if(ansipos=1) then do
+'LOCKDOOR' "apt:modules/SoapBox"
+end
+'APTXEND'
+EXIT
+
+/*##########################################################################*/
+
+

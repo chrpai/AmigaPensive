@@ -1,0 +1,625 @@
+============================================================================
+       CNet Amiga BackUp, v2.0 README! File by Dotoran of Frontiers!
+============================================================================
+
+What is it?
+~~~~~~~~~~~
+    This utility was written as a means of safeguarding CNet Amiga's more
+volatile information files, like "bbs.udata", "bbs.sdata", etc, although it
+has undergone numerous changes and has proven to be QUITE powerful!
+
+System Requirements:
+~~~~~~~~~~~~~~~~~~~
+    In order to use this program, you MUST have the following:
+
+            CNet Amiga, v3.0 or later.
+            Arexx, v1.14 or higher.
+            Arexx "rexxsupport.library".
+            LHA, v1.40 or higher. (MUST be Named LHA & be present SOMEWHERE
+                                   in your PATH, preferably in C:)
+
+    And these DOS commands, located in your C: directory:
+
+            Copy
+            Delete
+            Filenote
+            Format
+            MakeDir
+            Protect
+            Rename
+            Sort
+
+    The following calls are made using the "rexxsupport.library":
+
+            SHOWDIR()
+            SHOWLIST()
+            STATEF()
+
+    If you are lacking any of the above files, then you will NOT be able to
+use this program. None of these files are "out of the ordinary" which means
+you should already have these programs and files if you are running CNet to
+it's fullest potential.
+
+WARNING:
+~~~~~~~
+    This program has the potential to be VERY DANGEROUS if used by one who
+does not know what they are doing, or one who shouldn't be using it anyways,
+so please SAFEGUARD this program in a directory available only to YOU in your
+PFILES: area, or better yet, don't add this file to your PFILES: at all...
+
+    Instead, add it as a SysOp Only Command which is only known to YOU and
+those you trust. The old saying, "Out of sight, out of mind" is worth NOTING
+(REMEMBERING) where this program is concerned!
+
+    It is also recommended that you NOT allow this file to be used REMOTELY,
+as their ARE possibilities something unforseen may need your attention, like
+running out of memory, etc. For this reason, I did NOT include any Loss of
+Carrier checks in either routine. Perhaps if you come home someday to see
+the port hanging, because someone used it remotely and lost carrier that you
+will REMEMBER to NOT allow users to use this from remote.
+
+OK, So How Do I Use It?
+~~~~~~~~~~~~~~~~~~~~~~
+    Well, to start with, you should have two Arexx files in this archive:
+
+        CNetBackUp  - The SysOp Maint Module.
+        CNetBackUpA - The AutoMaint Module.
+
+    You should place both of these somewhere in your PFILES: partition. I
+have mine in the "PFILES:Maintenance/" directory, but you can have yours
+wherever you wish.
+
+    You should then add the "CNetBackUpA" file as an EVENT that will be RUN
+every night. Settings might look like these:
+
+    - Checkmark ALL SEVEN DAYS.
+    - For Port(s), use your LOCAL Port. Mine's "0".
+    - Event Time : "300" (3 AM)
+    - Valid For  : "100" (1 Hour)
+    - Interval   : "0"
+    - Iterations : "1"      - Command: "RunARexx"
+    - Args: "pfiles:maintenance/CNetBackUpA"
+    - Type: "Immediate--Force System Idle"
+
+    You should now make a means for using the other file, "CNetBackUp". You
+can do this in one of two ways(or both if you prefer). You can either add it
+as an exclusive use only Arexx command file, or add it to your BBSMENU file
+as an item under Menu # 1, Maintenance Menu:
+
+        CNB, CNet Backup    |   {#1pfiles:maintenance/CNetBackUp}
+                                ^ `---------.
+                             Control-Q      |
+                                          Exclusive Use ARexx PFile
+
+    Lastly, it is also suggested that you create a directory INSIDE your
+CNET: directory called "BackUp". This is a TEMPORARY directory, which should
+remain EMPTY at all times. You can choose to use ANY directory as this TEMP
+directory, but if using the "BackUp" suggestion, you'll be less likely to
+store files here, that will be deleted the next time "CNetBackUpA" Backs Up
+your system.
+
+OK, Using CNetBackUp:
+~~~~~~~~~~~~~~~~~~~~
+    When you first run the "CNetBackUp" file, you'll see a little message
+about the CONFIG file not being present in your SysData: path. This is only
+temporary as it will be created soon. Just press any key to enter the file.
+
+    On the MAIN Menu of the program, you'll see seven choices:
+
+<E> Edit File Parameters
+
+    - Lets you modify several items of data which define how your BackUp
+      File will operate. (More on this in a bit)
+
+<M> Modify File Lists
+
+    - Lets you modify the list of files that will be Backed Up when this
+      BackUp File is used. Each data item consists of both the PATH and
+      FILENAME of the file to be Backed Up.
+
+<A> Add  a BackUp File
+
+    - Lets you add a NEW BackUp File to those that already exist. If this
+      is your first time using CNetBackUp, pressing either "E" or "M" above
+      will both have the same affect as this option.
+
+<K> Kill a BackUp File
+
+    - Allows you to remove a BackUp File you will no longer be using. This
+      is quite helpful when using this program as an easy CNet LHA Packer,
+      which is discussed later on in this file. (see "Extended Uses")
+
+<F> Floppy Drives (DF0: DF1:, etc.)
+
+    - This program will allow you to FORMAT a floppy disk that may be used
+      as the DESTINATION for your BackUp file, but in order to do this, the
+      program needs to know WHICH & HOW MANY floppy drives your system has.
+      Pressing "F" will read the currently defined floppy drives for your
+      system. The program will NOT let you choose FORMAT unless your
+      designated DESTINATION is the same as one of the drives listed here.
+
+<B> BackUp CNet Now
+
+    - Will allow you to activate one of the BackUp Files, without having to
+      wait for the "CNetBackUpA" file to do it. You'll be asked which BackUp
+      File you wish to use, then the BackUp will begin. Upon completion, the
+      BackUp File START DATE will also be updated, so the "CNetBackUpA" file
+      doesn't repeat what you just did, until the interval has elapsed.
+
+[Q] Quit CNet BackUp
+
+    - Does precisely that, no questions asked! (Pressing RETURN/ENTER will
+      also activate the QUIT function).
+
+Some of the above menu items take you to other screens that contain even
+MORE data items. These "extended" screens are described below:
+
+Add/Edit File Parameters:
+~~~~~~~~~~~~~~~~~~~~~~~~
+    Both of these items use a similar screen, which contains the following:
+
+File Extension
+
+    - This is an extension from 1 to 3 characters that will be used to name
+      the BackUp file. The format for a BackUp filename is:
+
+        - CNetBackUp.???   <--- Where the ??? is your chosen EXTENSION.
+
+        - This file is stored in your "SysData:" directory.
+
+        - The extension "CFG" is reserved for the CNetBackUp CONFIG file.
+
+        - The actual LHA'ed BackUp file will ALSO follow a similar format:
+
+                - CNetBackUp_???.LHA   <--- Where ??? is your EXTENSION.
+
+        - Pressing ENTER/RETURN with nothing in the string gadget will use
+          "BAK" as the default extension.
+
+BackUp Description
+
+    - This text is simply used as a description for this BackUp File. It is
+      only used by the program as a means of describing which File is being
+      used for any given action. No filenames are based on this name.
+
+    - Pressing ENTER/RETURN when empty here will use text of the format:
+
+            "BackUp File # ???"    where ??? will be the next numbered file.
+
+TEMP/WORK Path
+
+    - This should be the location of a FIXED, EMPTY directory. By FIXED, I
+      mean this should be a directory which will never be deleted. By EMPTY,
+      I mean you should NEVER store any of your OTHER files in this directory,
+      as the BackUp program will DELETE all the contents of this directory
+      upon the completion of any BackUp task. It was suggested above that
+      you create a directory called "BackUp" inside your CNET: path just for
+      this purpose... It is NOT a good idea to use a directory in RAM:, as
+      you may find you do not have enough RAM to store all the files you
+      wish to back up!
+
+    - If you press ENTER/RETURN in this string gadget when empty, and if the
+      "cnet:backup/" directory exists, that will be the default used.
+
+DESTINATION Path
+
+    - This is the location where the LHA packed BackUp file will be placed
+      after it has been created. It was suggested above that you place this
+      file on a FLOPPY disk, in the event you have a Hard Drive Crash, which
+      might take out your ENTIRE partition. This way, at least you'll have
+      your data on FLOPPY to help in your rebuilding!
+
+    - NOTE: For both the TEMP/WORK Path, and the DESTINATION Path, it is not
+            absolutely necessary to end each entry with a /. Your system will
+            be scanned to see if a directory by this name actually exists,
+            and if so, the "/" will be appended automatically, however if the
+            program cannot locate the stated path, you'll be told this! If,
+            however, you'll be using an ASSIGN that ENDS with a COLON, you
+            MUST supply the COLON or the program will attempt to locate a
+            file by this name.
+
+    - Pressing ENTER/RETURN when the gadget is empty will use the first drive
+      found on your system(as shown in the Floppy Drives section on the Main
+      Menu)
+
+Interval in Days
+
+    - This is the number of days between individual BackUps of data housed
+      within this file. Set to "1" and this data will be Backed Up every
+      night. Set to "7" and the data is Backed Up every week, etc.
+
+    - The value of "1" will be used if ENTER/RETURN is pressed when the string
+      gadget is empty.
+
+Format Dest Path
+
+    - Provided you defined your DESTINATION PATH above as a FLOPPY DRIVE,
+      you can have the "CNetBackUp" program FORMAT the Floppy Drive BEFORE
+      the packed file is copied to it. This allows you to make sure the
+      disk has enough room in which to store the BackUp.
+
+    - If you specify YES, you'll then additionally be asked if you wish the
+      disk to be FULLY formatted or QUICK formatted. The QUICK format will
+      only be successfull on a disk that has been previously formatted.
+
+    - Pressing ENTER/RETURN here will NOT format the disk.
+
+On the "Edit File Parameters" screen, on the top line, you'll be shown both
+the FILENAME of the Config File, as well as the date the AMAINT Module last
+backed this file up.
+
+Last BackUp Date
+
+    - Only found on the EDIT screen, this allows you to CHANGE when the "A"
+      module will next backup your info.
+
+    - If you want to make it backup today, first note the number of interval
+      days, then change this date so that it's that number of days into the
+      past. This file will be used to perform a backup today during AMAINT.
+
+Edit File Contents:
+~~~~~~~~~~~~~~~~~~
+    This is the screen where you define WHICH files and at WHICH paths you
+wish to be Backed Up using this BackUp File. The screen is formatted to only
+allow 15 items to be shown at one time. A "bar" menu at the bottom of the
+screen will show you the available commands:
+
+<A>dd
+
+    - Allows you to ADD files to the list. This routine is quite powerful in
+      itself, because files can be added in numerous ways:
+
+        - You can press RETURN to scan ALL files located in your CNET: Root
+          directory path, pressing "Y" to Add, "N" to Skip, "A" for ALL FILES,
+          or "Q" to Quit.
+
+        - You can specify the entire string,  like "sysdata:bbs.udata"
+
+        - You can specify just the directory, like "sysdata:"
+
+            - ALL Files within "sysdata:" will be scanned. Each will be
+              shown one at a time. You can select YES to ADD that file,
+              NO to SKIP that file, ALL to ADD ALL FILES in this directory
+              AFTER the last file presented to you, or QUIT to END the
+              ADDING procedure.
+
+        - You can use the "*" WILD CARD Character in three ways:
+
+            - like this: "sysdata:bbs.*"
+
+                - ALL Files within "sysdata:" STARTING with "bbs.", like:
+
+                    bbs.udata, bbs.ukeys3, bbs.cuser, bbs.sam, etc....
+
+            - like this: "sysdata:*data"
+
+                - ALL Files within "sysdata:" ENDING with "data", like:
+
+                    bbs.udata, bbs.idata, bbs.sdata, bbs.adata, etc....
+
+            - like this: "systext:menu/*se*"
+
+                - ALL Files within "systext:menu/" CONTAINING "se", like:
+
+                    base, base0, browse, udbase, udbase0, vised, etc....
+
+<K>ill
+
+    - Allows you to REMOVE (Kill) item(s) from the list. CNet PARSING is
+      allowed at this prompt. In other words, 1-3,7,14- would kill these:
+
+            1 - 3  &  7  &  14 - thru the end of the list.
+
+<E>dit
+
+    - After specifying WHICH item(s) to Edit, you'll be given a basic CNet
+      string gadget containing the original path/filename data.
+
+    - NOTE: For ALL String Gadgets in this program, the CONTROL Key can be
+            used in combination with other keys for added power:
+
+            CTRL-X: Erases entire string.
+            CTRL-B: Goes to Beginning of string.
+            CTRL-N: Goes to the End of the string, etc...
+
+         BACKSPACE: Erases character to LEFT of cursor, then moves cursor
+                    into that position.
+
+            DELETE: Deletes character UNDER the cursor, then moves all
+                    characters to the RIGHT of the cursor ONE SPACE to the
+                    left. The cursor stays where it is.
+
+    - When editing files, the procedure will only work if the NEW file you
+      enter ALSO exists at the given path. There are two reasons you might
+      want to edit a file:
+
+            - To change to the name of some OTHER file, like:
+
+                    systext:menu/main   changed to: systext:menu/udbase
+
+            - To change to the FULL PATH of the given file, like:
+
+                    systext:menu/main   changed to: cnet:systext/menu/main
+
+    - CNet PARSING is also allowed at this prompt. You'll be asked to edit
+      each one in sequence. Simply press ENTER/RETURN to leave a file as it
+      is, and go on to the next one.
+
+<N>ext 15
+
+    - Will display the NEXT group of 15 items.
+
+<P>ast 15
+
+    - Will display the PAST group of 15 items.
+
+<S>ave
+
+    - Will SAVE the data, then Quit to the Main Menu.
+
+[Q]uit
+
+    - Will prompt you to SAVE DATA if it has been changed, then
+      will directly QUIT back to the Main Menu. Pressing ENTER/RETURN
+      will also activate the Quit command here as well as the Main Menu.
+
+Backing Up CNet:
+~~~~~~~~~~~~~~~
+The following paragraphs will use this BackUp File example:
+
+   "CNetBackUp.DLY"                            BackUp File Parameters
+  ===============================             ============================
+   cnet:bbstext                                Extension   : DLY
+   cnet:bbsmenu                                Description : Daily BackUp
+   gfiles:sysops/Arexx_Commands                Temp/Work   : cnet:backup/
+   sysdata:bbs.udata                           Destination : df0:
+   sysdata:bbs.adata                           Interval    : 1
+   systext:sys.start                           Format Dest : No
+   systext:sys.welcome                        ============================
+   systext:menu/main2
+   systext:menu/editor2
+  ===============================
+
+Using the above data, "CNetBackUpA" would do the following:
+
+- Read names of each BackUp File on record, noting those whose intervals
+  have expired.
+
+- UpDate the BackUp Date of each BackUp File on record.
+
+- If this file was noted above(which we'll say was), then do the following:
+
+- If a previous BackUp file by this name exists in the DESTINATION PATH,
+  then UNPROTECT and DELETE it from the DESTINATION directory.
+
+- Create a "cnet" directory inside the "cnet:backup/" directory.
+- Copy the "bbstext" file into the "cnet:backup/cnet/" directory.
+
+- Create a "gfiles" directory inside the "cnet:backup/" directory.
+- Create a "sysops" directory inside the "cnet:backup/gfiles/" directory.
+- Copy "Arexx_Commands" file into the "cnet:backup/gfiles/sysops/" directory.
+
+- Create a "sysdata" directory inside the "cnet:backup/" directory.
+- Copy the "bbs.udata" file into the "cnet:backup/sysdata/" directory.
+
+- Copy the "bbs.adata" file into the "cnet:backup/sysdata/" directory.
+
+- Create a "systext" directory inside the "cnet:backup/" directory.
+- Copy the "sys.start" file into the "cnet:backup/systext/" directory.
+
+- Copy the "sys.welcome" file into the "cnet:backup/systext/" directory.
+
+- Create a "menu" directory inside the "cnet:backup/systext/" directory.
+- Copy the "main2" file into the "cnet:backup/systext/menu/" directory.
+
+- Copy the "editor2" file into the "cnet:backup/systext/menu/" directory.
+
+- Using LHA, pack the contents of the "cnet:backup/" directory.
+
+- If enabled, FORMAT the DESTINATION directory.
+
+- Copy the "CNetBackUp_DLY.LHA" file to the "df0:" drive.
+
+- Create a COMMENT for the LHA file listing the date & time of creation.
+
+- PROTECT this file from WRITEOVERS and DELETIONS, using Attributes.
+
+- Delete the contents of the "cnet:backup/" directory.
+
+- Display the LHA testing of the "CNetBackUp#?" file just created(and store
+  it as a log file in "SysData:Log/" as the FILENAME, minus the LHA).
+
+- Completed!
+
+As you can see, quite a lot has gone on. Here's a file tree to show you how
+the data was stored in the "cnet:backup/" directory:
+
+cnet
+ ÀÄÄbackup
+     ÃÄÄcnet
+     ³   ÃÄÄbbstext
+     ³   ÀÄÄbbsmenu
+     ÃÄÄgfiles
+     ³   ÀÄÄsysops
+     ³       ÀÄÄArexx_Commands
+     ÃÄÄsysdata
+     ³   ÃÄÄbbs.udata
+     ³   ÀÄÄbbs.adata
+     ÀÄÄsystext
+         ÃÄÄsys.start
+         ÃÄÄsys.welcome
+         ÀÄÄmenu
+             ÃÄÄmain2
+             ÀÄÄeditor2
+
+As you can see, the format looks SIMILAR to, but not EXACTLY the way the
+same files appeared within the actual CNET: directory. If your intent is to
+create the output in CNET format, the BackUp File would need to undergo some
+slight changes. Here's how it, and the resultant tree would look:
+
+"CNetBackUp.DLY"                    cnet
+==================================   ÀÄÄbackup
+cnet:bbstext                             ÀÄÄcnet
+cnet:bbsmenu                                 ÃÄÄbbstext
+cnet:gfiles/sysops/Arexx_Commands            ÃÄÄbbsmenu
+cnet:sysdata/bbs.udata                       ÃÄÄgfiles
+cnet:sysdata/bbs.adata                       ³   ÀÄÄsysops
+cnet:systext/sys.start                       ³       ÀÄÄArexx_Commands
+cnet:systext/sys.welcome                     ÃÄÄsysdata
+cnet:systext/menu/main2                      ³   ÃÄÄbbs.udata
+cnet:systext/menu/editor2                    ³   ÀÄÄbbs.adata
+==================================           ÀÄÄsystext
+                                                 ÃÄÄsys.start
+                                                 ÃÄÄsys.welcome
+                                                 ÀÄÄmenu
+                                                     ÃÄÄmain2
+                                                     ÀÄÄeditor2
+
+    Notice the difference? Full paths starting with "cnet:" are used to get
+a true CNet output, so why bother with the initial way in the first place?
+Well, for my own purposes, there are times I may only wish to BackUp the
+contents of say, a particular GFILE directory or PFILE directory, in which
+case the full CNET path structure would not be needed. It's totally up to
+YOU how you wish to structure your output BackUp files!
+
+Tricks & Tips:
+~~~~~~~~~~~~~                   (1)
+
+    First, a tip on WHAT to BackUp. You don't want to BackUp EVERYTHING in
+your CNET: directory, only those files that would be HARD to replace.
+
+    Files you WOULDN'T want to include might be:
+              ~~~~~~~~
+        - Any "C" format CNet Command files, like "bbs", "load", etc.
+                (These files are located on your CNet Disk Anyways)
+
+        - Any UPLOADED files in your udbase partitions.
+                (Face it, here's the BIGGEST HD User on your System. If
+                 worse comes to worse, let your USERS refill this area)
+
+        - Any COMMAND files used for PFILES. By this I mean, don't bother
+          Backing up the actual programs, but you might want to back up the
+          prospective "Players/" directories, etc.
+
+        - Lastly, don't bother with any files you KNOW you can pick up from
+          another source without any trouble, like utilities, pfiles, etc.
+
+    Files you WOULD want to BackUp would be:
+              ~~~~~
+        - ANY files dealing with USER DATA. This could be from CNet itself,
+          like the "bbs." files in SysData: to the "Players/" directories in
+          your favorite PFILE games directories, etc.
+
+        - ANY files initially created the first time you set CNet up. This
+          would be things like "bbs.adata", the file that holds the Access
+          Group Data, "bbs.avalid", the auto-validation file, "bbsevents",
+          the event scheduler data file, etc.
+
+        - Your "bbstext" and "bbsmenu" files, which almost EVERY SysOp has
+          modified in ONE way or another!
+
+        - ANY custom screens, menus, or other text files. These could be
+          anything from ".start", ".end" files, "SysText:Menu/" files,
+          or "SysText:New/" new user question/sysop question files, etc.
+
+----------------------------------------------------------------------------
+                                (2)
+
+    If you'll be using multiple BackUp files, create them in descending
+interval order, then enable formatting on the highest interval file. Here's
+what I mean:
+
+You have three files:   MONTHLY, WEEKLY, and DAILY.
+
+    In the course of one week, 8 files will have been saved to the floppy.
+(7 DAILY's and 1 WEEKLY)
+
+    In the course of two weeks, 16 files, three weeks, 24 files.  When
+the end of the month rolls around, 33 write operations will have occurred
+on the floppy. By ReFormatting the disk every month, the bit map blocks
+can be restarted, so you won't run into fragmented memory errors later!
+
+----------------------------------------------------------------------------
+                                (3)
+
+    It's a good idea to keep a couple copies of the same file stored in
+different locations in case one gets corrupted.
+
+    You could create two copies of the same BackUp File, only change the
+DESTINATION of each. You could then offset them by a week. This way, file 1
+would be created the first week in location A, then file 2 would be created
+a week later and stored in location B, then back to file 1 at the end of
+the third week and so on.
+
+    The reason I'm mentioning this is that there were a couple times I can
+remember QB'ing my Hard Drive(which takes anywhere from 4 to 6 hours), only
+to have the day come when I NEED those QB'ed files, but they were corrupted!
+
+----------------------------------------------------------------------------
+                                (4)
+
+    Also included within this archive is a file called "CNetBackUp.EXA".
+This is an EXAMPLE BackUp File you may wish to use to initially get started
+with using this program. To use this file, ADD a BackUp File and enter this
+data:
+        Extension   : EXA
+        Description : Example BackUp
+        Temp/Work   : cnet:backup/
+        Destination : df0:
+        Interval    : 7
+        Format Dest : No
+
+    Now, when using the "M" command, you'll be shown the data in this file.
+You can choose to KILL, ADD, or EDIT any of the file/paths within this file
+to make it work on your system. Furthermore, using the "E" command from the
+Main Menu will allow you to change the above data as well. This example file
+contains the paths to most of the REALLY important CNet Data Files. It was
+included in the hope that it will make it that much easier to get this file
+up and running on your systems.
+
+    There's also another file, "CNetBackUp.1ST", which contains only four
+small files. You could choose to add this file if you wanted to see what
+happens when you choose the "BackUp CNet Now" option. Use "1ST" as the
+extension and use the same info as shown above for the rest of the info.
+
+----------------------------------------------------------------------------
+
+An Extended Use For CNetBackUp:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Ever have a user ask if you could pack a couple files together for them,
+then file-mail the archive to them? Well, I've discovered that CNetBackUp is
+also great for this purpose. No more having to bust up a copy of DiskMaster,
+DirectoryOpus, SID, etc... Simply do it through CNet!
+
+    All you have to do is to ADD a new BackUp File that contains the files
+you wish to include in your archive, then use the "BackUp CNet Now" feature
+to pack the files, then KILL the BackUp File from the list. You can even
+select the udbase you wish to store the file for the user as the DESTINATION
+of the packed BackUp file. All that's left is to either adopt it into a UD
+base, or filemail it directly to the user. No goofing around in the back-
+ground with other programs or shells.
+
+    If you included a SysOp command to LOAD the CNetBackUp program, then the
+power of LHA is no more than 2 or 3 keystrokes away at any given moment!
+
+That's It! & Other Stuff!
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    Well, that's all there is, there ain't no more! Hehe. Actually, if you
+notice any quirks, bugs, etc, please call my board immediately. If there's
+a feature missing, let me know that too!
+
+    Lastly, this program was NOT intended as an alternative to QuarterBack,
+or some other well known backup program. It is still a VERY WISE idea to
+use one of these "full blown" programs once every month or so, maybe even
+more often, if you have a very active system. This program was written in
+the event you DID have a HD failure. Using these BackUp files, it should be
+only a matter of minutes before you can get your system back up and running.
+This will give you the added time to get ahold of the pfiles, gfiles, bases,
+etc. that you may have also lost, either from a QB set, or the neighborhood
+bbs', etc, without having to worry about colorization, user data files,
+custom screens, etc...
+                                                               - Dotoran
+============================================================================
+            Written by: Dotoran of Frontiers BBS (716)/823-9892
+============================================================================
+                        Last Edited: June 20, 1994

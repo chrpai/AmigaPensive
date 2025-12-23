@@ -1,0 +1,71 @@
+/*
+** Extract FILE_ID.DIZ from the current file and copy it to the description.
+*/
+
+Options Results
+Address 'ZEUS'
+
+FEDThere
+if RC = 0 then do
+
+	WorkDir = 'T:WorkDir'
+	if ~exists( WorkDir ) then do
+		if makedir( WorkDir ) = 0 then do
+			FEDDisplay '"Could not create t:WorkDir!"'
+			exit
+			end
+		end
+
+	FEDGetCurrentAreaNumber
+	if RESULT > '0' then do
+		fin = 0
+		i   = 1
+		do until fin = 1
+			FEDGetCurrentFullPath i
+			if RC = 0 then do
+				FileName = RESULT
+				FEDGetCurrentFileName i
+				SmallName = RESULT
+
+				Ext = ''
+
+				Len = Length( FileName )
+				Tmp = LastPos( '.', FileName )
+				if Tmp > 0 then do
+					Base = Left( FileName, Tmp - 1 )
+					Ext  = Upper( Right( FileName, Len - Tmp ) )
+					end
+
+
+				Check = 0
+				address command 'Zeus:Doors/ArchiveManager FILENAME 'Filename' EXTRACT FILE_ID.DIZ DIRECTORY t:WorkDir'
+				select
+					when RC = 0  then Check = 1
+					when RC = 5  then FEDDisplayUser '"Unrecognised archive type 'Ext'!"'
+					when RC = 10 then FEDDisplayUser '"Could not read archive 'Filename'!"'
+					when RC = 20 then FEDDisplayUser '"Fatal error using ArchiveManager!"'
+
+					otherwise Check = 1
+					end					
+	
+				if Check = 1 then do
+					if exists( 't:WorkDir/FILE_ID.DIZ' ) then do
+						EditFile 'FILENAME' '"'SmallName'"' 'DESCFILE' 't:WorkDir/FILE_ID.DIZ'
+						if RC ~= 0 then FEDDisplayUser '"Could not change file description!"'
+							if i = 1 then FEDReloadFile
+						call delete( 't:WorkDir/FILE_ID.DIZ' )
+						end
+					else
+						FEDDisplayUser '"Could not get FILE_ID.DIZ from 'SmallName'"'
+					end
+
+				i = i + 1
+				end
+			else
+				fin = 1
+			end
+		end
+		call delete( 't:WorkDir' )
+	end
+	else
+		FEDDisplayUser '"Select an area!"'

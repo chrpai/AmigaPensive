@@ -1,0 +1,174 @@
+DIM farea$(11)
+print "CD-Rom Installer For Trinity BBS:"
+print
+print 
+input "Enter CD DEVICE Name: (ex. CD0:) : ",dev$
+input "Enter Path & File Name For Dir File : ",file$
+input "Enter File List Filename : ",flist$
+input "Enter # of Header Lines In File List : ",hlines%
+if file$="" then system
+input "Enter A Library Name : ",lib$
+if lib$="" then system
+print "Creating Library ";lib$;"...";
+'goto a:
+flib$(1)=lib$
+flib$(2)="0"
+flib$(3)="NONE"
+flib$(4)="0"
+flib$(5)="99"
+flib$(6)="O"
+a$="filearea:LIBS"
+if fexists(a$) then open a$ for input as #1:input #1,ltotal%:close #1
+OPEN "R",#1,"filearea:LIB.LIST",57 
+actual%=0
+for i%=1 to ltotal%
+FIELD #1,40 AS a1$,2 AS a2$,10 AS a3$,2 AS a4$, 2 AS a5$, 1 AS a6$
+get #1,i%
+call trunc(a1$)
+if a1$="deleted" then actual%=i%:goto savelib1
+next i%
+incr ltotal%:actual%=ltotal%
+open a$ for output as #2
+print #2,ltotal%
+close #2
+SAVELIB1:
+area%=actual%
+FIELD #1,40 AS a1$,2 AS a2$,10 AS a3$,2 AS a4$, 2 AS a5$, 1 AS a6$
+lset a1$=flib$(1)
+lset a2$=flib$(2)
+lset a3$=flib$(3)
+lset a4$=flib$(4)
+LSET a5$=flib$(5)
+LSET a6$=flib$(6)
+put #1,area%
+close #1
+a$="filearea:"+flib$(1)
+if not fexists(a$) then mkdir a$
+print "FINISHED!"
+a:
+open file$ for input as #5
+do until eof(5)
+line input #5,d$
+s%=instr(d$," ")
+d1$=mid$(d$,1,s%)
+d2$=mid$(d$,s%+1,len(d$))
+CALL trunc(d1$):CALL trunc(d2$)
+a%=INSTR(d2$,"-"):IF a%=0 THEN a%=INSTR(d2$,":")
+IF a%<>0 THEN d2$=MID$(d2$,a%+2,LEN(d2$))
+a&=SADD(d2$)
+FOR ix%=0 TO LEN(d2$)-1
+j%=PEEKB(a&+ix%)
+IF j%=47 OR j%=92 OR j%=58 THEN POKEB a&+ix%,32
+NEXT ix%
+print "Creating Dir: ";d2$;" (";d1$;")..."
+atotal%=0
+a$="filearea:"+flib$(1)+"/AREAS"
+if fexists(a$) then open a$ for input as #1:input #1,atotal%:close #1
+OPEN "R",#1,"filearea:"+flib$(1)+"/AREA.LIST",137 
+actual%=0
+for i%=1 to atotal%
+FIELD #1,30 AS a1$,2 AS a2$,10 AS a3$,2 AS a4$, 80 AS a5$,4 AS a6$,1 AS a7$,5 AS a8$,1 AS a9$,1 AS a10$,1 AS a11$
+get #1,i%
+call trunc(a1$)
+if a1$="deleted" then actual%=i%:goto savefarea1:
+next i%
+incr atotal%:actual%=atotal%
+a$="filearea:"+flib$(1)+"/AREAS"
+open a$ for output as #2
+print #2,atotal%
+close #2
+SAVEFAREA1:
+farea$(1)=d2$   	'File Area (Dir) Description 
+farea$(2)="0"		'Access Level	
+farea$(3)="NONE"	'Password
+farea$(4)="0"		'Youngest Age
+farea$(5)=dev$+d1$	'Dir On CD-Rom
+farea$(6)="0"		'Deletion Months (Can't Delete Anyhow!)
+farea$(7)="0"		'Auto Validate Files (No!)
+farea$(8)="0"		'Space Min
+farea$(9)="0"		'Allow Uploading (No Of Course!)
+farea$(10)="O"          'OPEN AREA
+farea$(11)="1"          'CD-ROM FLAG 1 = yes
+area%=actual%
+FIELD #1,30 AS a1$,2 AS a2$,10 AS a3$,2 AS a4$, 80 AS a5$,4 AS a6$,1 AS a7$,5 AS a8$,1 AS a9$,1 AS a10$,1 AS a11$
+lset a1$=farea$(1)
+lset a2$=farea$(2)
+lset a3$=farea$(3)
+lset a4$=farea$(4)
+lset a5$=farea$(5)
+lset a6$=farea$(6)
+lset a7$=farea$(7)
+lset a8$=farea$(8)
+lset a9$=farea$(9)
+LSET a10$=farea$(10)
+LSET a11$=farea$(11)
+put #1,area%
+close #1
+a$="filearea:"+flib$(1)+"/"+farea$(1)
+if not fexists(a$) then mkdir a$:mkdir a$+"/files"
+print "Adding Files..."
+x$=dev$+d1$+"/"+flist$
+tfl%=0:actual%=0
+a$="filearea:"+flib$(1)+"/"+farea$(1)+"/FILE.LIST"
+open "R",#8,a$,110
+open x$ for input as #7
+for i%=1 to hlines%:line input #7,a$:next i%
+do until eof(7)
+line input #7,f$
+s%=instr(f$," ")
+f1$=mid$(f$,1,s%)
+f2$=mid$(f$,s%+1,len(f$))
+call trunc(f1$):call trunc(f2$)
+'print "Filename: ";f1$
+'print "Descript: ";f2$
+filename$=f1$
+a$=farea$(5)+"/"+filename$
+if fexists(a$) then open a$ for input as #1:length$=mid$(str$(lof(1)),2,len(str$(lof(1)))):close #1
+a$="filearea:"+flib$(1)+"/"+farea$(1)+"/totalfiles"
+incr actual%
+file%=actual%:fdate$=date$
+tdown$="0"
+type$="1"	'Validated
+free$="0"
+desc$=f2$
+upname$="CD-ROM"
+field #8,10 as a1$,25 as a2$,8 as a3$,5 as a4$,1 as a5$,_
+1 as a6$,40 as a7$,20 as a8$
+lset a1$=fdate$
+lset a2$=filename$
+lset a3$=length$
+lset a4$=tdown$
+lset a5$=type$
+lset a6$=free$
+lset a7$=desc$
+lset a8$=upname$
+put #8,file%
+uplength&=0
+loop
+close #8
+a$="filearea:"+flib$(1)+"/"+farea$(1)+"/TOTALFILES"											
+open a$ for output as #8
+print #8,actual%
+print #8,actual%
+Close #8
+print "FINISHED! Added";actual%;" Files."
+loop
+close #5
+print
+print "ALL DONE!"
+SUB TRUNC(a$)
+	l%=LEN(a$)
+	FOR i%=LEN(a$) TO 1 STEP -1
+	IF MID$(a$,i%,1)=" " THEN DECR l%
+	if mid$(a$,i%,1)<>" " then exit for
+	NEXT i%
+	a$=LEFT$(a$,l%)
+	l%=1
+	FOR i%=1 to LEN(a$)
+	IF MID$(a$,i%,1)=" " THEN incr l%
+	if mid$(a$,i%,1)<>" " then exit for
+	NEXT i%
+	a$=mid$(a$,l%,len(a$))
+END SUB
+
+

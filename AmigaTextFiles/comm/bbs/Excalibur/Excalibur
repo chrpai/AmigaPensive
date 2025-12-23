@@ -1,0 +1,809 @@
+/* Excalibur v1.0 for C-Net Amiga (*EVALUATION VERSION*)
+   Written by Chris Cowan
+   (C) 1990,1991 Outlaw Technology
+
+   The Danger Zone - (502)/448-1155
+   300-38.4k baud (HST v.42)  24 hours  80 megs */
+
+options results;bufferflush;signal on error;signal on syntax;signal on ioerr
+mem = storage();if mem<80000 then do;transmit '\n1\c2Sorry, there are only \c1'mem' \c2bytes currently available on the system.\n1\c4As a precaution, this game requires at least \c780000\c4 bytes!\n1';exit;end
+getuser 19;cls = d2c(result);getuser 1;name = result;getuser 27;linelength = result;paused = '\c6(\c1ENTER\c6)';back = '\h7'
+dir = 'pfiles:excal/';dir2 = 'pfiles:excal/cities/';dir3 = 'pfiles:excal/messages/'
+pad = ' ';expert = -1;tax = 10;defeats = 0;lastcity = 143;space = '                                        '
+transmit cls
+if linelength < 80 then do;transmit '\c1';an = 'E X C A L I B U R';call cnter;signal setup;end
+transmit '\c1'
+transmit '         \r1     \r0  \r1  \r0 \r1  \r0  \r1     \r0   \r1   \r0   \r1 \r0      \r1   \r0  \r1     \r0  \r1  \r0  \r1  \r0  \r1     \r0'
+transmit '         \r1 \r0       \r1 \r0 \r1 \r0   \r1 \r0      \r1 \r0   \r1 \r0  \r1 \r0       \r1 \r0   \r1 \r0   \r1 \r0   \r1 \r0  \r1 \r0   \r1 \r0   \r1 \r0'
+transmit '         \r1   \r0      \r1 \r0    \r1 \r0      \r1     \r0  \r1 \r0       \r1 \r0   \r1    \r0    \r1 \r0  \r1 \r0   \r1    \r0'
+transmit '         \r1 \r0       \r1 \r0 \r1 \r0   \r1 \r0      \r1 \r0   \r1 \r0  \r1 \r0       \r1 \r0   \r1 \r0   \r1 \r0   \r1 \r0  \r1 \r0   \r1 \r0   \r1 \r0'
+transmit '         \r1     \r0  \r1  \r0 \r1  \r0  \r1     \r0  \r1 \r0   \r1 \r0  \r1     \r0  \r1   \r0  \r1     \r0   \r1    \r0   \r1 \r0   \r1 \r0'
+setup:
+transmit '\n1\c2';an = 'Version 1.0  (*EVALUATION COPY*)';call cnter;transmit '\c3';an = 'Written by Chris Cowan';call cnter
+transmit '\c5';an = '(c) 1990,1991 Outlaw Technology';call cnter;an = 'All rights reserved.';call cnter
+transmit '\c7';an = 'The Danger Zone --- (502)/448-1155';call cnter;transmit ''
+call pause;transmit '\n1'
+if ~exists(dir'_excal.stats') then call reset
+call open file, (dir'_excal.stats'), 'R'
+kingname  = readln(file);guards  = readln(file);kingdate = readln(file);startdate = readln(file);call close file
+transmit '\c4Prithee be patient whilst I examine the guest list...\n1'
+if exists(dir''name) then do
+call open file, (dir''name), 'R'
+row = readln(file);column = readln(file);place = readln(file);gold = readln(file)
+vault = readln(file);knights = readln(file);fiefknights = readln(file)
+lastplay = readln(file);moves = readln(file);jousts = readln(file);fi = readln(file)
+do x = 1 to fi;fiefs.x = readln(file);end;call close file
+call open file, (dir''name'.map'), 'R'
+do x = 1 to 260;show.x = readln(file);end;call close file;new = 0;end
+if ~exists(dir''name) then do
+transmit "\c5I see this is thy first visit.\n1";transmit "Heralds!\n1Sound the arrival of "name".\n1"
+row = 5;column = 'M';place = 143;gold = 200;vault = 200;knights = 20
+fiefknights = 0;lastplay = date();moves = 20;jousts = 12;new = 1;fi = 0
+do x = 1 to 260;show.x = 0;end;show.143 = 1;end
+call open file, (dir'_excal.players'), 'R'
+players = readln(file);do x = 1 to players
+playname.x = readln(file);location.x = readln(file);networth.x = readln(file);end
+call close file;call open file, (dir'_excal.map'), 'R'
+do x = 1 to 260;map.x = readln(file);end;call close file
+if fi > 0 then do;do x = 1 to fi;var = fiefs.x;map.var = '@';end;end
+call open file, (dir'_excal.date'), 'R'
+gamedate = readln(file);call close file
+now = date();if gamedate ~= now then call maintenance
+if lastplay ~= now then do;moves = 20;jousts = 12;end
+if moves > 0 then signal intro4
+if lastplay = now then signal onlyonce
+moves = 20;jousts = 12;signal intro4
+onlyonce:
+transmit '\f1\c2All moves for today have been used!\n1';exit
+intro:
+var = 'Lord';if kingname = name then var = 'King'
+transmit '\f1\c3Status of 'var' 'name'--\n1';army = knights + fiefknights
+transmit '\c7  Thy army consists of      \c2: \c5'army
+transmit '\c7  Thy retinue consists of   \c2: \c5'knights
+transmit '\c7  Knights guarding thy fiefs\c2: \c5'fiefknights
+transmit '\c7  Royal guards in Camelot   \c2: \c5'guards
+transmit '\c7  Moves remaining today     \c2: \c5'moves
+transmit '\c7  Jousts remaining today    \c2: \c5'jousts
+transmit '\n1\c6Our ruler is King 'kingname' the Magnificent!'
+transmit '\n1\c1  Excalibur began on   : 'startdate
+transmit '  King siezed throne on: 'kingdate
+transmit '\n1\c4Press any key for inventory of thy fiefs.'
+bufferflush;getchar;transmit cls
+if fi = 0 then do;transmit '\n1(No fiefs)';signal intro2;end
+place2 = place;do x = 1 to fi;place = fiefs.x;call loadcity;sendstring '\c7'
+temp1 = cityname;num = 9;call spacefix;sendstring temp1'     '
+transmit ' \c1-->     \c4Knights: 'cityguards'     Tax Accrued: 'amtgold'     Per Day: 'curgold
+end ;place = place2
+intro2:
+if lastplay = date() then do;if new = 0 then signal intro3;end
+new = 0;if kingname ~= name then do
+transmit '\n1\c7  Gold pieces in thy purse: 'gold
+transmit '+ Gold pieces in the vault: 'vault
+transmit '+ Thy daily stipend       : 200'
+gold = gold + 200;total = gold + vault;wages = knights * 10
+transmit '- Wages for thy retinue   : 'wages
+transmit "- Thy crown's tax rate is : "tax"%"
+gold = gold - wages;if gold < 0 then gold = 0
+total = total - wages;minus = total * (tax/100)%1
+transmit '- So thou are assessed    : 'minus
+vault = vault - minus;transmit '= Final balance in vault  : 'vault
+if vault < 0 then do
+transmit '\n1Thou hast a deficit, therefore thou must settle from thy purse.'
+vault = vault * -1;gold = gold - vault;vault = 0;if gold < 0 then gold = 0
+end
+if exists(dir''kingname) then do;enemyname = kingname;call loadenemy
+engold = engold + minus;call saveenemy;end;end;lastplay = date()
+intro3:
+var = 'pieces of gold';if linelength < 80 then var = 'g.p.'
+transmit '\n1\c6  Thou hast in the vault: \c1'vault' \c6'var
+transmit '\c6  Thou hast in thy purse: \c1'gold' \c6'var;return
+intro4:
+if exists(dir3''name) then do;sendfile dir3''name;transmit '\$0delete "'dir3''name'"';end
+call intro;if place ~= 143 then do;transmit '';call pause;signal menu2;end
+transmit '\n1\c2     Thou art in M5,';transmit '     which is the city of Camelot.\n1'
+call pause;signal main
+endgame:
+transmit '\n1Please be patient whilst we escort thee to the border...'
+call open file, (dir''name), 'W'
+now = date();call writeln file, row;call writeln file, column
+call writeln file, place;call writeln file, gold;call writeln file, vault
+call writeln file, knights;call writeln file, fiefknights;call writeln file, now
+call writeln file, moves;call writeln file, jousts;call writeln file, fi
+do x = 1 to fi;call writeln file, fiefs.x;end;call close file
+call open file, (dir''name'.map'), 'W'
+do x = 1 to 260;call writeln file, show.x;end;call close file;call rankplayers;exit
+error:
+a = SIGL;transmit '\n1\c2Error!!!  Line # 'a;exit
+syntax:
+a = SIGL;transmit '\n1\c2Syntax Error!!!  Line # 'a;logentry '\c7Syntax Error in Excalibur!!  Line # 'a'\c3';exit
+ioerr:
+transmit '\n1\c2I/O Error!!!';exit
+cnter:
+sendstring center(an,linelength);return
+pause:
+sendstring paused;bufferflush;getchar;sendstring back;return
+ask:
+bufferflush;getchar;ans = result;if ans = '###PANIC' then signal endgame;transmit ans;return
+reset:
+transmit '\c2Excalibur Stats File not found!!  Starting new game...\n1'
+kingname = "Arthur";guards = 500;kingdate = date();startdate = date();gamedate = date()
+call open file, (dir'_excal.stats'), 'W'
+call writeln file, kingname;call writeln file, guards
+call writeln file, kingdate;call writeln file, startdate;call close file
+players = 1;total = 400;place = 143
+call open file, (dir'_excal.players'), 'W'
+call writeln file, players;call writeln file, name;call writeln file, place;call writeln file, total
+call close file;call open file, (dir'_excal.date'), 'W'
+call writeln file, gamedate;call close file;return
+main:
+cityname = 'Camelot';transmit '\f1\c4Thou art in Camelot\n1';transmit 'Ruled by King 'kingname' the Magnificent!\n1'
+if expert ~= 1 then call menu1
+sendstring '\n1\c4Which of these wonderous things wouldst thou do? \c1'
+call ask
+if ans = '?' then do;expert = expert * -1;signal main;end
+if ans = 'V' then signal vaults
+if ans = 'X' then signal endgame
+if ans = 'S' then call status
+if ans = 'R' then call rankplayersa
+if ans = 'Q' then signal menu2k
+if ans = 'M' then call map
+if ans = 'I' then call credits
+if ans = 'K' then signal knightstore
+if ans = 'J' then signal jousting
+if ans = 'W' then signal war
+if ans = 'D' then call message
+if ans = 'A' then call docs
+if ans = '1' then do;bbscommand WHO;transmit '';call pause;end
+if ans = '2' then do;bbscommand OLM;end
+signal main
+menu1:
+transmit '\c7S - See thy status';transmit 'R - Royal pecking order'
+transmit 'Q - Go on a quest for adventure';transmit 'M - Examine the map of Excalibur'
+if kingname ~= name then transmit 'K - Hire or sell knights'
+if kingname = name then transmit 'K - Hire additional Camelot guards'
+transmit 'V - Visit the royal vaults';transmit 'J - Go jousting for gold'
+if kingname ~= name then transmit 'W - WAR! Challenge for the throne!'
+transmit 'D - Dispatch a message to a player';transmit 'A - Ask the wise men for advice'
+transmit 'X - Exit the game for now';transmit '? - Toggle expert mode'
+transmit 'I - Game Version/Credits';transmit "1 - Who's Online?"
+transmit '2 - Send On-Line Message (OLM)';return
+menu2k:
+if kingname = name then do
+transmit "\f1\c2Highness, assassins are everywhere.  It is not safe for thee to be"
+transmit "roaming in the Excalibur countryside.  Please stay in Camelot where thy"
+transmit "knights can protect thee!\n1"
+call pause;signal main;end
+menu2:
+if map.place = 'C' | map.place = '@' then do
+if place ~= 143 then signal citylist
+if place = 143 then cityname = 'Camelot'
+end
+menu2a:
+transmit '\f1\c4Thou art at 'column''row',';sendstring 'which is '
+if map.place = 'C' | map.place = '@' then var = 'the city of 'cityname'.'
+if map.place = 'M' then var = 'mountains.'
+if map.place = 'S' then var = 'swamps.'
+if map.place = 'P' then var = 'plains.'
+if map.place = 'D' then var = 'desert.'
+if map.place = 'F' then var = 'forest.'
+transmit var;transmit '\n1\c5Thou art accompanied by \c3'knights '\c5knights,'
+transmit 'and have \c3'moves' \c5moves remaining today.'
+transmit 'In thy purse are \c3'gold' \c5pieces of gold.'
+if expert ~= 1 then call menu2list
+sendstring '\n1\c4Which choice willst thou make? \c1'
+call ask
+if ans = '?' then do;expert = expert * -1;signal menu2;end
+if ans = 'M' then call map
+if ans = 'T' then signal travel
+if ans = 'S' then signal scouting
+if ans = 'X' then signal endgame
+if ans = 'D' then call message
+if ans = 'A' then call docs
+if ans = 'E' then do;if place = 143 then signal main;end
+if map.place = 'C' | map.place = '@' then do
+if owner = name then do
+if ans = 'G' then signal changeguarda
+end
+if owner ~= name then do
+if ans = 'C' then signal capturefief
+end;end;signal menu2
+menu2list:
+transmit '\n1\c7M - Examine map';transmit 'T - Travel (march) to next fief'
+transmit 'S - See a scouting report';transmit 'X - Exit the game for now'
+transmit 'D - Dispatch a message to player';transmit 'A - Ask the wise men for advice'
+transmit '? - Toggle expert'
+if place = 143 then do; transmit 'E - Enter Camelot';return;end
+if map.place = 'C' | map.place = '@' then do
+/* transmit 'H - Hunt for a noble in hiding' */
+if owner = name then transmit "G - Change the city's guard"
+if owner ~= name then transmit 'C - Capture this fief'
+end;return
+docs:
+transmit '\f1\*0pfiles:excal/_excal.docs';call pause;return
+credits:
+transmit '\f1\c1EXCALIBUR v1.0  \c2(*EVALUATION VERSION*)';transmit '\n1\c3Written by Chris Cowan'
+transmit '\n1\c5(c) 1990,1991 Outlaw Technology';transmit 'All rights reserved.'
+transmit '\c7';transmit '     This program is written in Arexx for the CNet Amiga BBS software,'
+transmit "and is based on an online game written for the IBM's WWIV bulletin board"
+transmit 'software.';transmit '\n1     The newest version of EXCALIBUR can be obtained, free of charge, from'
+transmit 'The Danger Zone at (502)/448-1155.                     Enjoy!\n1';call pause;return
+fixspace:
+len = length(temp1);len2 = num - len;if len2 < 1 then return
+temp2 = left(space,len2);temp1 = temp2''temp1 ;return
+spacefix:
+len = length(temp1);len2 = num - len;if len2 < 1 then return
+temp2 = left(space,len2);temp1 = temp1''temp2;return
+map:
+if linelength < 70 then signal map40
+transmit '\f1\c5Thou art at 'column''row'.\n1';transmit '  \c7\u1A B C D E F G H I J K L M N O P Q R S T U V W X Y Z\u0'
+sendstring '0|';do x = 1 to 26;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c71|';do x = 27 to 52;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c72|';do x = 53 to 78;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c73|';do x = 79 to 104;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c74|';do x = 105 to 130;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c75|';do x = 131 to 156;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c76|';do x = 157 to 182;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c77|';do x = 183 to 208;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c78|';do x = 209 to 234;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+sendstring '\n1\c79|';do x = 235 to 260;var = ' \c6:';if show.x = 1 then var = '\c1'map.x'\c6:';if x = place then var = '\c2'map.x'\c6:';sendstring var;end
+transmit '\n2\c3C = Cities          M = Mountains\n1S = Swamp           P = Plains'
+transmit 'D = Desert          F = Forest         \n1@ = Your Fiefs     M5 = Camelot\n1'
+transmit '(blank) = Unexplored Territory\n1';call pause;return
+map40:
+transmit '\f1\c5Thou art at 'column''row'.\n1';transmit '  \c7\u1ABCDEFGHIJKLMNOPQRSTUVWXYZ\u0'
+sendstring '0:';do x = 1 to 26;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c71:';do x = 27 to 52;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c72:';do x = 53 to 78;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c73:';do x = 79 to 104;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c74:';do x = 105 to 130;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c75:';do x = 131 to 156;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c76:';do x = 157 to 182;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c77:';do x = 183 to 208;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c78:';do x = 209 to 234;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+sendstring '\n1\c79:';do x = 235 to 260;var = '\c6.';if show.x = 1 then var = '\c1'map.x;if x = place then var = '\c2'map.x;sendstring var;end
+transmit '\n2\c3C = Cities          M = Mountains\n1S = Swamp           P = Plains'
+transmit 'D = Desert          F = Forest         \n1@ = Your Fiefs     M5 = Camelot\n1'
+transmit '. = Unexplored Territory\n1';call pause;return
+knightstore:
+transmit cls;if kingname = name then signal kingaddguards
+transmit "Welcome to Knights 'R' Us, m'lord!\n1"
+transmit 'Do you wish to\n1';transmit '     (H)ire or';transmit '     (S)ell\n1'
+sendstring 'knights? ';call ask
+if ans = '' then signal main
+if ans = 'H' then signal knighthire
+if ans = 'S' then signal knightsale
+signal main
+knighthire:
+transmit '\n1\c4Knights hire for 20 gold pieces each now, plus 10 per day.\n1'
+high = (gold/20)%1;query '\c7Hire how many? (max.\c5' high'\c7): \c3'
+amo = result;if amo = "###PANIC" then signal main
+if amo = '' then signal main
+if amo < 1 then signal main
+if amo > high then signal main
+knights = knights + amo;gold = gold - (amo * 20)
+transmit '\n1You are now accompanied by \c4'knights' \c3knights.'
+call pause;signal main
+knightsale:
+transmit '\n1\c4Other adventurers will buy your knights for 10 gold each.\n1'
+high = knights;query '\c7Sell how many? (max.\c5' high'\c7): \c3';amo = result
+if amo = "###PANIC" then signal endgame
+if amo = '' then signal main
+if amo < 1 then signal main
+if amo > high then signal main
+knights = knights - amo;gold = gold + (amo * 10)
+transmit '\n1You are now accompanied by \c4'knights' \c3knights.'
+call pause;signal main
+kingaddguards:
+transmit '\n1\c4Welcome, highness.\n1Additional Camelot guards cost 20 gp each.\n1'
+high = (gold/20)%1;query '\c7Hire how many? (max.\c5' high'\c7): \c3';amo = result
+if amo = "###PANIC" then signal main
+if amo = '' then signal main
+if amo < 1 then signal main
+if amo > high then signal main
+guards = guards + amo;gold = gold - (amo * 20)
+transmit '\n1There are now \c4'guards' \c3guards in Camelot.'
+call savestats;call pause;signal main
+vaults:
+transmit "\f1Welcome to the royal vaults, m'lord!\n1"
+transmit 'Do you wish to\n1';transmit '     (D)eposit or';transmit '     (W)ithdraw\n1'
+sendstring 'gold? ';call ask
+if ans = 'D' then signal vaultdeposit
+if ans = 'W' then signal vaultwithdraw
+signal main
+vaultdeposit:
+query '\n1\c7Deposit how much (max. \c5'gold'\c7): \c3';amo = result
+if amo = "###PANIC" then signal endgame
+if amo = '' then signal main
+if amo < 1 then signal main
+if amo > gold then signal main
+vault = vault + amo;gold = gold - amo;call intro3;call pause;signal main
+vaultwithdraw:
+query '\n1\c7Withdraw how much (max. \c5'vault'\c7): \c3';amo = result
+if amo = "###PANIC" then signal endgame
+if amo = '' then signal main
+if amo < 1 then signal main
+if amo > vault then signal main
+vault = vault - amo;gold = gold + amo;call intro3;call pause;signal main
+jousting:
+transmit cls;if jousts < 1 then do;transmit '\c2Thou must wait until tomorrow to joust again!\n1';call pause;signal main;end
+an = 'Welcome to the tilting arena!';call cnter;transmit '\c5'
+if jousts ~= 12 then signal joust2
+transmit '     Here is thy chance to gain recognition and wealth.  The champions'
+transmit 'are gathered together to challenge all who dare to meet them on the field'
+transmit 'of honor.  The greater the champion, the larger the purse, but the greater'
+transmit 'champions are loath to yield their gold.  Thou art allowed a maximum of'
+transmit '12 jousts per day, but if thou art defeated five times in succession,'
+transmit 'thou wilt be finished jousting for the rest of the day.'
+transmit '\c7';an = 'WARNING:';call cnter
+an = 'The Alchemist-General hath determined that';call cnter
+an = 'jousting can be hazardous to thy health!';call cnter
+transmit '';call pause
+transmit '\f1\c2The finest heroes in the kingdom stand prepared to prove their prowess!'
+transmit 'Thou must wager 25 gold pieces if thou wishest to issue a challenge, but'
+transmit 'the prize thou canst win will mayhap make it worth the risk!\n1'
+joust2:
+var = 12 - jousts
+transmit '\c1Your purse: 'gold'        Jousts today: 'var'        Consecutive Defeats: 'defeats'\n1'
+if jousts ~= 12 then transmit 'Choose thy opponent 1-9 (0=quit, ?=full list)\n1'
+if jousts = 12 then call joustlist
+sendstring "Enter thy opponent's rank: ";call ask
+if ans = "" then signal main
+if ans = '?' then do;call joustlist;signal joust2;end
+if ans = '0' then signal main
+if ans = '1' | ans = '2' | ans = '3' | ans = '4' | ans = '5' | ans = '6' | ans = '7' | ans = '8' | ans = '9' then signal startjoust
+transmit '';signal joust2
+joustlist:
+transmit '\c7';an = 'Rank  Knight           Purse';call cnter
+an = '----------------------------';call cnter;an = ' 1    Sir Galahad       1000';call cnter
+an = ' 2    Sir Lancelot       900';call cnter;an = ' 3    Sir Gawain         750';call cnter
+an = ' 4    Sir Richard        500';call cnter;an = ' 5    Sir Pollinore      350';call cnter
+an = ' 6    Sir Tristan        225';call cnter;an = ' 7    Sir Mordred        150';call cnter
+an = ' 8    Don Quixote        100';call cnter;an = ' 9    Sir Rodney          75';call cnter;transmit '\c1';return
+startjoust:
+if gold < 25 then do;transmit '\n1\c4Thou art a Rogue and a Scoundrel.'
+transmit 'Away with thee!  Guards!  Guards!';transmit '(Thou art escorted ignominiously to the'
+transmit 'exit.)  Your pursurer spits on the';transmit 'earth and shouts four-letter words'
+transmit "after thee '...COME BACK WHEN THOU";transmit "HAST MORE!'\n1";call pause;signal main;end
+gold = gold - 25
+if ans = '1' then do;vs = 'Sir Galahad';prize = 1000;num = 1;end
+if ans = '2' then do;vs = 'Sir Lancelot';prize = 900;num = 2;end
+if ans = '3' then do;vs = 'Sir Gawain';prize = 750;num = 3;end
+if ans = '4' then do;vs = 'Sir Richard';prize = 500;num = 4;end
+if ans = '5' then do;vs = 'Sir Pollinore';prize = 350;num = 5;end
+if ans = '6' then do;vs = 'Sir Tristan';prize = 225;num = 6;end
+if ans = '7' then do;vs = 'Sir Mordred';prize = 150;num = 7;end
+if ans = '8' then do;vs = 'Don Quixote';prize = 100;num = 8;end
+if ans = '9' then do;vs = 'Sir Rodney';prize = 75;num = 9;end
+transmit cls;jousts = jousts - 1;an = 'The Gauntlet has been thrown!';call cnter
+transmit '\c3';transmit vs' has selected his lance and awaits your signal'
+transmit 'from the other end of the lists.  You give the sign, and'
+transmit 'spur your charger to the gallop...';num = num + 50
+joust3:
+transmit '\c3';var = random(1,num,time('s'))
+if var < 21 then signal joustlose
+if var > 40 then signal joustwin
+var = random(1,4,time('s'))
+if var = 1 then transmit 'Your horse rears and you miss, but your\n1shield deflects the force of the his blow.'
+if var = 2 then transmit 'Both your lances shatter from the mighty\n1impact, but you survive to charge again.'
+if var = 3 then transmit 'He strikes hard and your horse drops to\n1its knees, but you rise and turn again.'
+if var = 4 then transmit 'You are both unseated but your armor is\n1to heavy for swordplay.  You try again.'
+call pause;num = num + 5;signal joust3
+joustlose:
+var = random(1,3,time('s'))
+if var = 1 then transmit 'Your lance pierces his shield, but he\n1jerks free, pulling you from your mount.'
+if var = 2 then transmit 'You break wind in your armor and tears\n1come to your eyes.  He unseats you.'
+if var = 3 then transmit 'Thy opponent tells you that your fly is\n1open, and skewers you as you check.'
+transmit '\n1\c4';an = 'Thou hast been defeated Lord 'name;call cnter
+an = 'I hope thine injuries are minor.';call cnter;defeats = defeats + 1
+an = 'Thou hast had 'defeats' defeats in succession.';call cnter;signal endjoust
+joustwin:
+var = random(1,3,time('s'))
+if var = 1 then transmit 'His horse stumbles, his lance hits the\n1earth and he pole vaults over your head.'
+if var = 2 then transmit 'Your lance pierces his armor and you\n1carry him away dangling like a speared fish.'
+if var = 3 then transmit 'You deal a mighty blow and he flies from\n1 his saddle and lands flat on his butt.'
+transmit '\n1\c4';an = 'Thou hast defeated 'vs;call cnter
+an = 'And won 'prize' gold pieces!';call cnter;defeats = 0
+an = 'Thou hast had 0 defeats in succession.';call cnter;gold = gold + prize;signal endjoust
+endjoust:
+if jousts = 0 then do;transmit '\c7'
+an = 'Thou hast brought great honor to thy';call cnter
+an = 'name, but thy opponents are growing';call cnter
+an = 'tired and quit to rest.';call cnter;end
+if defeats = 5 then do;transmit '\c7'
+an = 'Thou art finished for the day.';call cnter
+an = 'Better luck tomorrow!';call cnter;jousts = 0;end
+call pause;if jousts = 0 then signal main;transmit cls;signal joust2
+message:
+bufferflush;query '\f1\c2Who doth thy wish to send a message to? \c1'
+var = result;if var = "###PANIC" then signal endgame
+a = upper(name);b = upper(var)
+if b = a then do;transmit '\n1\c5Send a message to thyself?  Art thou drunk?\n1';call pause;return;end
+if exists(dir''var) then signal sendmessage
+transmit "\n1\c5Sorry, m'lord.  That person is nowhere to be found!\n1";call pause;return
+sendmessage:
+transmit "\f1\c7There is room on the parchment for 5 lines, m'lord:\c3\n1"
+do x = 1 to 5;bufferflush;query '> ';ans = result;if ans = "###PANIC" then signal endgame
+message.x = ans;end;transmit '\c4\n1Message to \c7'var'\c4:\n1\c5'
+do x = 1 to 5;transmit message.x;end
+sendmessage2:
+sendstring '\n1\c2Okay? \c1';bufferflush;getchar;ans = result;if ans = "###PANIC" then signal endgame
+if ans = 'Y' then do;transmit 'Yes!';signal sendmessage3;end
+if ans = 'N' then return
+transmit '';signal sendmessage2
+sendmessage3:
+if exists(dir3''var) then do;call open file, (dir3''var), 'A';signal sendmessage4;end
+call open file, (dir3''var), 'W'
+sendmessage4:
+a = '\c7A carrier pigeon arrives with a message from \c4'name'\c7:\c3'
+b = '';c = '\c6Press a key\c1...\g1';d = '\f1'
+call writeln file, d;call writeln file, a;call writeln file, b
+do x = 1 to 5;call writeln file, message.x;end
+call writeln file, b;call writeln file, c;call close file
+transmit '\f1\c3A carrier pigeon hath been dispatched with thy message!\n1';call pause;return
+scouting:
+if knights < 1 then do;transmit "\c2You don't have any knights to send!";call pause;signal menu2;end
+mode = 'S';signal direction
+travel:
+mode = 'T';signal direction
+direction:
+transmit '';if moves < 1 then do;transmit '\c2Sorry, no moves left today!';call pause;signal menu2;end
+var = 'Travel:';if mode = 'S' then var = 'Scout:'
+transmit var;transmit '\n1      N';transmit '  NW  |  NE';transmit '    \\ | /'
+transmit ' W -- o -- E';transmit '    / | \\';transmit '  SW  |  SE';transmit '      S'
+bufferflush;query "\n1Which direction, m'lord? ";ans = upper(result);if ans = "###PANIC" then signal endgame
+if ans = 'N' then do
+if row = 0 then do;transmit "\n1\c2You can't go any further north!\n1";call pause;signal menu2;end
+signal traveln;end
+if ans = 'S' then do
+if row = 9 then do;transmit "\n1\c2You can't go any further south!\n1"call pause;signal menu2;end
+signal travels;end
+if ans = 'E' then do
+if column = 'Z' then do;transmit "\n1\c2You can't go any further east!\n1"call pause;signal menu2;end
+signal travele;end
+if ans = 'W' then do
+if column = 'A' then do;transmit "\n1\c2You can't go any further west!\n1"call pause;signal menu2;end
+signal travelw;end
+if ans = 'NW' then do
+if row = 0 | column = 'A' then do;transmit "\n1\c2You can't go that way!\n1"
+call pause;signal menu2;end
+signal travelnw;end
+if ans = 'NE' then do
+if row = 0 | column = 'Z' then do;transmit "\n1\c2You can't go that way!\n1"
+call pause;signal menu2;end
+signal travelne;end
+if ans = 'SW' then do
+if row = 9 | column = 'A' then do;transmit "\n1\c2You can't go that way!\n1"call pause;signal menu2;end
+signal travelsw;end
+if ans = 'SE' then do
+if row = 9 | column = 'Z' then do;transmit "\n1\c2You can't go that way!\n1"call pause;signal menu2;end
+signal travelse;end;signal menu2
+traveln:
+if mode = 'S' then do;scout = place - 26;var = 'north';signal scoutreport;end
+row = row - 1;place = place - 26;show.place = 1;moves = moves - 1;signal traveldes
+travels:
+if mode = 'S' then do;scout = place + 26;var = 'south';signal scoutreport;end
+row = row + 1;place = place + 26;show.place = 1;moves = moves - 1;signal traveldes
+travele:
+if mode = 'S' then do;scout = place + 1;var = 'east';signal scoutreport;end
+d = 'E';call alphabet;place = place + 1;show.place = 1;moves = moves - 1;signal traveldes
+travelw:
+if mode = 'S' then do;scout = place - 1;var = 'west';signal scoutreport;end
+d = 'W';call alphabet;place = place - 1;show.place = 1;moves = moves - 1;signal traveldes
+travelnw:
+if mode = 'S' then do;scout = place - 27;var = 'northwest';signal scoutreport;end
+row = row - 1;d = 'W';call alphabet;place = place - 27;show.place = 1;moves = moves - 1;signal traveldes
+travelne:
+if mode = 'S' then do;scout = place - 25;var = 'northeast';signal scoutreport;end
+row = row - 1;d = 'E';call alphabet;place = place - 25;show.place = 1;moves = moves - 1;signal traveldes
+travelsw:
+if mode = 'S' then do;scout = place + 25;var = 'southwest';signal scoutreport;end
+row = row + 1;d = 'W';call alphabet;place = place + 25;show.place = 1;moves = moves - 1;signal traveldes
+travelse:
+if mode = 'S' then do;scout = place + 27;var = 'southeast';signal scoutreport;end
+row = row + 1;d = 'E';call alphabet;place = place + 27;show.place = 1;moves = moves - 1;signal traveldes
+traveldes:
+transmit cls;if map.place = 'C' | map.place = '@' then signal menu2
+if map.place = 'M' then do;transmit "\c2<\c1MOUNTAINS\c2>\n1"
+transmit "\c5The view from up here is magnificent but you must be wary of bandits who"
+transmit "may be hiding amoungst the rocks.\n1";signal traveldes2;end
+if map.place = 'S' then do;transmit "\c2<\c1SWAMP\c2>\n1"
+transmit "\c5There are leeches and alligators here and snakes and other nasty things"
+transmit "that make travel difficult.  It takes you an extra move to get free from"
+transmit "the mire.";moves = moves - 1;if moves < 0 then moves = 0;signal traveldes2;end
+if map.place = 'P' then do;transmit "\c2<\c1PLAINS\c2>\n1"
+transmit "\c5Here in the plains there is abundant food and your enemies cannot"
+transmit "surprise you.  It is sometimes possible to get ahead of schedule on the"
+transmit "paved roads.";yo = random(1,10,time('s'))
+if yo > 5 then do;transmit "\n1\c4And today is no exception!  You move so quickly that this move is"
+transmit "not counted.";moves = moves + 1;end;signal traveldes2;end
+if map.place = 'D' then do;transmit "\c2<\c1DESERT\c2>\n1"
+transmit "\c5It is dry here, there is little food and no water.  About you are"
+transmit "scattered bones and bits of sandblasted armor.  You had better find your"
+transmit "way out soon.";signal traveldes2;end
+if map.place = 'F' then do;transmit "\c2<\c1FOREST\c2>\n1"
+transmit "\c5You are in a dense but not impenetrable forest.  Light filtering"
+transmit "through the canopy lends an air of enchantment to the serenity of the"
+transmit "gnarled trees.";signal traveldes2;end
+traveldes2:
+yo = random(1,15,time('s'));if yo < 6 | knights < 1 | map.place = 'P' then signal traveldes3
+var = knights;if var > 5 then var = 5
+yo = random(1,var,time('s'));transmit "\n1\c2Alas! \c1 "yo" \c2of thy knights were slain this move!"
+knights = knights - yo;transmit "Thou hast but \c1"knights" \c2of thy retinue left."
+traveldes3:
+call pause;signal menu2
+scoutreport:
+show.scout = 1;if map.scout = 'C' | map.scout = '@' then signal scoutreport2
+if map.scout = 'M' then var2 = 'mountains'
+if map.scout = 'S' then var2 = 'swamps'
+if map.scout = 'P' then var2 = 'plains'
+if map.scout = 'D' then var2 = 'desert'
+if map.scout = 'F' then var2 = 'forest'
+moves = moves - 1;transmit '\n1\c5After a while, the scout returns and reports:\n1'
+transmit "  'I rode to the "var" and found "var2"'!\n1"
+transmit "You award him with a medal and a pat on the back.  His excursion cost"
+transmit "you only one move.\n1";call pause;signal menu2
+scoutreport2:
+transmit '\n1\c5The scout is late and has cost you an extra move.  He comes back'
+transmit 'drunk and well fed, and smelling as though he had been wenching.  Somehow'
+transmit 'you manage to discover that he had found a city to the 'var'!'
+transmit '\n1You have the scout stripped and flayed for dereliction of duty, then'
+transmit 'dump him into a pit of salt, leaving him to reflect upon the error of his'
+transmit 'ways.\n1';moves = moves - 2;if moves < 0 then moves = 0
+knights = knights - 1;call pause;signal menu2
+status:
+call intro;call pause;return
+rankplayersa:
+call rankplayers;call pause;return
+citylist:
+if cityname ~= 'Camelot' then do;if lastcity = place then signal menu2a;end
+call loadcity;signal citylist2
+loadcity:
+call open file, (dir2'city.'place), 'R';cityname = readln(file);owner = readln(file)
+maxgold = readln(file);curgold = readln(file);cityguards = readln(file)
+amtgold = readln(file);call close file;return
+citylist2:
+lastcity = place;transmit cls'\c2';an = 'Now entering...';call cnter
+transmit '\c1';an = 'The City of 'cityname;call cnter;transmit '\c7'
+an = 'Ruled by 'owner;call cnter;an = 'Gold collected each day: 'maxgold
+call cnter;an = 'Guards in city: 'cityguards;call cnter;transmit ''
+if owner = name then do
+if amtgold > 0 then do;transmit '\n1\c3Thy guards hath collected \c1'amtgold' \c3in gold!'
+transmit '(Good luck getting back to Camelot with it!)';gold = gold + amtgold
+amtgold = 0;call savecity;end
+end;call pause;signal menu2a
+capturefief:
+if knights < 1 then do;transmit "\f1\c2You don't have any knights!\n1";call pause;signal menu2;end
+if owner = "No One" then signal capturefief2
+signal capturefief3
+capturefief2:
+transmit '\f1\c2The inhabitants of the city put up a good fight, but they are no match'
+transmit 'for thy mighty warriors.  Thy seize control of 'cityname'!\n1'
+capturefief2a:
+call seizegold;call pause;owner = name;call changeguard;call savecity;call addfief;signal menu2
+capturefief3:
+enemyname = owner;call loadenemy;cityguards2 = cityguards;transmit "\f1\c3"enemyname"'s knights have vowed to fight to the death!"
+capturefief4:
+transmit '\n1\c4Thy knights number \c1'knights'\c4.'
+transmit '\c4There are \c1'cityguards' \c4guards in the city.\n1'
+flagit = 0;var = random(1,10,time('s'))
+if var < 6 then do;transmit "\c2Thoust didn't surprise them.  They get the first attack..."
+call notsurprised;if flagit = 1 then signal defeated
+call surprised;if flagit = 1 then signal capturedfief
+signal continuefight;end
+transmit "\c5Thoust caught them off-guard!  Thy knights get first attack..."
+call surprised;if flagit = 1 then signal capturedfief
+call notsurprised;if flagit = 1 then signal defeated
+signal continuefight
+surprised:
+a = knights;if a > 999 then a = 999
+var = random(1,a,time('s'));if var > cityguards then do
+flagit = 1;var = cityguards;end;cityguards = cityguards - var
+transmit "\n1\c7Thy vassals slaughter \c4"var" \c7of the city's guards!" ;return
+notsurprised:
+a = cityguards;if a > 999 then a = 999
+var = random(1,a,time('s'));if var > knights then do
+flagit = 1;var = knights;end;knights = knights - var
+transmit "\n1\c7The opposing knights kill \c4"var" \c7of thy warriors.";return
+continuefight:
+sendstring '\n1\c6Continue fighting? \c1';call ask;if ans = 'Y' then signal capturefief4
+if ans = 'N' then do
+var = cityguards2 - cityguards;enfiefknights = enfiefknights - var
+call saveenemy;call savecity;signal menu2;end;signal continuefight
+defeated:
+transmit '\n1\c2Alas, all thy knights were defeated, master.\n1'
+transmit "\c3"enemyname"'s guards capture thee, seize all of thy gold,"
+transmit "beat thee to within an inch of thy life, and then throw thee out"
+transmit "of the city!\n1"
+transmit "\c7Thy lie in a state of semi-consiousness for several hours, then"
+transmit "manage to get to thy feet and stumble back to Camelot...\n1"
+transmit "\c1I'm afraid thou art finished for the day, m'lord\n1"
+call pause;knights = 0;moves = 0;amtgold = amtgold + gold
+var = cityguards2 - cityguards;enfiefknights = enfiefknights - var
+call saveenemy;call savecity;signal endgame
+capturedfief:
+transmit "\n1\c5Congratulations, m'lord!\n2\c1Thy knights hath captured "cityname"!\n1"
+cityguards = 0;enfiefknights = enfiefknights - cityguards2
+call deletefief;call saveenemy;signal capturefief2a
+deletefief:
+do x = 1 to enfi;if enfiefs.x = place then var = x;end
+if var = enfi then do;enfi = enfi - 1;return;end
+enfi = enfi - 1
+do x = var to enfi;y = x + 1;enfiefs.x = enfiefs.y;end
+return
+seizegold:
+transmit '\c3Thou knights search the city and recover \c1'amtgold' \c3gold!\n1'
+gold = gold + amtgold;amtgold = 0;return
+addfief:
+fi = fi + 1;fiefs.fi = place;map.place = '@';return
+savecity:
+call open file, (dir2'city.'place), 'W'
+call writeln file, cityname;call writeln file, owner
+call writeln file, maxgold;call writeln file, curgold
+call writeln file, cityguards;call writeln file, amtgold
+call close file;return
+changeguarda:
+call changeguard;call savecity;signal menu2
+changeguard:
+transmit '\f1\c7Thou currently hast \c5'cityguards' \c7knights guarding \c5'cityname'\c7.'
+transmit '\n1Thou hast \c5'knights' \c7knights accompanying you.\n1'
+bufferflush;query '\c4How many knights doth thou wish to leave guarding thy city? \c1'
+ans = result;if ans = '' then signal menu2
+if ans = "###PANIC" then signal endgame
+var = cityguards + knights;if ans < 0 | ans > var then do
+transmit '\n1\c2Art thou drunk?\n1';call pause;signal menu2;end
+if ans > cityguards then do;num = ans - cityguards;fiefknights = fiefknights + num
+end;if ans < cityguards then do
+num = cityguards - ans;fiefknights = fiefknights - num;end
+cityguards = ans;knights = var - cityguards
+transmit '\n1\c3Knights guarding 'cityname': \c5'cityguards
+transmit '\c3Knights attending to thee: \c5'knights'\n1'
+call pause;return
+maintenance:
+sendstring '\n1\c6(\c1Doing Daily Maintenance\c6)     \c3Please Wait...'
+place2 = place;do x = 1 to 260;if map.x = 'C' | map.x = '@' then do
+if x ~= 143 then do;place = x;call loadcity;a = cityguards * 10
+b = curgold;b = b - a;if b < 1 then b = 0
+amtgold = amtgold + b;call savecity;end;sendstring '.';end;end
+place = place2;now = date();call open file, (dir'_excal.date'), 'W'
+call writeln file, now;call close file;return
+rankplayers:
+total = gold + vault + (fi*500);if kingname = name then total = total + 100000
+sendstring cls;sendstring '\c4Ranking Players\c1';num = 0
+do x = 1 to players;if playname.x = name then do
+num = 1;networth.x = total;location.x = place;end;end
+if num = 0 then do
+players = players + 1;playname.players = name;networth.players = total
+location.players = place;end
+do x = 1 to players;sendstring '.'
+do y = 1 to players;if networth.x > networth.y then do
+num = networth.y;ply = playname.y;tio = location.y;networth.y = networth.x
+playname.y = playname.x;location.y = location.x;networth.x = num
+playname.x = ply;location.x = tio;end;end;end;transmit cls
+if linelength < 55 then do
+transmit '\c5Cam=Camelot   Que=Questing   Kin=King\n1'
+transmit '\c3## Player                  Worth    At'
+transmit '\c1--------------------------------------\c7';signal rank2;end
+transmit '\c3## Player                  Worth       Where'
+transmit '\c1--------------------------------------------\c7'
+rank2:
+do x = 1 to players
+temp1 = x;num = 2;call fixspace;sendstring temp1' ';temp1 = playname.x;num = 20
+call spacefix;sendstring temp1' ';temp1 = networth.x;num = 8;call fixspace
+sendstring temp1'  ';temp1 = "(Questing)";if linelength < 55 then temp1 = " Que"
+if location.x = 143 then do;temp1 = "In Camelot";if linelength < 55 then temp1 = " Cam"
+end;if kingname = playname.x then do;temp1 = "[[!King!]]"
+if linelength < 55 then temp1 = " Kin";end;transmit temp1;end
+call open file, (dir'_excal.players'), 'W';call writeln file, players
+do x = 1 to players;call writeln file, playname.x;call writeln file, location.x
+call writeln file, networth.x;end;call close file;return
+alphabet:
+if column = 'A' then do;if d = 'E' then column = 'B';return;end
+if column = 'B' then do;if d = 'W' then column = 'A';if d = 'E' then column = 'C';return;end
+if column = 'C' then do;if d = 'W' then column = 'B';if d = 'E' then column = 'D';return;end
+if column = 'D' then do;if d = 'W' then column = 'C';if d = 'E' then column = 'E';return;end
+if column = 'E' then do;if d = 'W' then column = 'D';if d = 'E' then column = 'F';return;end
+if column = 'F' then do;if d = 'W' then column = 'E';if d = 'E' then column = 'G';return;end
+if column = 'G' then do;if d = 'W' then column = 'F';if d = 'E' then column = 'H';return;end
+if column = 'H' then do;if d = 'W' then column = 'G';if d = 'E' then column = 'I';return;end
+if column = 'I' then do;if d = 'W' then column = 'H';if d = 'E' then column = 'J';return;end
+if column = 'J' then do;if d = 'W' then column = 'I';if d = 'E' then column = 'K';return;end
+if column = 'K' then do;if d = 'W' then column = 'J';if d = 'E' then column = 'L';return;end
+if column = 'L' then do;if d = 'W' then column = 'K';if d = 'E' then column = 'M';return;end
+if column = 'M' then do;if d = 'W' then column = 'L';if d = 'E' then column = 'N';return;end
+if column = 'N' then do;if d = 'W' then column = 'M';if d = 'E' then column = 'O';return;end
+if column = 'O' then do;if d = 'W' then column = 'N';if d = 'E' then column = 'P';return;end
+if column = 'P' then do;if d = 'W' then column = 'O';if d = 'E' then column = 'Q';return;end
+if column = 'Q' then do;if d = 'W' then column = 'P';if d = 'E' then column = 'R';return;end
+if column = 'R' then do;if d = 'W' then column = 'Q';if d = 'E' then column = 'S';return;end
+if column = 'S' then do;if d = 'W' then column = 'R';if d = 'E' then column = 'T';return;end
+if column = 'T' then do;if d = 'W' then column = 'S';if d = 'E' then column = 'U';return;end
+if column = 'U' then do;if d = 'W' then column = 'T';if d = 'E' then column = 'V';return;end
+if column = 'V' then do;if d = 'W' then column = 'U';if d = 'E' then column = 'W';return;end
+if column = 'W' then do;if d = 'W' then column = 'V';if d = 'E' then column = 'X';return;end
+if column = 'X' then do;if d = 'W' then column = 'W';if d = 'E' then column = 'Y';return;end
+if column = 'Y' then do;if d = 'W' then column = 'X';if d = 'E' then column = 'Z';return;end
+if column = 'Z' then do;if d = 'W' then column = 'Y';return;end
+transmit '\c2DATA ERROR!!!!';return
+loadenemy:
+call open file, (dir''enemyname), 'R'
+enrow = readln(file);encolumn = readln(file);enplace = readln(file)
+engold = readln(file);envault = readln(file);enknights = readln(file)
+enfiefknights = readln(file);enlastplay = readln(file);enmoves = readln(file)
+enjousts = readln(file);enfi = readln(file)
+do x = 1 to enfi;enfiefs.x = readln(file);end
+call close file;return
+saveenemy:
+call open file, (dir''enemyname), 'W'
+call writeln file, enrow;call writeln file, encolumn;call writeln file, enplace
+call writeln file, engold;call writeln file, envault;call writeln file, enknights
+call writeln file, enfiefknights;call writeln file, enlastplay;call writeln file, enmoves
+call writeln file, enjousts;call writeln file, enfi
+do x = 1 to enfi;call writeln file, enfiefs.x;end
+call close file;return
+war:
+if kingname = name then do
+transmit "\f1\c2Attack thyself?  Highness, art thou drunk?!\n1"
+call pause;signal main;end
+if knights < 1 then do
+transmit "\f1\c2You don't have any knights!\n1"
+call pause;signal main;end
+transmit "\f1\c3King "kingname"'s knights have vowed to fight to the death!"
+war2:
+transmit '\n1\c4Thy knights number \c1'knights'\c4.'
+transmit '\c4There are \c1'guards' \c4guards in Camelot.\n1'
+flagit = 0;var = random(1,10,time('s'))
+if var < 6 then do
+transmit "\c2Thoust didn't surprise them.  They get the first attack..."
+call warnotsurprised;if flagit = 1 then signal wardefeat
+call warsurprised;if flagit = 1 then signal capturethrone
+signal continuewar;end
+transmit "\c5Thoust caught them off-guard!  Thy knights get first attack..."
+call warsurprised;if flagit = 1 then signal capturethrone
+call warnotsurprised;if flagit = 1 then signal wardefeat
+signal continuewar
+warsurprised:
+a = knights;if a > 999 then a = 999
+var = random(1,a,time('s'))
+if var > guards then do;flagit = 1;var = guards;end
+guards = guards - var
+transmit "\n1\c7Thy vassals slaughter \c4"var" \c7of the royal guards!" ;return
+warnotsurprised:
+a = guards;if a > 999 then a = 999
+var = random(1,a,time('s'))
+if var > knights then do;flagit = 1;var = knights;end
+knights = knights - var
+transmit "\n1\c7The King's knights kill \c4"var" \c7of thy warriors.";return
+continuewar:
+sendstring '\n1\c6Continue war? \c1';call ask;if ans = 'Y' then signal war2
+if ans = 'N' then do;call savestats;signal main;end
+signal continuewar
+wardefeat:
+transmit '\n1\c2Alas, all thy knights were defeated, master.\n1'
+transmit "\c3"kingname"'s guards capture thee, seize all of thy gold,"
+transmit "beat thee to within an inch of thy life, and then throw thee into"
+transmit "a mudhole!\n1"
+transmit "\c7Thy lie in a state of semi-consiousness for several hours, then"
+transmit "manage to get to thy feet and plot thy revenge...\n1"
+transmit "\c1I'm afraid thou art finished for the day, m'lord.\n1"
+call pause;knights = 0;moves = 0;enemyname = kingname
+if exists(dir''enemyname) then do
+call loadenemy;engold = engold + gold;call saveenemy;end
+call savestats;signal endgame
+capturethrone:
+transmit "\n1\c5Congratulations, m'lord!\n2\c7Thy knights hath captured Camelot!\n1"
+transmit "\c1Thou art the new KING of EXCALIBUR!!"
+guards = 0;kingname = name;kingdate = date()
+if fi > 0 then do
+transmit "\n2\c3Calling all thy knights to Camelot..."
+do x = 1 to fi
+place = fiefs.x;call loadcity;owner = "No One";gold = gold + amtgold
+amtgold = 0;knights = knights + cityguards;cityguards = 0;call savecity
+map.place = 'C';end;end
+guards = knights;knights = 0;fiefknights = 0;place = 143;fi = 0
+call savestats;transmit "\n1\c2Thou hast \c1"guards" \c2guards in Camelot, highness."
+call pause;signal main
+savestats:
+call open file, (dir'_excal.stats'), 'W'
+call writeln file, kingname;call writeln file, guards
+call writeln file, kingdate;call writeln file, startdate
+call close file;return

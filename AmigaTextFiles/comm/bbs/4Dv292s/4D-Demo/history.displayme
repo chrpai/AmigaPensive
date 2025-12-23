@@ -1,0 +1,670 @@
+         4D-BBS Ongoing Report
+         ---------------------
+
+One of the things we are trying to do is allow more awareness of what
+has changed in the new versions.  I will try to maintain this file with
+the up-to-date info on the new versions, and what has changed.
+
+-- V2.92d - December 21, 1993
+
+* Made this a new version because I had to change a couple of the menu
+  commands! PLEASE NOTE THESE:  We had three illegal menu commands, which
+  where !, @, and #.  These conflist with menu locks, and should not have
+  been used as menu commands.  Since the 'Y' command gives you access to
+  all the editors, W and X are NO LONGER editor commands.  PLEASE change
+  you editor commands to those shown below:
+
+	:Y S		Config Editor
+	:Y F 	File Catalog Editor
+	:Y M		Message Base Editor
+	:Y D		User Defaults Editor
+	:Y U		User Editor
+	:Y B		Bulletins Editor
+
+  Furthermore, you will need to change all :! to :x.  The parameters are
+  still the same (this is the reload information command).
+
+  Furthermore, you will need to change all :@ to :o t.  This is the toggle
+  quick list function, so I stacked it as a T parameter to the current
+  list files menu command.
+
+  Lastly the Send ARexx Message command was changed to ":Z A {COMMAND}". I
+  personally haven't used this that much, but its the SAME function we
+  currently use to spawn the ARexx action scripts, so it SHOULD work.
+  Command can be EITHER an ARexx script file, or an ARexx command.
+
+
+--- 
+
+
+ALSO WITH V2.9 OF 4D-BBS AND UP YOU *MUST* USE THE V2.80d AND UP VERSION
+OF THE EDITORS.  THIS IS A MUST, AND YOU MAY FIND PROBLEMS IF YOU DON'T.
+
+--- V2.90d - December 12, 1993
+
+* First and foremost PLEASE read carefully through the notes on V2.90a.
+  They all still hold true and you'll most likely be calling me and
+  asking a question which was answered in this file somewhere.  Take
+  some time to read it and think about some of the things, it will
+  eventually make sense, I hope! :)
+
+* Changed ALL of the editors to now use the ENV: system explained below.
+  Now the editors read in the config file, and use the proper paths,
+  rather than defaulting to the assigns.  Please let me know if you run
+  across problems with the editors not using paths correctly.
+
+* You should find the new installer script available now.  It works
+  with Commodore's Installer V1.24, which is freely available (its on
+  out Support BBS...).  You need to assign 4D-BBS_Install: to where
+  ever you extract the archive, or make a disk with that name, and
+  extract the archive to it.  Let me know if you find any problems with
+  the installer script.  I have tested it quite a bit on my second
+  A3000 here and haven't found any problems with it so far (that doesn't
+  mean there isn't any, though!).
+
+* Fixed a couple problems which dealt with the high message (1.msg)
+  pointers.  Both the editors and the BBS should be a LOT better
+  at this, and they should be updated properly.  Your 1.msg files
+  should NEVER be bigger than about 194 bytes.  The old versions were
+  appended the data, not overwriting it.  If you see problems with
+  this happening again, let me know.
+
+* Fixed a slight problem in fcl_Ed that was causing datafile problems,
+  and also added some new "intelligence" into fcl_ed to look at your
+  datafiles, and automatically fix such things as bad sizes/date, and
+  bad flags for public/private and online/offline.  For those of you
+  who have wandered into the silent mode of fcl_ed, I am adding a
+  couple of addition CLP's to it, which are silent mode specific clps.  
+  What this means is they are dependant on the silnet mode operation
+  you are doing.  They are -1, -2, etc.  The only current use of them
+  is for the silet mode addfile option.  This is to replace my addfile
+  program which I wrote, and sometimes gives bad dates/sizes.  To use
+  fcl_ed in this way, run it like this:
+
+	fcl_ed -s[LIB#] -la -f[FILENAME] "-1[UPLOADER]" "-2[DESCR]"
+	
+  The quotes are only need if those clps contain spaces.  Try a nice
+  little alias of:
+
+	addfile fcl_ed -s[] -la -f[] "-1[]" "-2[]"
+	
+  to emulate the old addfile program.  If you use other features and
+  want to be able to add more parameters, let me know and I can add it.
+  I could possibly add a couple more field for -la above, such as date,
+  etc, if asked for.
+
+* Found the problems in fcl_ed which were giving enforcer hits, and 
+  crashing systems.  This mostly dealt with deleting files and adding
+  files.  If you are still getting enforcer hits or fcl_ed crashes
+  please let me know!
+
+* Changes a couple things relating to ARexx.  First of all, the ARexx
+  command of 'userinfo W' now returns the REAL name, not the alias of
+  the user.  Anyone know if this is correct?  I changed the passing
+  parameters to the ARexx functions of 4D to be delimited by COMMAS,
+  rather than spaces.  This allows you to NOT have to put quotes around
+  names when passing them into the ARexx scripts.  New ARexx scripts
+  should be in the beta archive.
+ 
+
+--- V2.90a - November 11, 1993
+
+    MAJOR CHANGES! READ BELOW AND V.289t notes VERY CAREFULLY!!!!!!
+
+* 4D-BBS Now uses an environment systems to get the paths and such.  This
+  works by having a directory "Env:4D-BBS" in which several pointer files
+  are stored.  Currently there is about 6 of them:
+
+	Filename				Description				Contents
+	--------------------	--------------------------	-------------
+	Env:4D-BBS/Config		Name of Configfile to use	S:4D.Config
+	Env:4D-BBS/BBS			Path of BBS directory		BBS:
+	Env:4D-BBS/MENU		Path of Menu directory		MENU:
+	Env:4D-BBS/TEXT		Path of Text directory		TEXT:
+	Env:4D-BBS/DOORS		Path of Doors directory		DOORS:
+	Env:4D-BBS/USERS		Path of Users directory		USERS:
+
+  Several things need to be noted.  ALL editors will look in env: to get
+  the directories they need to work with.  I have added lots of things to
+  several of the editors, see additional notes below.
+
+  Secondly, the env directory CAN match the arexx port name, to allow you
+  to run more than one copy in different directories.  Env:4D-BBS is the
+  default area, but if you are running two lines, you could use either
+  (Env:4D-BBS0 and Env:4D-BBS1) or (Env:4D-BBS and Env:4D-BBS1).  These are
+  the same, sine Env:4D-BBS will be used if Env:4D-BBS0 is not found.
+  
+  Next, cfg_ed accepts a parameter of /N to tell it WHAT NODE to work with.
+  This determines what env: set above it will use.  So something like:
+  "cfg_Ed /N1" would mean to use the config file pointed to by Env:4D-BBS1
+  and its associated path pointers in Env:4D-BBS1.  What this allows you to
+  do is have the SAME config file, but different actual directories.
+
+* cfg_ed now has a fifth screen, which is for the datafiles.  All of these
+  data files should NOT have a path specifier, and should be in the BBS:
+  (or whever you point it to) directory.  These are the DEFAULT file names
+  4D-BBS will use (and re-load after every caller).  U_ed now loads the
+  configuration file (pointed to by Env:4D-BBS/Config) to get some
+  information which it use to get via CLP.  Most of the editors still allow
+  passing of CLPS for paths, and the CLPS WILL OVERRIDE the env: paths.
+
+* The installer script is pretty much done.  This uses Commdore's installer
+  program to setup 4D-BBS, and should be *LOTS* easier to setup now.  You
+  will need to assign 4D-BBS_Install: to the place where you unarchived the
+  4D-BBS archive in order for the installer script to work.  The installer
+  script will call the editors, so that you can completely setup 4D all in
+  one step.
+
+* Added an ARexx command called 'closebbs' which will shut the BBS down.
+  Quit and Shutdown would have been better choices, but since those are
+  used in ARexx scripts to terminate arexx door mode, I didn't want to
+  overlap them.  Let me know if you have a better name for this.  You
+  should give it a number on the command line as to WHY you are closing
+  the BBS.  4D uses some interal numbers to determine this, and I will
+  try to get a list of them. (IE: Some don't actually save the on-line
+  user if there is one, others cleanup nice, others don't care).
+
+* Fixed a problem with fidonet messages not getting an origin and a tear
+  line.  Thanks Jeff Grimmet!
+
+* If you were using the menu commands to load in other default sayings
+  files (def_say.t), message sections (boardsdefs.d) or file sections
+  (filedefs.d), you will need to remove the path idicator on the front.
+  The files themselves are assummed to be in the "BBS:" (or wherever
+  you point that to) path.  4D will handle putting the appropriate
+  path in front of the filename.
+
+* Fixed a problem where marking 10 files would cause some strange things,
+  including gurus.
+  
+* Fixed the problem of the BBS asking multiple times for file information
+  after an upload, and crediting the user for it.
+
+* In the message bases, the BBS would sometimes display the last line of
+  a message twice.  This shouldn't happen anymore.
+
+* Fixed the problem of not being able to enter a Control-P locally.
+
+* In some of the versions of 4D, the Seen-BY: lines for fidonet was being
+  preceeded by a control-a, and it should not have been.  This was
+  causing a couple problems with tossers and bad messages.  This had
+  been fixed now.
+
+* Moved the default window opening location for XPR_RLM to the right side
+  of the screen, so you could see who was on the BBS (in the status window)
+  without having to move the transfer window.
+
+* Changed two things in the message bases.  First, it will NOT put the
+  Alias: and RName: Kludge Lines into a message which has a network
+  address anymore.  Just local areas.  Secondly, the serial number of the
+  BBS no long will be printed on the tear line (it is however still printed
+  at the end the PID: kludge line.
+  
+* Added BACK the 'K' parameter in the FIFO driver.  You MUST be using
+  the V3.4 version of Matt Dillion's FIFO Driver for this to work.  It
+  is found on Fred Fish 588 or on CornerStone's Support BBS.
+
+
+--- V2.89t - October 28, 1993
+
+* Fixed several problems in the message bases.  One of them was if you
+  had a sub-board setup for no-anonymous, and were using aliases, it
+  would always put ther real name in there (what the R flag should have
+  done.  Thanks Mike.  Also fixed a quoting problem, where 4D was not
+  putting a blank line after the quote.
+
+* Also on the Usenet side, I fixed several things, including saving
+  usenet style messages to local files, and being able to display the
+  header information for an usenet style message (to get the name and
+  address info).
+
+* EIC branching is here!  It was actually pretty easy to use.  I have
+  tested it in a text file so far, but it should work in a message,
+  also.  Here is the commands:
+
+
+	*Q[Y|N]	Query the user for a yes or no input. You should make this
+	          either QY or QN, depending on what you want the defualt for
+	          the yes or no prompt (return) to be.
+	          
+	*Y[#]	Skip # lines down if the user selected yes.
+	*N[#]	Skip # lines down is the user selected no.
+	
+	*G[DEF]	Get a string up to 19 chars long from the user.  If the user
+	          just hits return, then DEF is copied into the string.
+	*C[COMP]	Compare the string the user entered with COMP.  The compare
+	        	is NOT case sensitive.
+	        	
+	*A[#]	Skip # lines down if the strings are the same.
+	*B[#]	Skip # lines down if the strings are different.
+ 
+	*J[#]	Skip # lines donw (not associated with anything.
+	*Z		Stop displaying this file (like user aborted it).
+	
+  Just a note of the "skip".  Basically what the routine does is look for
+  # CRs or LFs.  This is INCLUDING the one at the end of the line which
+  the EIC itself is positioned on (which means you can put the EICS
+  anywhere you want).  Play with them to get the feel of it.
+
+* Fixed a little problem in the personal menu.  The first line (which
+  designated how many items there is) was not being used correctly, and
+  the BBS was trying to load one to many items in.  The correct format for
+  the file, should be something as follows:
+
+		2
+		*execute s:sysop.4dbbs
+		Sysop Login
+		*newshell
+		NewShell
+
+  Remember, the sets are in "command<cr>Menu Description<CR>".  Also,
+  commands must be pre-ceeded by *, or they will just be sent out to
+  the current screen (meaning you COULD put Eic's in there to do things).
+
+* Fixed the verbose setting in cfg_ed to allow a range of 1-9.  I will
+  be slowly go through the source and adding verbose leveling into the
+  code to support this function.
+
+* Adding environment variable support to 4D. The default is Env:4D-BBS/#?
+  where the files will be stored.  So far "CONFIG", and the path variables
+  "BBS", "TEXT", "USERS", "MENU", and "DOORS" are supported.  I will be
+  adding support of these into the editors soon.  This will eliminate the
+  /D CLP.  If you are running multiline 4D, or want a different path set,
+  the BBS will check the ARexx port name FIRST in ENV, before looking for
+  4D-BBS.
+
+	IE:  I have two lines, and want different paths:
+
+	For line 0:                  For line 1:  
+                        
+     Env:4D-BBS0/CONFIG           Env:4D-BBS1/CONFIG
+                 BBS                          BBS
+                 MENU                         MENU
+                 DOORS                        DOORS
+                 TEXT                         TEXT
+                 USERS                        USERS                
+                 
+
+  If you are explicitly using the /u parameter to get a certain unit number
+  for a line, then use the /a[PORT] paramater to ensure that the port name
+  goes with the unit number.  iE:
+  
+  		4D-BBS /u0 /a4D-BBS0
+  		4D-BBS /u2 /a4D-BBS1
+
+  As for the format of the env vars, for CONFIG, it should be a FULL PATH
+  INCLUDING filename of the config file for 4D to use.  Remember there IS
+  paths in that file, but the envs (if they exist) will override them.  I
+  plan on taking the paths of of the config file later.  For the rest of
+  the env vars listed above, you would simple have a path pointing to a
+  directory.  This can be either an assign or a full path.  cfg_ed (when
+  I get it done) will actually read and write the env: variables for you.
+
+* Finished an "Installer" script to install 4D.  It used the env: concept
+  talked about above, and optionally can run the editors at installation
+  time for a all-in-one step setup for 4D.  Need to find some testers for
+  this now!
+
+* Fixed a problem with users in novice mode dropping carrier and then BBS
+  sometimes infintely looping.  This shouldn't happen anymore, as I put
+  in a double check for carrier around the main menu prompt.  Thanks
+  Phil for showing me this!
+
+* Fixed the PAUSE Eic problem.  When I made the expand EIC function for
+  the menu, I acidentaly made it ignore the pause EIC while in expand
+  mode (which the menu processor was using).  It should work fine now,
+  though.
+
+* Fixed a problem with the password prompt contiually repeating is the
+  user hungup during the password prompt.  Thank Phil!
+
+--- V2.89s - October 14, 1993 (These version are flying!)
+
+* Added some stuff for preparation of the new QWK door we are about
+  to implement.  The main part of this is a new menu command which
+  will create a control.dat file.  The menu command is ":p q".  You
+  can give it a filename afterwards, or leave it blank to default
+  to control.dat.  Multiline could put "Control.dat^]WX%" to make
+  sure the file is unique for that line.  When runing the door, you
+  will probably have to pass a node number to it.  We'll see.
+  
+* Started work on the new debug option.  Rather than /V# being a 
+  switch toggle, it will be a level toggle, from 1 to 9.  The two
+  new options I have added so far are 8, which will print out EVERY
+  filename which 4D tries to open, and 9, which will cause 4D to
+  wait for a keypress in the window after EVERY verbose saying
+  printed.  DON'T run /V9 >NIL, or the BBS WILL STOP AND YOU CAN'T
+  do anything about it. :)
+
+* Worked on some more of the Fidonet stuff trying to help Ross out a
+  little bit.  Hopefully most of the fidonet "broken laws" are now
+  legal again and won't cause people any problems.
+
+* Also fixed a nasty bug in the displaying of user information in the
+  status window.  If you had a lot of sub-boards and file transfer
+  sections, the BBS would lock up right when it was trying to format
+  the user access strings in the status window.  I did some formatting
+  of the strings, so it only shows the first 50 access levels of each,
+  and also only shows the first 24 characters of the interest string.
+  
+* In case I forgot to mention this somewhere else, a littl while back
+  I made a major change to the user editor.  When editing a user's file
+  and message access, it now lists it out a line at a time of the format
+  "number: access: section name" and lets you go back and forth between
+  the list to change access.  This is now MUCH more easier to deal with
+  than the changing of access used to be.  Along with this, U_ed now
+  loads in BBS:boardefs.d and bbs:filedefs.d.  If you have an alternate,
+  larger list, you need to give that name to u_ed on the command line. To
+  do this use the -B$ and -F$ parameters.  Don't put a full path here, as
+  u_ed will look in the BBS: directory (or wheever you have it pointed to
+  in cfg_ed) for the alternate files).  Try it and I think you will like
+  it quite a bit.  There is a bug with alternate lists that I just
+  noticed, though.  4D will try and null the access list which is one
+  hgiher than your highest section.  So I have 9 boards in my main list,
+  and 49 in the alternate list.  4D tries to null board 10 access.  I will
+  look into this and change it so that it doesn't.
+
+* Found some problems in the cfg_ed, for structures it was using for the
+  BBS name.  Make sure you run the new cfg_ed, and check your BBS name as
+  its probably not correct now!  This version of cfg_ed is V2.70d.
+
+--- V2.89r - October 9, 1993
+
+* Added a CLP, -j#, which allows you to set the number of lines "scrolled"
+  when a screen is full.  This is the paramater people have been wanting.
+  The higher the number (I would not go much high than half of the number
+  of screen lines), the faster the output will seem.  Play with this. It
+  defaults to 5.  (Mike S.)
+
+* New menu mode.  If you make the third line of "0+" rather than 0, then
+  the BBS will display the character which the user entered.  0 by itself
+  will not display the character.  You can also put a + after the #, "#+"
+  to get it to act this way, also. (Mike S.)
+
+
+--- V2.89n - September 15, 1993
+
+* Added a bunch of new EICs.  These deal with being able to print out
+  information contained in the header of the current message.  Be
+  careful with this EIC.  Its designed for two specific reasons:
+
+    1) Customizing the header display of a post...There is now about
+       8 new lines of the def_say.t file.  The header information now
+       if all contained in EICs and lines in the def_say.t.  PLEASE
+       be careful with this, or you could make a mess out of it! :)
+       There is basically two sets of four lines.  The first is the
+       ascii set, and the second is the ansi set.  See the next
+       comment for a list.
+       
+    2) Customizing and make custom quote sayings.  4D-BBS can now have
+       random quotes and customized quotes.  What this allows the sysop
+       to do it change the way the intial quote phrase goes.  The
+       filenae is quote.dat and follows the same rules as the 
+       origin.dat file (it first searches the specified path of the
+       message base, and if it can not find the file there, it will try
+       and find the file in the BBS: path).
+
+* New Eics.  LOTS of them.  They are for the message headers.  I will
+  be adding more, and reformatting some, but these are the basics.
+  The basic format for the EICS is "^]H?##%".  Replace the ? with one
+  of the characters listed below to print out that information.  If you
+  omit a number after the letter, the information will be printed out
+  in full length, no restriction.  If you put a number behind the
+  actual character itself, then the BBS will force THAT SPECIFIC LENGTH
+  of a string to be printed out.  It will EITHER truncate the string
+  if its to long, or pad the end of it with spaces if to short.
+
+    A- Author      0- # times read   4- orig area       8- child mess #
+    T- To          1- dest node      5- dest area
+    S- Subject     2- orig node      6- parent Mess #
+    D- Date        3- cost           7- attributes
+
+  More information on this to follow! :)
+
+* New eic: "^]TD%" will check to see if the user has any outstanding file
+descriptions, and query them for the description of a file.  This is used
+in conjunction with the autologoff on upload option.  There is also a
+menu command ":v d" which will do this.
+
+* Fixed a bug that was hanging new user logons if you had a 
+  BBS:CallBack.Rexx ARexx script.
+
+* Fixed a problem with the retype /e command.  Thanks C & K. :,)
+
+* Did some work on the user editor.  You can now pass it two parameters
+  to specify the boards and files defaults.  The parameters are /B and /F.
+  Why would you do this?  Because when editing a use now, and you use the
+  2 or 3 option on the second screen, it will list the boards/files name
+  of the sections and show you the user's access.  This makes it a lot
+  easier to edit the user's access to file transger and message base areas.
+  You can use the /? to get a list of paramaters for the user editor.
+
+
+--- V2.89d - August 20, 1993
+
+* For Multi-line (now that I have it) you can append a .# to the end
+  of any files which end in a ".ansi" or ".ascii" text to send a
+  specific file for a specific node.  If this file is not found, the
+  default file without the .# extension will be sent.  Example:
+  "logon.txt.ansi" would be sent to line 0, while "logon.txt.ansi.1" 
+  would be send to line 1.  Remember, the "line" is determined by
+  the ARexx port name.  (See Below)
+
+* Fixed some ARexx stuff up concerning multiline. When booting up
+  multiple copies for multiline, you need to run the copies (with
+  serial port /u# parameters) IN THE ORDER you want the lines
+  to come up, or explicitly give the ARexx port name "ie: /a4D-BBS4".
+  If you explictly give the port name it must NEVER exist, or the
+  BBS will add a number to it, not giving the desired effects.  Only
+  16 lines are currently supported.
+
+* Added a new EIC "^]WX%" to print out the node number of the BBS
+  the user is on.  This will print out a number of the range 1-16,
+  normally derived from the last one or two numbers of the ARexx
+  port name (if there is no numbers at the end of the ARexx port
+  name, line 0 is given...it is also the default).
+
+* Made MANY changed to the ARexx interface.  The default port is now
+  4D-BBS0 instead of 4D-BBS.  Also, you can specify a specific port
+  or node by giving a number after the name (IE: 4D-BBS4...to use the
+  .# extensions mentions above).
+
+* Optimized Scrolling!  The scrolling for the local end should be
+  about 200% faster now.  8 color screens should be fine on 68000
+  series machines.
+
+* Fixed most of the XPRS problem.  You should find a xpr_rlm program
+  in the distribution. It needs to be in your path somwhere, and will
+  handle the file transfers for 4D-BBS.  There should also be a window
+  which opens up on the 4D screen during the transfers to show status.
+  Not all of the Xprs are done, though. Uploads still need some work.
+
+* Added an option for a call back ARexx door.  Call the ARexx door
+  "BBS:CallBack.Rexx" and it will be called after the user enters
+  their information.  Call the 'hangup' ARexx routine, and quit
+  the door if the validation if the door does not work.  I will be
+  making an example of this later.  DER: 09/07/93
+
+* ARexx commands 'userinfo' # will change the status level of the user.
+  0=new, 1=member, 2=sysop, 3=no access.  These DO NOT change ANY OTHER
+  setting in the user file. Also added 'userinfo 9' to validate a user
+  and give them the defaults for the "member" access level.  Use this
+  to update a new user to a member via arexx.
+
+* When using the :0 and :1 command, the menu parser will now parse the
+  command given to it and send UP TO a space after the menu name.  It
+  used to send the WHOLE name.  This will allow accidental spaces to be
+  put in after the menu name, and not cause problems.  It also fixes a
+  problem encountered with the ##: and ##: prefix special encounters
+  when used with the :0 and :1 commands.  If any other odd situations
+  come up with the ##: prefix parsing, we'll try to fix them.
+
+* Changed the :! menu command.  Added the "B" to reload the message
+  base command.  Make sure you change your commands if you use this
+  functions.
+
+
+--- V2.88d - July 18, 1993
+
+* Fixed the problem people were having with running the editors from the
+  pull down menus.  Running the editors from the pull down menus should
+  work fine, and open up a window on the WorkBench Screen.  The on-line
+  user editor should automatically update the the user during an edit,
+  also.  The window opened up on the Workbench screen in RAW:.  If anyone
+  finds a problem with this, I can change it back to CON: (although RAW:
+  works MUCH better!).  I am also looking into making 4D's screen a
+  Public screen, and having the editors open up on 4D's screen.
+
+* I took out the upper case 'K' in the FIFO driver.  This was causing
+  a couple people problems, and should alleviate having to binary edit
+  it out. Anyone know what it is used for? :).
+
+* Don't know why I didn't get a bunch of people ramming me down the
+  throat with this error, but for some reason the fax checking was
+  getting in the way of the asnwering routines.  Should be working
+  fine now, though.
+
+* Fixed a problem in cfg_ed where setting the sysop available flag
+  would munch the BBS: path. Thanks Raymond!
+
+* There was a configuration file name difference betwen cfg_ed and
+  the main BBS.  The BBS was looking for a file called "4D.Config"
+  while the cfg_ed program defaulted to "Config.4D".  The correct
+  name should be "4D.Config" and cfg_ed has been updated to reflect
+  this.  Version number is V2.69d.
+
+* Now when someone requests a chat, the ARexx script "4DChatReq.Rexx"
+  will be executed.  This will allow for sysops to "log" who wanted
+  to chat and such.  The ARexx script is passed three paramaters:
+  
+  1st:  The ARexx portname of the BBS
+  2nd:  The Name of the User
+  3rd:  The Reason why the user wants to chat.
+
+* Changed the Afterpost command.  All 4D ARexx commands will be of the
+  format "4D[COMMAND].Rexx".  So the two we have going so far are
+  "4DAfterPost.Rexx" and "4DChatReq.Rexx".  If you would like to
+  function command scripts, please let me know.
+
+* Fixed a couple of the chat bugs like adding garbage to whatever
+  reason the user gave for wanting to chat.
+
+* Changed the stats screen stuff a little bit.  Two files are actually
+  sent now.  The first is the file "Stats.Txt.Ansi" OR "Stats.Txt.Ascii".
+  Which file is sent depends on WHICH mode the user is in (read the manual
+  for more info on this).  SECONDLY the file "Stats.Txt" will be sent
+  REGARDLESS WHETHER THE OTHER ONE WAS FOUND.  Whats the purpose of this?
+  You can make the stats.txt.a* files sent all the neat, cool information
+  and such, and then have stats.txt have the information to query the user
+  to check mail, new mesages, etc.  This allows you to not have to
+  duplicate these checks, since you would have to put the EICS in BOTH
+  files.  This is a somewhat fix, as versions before V2.89 where ONLY
+  sending the stats.txt file, AND NOT the stats.txt.a* file. 
+  Thanks Phil!
+
+* Made a couple fixes to fcl_ed and mb_ed.  If the diretories do not
+  exist when you specify them, the editor will tell you this, and
+  prompt you to whether you would like to create the directory or
+  not.
+
+* Fixed the bug in fcl_ed where it would not recalculate the maximum number
+  off screens when you added sections.  You will now be able to get to the
+  last screen if you add a file section which is a multiple of 10. 
+  
+* Added a new option to fcl_ed that would allow it to read a file which
+  contains a list of files and descriptions.  This is made to work with
+  some CD-ROMs which give a listing of the files in each directory in a
+  text file (the format is one line for file, with the file name first,
+  a space (or multiple spaces) and then the description.
+
+
+--- V2.87d - July 2, 1993
+
+* Made a new menu option.  It makes hotkey + number menus a TON easier
+  to use.. What you do is simply place the line "##:k" in your message 
+  base menu, turn hotkey+number mode on, and your set.  You don't need
+  100 lines to allow the numbers to work.  4D will append to the menu
+  command whatever you user inputs.  IE:  They enter "47", 4D will
+  make the command "47:k 47" and pass it to the menu parser.  This
+  should save LOTS of menuing heaches!
+
+* Went throught and added some more lines into the def_say.t file.  You
+  should either append the lines of the attached one to your, or just
+  use this one.  You need to notice the different in lines 19 and 20,
+  also.
+
+* Added two now EICs.  "^]FA" will turn on showing the menu in novice
+  mode, and "^]FB" will turn OFF showing the menu in novice mode.  This
+  works VERY similar to toggle the users expert/novice mode, but does
+  NOT actually change this setting.  The BBS DOES NOT change the setting
+  back, so you will need to change it back (possibly in the prompt) if
+  you only want it active for one command.
+
+* MB_ED:  Took length down to 76 so it would not wrap on some screens.
+  Added the "I" type sub-board for internet mail.  Did some cosmetic
+  cleanup, also.  Ripped out Door support so it ONLY uses FIFO/CLI/WB
+  (this took the size down quite a bit!).
+
+* Now ALL menu lines will expanded if EICS are in them.  What does this  
+  really mean?  I HECK OF a lot of power!  Try it out.  You can now
+  force user-dependant actions in commands.  The FIFO passing was the
+  first one that I used this with, and thought all of them would be
+  nice to have this function.  Of course there ARE menu commands that
+  are inappropriate for this (like changing to a message board, etc)
+  but they all have the capabilities.
+
+* CFG_ED:  At LAST!  The new config editor is out.  Fixed the BBS
+  name and annoucement conflicts, made it look like the rest of the
+  editors, and cleaned up many problems with it.  Should be a LOT
+  nicer to use now. 
+
+* Fixed a bug in the fax string that wouldn't allow it to work.  The
+  BBS will not look for the fax string ANYWHERE in a string from the
+  modem.  This means you can put "FAX" as the string, and whether
+  your modem returns "FAX" or "CONNECT FAX" it will work now.
+
+* FCL_ED:  Fixed a couple bugs including display, I/J when editing a
+  file, and the new extended descriptions rule.  Files can now have
+  BOTH an extended description and a short description.  An extended
+  description is noted by an * in front of the short description in
+  the BBS, and FCL_ED will put a "(MB #/Mess #)" designator in front 
+  of the short descript.
+
+* B_ED: AT LAST!  We now have a bulletin editor. You must use v2.88d
+  in order for the BBS to recognize the new format.  Use the -c
+  parameter to convert your old bulls.dat file to the new bulls.d
+  format.
+
+* Added option G in CFG_ED (V2.68d) to allow toggling of the Sysop
+  available flag's default setting when 4D-BBS is ran.
+
+
+--- V2.85d - July 1, 1993
+
+Ok.  I have changed plenty here... Thanks to Jim Aites for getting
+on my case about some of the "problems" he conjurred up!  Make sure
+you add line 298 to your def_say.t file.
+
+* Fixed Double Origin Printout
+
+* Moved initial advertisement in an eic.  The EIC "^]W2%" will print out
+  the connection information.  Use it like "Connect: ^]W2%".
+
+* line 298 in def_say.t is now displayed as the FIRST line when a user
+  FIRST LOGS on.  The above string defaults to be in this line (so you
+  probably won't notice a differemnce, but its a lot more flexible.
+
+* New EIC:"^]W1%". This is an optional EIC to set the user's initial ANSI
+  setting.  It works like the old Ansi question in 1.63.  The BBS will
+  now try to display text:logon.txt.ascii UNLESS this EIC is used and
+  the user opts for ANSI.  Then text:logon.txt.ansi will be displayed.
+  text:logon.txt is no longer used.  This EIC can go in def_say.t line
+  298 mentioned above.
+
+* Fixed a bug where a sub-board flag of "N" would force the real name
+  of the user no matter what.
+
+* Fixed some memory and port problems.  We were not releasing all of
+  the memory and after many times of running the BBS it would start
+  to not working properly.
+

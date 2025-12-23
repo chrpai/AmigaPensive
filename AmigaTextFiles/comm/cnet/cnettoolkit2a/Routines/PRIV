@@ -1,0 +1,13 @@
+PRIV: procedure expose priv privs handle status
+    arg mode,priv,id;b='';c=left(mode,1);if datatype(id,'n')=0 then do;findaccount id;id=result;end
+    if id=0 then do;transmit 'Invalid Handle! Aborted!';return;end;loadscratch id;getscratch 1;handle=result
+    if handle='!' then do;transmit 'Empty Account! Aborted!';savescratch (-id);return;end
+    do i=0 to 3;getscratch 1101332+i;a=result;b=b||reverse(c2b(d2c(a+(a<0)*256)));end i
+    do i=0 to 3;getscratch 1101380+i;a=result;b=b||reverse(c2b(d2c(a+(a<0)*256)));end i;privs=b
+    if c='E' then privs=overlay('1',privs,priv,1);if c='D' then privs=overlay('0',privs,priv,1)
+    if c='T' then do;a=substr('10',substr(privs,priv,1)+1,1);privs=overlay(a,privs,priv,1);end
+    priv=subword('No Yes',substr(privs,priv,1)+1,1);if c='V' then do;savescratch (-id);return;end
+    do i=0 to 3;a=c2d(b2c(reverse(substr(privs,i*8+1,8))));a=a-(a>127)*256;setobject a;putscratch 1101332+i;end i
+    do i=0 to 3;a=c2d(b2c(reverse(substr(privs,32+i*8+1,8))));a=a-(a>127)*256;setobject a;putscratch 1101380+i;end i
+    savescratch id;status=result
+  return

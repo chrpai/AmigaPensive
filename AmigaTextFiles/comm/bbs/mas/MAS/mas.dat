@@ -1,0 +1,39 @@
+/* Message Area Scanner 1.40 by S.Klemola */
+
+Command "scan" (G:) {
+    if(arg(1) == "?") {
+        rexx("SendModem \(27)[36mFormat: \(27)[33mSCAN \(27)[0m[ALL|<Sig>] [NEW] [FORCE] [CONT] [INTER]\(13)\(10)");
+        break;
+    }
+    $sig = upper(arg(1));
+    if($sig == "ALL") $sig = 0;
+        else if(($sig == "") || ($sig < 1) || ($sig > 7)) /* change */
+        $sig = CurrentSIG();
+    $cont = "";
+    $new = "";
+    $force = "";
+    $plain = "";
+    $an = 1;
+    while(arg($an) != "") {
+        $ar = upper(arg($an));
+        if($ar == "CONT") $cont = "CONT";
+        if($ar == "NEW") $new = "NEW";
+        if($ar == "FORCE") $force = "FORCE";
+        if($ar == "PLAIN") $plain = 1;
+        if($ar == "INTER") $sig = "";
+        $an = $an + 1;
+    }
+    if($plain == 1) {
+        if(GetUserAccess() > 999) {
+            rexx("LogEntry Scanning message areas in plain mode");
+            dos("mas \($sig) <>TECHIO:\(node())");
+        } else {
+            rexx("LogEntry Attempted to use plain mode");
+            rexx("SendModem \(27)[31mYou are not allowed to use the plain mode.\(27)[0m\(13)\(10)");
+        }
+    } else {
+        if($cont != "") $sig = "0";
+        dos("cp:progs/mas \($sig) \($new) \($force) \($cont) USER \(node()) <>TECHIO:\(node())");
+    }
+};
+

@@ -1,0 +1,219 @@
+/*
+** $VER: FileMenu.apt 0.020 (08 Dec 1993) ***
+**
+** This file is mainly used by non-arexx calls to the file-area. That is,
+** if the SysOp is not using arexx to control the system, then when he
+** calls the file menu, this script will be called and executed.
+**
+** A note to Arexx programmers - Normally you would install
+** the code below inside of your main 'core' files, unless you wish
+** to call this script separately, the reason for this is "speed.."
+** If you are doing this then you should refer to the "UpdateDocs"
+** and cut&paste the version included within that, as it has two
+** lines that make it into a 'procedure' which is required.
+**
+** SIG NOTES:
+**
+** It is normal for BBS systems to have various numbers of sigs, and
+** in order for the effect to be brought over to the user, while under
+** the rexx enviroment, one needs to change the sig value depending on
+** what section of the system the user is being taken to, then
+** re-setting to the previous sig value. In order to do this with little
+** or no fuss, it is a simple matter of 'CHAIN'ing this file with the
+** filename, and also supply a sig number. The Sig will be 'changed' to
+** that of the supplied value while the old_sig is remembered, and
+** reverted to at return time.
+**
+** 'CHAINAPT' "FilesMenu 0" /* Sig value of 0 is required.. */
+**
+** $HISTORY:
+**
+** 08 Dec 1993 : 000.020 :  Added F1 = Enter ChatMode
+** 26 Nov 1993 : 000.019 :  Release version completed
+** 26 Nov 1993 : 000.018 :  Included 'SIG' Setting & Unsetting
+** 25 Nov 1993 : 000.017 :  File created
+*/
+
+/* ######################################################################### */
+
+/*
+** TABLE LIST AND DEFINES:
+**
+** Version 0.0.2
+**
+** The following block of code should remain untouched by 3rd party
+** programmers. The block will be updated at times and all that will
+** be required from you is to paste the new block in. You may
+** alter code only when told specified.
+*/
+
+      /* Used within the CALLFUNCTION calls */
+
+COMPUTERTYPE_CALL = 0
+COUNTRY_CALL      = 1
+BIRTHDAY_CALL     = 2
+PROTOCOL_CALL     = 3
+ARCHIVER_CALL     = 4
+SHOW_PASSWORD_AND_NAME_CALL = 5
+
+
+      /* This block is used in the SET GFX FLAG  function ONLY */
+
+ANSI_COL_FLG = 0  /* Ansi Colour Flag  */
+ANSI_POS_FLG = 1  /* Ansi Positioning  */
+ANSI_FLG_FLG = 2  /* ANSI at all!?     */
+ANSI_SCR_FLG = 3  /* Ansi Scrolling    */
+ANSI_CUR_FLG = 4  /* Ansi Cursor       */
+SCRN_CLR_FLG = 7  /* Screen Clears     */
+
+   /* This block is used in the GET VAR and  SET VAR ONLY */
+
+ACCESSLEVEL_VAR   = 0
+VALID_VAR         = 1
+CALLSMADE_VAR     = 2
+MSGSLEFT_VAR      = 3
+MSGSREC_VAR       = 4
+UPLOADS_VAR       = 5
+DNLOADS_VAR       = 6
+BYTESUP_VAR       = 7
+BYTESDN_VAR       = 8
+BYTESLEFT_VAR     = 9
+FILERATIO_VAR     = 10
+BONUSRATIO_VAR    = 11
+HOTKEY_VAR        = 12
+EDITOR_VAR        = 13
+COMPTYPE_VAR      = 14
+SCRLENGTH_VAR     = 15
+SCRWIDTH_VAR      = 16
+GENDER_VAR        = 17
+MORE_VAR          = 18
+PROTOCOL_VAR      = 19
+ARCHIVER_VAR      = 20
+MENUSET_VAR       = 21
+
+   /* This block is used in the GET STR and SET STR functions ONLY */
+
+USERNAME_STR      = 0
+ADDR1_STR         = 1
+ADDR2_STR         = 2
+ADDR3_STR         = 3
+POSTCODE_STR      = 4
+COUNTRY_STR       = 5
+VOICENO_STR       = 6
+DATANO_STR        = 7
+PASSWORD_STR      = 8
+HANDLE_STR        = 9
+
+FIRELEN_OPT       = 0
+FIRECASE_OPT      = 1
+FIREFILT_OPT      = 2
+
+LETTER_FLT        = 1
+NUMBER_FLT        = 2
+ASCII_FLT         = 4
+UPFIRST_FLT       = 8
+PUNCT_FLT         = 16
+
+FILE              = 0
+STRING            = 1
+
+USER_MEMBER       = 0   /* For the MOVEUSER function */
+USER_NEW          = 1
+USER_REVIEW       = 2
+
+DAYS2REVIEW_STVAR    = 0
+DAYSLASTCALL_STVAR   = 1
+
+LASTDATECALL_STSTR      = 0
+LASTTIMECALL_STSTR      = 1
+
+/* ######################################################################### */
+
+parse arg lineno new_sig .
+
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+/*
+** FILES_MENU:
+**/
+
+'INFORM' "Inside of File Area Menu"
+
+Finished = 0
+
+'INITFILEAREA'
+
+'SETSIG' "NEWSIG="new_sig ; old_sig = result
+
+'SELECTAREA' ; selected_area = result
+if( selected_area == -1 ) then Finished = 1
+else 'TOUCHINDEX'
+
+'FILESTYLE' "RESET"
+
+
+DO WHILE Finished~=1   /* Loop while Finish flag is not equal to 1 */
+
+   'SHOWFILE' "file/fmenu"
+
+   'HOTKEY' "" ; rawkey=result ; key=upper(rawkey)
+
+   'ISDROP' ; if(result=1) then Finished = 1
+
+   select
+      when key="A" then do
+         'SELECTAREA' ; selected_area = result
+         if(selected_area == -1) then Finished=1
+         else 'TOUCHINDEX'
+      end
+      when key="S" then                'SCANAREA'
+      when key="=" then                'GLOBALNEWSCAN'
+      when key='N' then                'LOCALNEWSCAN'
+      when key='D'x | key='A'x then    'CONTINUESCAN'
+      when key='M' then                'MARKFILE'
+      when key='R' then                'REMOVEMARKED'
+      when key='U' then                'UPLOAD'
+      when key='D' then                'DOWNLOAD'
+      when key='L' then                'LISTMARKED'
+      when key='>' | key='.' then      'NEXTAREA'
+      when key='<' | key=',' then      'PREVAREA'
+      when key='V' then                'VIEWARCHIVE'
+      when key='F' then                'FILTERMENU'
+      when key='O' then                'FILTERSOFF'
+      when key='-' then do 
+         'FILEAREAINFO' "AREANUMBER" ; selected_area = result
+         'CHAINAPT' "FLST_Downloader "selected_area
+      end
+      when key="Q" then do
+         /*
+         ** As the user may wish to QUIT, he may, unknowingly
+         ** have forgot that they have files 'marked' for
+         ** download. We should be kind and remind them of this,
+         ** and give them the chance of sticking around.
+         **/
+         'MARKFILE' "QUERY" ; got_any_files = result
+         if( got_any_files==1 ) then do
+            'SHOWFILE' "file/filesmarked" /* Inform of marked files */
+            call YESNO 1                  /* default to YES         */
+            if(result) THEN Finished=1    /* If TRUE, then finish.. */
+         end
+         else Finished=1                  /* Otherwise simply Quit  */
+      end
+      when rawkey='F0'x then do ; 'CHATMODE' ; end
+      otherwise
+   end
+
+   'ISDROP' ; if(result=1) then Finished = 1
+END
+
+'FREEFILEAREA'
+
+'msg' "\z4\b1\c7Leaving File Area...\b0\z0\c7"
+
+'SETSIG' "NEWSIG="old_sig ; old_sig = result
+
+return old_sig
+

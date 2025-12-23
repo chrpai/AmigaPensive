@@ -1,0 +1,857 @@
+@database 07d78ce8-0
+@master PGL:doks/PGLClient.Guide
+@$VER: 1.2 (25.7.96)
+@author "Jörg Fenin"
+@(c) "1996 Jörg Fenin (JEFF@LEGACY.dame.de)"
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+
+@node "Main" "ProGuideList - der ultimative Filelister für Prometheus"
+@next "Introduction"
+                                  @{fg shine}PGLClient@{fg text}
+
+                        User-Interface für ProGuideList
+
+                               V1.2 [25-Jul-1996]
+
+                 (C) 1995-1996 Jörg Fenin (JEFF@LEGACY.dame.de)
+
+                                    @{"Shareware" link "Shareware" 0}
+                         ==============================
+                         @{"wichtiger rechtlicher Hinweis!" link "Disclaimer" 0}
+                         ==============================
+
+ @{"was macht PGLClient?             " link "Introduction" 0}
+ @{"Systemvoraussetzungen            " link "Requirements" 0}
+ @{"Installation                     " link "Installation" 0}
+ @{"Benutzung                        " link "Usage" 0}
+ @{"technische Details & Hintergründe" link "Technicals" 0}
+ @{"Bugs / Probleme                  " link "Bugs" 0}
+ @{"Versionsgeschichte               " link "History" 0}
+ @{"andere ProGuideList-Programme    " link "Others" 0}
+ @{"Support                          " link "Support" 0}
+ @{"Autor                            " link "Author" 0}
+@endnode
+
+@node "Introduction" "Was macht ProGuideList ?"
+@next "Requirements"
+@prev "Main"
+@{u}was macht PGLClient ?@{uu}
+
+PGLClient ist der Teil des ProGuideList-Paketes, der vom User gestartet
+wird.
+
+In ihm werden alle Userangaben getätigt (z.B. Brettauswahl, Packeraus- wahl
+etc.).
+
+Der PGLClient erzeugt den B*-Baum, der die Bretter enthält, die dem User in
+seine Liste geschrieben werden.
+
+Danach werden alle diese Angaben an den PGLServer weitergereicht.
+@endnode
+
+@node "Requirements" "Systemvoraussetzungen"
+@next "Installation"
+@prev "Introduction"
+@{u}Systemvoraussetzungen@{uu}
+
+ProGuideList benötigt mindestens einen Amiga mit
+
+ * Kickstart 2.04 oder höher (3.0 empfohlen)
+ * je nach Brettanzahl bis zu 10 MB temporären Speicher (Festplatten-
+   ODER RAM-Speicher)
+ * Prometheus V1.9 oder höher
+ * MUI 3.3+
+
+Erstellt und getestet wurde das Programm unter folgender Konfiguration
+
+ * Kickstart 3.0
+ * Prometheus 1.92
+ * MUI 3.3
+@endnode
+
+@node "Installation" "Installation PGLClient"
+@next "Usage"
+@prev "Requirements"
+@{u}Installation PGLCLient@{uu}:
+
+PGLClient ist das Programm, welches der User in der Box startet.
+
+ PGLClient in ein beliebiges Verzeichnis kopieren, z.B. nach
+ @{b}Prometheus:Extern/@{ub}
+
+ Die Hilfe-Datei PGLClient.HLP muß im gleichen Verzeichnis liegen
+ wie PGLClient!
+
+ Dann muß ein neuer Befehl dafür angelegt werden (etwa so):
+
+ Name:              ProGuideList
+ Beschreibung:      bester Filelister wo gibt ;-)
+ Parameter:         run prometheus:extern/PGLClient PORT=$PO BRETT=$BP
+ Gruppe:            <<keine Gruppe>> (damit auch Gäste PGL nutzen können)
+ Typ:               Arexx/Library
+
+ Shortcut:          3
+ Befehl:            ankreuzen
+ Extern:            wenn gewünscht ankreuzen
+ Ports:             wie gewünscht ankreuzen oder abschalten
+@endnode
+
+@node "Usage" "Benutzung"
+@next "Technicals"
+@prev "Installation"
+@{u}Benutzung@{uu}
+
+Nach dem Aufruf von ProGuideList stehen dem der User folgende Einstellungs-
+möglichkeiten und Funktionsaufrufe zur Verfügung:
+
+@{u}Einstellungen@{uu}:
+
+ Format:         hier kann zwischen verschiedenen Listen-Formaten
+                 gewählt werden,
+
+                 zur Zeit sind AmigaGuide (!!!) und ASCII implementiert
+
+                 wählt der User AmigaGuide als Ausgabeformt, werden die
+                 Zeilenvorschübe (s.u.) automatisch auf AMIGA umgestellt.
+
+
+ Brettart:       hier kann angegeben werden, welche BRETTER (nicht welche
+                 Mails) mit in die Liste aufgenommen werden
+
+                 BINÄR: alle Bretter, die das Binär-Flag gesetzt haben
+                 ASCII: alle Bretter, die das ASCII-Flag gesetzt haben
+                 BINÄR ASCII:  sowohl BINÄR als auch ASCII
+
+                 default: BINÄR
+
+
+ Packer:         hier kann der Packer eingestellt werden, mit dem
+                 die fertige Liste gepackt wird, es wird dabei direkt
+                 auf die im Prometheus-Server eingestellten Packer
+                 (Menü: Konfigurationen/Packer) zugegriffen
+
+                 default: der Packer, den der User im Setup eingestellt
+                          hat
+
+
+ Kommentar:      hier kann angegeben werden, wie viele Zeile des
+                 Kommentars (Upload-Beschreibung) in die Liste
+                 übernommen werden soll
+
+                 ALLES:   der gesamte Kommentar
+                 1 ZEILE: nur die 1. Zeile
+                 AUS:     kein Kommentar
+
+                 default: ALLES
+
+
+ Zeilenvorschübe: gibt an, welche Zeilenvorschübe in der Liste
+                  enthalten sein sollen
+
+                  AMIGA - Amiga-Zeilenvorschübe (0x0A)
+                  PC    - MSDOS-Zeilenvorschübe (0x0D0A)
+                  MAC   - Macintosh-Zeilenvorschübe (0x0D)
+
+                  stellt der User AmigaGuide als Ausgabeformat (s.o.)
+                  ein, so wird automatisch auf AMIGA-Zeilenvorschübe
+                  umgeschaltet. Man kann das zwar noch ändern, was
+                  allerdings keinen Sinn macht, AmigaGuides mit PC-
+                  Zeilenvorschüben werden von MultiView z.B. nicht
+                  erkannt!
+
+ Wurzel:          gibt an, ob eine komplette Fileliste erstellt
+                  werden soll (also mit allen Brettern wie unter
+                  Brettart eingestellt), oder nur ab dem aktuellen
+                  Brett (wird darunter angezeigt)
+
+                  so ist es möglich nur von einzelnen Unterbrettern
+                  und -Bereichen Dateilisten anzufertigen!!!!!!
+
+                  default: Hauptmenü
+
+
+ Netze:           hier kann eingestellt werden, ob PGL Netzbretter
+                  beachten soll oder nicht
+
+                  JA   - auch Netzbretter werden (wenn sie der einge-
+                         stellten Brettart (s.o.) entsprechen, in die
+                         Liste mit aufgenommen
+
+                  NEIN - Netzbretter werden nicht mit in die Liste auf-
+                         genommen
+
+                  @{b}Es ist geplant, daß der Sysop später über die
+                  SysopPrefs die Bretter auswählen kann, die generell
+                  nicht beachtet werden sollen!@{ub}
+
+
+ Bezugsdatum:    hier kann ein Bezugsdatum für eine Liste gewählt werden
+
+                 zur Zeit werden zwei Kalenderdaten unterstützt:
+                 - 01.01.1970, d.h. es werden alle Indexeinträge
+                               angezeigt
+                 - User-Bezugsdatum, d.h. es wird das Bezugsdatum des
+                               Users herangezogen und nur die Einträge
+                               angezeigt, die nach dem Bezugsdatum
+                               in die Box geuppt wurden, d.h. der
+                               User kann sich so einfach eine Liste
+                               aller neuen Files erstellen
+
+                               Zu beachten ist dabei, das wirklich
+                               auch nur Bretter in die Liste aufgenommen
+                               werden, die diese neuen Einträge haben,
+                               alle anderen Bretter werden gar nicht
+                               beachtet, d.h. auch, daß die Listen-
+                               erstellung sehr viel schneller geht!
+
+                 default: 01.01.1970
+
+                 weiterhin geplant ist, daß ausserdem das Datum
+                 der letzten Listenerstellung eines Users ausgewählt
+                 werden kann, ebenso das freie Eingeben eines Datums
+                 (nur in der reg. Version!)
+
+
+ Erstellung:     auf vielfachen Wunsch wurde jetzt die Möglichkeit
+                 integriert, auch die B*-Baum-Erstellung im Hintergrund
+                 ablaufen zu lassen.
+
+                 Wird HINTERGRUND gewählt, wird die Erstellung des B*-
+                 Baumes von den Listclients übernommen. Der PGLClient
+                 kann sofort nach dem Senden der Listanforderung an den
+                 PGLServer verlassen werden. In diesem Modus werden
+                 passwortgeschützte Bretter (@{b}@{u}sowie ihre Unterbretter@{ub}@{uu})
+                 bei der Erstellung der Liste ausgeklammert (da ja
+                 keine Möglichkeit mehr besteht, den User nach dem
+                 Passwort zu fragen).
+
+                 Bei Anwahl von VORDERGRUND wird der B*-Baum, wie in
+                 früheren Versionen vom PGLClient erstellt, bei
+                 passwortgeschützten Brettern wird der User dann nach
+                 dem Passwort gefragt.
+
+                 default: Vordergrund
+
+
+@{u}Funktionen@{uu}:
+
+ Einstellugen speichern: speichert die Einstellungen in der Datei
+                         @{b}prometheus:User/@{i}Username@{ui}/°PGLUserPrefs@{ub} ab;
+                         diese werden beim nächsten Start von
+                         ProGuideList automatisch geladen,so daß der
+                         User beim nicht alles neu einstellen muß
+
+
+ Liste erstellen: startet das Erstellen der Liste
+
+                  der User wird über die Statuszeile ständig darüber
+                  informiert, wie weit der Erstellungsprozess schon
+                  vorangeschritten ist
+
+                  Nach Fertigstellung erfolgt noch eine Sicherheits-
+                  abfrage, ob die Liste jetzt downgeloadet werden
+                  soll
+
+
+ Hilfe:           Online-Hilfe
+
+
+ Info:            Info über ProGuideList
+
+
+ Ende:            beendet ProGuideList
+@endnode
+
+@node "Technicals" "technische Details und Hintergründe"
+@next "Bugs"
+@prev "Usage"
+@{u}technische Details und Hintergründe@{uu}
+
+Ein paar Informationen wie ProGuideList arbeitet:
+
+Nach dem Aufruf der Funktion Liste erstellen, baut PGL aus den im
+Server-Port enthaltenen Brettdaten einen binären Baum (B*) auf.
+
+Das sieht ungefähr so aus: (die Zahlen repräsentieren die interne
+Brettnummer von Prometheus, hierbei handelt es sich um die Daten MEINER
+Box)
+
+                                     -1 (Hauptmenü)
+                                      |
+ +--------+---------+---------+-------++----------+---------+-----+
+ |        |         |         |        |          |         |     |
+ 0        19       103        5       50         89        93    18
+                              |         |         |         |
+          +-----+------+------+-+   +---+---+   +-+--+   +--+----+--+
+          |     |      |        |   |       |   | |  |   |  |    |  |
+        115    107     96      98  51       66 92 91 90 24  27  30  2
+                       |        |                                   |
+                     +-+-+   +--++                         +--+--+--+-+
+                     |   |   |   |                         |  |  |    |
+                     6  97  86  78                         41 8 104 106
+
+
+                     usw. usw. usw. usw. usw. usw. usw.
+
+
+Dieses Prinzip bietet sich aus zwei Gründen an:
+
+1. Der Baum kann rekursiv abgearbeitet werden, was einen relativ
+   geringen Programmieraufwand bedeutet (wenn man das Verwalten eines
+   solchen B*-Baumes erst mal fertig hat :-), und man kann so die
+   Struktur der Box 1:1 im Guide darstellen
+
+2. Man kann an einem beliebigen Punkt einsteigen, d.h. man kann z.B.
+   auch nur die Unterbretter zum Brett 5 (bei mir das Oberbrett für
+   die Amiga-File-Ecke) auflisten
+   Aus diesem Grund bietet PGL die bisher einmalige Funktion, die
+   Liste einfach vom aktuellen Brett an zu starten!
+
+Nachdem nun dieser Baum aufgebaut wurde, wird er "lediglich" rekursiv
+abgearbeitet, Bretter, die der User nicht sehen kann (Inhaltsgruppe) werden
+erst gar nicht mit in den Baum aufgenommen und deshalb gar nicht erst
+abgearbeitet.
+
+Es wird lediglich der B*-Baum im Speicher gehalten, da er sich aber nur aus
+ein paar Node-Adressen und der Brettnummer zusammensetzt, verursacht er auch
+bei großen Boxen mit vielen Brettern keine Speicher- Probleme.
+
+Wenn der B*-Baum abgearbeitet wird, wird immer nur das aktuelle °inx- File
+des gerade bearbeiteten Brettes im Speicher gehalten.
+
+PGL ist also sehr speicherschonend und sollte daher auch in sehr großen
+Boxen mit vielen Brettern ohne Probleme laufen.
+@endnode
+
+@node "Bugs" "Bugs / Probleme"
+@next "History"
+@prev "Technicals"
+@{u}Bugs / Probleme@{uu}
+
+@{u}Probleme:@{uu}
+
+Bei einem Carrier-Verlust während der Erstellung des B*-Baumes wird dieser
+korrekt weiter erstellt, allerdings natürlich ohne die Passwortabfragen
+(weil der User ja wech is:). Dadurch wird der Port, auf dem PGLClient läuft
+so lange nicht freigegeben, bis die Erstellung beendent ist. In einer der
+nächsten Versionen wird der Sysop die Möglichkeit haben, das Verhalten von
+PGLClient nach einem Carrierverlust einzustellen und ggf. PGLClient sofort
+beenden zu lassen.
+
+
+Es muß darauf geachtet werden, daß im Prometheus-Server nur "richtige"
+Packer eingetragen werden und nicht etwa Un-Packer (wie UnARJ oder UnRAR).
+
+PGL wertet die Packerstrings aus dem Prometheus-Server aus, wenn hier z.B.
+UnARJ angegeben ist, bietet PGL diesen dem User zum Packen an. Da UnARJ
+keine ARJ-Archive erstellen kann, wird die Liste dann natürlich nicht
+gepackt!
+@endnode
+
+@node "History" "Versionsgeschichte"
+@next "Others"
+@prev "Bugs"
+@{u}Versionsgeschichte@{uu}
+
+(die neueste Version steht ganz oben)
+
+V1.2 - 25-Jul-1996
+
+     - Überschreitet ein User die in den SysopPrefs eingestellte
+       Maximalanzahl an gleichzeitigen Listen (siehe dort), so erhält der
+       User eine entsprechende Meldung und die Listenanforderung wird
+       abgebrochen
+
+       (zur Abwehr von Hackern und Dumm-Usern [was manchmal sogar
+       das Gleiche ist], gell "Rastaman" ???)
+
+       (sehr guter Hinweis von TIGER@HSH-BOX)
+
+
+V1.1 - 18-Jul-1996
+
+     - bei registrierten Usern wurde der Name des Keyfile-Inhabers
+       ohne Leerzeichen vom Namen der Box getrennt, was irgendwie
+       blöd aussah, behoben (Bugreport von SYSOP@FODDER)
+
+
+V1.0 - 08-Jul-1996
+
+     - erste Vollversion
+
+     - PGLClient speichert beim Programmstart seine Versionsnummer in
+       der Datei "Prometheus:Daten/PGLClient.ver", damit diese Infor-
+       mationen von anderen PGL-Programmen bei Bedarf abgefragt werden
+       können
+
+     - Im Info-Fenster werden jetzt auch die Versionen der anderen
+       PGL-Programme angezeigt (soweit diese mindestens einmal
+       gestartet wurden), zur evtl. Fehlersuche könnten diese Infos
+       ganz brauchbar sein
+
+
+V1.0 BETA 3 - 06-Jul-1996 (Gabi-Geburtstags-Release :)
+
+     - In den Status-Informationen wird angezeigt, ob in den
+       SysopPrefs CD-Bretter erlaubt ("aktiviert") oder nicht
+       erlaubt ("deaktiviert") wurden
+
+     - Gast-User erhalten beim Anfordern eine Liste eine Information,
+       daß sie weder einen Antrag ausfüllen, noch sich ausloggen
+       dürfen, bis die Liste fertig ist, ansonsten bekommen sie die
+       fertige Liste nicht
+
+
+V1.0 BETA 2 - 01-Jul-1996
+
+      - Schreibfehler in der Anzeige behoben, "Erstellung" wird
+        nur mit einem 't' geschrieben, auch nach der Rechtschreib-
+        reform :-) (Danke an AOE für den Hinweis)
+
+      - "Ausgabe" geändert in "Format", klingt irgendwie logischer
+
+      - wirklich üblen Bug in der Brettverwaltung behoben, PGL
+        konnte u.U. ein Brett nicht finden, wenn es in der
+        Brettverwaltung Lücken gab, behoben... puhhh :-)
+
+
+V1.0 BETA 1 - 29-Jun-1996
+
+      - Änderungen der Messagestruktur für die Möglichkeit, ein
+        relatives Bezugsdatum (PGLAutoList) anzugeben
+
+      - Im Erstellungsmodus VORDERGRUND wurde das Wurzelbrett nicht
+        korrekt im PGLServer.prt ausgegeben, korrigiert
+
+
+V0.18 BETA 1 - 23-Jun-1996 - Non-Public-Beta-Version
+
+      - Änderungen im Zuge der Möglichkeit automatische Filelisten mit
+        PGLAutoList zu erstellen (Erweiterung der Message-Struktur)
+
+
+V0.17 - 22-Jun-1996 (Mirca-Geburtstags-Release :-)
+
+      - Änderungen im Zuge der Neuprogrammierung der Message-Verwaltung
+
+
+V0.17 BETA 2 - 02-Jun-1996
+
+      - PGLClient checkt beim Start ob die für den PGLServer notwendige
+        muimaster.library mit der richtigen Version (V14+ / MUI 3.3)
+        geöffnet werden kann, ansonsten bricht PGLClient mit einer
+        Fehlermeldung ab
+
+
+V0.17 BETA 1 - 22-May-1996
+
+      - Startwert für dynamische Taskpriorität wird berücksichtigt
+        (neu in PGLSysopPrefs)
+
+
+V0.16 - 14-May-1996 - Public-Beta-Version
+
+      - Enforcer-Hits beim Lesen der Brettliste und der Brettpasswörter
+        entfernt
+
+
+V0.16 BETA 3 - 07-May-1996 - Non-Public-Beta-Version
+
+      - ab dieser Version laufen Non-Public-Beta-Versionen nur noch
+        mit Keyfiles, die eine Beta-Freischaltung enthalten
+
+      - Fehler beim Lades des Keyfiles behoben
+
+
+V0.16 BETA 2 - 03-May-1996 - Non-Public-Beta-Version
+
+      - Die Erstellung des B*-Baumes kann auf Wunsch des Users
+        jetzt auch im Hintergrund erfolgen (und wird dann von
+        den Listclients erledigt), dabei werden allerdings
+        Passwort-geschützte Bretter (samt Unterbretter) ohne
+        Nachfrage bei der Listenerstellung ausgelassen
+
+
+V0.16 BETA 1
+
+      - Das Helpfile (PGLClient.hlp) wird jetzt über die
+        Prometheus-Funktion pt_Typefile() ausgegeben, daher
+        konform mit der normalen Prometheus-Anzeige
+        (Danke an BLiZZER für den Hinweis, warum schreib ich mir
+        so eine Routine selber, wenn es so etwas schon gibt. Tss...)
+
+
+V0.15 - 23-Apr-1996 - Public-Beta-Version
+
+      - der Sysop-Port wird bei der Berechnung der dynamischen
+        Taskpriorität ausgeklammert, damit ein User keine Rückschlüsse
+        mehr daraus ziehen kann, ob der Sysop eingeloggt ist oder nicht
+
+      - Einbau des Bezugsdatums, der User kann wählen, ob er eine
+        komplette Liste bekommt oder eine Liste mit neuen Einträgen
+        (anhand des User-Bezugsdatums)
+
+
+V0.14 - 20-Apr-1996
+
+      - Einbau der Keyfile-Routinen (Infofenster aufrufen :)
+
+
+V0.13 - 21-Mar-1996 - Public-Beta-Version
+
+      - kann der PGLServer einen Listclient nicht finden, so bekommt
+        der User in PGLClient die Meldung, daß der Listclient nicht
+        gestartet werden konnte (vorher wurde dem User suggerriert,
+        daß alles OK wäre und der User konnte ewig auf seine Liste
+        warten)
+
+
+V0.12 - 16-Mar-1996 - Public-Beta-Version
+
+      - die Meldungen nach dem Versenden der Listenanforderung an den
+        PGLServer ("PGLServer hat Listenanforderung (...) erhalten...",
+        etc.) werden jetzt "auf einmal" in einem farbigen Fenster
+        angezeigt, so daß nur noch ein Tastendruck notwendig ist, um
+        alles zu lesen
+
+      - Code ein bischen entrümpelt
+
+
+V0.11 BETA 3 - 07-Mar-1996
+
+      - Zeilenvorschübe können jetzt angegeben werden (AMIGA, PC, MAC)
+
+
+V0.11 BETA 2 - 02-Mar-1996
+
+      - Änderungen im Zusammenhang mit der Möglichkeit ASCII-Listen
+        (über PGLAscii) zu erstellen
+
+
+V0.11 BETA 1 - 29-Feb-1996
+
+      - Netze werden jetzt korrekt erkannt (anhand des Verteilers;
+        Danke an BLIZZER (Sysop@FODDER) für den Hinweis).
+
+        Deshalb braucht man im Client jetzt nur noch zwischen Netze
+        NEIN und JA zu unterscheiden
+
+
+V0.10 - 26-Feb-1996 - Public-Beta
+
+      - In der Meldung "Server hat Listenanforderung erhalten <Taste>"
+        steht jetzt die Anzahl der ermittelten Bretter, die in der Liste
+        erscheinen, so kann sich der User schon mal darauf einrichten,
+        was ihn erwartet :-)
+
+
+V0.10 BETA 2 - 21-Feb-1996 - Non-Public-Beta
+
+      - Carrier-Checks erheblich erweitert, wird bei der Erstellung des
+        B*-Baumes der Carrier verloren, wird dieser trotzdem fertig-
+        gestellt (und danach der PGLServer gestartet), allerdings
+        natürlich ohne Ausgaben, dann wird der PGLClient automatisch
+        beendet; außerdem Carrier-Check in der Eingabe-Schleife, bei
+        Verlust des Carriers wird das Programm beendet
+        (Bugreport von Blizzer (SYSOP@FODDER))
+
+      - Prozentanzeige (B*-Baum) etwas beschleunigt
+
+
+V0.10 BETA 1 - 10-Feb-1996 - Non-Public-Beta
+
+      - Unterstützung Passwort-geschützter Bretter, während der
+        Erstellung des B*-Baumes wird bei Passwort-geschützten Brettern,
+        die der User sehen (Inhaltsgruppe) kann, nach dem Brettpasswort
+        gefragt. Gibt der User das richtige (Case-Insensitiv) Paßwort
+        an, wird das Brett in die Liste mit aufgenommen. Gibt der User
+        das falsche Passwort an, wird das Brett UND ALLE ZUGERHÖRIGEN
+        UNTERBRETTER nicht in die Liste mit aufgenommen
+
+      - PGLClient.hlp ergänzt
+
+
+V0.9 - 09-Feb-1996
+
+     - Public-Beta-Version, keine Änderungen gegenüber V0.9 BETA 3
+
+
+V0.9 BETA 3 - 03-Feb-1996 - Non-Public-Beta
+
+     - einfache Online-Hilfe eingebaut, Datei PGLClient.hlp muß im
+       gleichen Verzeichnis liegen wie PGLClient (Funkion "H" aktiviert)
+
+     - Infofenster eingebaut (Funktion "I" aktiviert)
+
+
+V0.9 BETA 2 - 01-Feb-1996
+
+     - interne Änderungen an der Message-Struktur für die Prozentfort-
+       schrittsanzeige im Server (siehe PGLServer.Guide)
+
+
+V0.9 BETA 1 - 30-Jan-1996 - Non-Public-Beta
+
+     - Gäste können ihre Einstellungen nicht mehr speichern
+       (Gäste sind User, die das "Gastmodus"-Flag gesetzt haben,
+       nicht nur der User GAST !)
+
+       Der Sysop kann bei Bedarf seine Einstellungen so setzen, daß
+       sie denen entsprechen, was er für Gäste vorgesehen hat und kann
+       die Datei prometheus:user/SYSOP/°PGLUserPrefs dann ins
+       entsprechende Gast-Verzeichnis kopieren
+
+       (existiert für einen User (auch für einen Gast) die Datei
+       °PGLUserPrefs nicht, so werden automatisch die Default-Werte
+       (siehe Benutzung) übernommen)
+
+
+V0.8 - 27-Jan-1996
+
+     - Public-Beta-Version, keine Änderungen gegenüber V0.8 BETA 1
+
+
+V0.8 BETA 1 - 21-Jan-1996 (NON-Public-Beta-Version)
+
+     - ProGuideList arbeitet jetzt nach dem Client/Server-Prinzip
+
+       Dafür wurden umfangreiche Änderungen nötig. Das "alte"
+       Exe-File "ProGuideList" heißt jetzt PGLClient (Befehlsaufruf
+       in Prometheus ändern!!)
+
+       Nach dem Senden der Listenanforderung an den PGLServer kann
+       PGLClient verlassen werden, und es kann in der Box weitergearbeitet
+       werden!! Die erzeugte Liste wird automatisch ins Postfach
+       des Users kopiert!
+
+     - es bleibt jetzt immer die letzte Statusmeldung lesbar, es wird
+       nicht mehr nach 2 Sekunden auf die Meldung "warte auf Eingabe..."
+       umgeschaltet
+
+     - weitere Änderungen siehe Dokumentation der anderen Programme
+       im ProGuideList-Paket
+
+
+V0.7 - 11-Jan-1996 (Public-Beta-Version)
+
+     - rudimentärer Ausschluß von Netzbrettern möglich (Bretter, die
+       unter einem "Netzkopf"-Brett "hängen" und/oder die das "Nur-Netz"-
+       Flag gesetzt haben können auf Wunsch ausgelassen werden
+       (siehe @{"Benutzung" link "Usage" 0})
+
+     - der Brettkommentar wird nicht mehr nach 58 Zeichen abgeschnitten,
+       da Guide-Files auch horizontal scrollbar sind, wird wieder der
+       volle Brettkommentar übernommen
+
+
+V0.6 - 31-Dec-1995
+
+     - erste Public-Beta-Version
+
+     - Carrier-Check bei Programmstart eingebaut
+
+     - ANSI-Check bei Programmstart eingebaut, bei Usern, die weder Farb-
+       noch Monochrom-Ansi-Emulation benutzen, beendet sich das Programm
+       wieder
+
+     - Dateiname der Liste kann vor dem Download editiert werden
+
+
+V0.5 BETA 3 - 25-Dec-1995
+
+     - User können ihre gemachten Einstellungen abspeichern, diese
+       werden beim nächsten Programmstart dann automatisch geladen, so
+       daß die User nicht alles wieder neu einstellen müssen
+
+     - ProGuideList hält fest, wer das Programm wann das letzte Mal
+       benutzt hat, außerdem wird die Anzahl der Aufrufe und die
+       Anzahl der erzeugten Listen gespeichert und bei jedem Programm-
+       start geladen und angezeigt; diese Daten werden wahlweise
+       (konfigurierbar!) nur dann gespeichert, wenn ein User (nicht
+       der SYSOP) das Programm benutzt hat.
+
+     - dynamische Taskpriorität kann abgeschaltet werden
+       (-> PGLSysopPrefs), ProGuideList läuft dann auf allen Ports
+       mit Priorität 0
+
+     - verschiedene kosmetische Verbesserungen in der Bildschirmmaske
+
+
+V0.4 - 23-Dec-1995
+
+     - erste veröffentlichte Version für Beta-Tester (non-public-beta)
+@endnode
+
+@node "Others" "andere Programme"
+@next "Support"
+@prev "History"
+@{u}andere Programme im ProGuideList-Paket@{uu}
+
+@{"PGLServer" link "PGLServer/main" 0}     - zentraler Server für alle ProGuideList-Programme,
+                PGLServer nimmt alle Listenanforderungen von PGLClients
+                auf und leitet sie an die Listclients weiter
+
+@{"PGLGuide" link "PGLGuide.Guide/main" 0}      - Listclient, erstellt Filelisten im AmigaGuide-Format
+
+@{"PGLAscii" link "PGLAscii.Guide/main" 0}      - Listclient, erstellt Filelisten im ASCII-Format
+
+@{"PGLSysopPrefs" link "PGLSysopPrefs.Guide/main" 0} - Konfigurationsprogramm für die Sysop-Einstellungen (also
+                die Einstellungen, die für alle User gelten),
+                GUI
+
+@{"PGLAutoList" link "PGLAutoList.Guide/main" 0}     Daemon zum automatischen Erstellen von PGL-Filelisten
+                über den Zeitplan (in Arbeit)
+@endnode
+
+@node "Support" "Support"
+@next "Author"
+@prev "Others"
+        ProGuideList und meine anderen Prometheus-Tools können in der
+              __
+             /\ \
+             \ \ \         __     __      __      ___   __  __
+              \ \ \  __  /'__`\ /'_ `\  /'__`\   /'___\/\ \/\ \
+               \ \ \_\ \/\  __//\ \_\ \/\ \_\.\_/\ \__/\ \ \_\ \
+                \ \____/\ \____\ \____ \ \__/.\_\ \____\\/`____ \
+                 \/___/  \/____/\/___/\ \/__/\/_/\/____/ `/___/> \
+                                  /\____/                   /\___/
+              BBS - Hamburg / GER \_/__/V.34+ 2400-33600 bps\/__/
+
+
+                              +49-40-3901997
+
+gesaugt werden.
+
+ Login: GAST (kein Passwort)
+ Brett: /A0-AMIGA/A1-DFUE/A11-JEFFs-PROMETHEUS-TOOLS/A111-BINÄR
+
+================================== ODER IN DER ==========================
+
+                     NOTRE DAME - AMIGA STRONGHOLD
+
+           [das Boxlogo passt hier leider nicht, Sorry Mustafa :-)]
+
+Port #00 - 2800074  ZyXEL EG 19.2     Port #04 -  247816   ACTIVE 28.800
+Port #01 -  247866  ZyXEL EG 19.2     Port #05 -  247815   ACTIVE 28.800
+Port #02 -  247835  ZyXEL EG 19.2     Port #06 -  247812   ACTIVE 28.800
+Port #03 -  247825  ZyXEL EG 19.2     Port #07 -  247811   ACTIVE 28.800
+Port #08 - 28050032   ISDN X.75       Port #09 - 28050033    ISDN X.75
+
+ Login: GAST (kein Passwort)
+ Brett: /<---SUPPORT--->/JEFFS_PROMETHEUS-TOOLS
+
+U.U. gibt es dort neuere Versionen, als die, die in den Netzen herum-
+geistern.
+
+In allen Boxen bin ich für das jeweilige Brett Brettverwalter. Ihr könnt mir
+(JEFF) da auch eine Nachricht schicken.
+
+E-Mails könnt ihr an meine Adressen (siehe @{"Autor" link "Author" 0}) schicken.
+
+
+================================== ODER ÜBER DAS ==========================
+
+                                  PROMETHEUS-NETZ
+
+
+bezogen werden!
+@endnode
+
+@node "Author" "Autor"
+@next "Shareware"
+@prev "Support"
+                                   @{u}Autor@{uu}
+
+        Das Programm wurde in SAS/C 6.56 geschrieben von Jörg Fenin
+
+                         Ich bin erreichbar unter
+
+                         1.   JEFF@LEGACY.dame.de
+                         2.   SYSOP@LEGACY.dame.de
+                        (3.   JEFF@dame.de)
+
+
+Grüße gehen an
+
+ Esther & Anna & Miriam
+ Claudia
+ Petra
+ Kerstin & Gabi & Ulrike
+ Anja & Mirja
+ Birgit
+ Dave
+ SiliconSurfer
+ Crisi
+ die Hamburg Blue Angels :-)
+
+
+Mein Dank geht an
+
+ - die Beta-Tester
+
+   - @{u}AOE Ex-(Sysop@CONDOR)@{uu} [schade, daß Du offline bist]
+   - Daniel Kay  (TIGER@HSH-BOX)   für seine Vorschläge und Bugreports
+   - BLiZZER (SYSOP@FODDER) insbesondere für seine Tips und Hilfen in
+             Sachen Netze
+   - FREDL   (SYSOP@FILDER)
+
+ - die registrierten Benutzer
+
+ - meine User, die ohne ihr Wissen als Versuchskaninchen benutzt
+   werden :-)
+@endnode
+
+@node "Shareware" "Shareware"
+@next "Beta"
+@prev "Author"
+                            <<<<<<<<<>>>>>>>>>
+                            <  G E L D  :-)  >
+                            <<<<<<<<<>>>>>>>>>
+
+Weil in dem Programm auch eine ganze Menge Arbeit steckt, wird es allerdings
+nicht ganz umsonst sein.
+
+Das gesamte PGL-Paket kostet zur Zeit (Stand: 08.07.1996) DM 15,-. Dieses
+beinhaltet die Programme PGLAscii, PGLAutoList, PGLClient, PGLGuide,
+PGLServer und PGLSysopPrefs.
+
+Ich denke, DM 15,- ist für jeden ernsthaften Sysop eine erschwingliche
+Summe, dafür erhält man auch kostenlosen Support über die Support- Boxen.
+
+Ohne das Keyfile sind einige Funktionen in PGL gesperrt. So kann man z.B.
+mit PGLAutoList nur Listen erstellen, die als Wurzelbrett das
+Hauptverzeichnis haben, man kann also keine Unterbretter als Wurzelbrett
+angeben.
+
+
+Zum Anfordern des Keyfiles bitte zuerst eine Mail an den @{"Autor" link "Author" 0} schicken.
+Dort gibt's dann die weiteren Informationen.
+@endnode
+
+@node "Beta" "Beta"
+@next "Disclaimer"
+@prev "Shareware"
+                            <<<<<<<<<>>>>>>>>>
+                            <  Beta- Tester  >
+                            <<<<<<<<<>>>>>>>>>
+
+Wer an einem Beta-Key interessiert ist, sollte sich bei @{"mir" link "Author" 0} melden.
+
+Beta-Tester haben die Möglichkeit, die erste nur noch mit Keyfile laufende
+Version noch mit dem Beta-Key zu benutzen.
+@endnode
+
+@node "Disclaimer" "Disclaimer"
+@prev "Beta"
+@{u}Disclaimer@{uu}
+
+
+Diese Software ist mit grosser Sorgfalt programmiert worden, trotzdem sind
+Fehler nicht auszuschliessen.
+
+Personen, die diese Software einsetzen, handeln auf eigene Gefahr!
+
+Der Autor kann nicht haftbar gemacht werden für irgendwelche Schäden, die
+durch diese Software unmittelbar oder mittelbar verursacht werden.
+@endnode
+

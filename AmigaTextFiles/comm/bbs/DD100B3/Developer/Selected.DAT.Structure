@@ -1,0 +1,34 @@
+
+                DayDream BBS V1.00, Selected.DAT Structure
+                ------------------------------------------
+
+First 2048 bytes contain information which messagebases have been
+selected. It's divided into 64 blocks. Each block contains 32 bytes=
+256 bits. Each byte contains information about 8 messagebases.
+Eg. If bit 4 is set on at offset 34 it means user has selected
+base 20 in conference 2. Here's an example code to check if area
+is on:
+
+		Move.L	SelectedDAT(A5),A0
+		Move.L	Conf(A5),D0
+		Subq.L	#1,D0
+		Mulu	#32,D0
+		Add.L	D0,A0
+
+		Move.L	Base(A5),D0
+		Subq.L	#1,D0
+		Divu	#8,D0
+		Moveq	#0,D1
+		Move.W	D0,D1
+		Clr.w	D0
+		Swap	D0
+		Add.L	D1,A0
+		Btst	D0,(A0)
+		Beq	NotSelected
+
+After those 2048 there's 64 bits (8 bytes) telling which conferences
+have been selected for global new file scan. Bits are divided in bytes, not
+in long words.
+
+
+

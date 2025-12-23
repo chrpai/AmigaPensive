@@ -1,0 +1,62 @@
+/* $VER: bbsPOST.baud 8.3 (11.11.94)
+copyright © 1990-94 Richard Lee Stockton
+BBBBS Delete User
+FREELY DISTRIBUTABLE
+*/
+
+IF OPENPORT('BBSPOST')='0000 0000'x THEN EXIT
+x=3
+y=11
+
+DO loop=1
+  t=WAITPKT('BBSPOST')
+  p=GETPKT('BBSPOST')
+  IF c2d(p)=0 THEN ITERATE loop
+  command=GETARG(p)
+  PARSE VAR command arg1' 'arg2' 'arg3' 'arg4 .
+  t=REPLY(p,0)
+  IF arg1='QUIT' THEN
+    DO WHILE p~='0000 0000'x    /* empty the port */
+      DO
+        t=REPLY(p,0)
+        p=GETPKT('BBSPOST')
+      END
+      CALL PostMsg()
+      EXIT
+    END
+  ELSE IF arg1='CONFIG' THEN
+    DO
+      x=arg2
+      y=arg3
+      CALL PostMsg()
+    END
+  ELSE IF arg1='UPDATE' | arg1='RESET' THEN
+    DO
+      onbb=GETCLIP('BBS_fkeyhelp')
+      IF onbb~=1 THEN onbb=0
+      IF arg1='RESET' THEN CALL PostMsg()
+      temp=''
+      DO i=1 TO 5
+        c=GETCLIP('BBSPOST'i)
+        IF i=5 & ~onbb THEN CALL PostMsg(x,y,temp)
+        If i>1 THEN temp=temp'\'
+        temp=temp||c
+      END
+      IF onbb THEN
+        DO
+          temp=temp'\                       ___________________________'
+          temp=temp'\ _____________________|  BBBBS Function Key HELP  |______________________'
+          temp=temp'\|                                                                        |'
+          temp=temp'\| F1- Chat          F6- Close HELP    S1- Start BBBBS   S6- BUSY         |'
+          temp=temp'\| F2- Force OFF     F7- Show Log      S2- QuitFlag ON   S7- UN-BUSY      |'
+          temp=temp'\| F3- Change Time   F8- Show Usage    S3- QuitFlag OFF  S8- RAM space    |'
+          temp=temp'\| F4- Validate      F9- Close Screen  S4- Toggle Noise  S9- Close Editor |'
+          temp=temp'\| F5- Level/Ratio  F10- Show HELP     S5- Bkgnd Arcing S10- Message2User |'
+          temp=temp'\|'LEFT('_',72,'_')'|'
+          CALL PostMsg(3,11,temp,'BAUD')
+        END
+      ELSE CALL PostMsg(x,y,temp)
+    END
+END
+
+/* bbsPOST.baud */

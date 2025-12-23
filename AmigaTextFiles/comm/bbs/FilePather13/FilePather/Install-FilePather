@@ -1,0 +1,651 @@
+; Script to install FilePather & FPBase
+; Should be run from WorkBench by double-clicking on the icon
+; Johan Torin '95
+; $VER: FilePather_installation_script 2.0
+
+
+; This installation is absolutely not the best written, but it's not so
+; easy then you doesn't have a manual.  :(
+; Version 2 note: Now I have a manual and it's still not easy! :)
+
+
+(Complete 0)
+
+(Set FPVer 1)
+(Set FPRev 3)
+(Set FPBVer 1)
+(Set FPBRev 0)
+
+(Set @Default-dest "C:")
+
+(Set Version (/ (GetVersion) 65536))
+(If (< Version 37)
+	(Abort "FilePather and FPBase requries atlest 2.04 to run.\n"
+		 "Sorry!"
+	)
+)
+
+(While (= Exe 0)
+    (Set Exe
+	(Askoptions
+	    (Prompt "Select install sessions to run:")
+	    (Choices "FilePather" "FPBase")
+	    (Help "\n\n\n\n\nSelect which of the install sessions to go for. "
+		  "If you are running for a second time, you will have the "
+		  "the possibility to not copy the executables again.")
+	    (Default 3)
+	)
+    )
+    (If (= Exe 0)
+	(Message "\n\n\n\nYou must select atleast on install session to run!")
+    )
+)
+
+(Complete 4)
+
+(If (BITOR Exe 0)
+    (
+	(Set Destination
+	    (AskDir
+		(Prompt "Select the location to install the executable(s)")
+		(Default @default-dest)
+		(Help "Choose a destination partition or directory "
+		      "there the executable(s) should be placed. "
+		      "Probably the best to have them in C:"
+		)
+	    )
+	)
+	(Set @Default-dest Destination)
+
+	(If (BITAND Exe 1)
+	    (
+		(Set InstFP 1)
+		(If (Exists (Tackon Destination "FilePather"))
+		    (
+			(Set Vernum (Getversion (Tackon Destination "FilePather")))
+	    		(Set Ver (/ Vernum 65536))
+			(Set Rev (- Vernum (* ver 65536)))
+			(Set InstFP
+			    (Askbool
+				(Prompt ("\n\n\n\nFilePather is already installed. Overwrite?")
+					("\n\n\nVersion to install: %ld.%ld\n" FPVer FPRev)
+					("Already installed:  %ld.%ld" Ver Rev)
+				)
+				(Help "\n\n\nIf you are re-running the script, it doesn't "
+				      "matter if you overwrite the already installed "
+				      "version, but should ofcourse be avoided."
+				)
+			    )
+			)
+	    	    )
+		)
+	    )
+	)
+	(If (BITAND Exe 2)
+	    (
+		(Set InstFPB 1)
+		(If (Exists (Tackon Destination "FPBase"))
+		    (
+			(Set Vernum (Getversion (Tackon Destination "FPBase")))
+	    		(Set Ver (/ Vernum 65536))
+			(Set Rev (- Vernum (* ver 65536)))
+			(Set InstFPB
+			    (Askbool
+				(Prompt ("\n\n\n\nFPBase is already installed. Overwrite?")
+					("\n\n\nVersion to install: %ld.%ld\n" FPBVer FPBRev)
+					("Already installed:  %ld.%ld" Ver Rev)
+				)
+				(Help "\n\n\nIf you are re-running the script, it doesn't "
+				      "matter if you overwrite the already installed "
+				      "version, but should ofcourse be avoided."
+				)
+			    )
+			)
+	    	    )
+		)
+	    )
+	)
+	(If (= InstFP  1)
+	    (CopyFiles (Source "Bin/FilePather") (Dest Destination))
+	)
+	(If (= InstFPB  1)
+	    (CopyFiles (Source "Bin/FPBase") (Dest Destination))
+	)
+    )
+)
+
+(Complete 8)
+
+;Do some guessing in what mode to run.
+(Set TypeOther "Other")
+(If (Exists "ENV:FilePather/Type")
+    (
+	(Set OldType (Getenv 'FilePather/Type'))
+;	(Set TypeOther (Cat "Other (" OldType ")"))
+	(Set DefType 4)
+	(If (= OldType "User")
+	    (
+		(Set DefType 0)
+		(Set GuessedMode 0)
+		(Set TypeOther "Other")
+	    )
+	)
+	(If (= OldType "BBS")
+	    (
+		(Set DefType 1)
+		(Set GuessedMode 1)
+		(Set TypeOther "Other")
+	    )
+	)
+	(If (= OldType "Trader")
+	    (
+		(Set DefType 2)
+		(Set GuessedMode 0)
+		(Set TypeOther "Other")
+	    )
+	)
+	(If (= OldType "Board")
+	    (
+		(Set DefType 3)
+		(Set GuessedMode 1)
+		(Set TypeOther "Other")
+	    )
+	)
+    )
+    (
+	(Set GuessedMode 0)
+	(Set DefType 99)
+    )
+)
+
+
+(If (BITOR Exe 0)
+    (Set InstType
+	(Askchoice
+	    (Prompt "Choose if installing for User or BBS")
+	    (Choices "User" "BBS (etc.)")
+	    (Help "Selecting 'User' will (hopefully) do a almost Complete "
+		  " 'Plug and Go' installation, while 'BBS' will just set "
+		  "the arguments for FilePather and/or FPBase")
+	    (Default GuessedMode)
+	)
+    )
+)
+
+(Complete 12)
+
+(Makedir "ENV:FilePather")
+
+;*** Only FilePather ***
+(If (BITAND Exe 1)
+(
+
+;(Message "\n\n\n\n\n\n'Elajt'ed text is strongly discouraged in the following sessions!")
+
+
+(If (= DefType 99)
+    (Set DefType InstType)
+)
+
+(Set Type
+    (Askchoice
+	(Prompt "Choose Type:")
+	(Choices "User" "BBS   - PD" "Trader" "Board - Elite" (Cat TypeOther))
+	(Help "Select the type of application you are running or your 'profession'. "
+	      "Selecting 'Other' will let you enter a custom Type"
+	)
+        (Default DefType)
+    )
+)
+
+(Complete 15)
+
+(If (= Type 0)
+    (Set TypeStr "User")
+)
+
+(If (= Type 1)
+    (Set TypeStr "BBS")
+)
+
+(If (= Type 2)
+    (Set TypeStr "Trader")
+)
+
+(If (= Type 3)
+    (Set TypeStr "Board")
+)
+
+(If (= Type 4)
+    (Set TypeStr
+	(AskString
+	    (Prompt "Enter custom Type:\n\n")
+	    (Help "\n\n\nDon't invent new types if not neccesary!")
+	    (Default OldType)
+	)
+    )
+)
+(Run 'SetEnv "FilePather/Type"' TypeStr)
+
+
+(Complete 19)
+(If (= InstType 0)
+    (Set NameStr
+	(AskString
+	    (Prompt "Enter your name/handle:\n\n")
+	    (Help "Enter either your name as 'John Smith', "
+		  "or your handle as 'CyberJack'.")
+	    (If (Exists "ENV:FilePather/Name")
+		(Default (Getenv 'FilePather/Name'))
+	    )
+	)
+    )
+)
+
+(If (= InstType 1)
+    (
+	(Set NameStr
+	    (AskString
+		(Prompt "Enter your applications name:\n\n")
+		(Help "Enter the name of the board, as '9:th Universe'.")
+		(If (Exists "ENV:FilePather/Name")
+		     (Default (Getenv 'FilePather/Name'))
+		)
+	    )
+	)
+	(Set SysOpStr
+	    (AskString
+		(Prompt "Enter your name/handle (for sysop):\n\n")
+		    (Help "Enter your name as 'John Smith' "
+			  "or your handle as 'CyberJack'.")
+		    (If (Exists "ENV:FilePather/SysOp")
+			(default (getenv 'FilePather/SysOp'))
+		    )
+		)
+	    )
+	(Run 'SetEnv "FilePather/SysOp"' SysOpStr)	
+    )
+)
+
+(Run 'SetEnv "FilePather/Name"' NameStr)
+
+
+(Complete 23)
+(Set LocationStr
+    (AskString
+	(Prompt "Enter your geographic location/group:\n\n")
+	(Help "Enter either your geographical location, as 'Oslo,Norway', "
+	      "or the group you belong to, as 'SleepWalkers'.")
+	(If (Exists "ENV:FilePather/Location")
+	    (Default (Getenv 'FilePather/Location'))
+	)
+    )
+)
+
+(Run 'SetEnv "FilePather/Location"' LocationStr)
+
+(Complete 27)
+(If (Exists "ENV:FilePather/Number")
+    (Set NumberStr
+	(AskString
+	(Prompt "Enter your number(s) like this:\n"
+		"'+46-035-1806514' or:\n"
+		"'+1-810-4732020' or:\n"
+		"'+46-0346-58697|59245'\n\n"
+		"Set your local number to 'UNPUBL' if you either doesn't have "
+		"any number, or if you want to keep it secret.") 
+	(Help "The number may contain as many node specifications as you "
+	      "like, just remember to separate them with '|'.")
+	(Default (Getenv 'FilePather/Number'))
+	)
+    )
+    (Set NumberStr
+	(Cat "+"
+	    (AskString
+	    (Prompt "Enter your country code like this:\n"
+		    "46  - Sweden\n"
+		    "1   -   USA\n"
+		    "49  - Germany\n"
+		    "358 - Finland\n")
+	    (Help "Look up your country code in a phonebook if you can't "
+		  "remember it.")
+	    )
+	    "-"
+	    (AskString
+	    (Prompt "Enter your area code like this:\n"
+		    "035\n"
+		    "212\n"
+		    "086\n")
+	    (Help "Look up your area code in a phonebook if you can't "
+		  "remember it. (Schmuck! :)")
+	    )
+	    "-"
+	    (AskString
+	    (Prompt "Enter your local numbers like this:\n"
+		    "186514\n"
+		    "68723\n"
+		    "4543623\n"
+		    "58697|59245\n"
+		    "741541|741542|741543|741544|741545|741546\n"
+		    "or leave it as 'UNPUBL', if you don't want to "
+		    "give your number away.")
+	    (Help "Go look on your telephone to learn your number!"
+		  "If you don't want to leave it out, or if you doesn't"
+		  "have any telephone, then set it to 'UNPUBL'")
+	    (Default "UNPUBL")
+	    )
+
+	)
+    )
+)
+
+(Run 'SetEnv "FilePather/Number"' NumberStr)
+
+
+(Complete 30)
+
+
+
+;Only in user mode
+(If (= InstType 0)
+(
+
+(Set EasyProcess
+    (AskBool
+	(Prompt	"This part will help you installing a way of getting "
+		"all your downloaded files processed in a easy manner. "
+		"All downloaded files will be put in a temporary directory. "
+		"When you start the 'ProcessAllFiles' scriptfile, which can "
+		"be started from your terminal program, ToolsDaemon, DirOpus "
+		"or whereever you want, all files in the temporary directory will "
+		"be FilePathed and moved to your real download dir. "
+		"\n\nDo you want to continue?\n")
+	(Help "Selecting 'Yes' will guide you through the parts of this installation. "
+	      "Selecting 'No' will skip this part."
+	)
+    )
+)
+
+(Complete 34)
+
+(If (= EasyProcess 1)
+    (
+	(Copyfiles (Source "S/ProcessAllFiles") (Dest "S:") (Infos))
+	(Set TmpDown
+	    (AskDir
+		(Prompt "Select or create a directory there downloaded files "
+			"should be placed. _MUST_ be on the same partion as "
+			"the real download directory! Note! _ONLY_ downloaded "
+			"files should ever be in this directory!")
+		(If (= (Exists "ENV:FilePather/TmpDownload") 0)
+		    (Default "Sys:")
+		)
+		(If (Exists "ENV:FilePather/TmpDownload")
+		    (Default (getenv 'FilePather/TmpDownload'))
+		)
+		(Help "Choose a destination partition or directory "
+		      "there downloaded files should be placed."
+		      "You must change in the terminal program too."
+		)
+	    )
+	)
+	(Complete 37)
+	(Set Download
+	    (Askdir
+		(Prompt "Select the directory there downloaded files "
+			"usually are placed (your old download dir). "
+			"_MUST_ be on the same partion as the "
+			"temporary directory!")
+		(If (= (Exists "ENV:FilePather/Download") 0)
+		    (Default "Sys:")
+		)
+		(If (Exists "ENV:FilePather/Download")
+		    (Default (Getenv 'FilePather/Download'))
+		)
+		(Help "Choose a the final directory "
+		      "there downloaded files should be moved to."
+		)
+	    )
+	)
+	(Complete 39)
+	(Run 'SetEnv "FilePather/TmpDownload"' TmpDown)
+	(Run 'SetEnv "FilePather/Download"' Download)
+	(Message "Expert information:\n\n"
+		 "I have set some environment variables.\n"
+		 "'FilePather/TmpDownload' = \n'" TmpDown "'\n\n" 
+		 "'FilePather/Download' = \n'" Download "'\n\n"
+		 "These must be changed if you move your download directory."
+		 "\n\nBesides that are variables for Type, Name, Location and "
+		 "so on also set. These may be edited anytime.")
+	(Complete 42)
+	(Message "Now you must change your default download directory in your "
+		 "terminal program.\n\nIn NComm select:\n"
+		 " 'Transfer/Default Directory/Download'\n"
+		 "In Terminus select:\n"
+		 "'Settings/Paths'\n\n"
+		 "Set the download directory to the TEMPORARY directory "
+		 "you previously selected\n(i.e. "TmpDown").")
+
+	(Message "If you are using the NComm terminal program "
+		 "you can run the 'ProcessAllFiles' scriptfile "
+		 "from a function key (F1-10)\n\n"
+		 "Start NComm,\n"
+		 "Select 'System/Macrokeys',\n"
+		 "Choose a (free) function key to use,\n"
+		 "(F1-10 = Normal fkeys, S1-10 = With shift)\n\n"
+		 "Enter: \n{arexx}\"Address Command 'S:ProcessAllFiles'\"\n"
+		 "in the choosen stringgadget.")
+
+
+	(Complete 45)
+	(Message "The 'ProcessAllFiles' scriptfile can be runned either from "
+		 "CLI or from Workbench. If you think 'ProcessAllFiles' is to "
+		 "long then add this line to your S:Shell-Startup:\n"
+		 "Alias PAF \"S:ProcessAllFiles\"\n\n"
+		 "You maybe rather want to use a icon?\n"
+		 "Just open the 'S' directory on your bootpartion, "
+		 "use 'Window/Show/All Files' to see the icon for it. "
+		 "Click the 'ProcessAllFiles' icon and select 'Icons/Leave Out' "
+		 "to put it on the Workbench. Or drop the icon in the ToolsDaemons "
+		 "prefs window there you also might add a hotkey, so you can access "
+		 "ProcessAllFiles from most programs instantly!")
+	(Complete 48)
+	(Message "For adding it to a DirOpus menu or button you do the following:\n"
+		 "Select 'Project/Configure', click either 'Buttons' or 'Menus'.\n"
+		 "Click a free gadget there you want the command. Click on "
+		 "'New Entry' and then the gadget reading 'Command' until it "
+		 "says 'AmigaDos'. Enter 'S:ProcessAllFiles' in the string gadget "
+		 "right to the 'AmigaDos' gadget. Enter a name in the "
+		 "string gadget named 'Name', for example 'Process All Files'\n\n"
+		 "Finished!")
+   )
+)
+)
+)
+
+
+)
+)
+;*** End of FilePather ***
+
+(Complete 53)
+
+;*** FPBase only ***
+(If (BITAND Exe 2)
+    (
+	(Set Reclist
+	    (AskDir
+		(Set Def "S:")
+		(If (Exists "ENV:FilePather/Reclist ")
+		    (Set Def (Pathonly (Getenv 'FilePather/Reclist')))
+		)
+		(Default Def)
+		(Prompt "Select the directory there the database files "
+			"should be placed. Select 'Proceed' "
+			"to accept the default (" Def ")")
+		(Help "The database program, FPBase, stores it's information "
+		      "within two files, whichs names are created upon your "
+		      "choice.")
+	    )
+	)
+	(Complete 59)
+	(Set Reclist
+	    (Tackon Reclist
+		(AskString
+		    (Prompt "Enter filename for database:\n\n")
+		    (Help "FPBase will create two files with diffrent suffixes; '.Rec' and '.Cnt'.")
+		    (If (Exists "ENV:FilePather/Reclist")
+			(Default (Fileonly (Getenv 'FilePather/Reclist')))
+			(Default "FP_Reclist")
+		    )
+		)
+	    )
+	)
+	(Run 'SetEnv "FilePather/Reclist"' Reclist)
+	(Complete 65)
+	;See if BBS or User.
+	(If (= InstType 1)
+	    (
+		(Set RunMethod	;BBS
+		    (Askchoice
+			(Prompt "Should FPBase be runned in the background or just when "
+				"needed?")
+			(Choices "Always (Fast, but uses some memory)" "When needed (Slow)")
+			(Help "Running in the background is probably the best, since the temporary "
+			      "files from FilePather might grow quite large. But if you are tight "
+			      "of memory you can run it on a hour/daily basis. "
+			      "Running in the the background will always keep the database "
+			      "up to date.")
+			(Default 0)
+		    )
+		)
+	    )
+	    (
+		(Set RunMethod	;User
+		    (Askchoice
+			(Prompt "Should FPBase be runned in the background or just when "
+				"needed?")
+			(Choices "Always (Fast, but uses some memory)" "When needed (Slow)")
+			(Help "You can either run it from your User-Startup, (ie. each "
+			      "time you boot your computer), or you can run it from the "
+			      "'ProcessAllFiles' scriptfile (recommended). "
+			      "Running in the the background will always keep the database "
+			      "up to date.")
+			(Default 1)
+		    )
+		)
+		(Set ExtraUserHelp (Cat "\n\nYou should move the FPBase execution line "
+				   "in your User-Startup, to the ProcessAllFiles scriptfile. "
+				   "Then will the savelists be processed at once."))
+	    )
+	)
+	(Complete 73)
+	(If (= RunMethod 0)
+	    (			;Fast method
+		(Set Savelist
+		    (AskDir
+			(Set Def "T:")
+			(Default Def)
+			(Prompt "Select the directory there the temporay savefiles "
+				"from FilePather should be placed. (In RAM: recommended) ")
+			(Help "FilePather saves the SavePath.lst:s to the "
+			      "savelist, which more or less immediately will "
+			      "be processed by FPBase. Since you have choosed "
+			      "to have FPBase running in the background, you "
+			      "probably want to keep them i RAM:")
+		    )
+		)
+		(Complete 77)
+		(Set Savelist
+		    (Tackon Savelist
+			(AskString
+			    (Prompt "Enter filename for temporary savefile:\n\n")
+			    (Help "\n\n\nNo help here! Out of imagination!")
+			    (If (Exists "ENV:FilePather/Savelist")
+				(Default (Fileonly (Getenv 'FilePather/Savelist')))
+				(Default "FP_Savelist")
+			    )
+			)
+		    )
+		)
+	    )
+	    (			;Slow method
+		(Complete 80)
+		(Set Savelist
+		    (AskDir
+			(Set Def "S:")
+			(Default Def)
+			(Prompt "Select the directory there the temporary savefiles "
+			        "from FilePather should be placed. (RAM: not recommended) ")
+			(Help "FilePather saves the SavePath.lst:s to the "
+			      "savelist, which later will be processed by FPBase."
+			      "Since you have choosed to NOT run FPBase in the "
+			      "background, you must store them on disk.")
+		    )
+		)
+		(Complete 86)
+		(Set Savelist
+		    (Tackon Savelist
+			(AskString
+			    (Prompt "Enter filename for temporary savefile:\n\n")
+			    (Help "\n\n\nNo help here! Out of imagination!")
+			    (If (Exists "ENV:FilePather/Savelist")
+				(Default (Fileonly (Getenv 'FilePather/Savelist')))
+				(Default "FP_Savelist")
+			    )
+			)
+		    )
+		)
+	    )
+	)
+	(Run 'SetEnv "FilePather/Savelist"' Savelist)
+	(Complete 90)
+
+	(If (= RunMethod 0)
+	    (Startup "FPBase"	;Fast
+		(Prompt "I will edit your User-startup so that "
+			"FPBase is started automatically." )
+		(Help "Well, what can I say? FPBase will hereafter "
+		      "always start and run in the background.")
+		(Command (Cat "Run >NIL: <NIL: \"" (Tackon Destination "FPBase") "\" TASKPRI -1"))
+	    )
+	    (Startup "FPBase"	;Slow
+		(Prompt "I will edit your User-startup so that "
+			"FPBase will process the old savelists on "
+			"each startup (async).\n\n Moving/copying the line in "
+			"the User-Startup to a more frequent executed "
+			"script is recommended." ExtraUserHelp )
+		(Help "Sorry! Out of Help!")
+		(Command (Cat "Run >NIL: <NIL: \"" (Tackon Destination "FPBase") "\" SAVELIST " Savelist " TASKPRI -1"))
+	    )
+	)
+    )
+)
+
+;*** End of FPBase ***
+
+(Complete 95)
+
+;Save for good...
+(Copyfiles (Source "Env-archive") (Dest "ENV:FilePather") (all))
+(Copyfiles (Source "ENV:FilePather") (Dest "ENVARC:FilePather") (all))
+
+
+
+(Complete 99)
+
+;Not in usermode.
+(If (= InstType 1)
+    (
+	(Message "Well, it doesn't looks like it will be much more help "
+		 "for you here. But since you are some sort of a sysop you "
+		 "should be able to handle this yourself. All options as Name, "
+		 "Number and Location are already set in ENV: as env. vars. The "
+		 "only thing you have to think about is to insert FilePather "
+		 "somewhere in the uploading process so all files get touched "
+		 "by it. Some examples are included. Good luck!")
+    )
+)
+
+
+(Complete 100)

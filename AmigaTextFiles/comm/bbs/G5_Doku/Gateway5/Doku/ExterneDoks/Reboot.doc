@@ -1,0 +1,268 @@
+Reboot/Reboot                                                   Reboot/Reboot
+
+    NAME
+       Reboot -- rebooting utility
+
+    FORMAT
+       Reboot [REBOOTDELAY <seconds>] [QUIET|NOREQ] [OFF] [NOGUI]
+
+    TEMPLATE
+       REBOOTDELAY/K/N,QUIET=NOREQ/S,OFF/S,NOGUI/S
+
+    TOOLTYPES
+       REBOOTDELAY/N
+       QUIET/S
+       NOREQ/S
+       OFF/S
+       NOGUI/S
+
+    PURPOSE
+       To reboot the computer.
+
+    INTRODUCTION
+       A simple tool to be used with Kickstart 2.x/3.x, written by
+       Roland 'Gizzy' Mainz, freeware, all rights reserved.
+       No guarantee of any kind is made that  the programm described below
+       in this document is 100% reliable. You use this material on your own
+       risk.
+
+       While playing with ENVOY 1.6, I need a program which allows to reboot
+       another AMIGA through the network (by my own "RemoteNetShell") or
+       after a given time.
+       First I wrote a little script (using WAIT) and a C program calling
+       exec.library/ColdReboot() to solve this problem.
+       Switching to IAM's ENVOY 2.0 I replaced this script by this tool,
+       adding some features (WB (including multiselect), SHELL ReadArgs,
+       locale support and test mode).
+
+    DESCRIPTION
+       Reboot is used to reboot the whole computer like a "cold"
+       system start.
+
+       Unless you specify otherwise (through REBOOTDELAY option), reboot
+       will wait 2 seconds before rebooting the system.
+       This is used to let the system (and it's disk drives) settle.
+       This delay time can't be less than 1 second, a REBOOTDELAY=0
+       will also wait this minimum time.
+
+       Whenever the QUIET (or NOREQ) switch is set, the verify requesters
+       ("Are you sure#?" etc.) will be suppressed.
+
+       If the OFF switch is set, the tool act like when a CTRL-C signal
+       has been send to the tool.
+
+       Variable support:
+         The environment REBOOT variable (either LOCAL or GLOBAL) can be
+         used for default settings. The parsing template for this
+         variable is the same like the shell template (see above).
+
+       Reboot supports workbench multiselect (e.g. project icons) !
+
+       The NOGUI option disables the requester and makes a simple
+       console query. Currently, the NOGUI option should not be used
+       if launched from WB.
+
+       If requesters have been disabled in a shell (using tools like DICE's
+       "noreq" tool), the NOGUI option is on per default.
+
+    BUGS
+       - Shell variables longer than 255 are currently not supported.
+
+       - Any errors during tooltype processing are ignored.
+
+       - The usage of the NOGUI option is not recommned to be used from
+         WB.
+
+       - Does not work properly with my Apollo 2030 accerlator board.
+         The system reboots, then hangs. Cause known,
+         comments welcome.
+
+    NOTES
+       "Set Reboot OFF" (e.g. use of a local variable) is only valid if
+       you start Reboot from this shell.
+
+    HISTORY
+       V1.1:
+         - First release
+
+       V1.2:
+         - The "Abort reboot" requester couldn't be canceld 1 second before
+           the given time.
+           Fixed.
+
+         - I did not read the autodocs exactly:
+           The function BuildEasyRequest might return 0 or 1 at low mem time.
+           Now Reboot simply fails with ERROR_NO_FREE_STORE for both 0 or 1.
+           If 1 was returned, an enforcer hit would occur.
+           Never happed, but
+           fixed.
+
+         - AttemptOpenLibrary could return (sometimes) random pointers.
+           In fact, this never happened by me, but maybe ...
+           Fixed.
+
+         - While getting Reboot's environment variable, the "Abort reboot"
+           requester might be canceled. Now we check this:
+           Fixed.
+
+         - Additional, there was some code cleanup which adds support for
+           DICE INLINE calls.
+
+         - The executable is now PURE and can be made resident.
+
+         - The time between the program checks the "Abort reboot" requester
+           has been decrased down to a half second.
+
+       V1.3
+         - Starting with V1.3 environment variables are supported.
+           Things set in var "REBOOT" (local or global) will be parsed after
+           built-in default settings and before any user-given arguments
+           (shell args or project icons), which can overide those ENV
+           settings given there.
+
+           This feature may cause Enforcer hits (I think so, I've never seen
+           one).
+
+       V1.4
+         - Starting with V1.4, ENV parsing should be safe.
+           For Bug reports, I've included a Reboot.ld, which includes the
+           debugging info used by Enforcer/FindHit.
+
+         - Running CPU FASTROM causes sometimes problems: The system reboots,
+           but then hang atfer a while... ???
+
+       V1.5
+         - Now I fully support SAS/C for all my projects (SMakefile
+           included). A matching DMakefile is on the way.
+
+       V1.6
+         - Unused utility.library code has been removed
+
+       V1.7
+         - Recompiled with SAS/C 6.57
+
+         - Minor code cleanup.
+
+         - Moved contents of the #?.guide to this autodoc
+
+       V1.8
+         - Added français catalog file
+           Thanks to Julien Wilk (wilkj@esiee.fr).
+
+         - Added NOGUI option, e.g. localized console prompt :-)
+
+       V1.9
+         - Silly mistake: I forgot to update the version string in V1.8.
+           (Now the version string shows correctly V1.9).
+
+         - Recompiled with SAS/C 6.58 to get rid of some mc68060 problems.
+
+         - Fixed the longstanding bug that project icons did only work if
+           Reboot's full path was given in "Default Tool".
+
+       V1.10
+         - Added Croatia (hrvatski) catalog file.
+           Thanks to Sinisa Lolic (vegi@usa.net).
+
+         - If a (required) shared library  cannot be opened,
+           "Reboot" returns now ERROR_INVALID_RESIDENT_LIBRARY instead
+           of ERROR_OBJECT_NOT_FOUND.
+
+         - The NOGUI option is now on per default if requesters have been
+           disabled in the current shell (e..g if (thisproc -> pr_WindowPtr)
+           is -1L).
+
+         - Added "SmallReboot" project for those people who said that 
+           "Reboot" is too big. 
+           The small sister of "Reboot" is only ~124 bytes small and still
+           includes a version string...
+
+
+    INSTALLATION
+       After unpacking this archieve:
+
+       Workbench:
+         - Drop the 'Reboot' icon in your favorite drawer (like
+            "SYS:Utilities/").
+           See SHELL for copying the catalog files.
+
+       Shell:
+         - Unpack this archieve at "SYS:Utilities/"
+           and add the following statements at your "S:user-startup" startup
+           file:
+
+           Assign Reboot: SYS:Utilities/Reboot
+           path Reboot: ADD
+         OR
+         - Drop/Copy the 'Reboot' file in your favorite directory
+           (like "Sys:Utilities").
+           To copy the (german) catalog files, type
+           Copy Catalogs/#? TO="LOCALE:Catalogs/" ALL QUIET CLONE
+
+       SAS:
+         - Type 'smake install' in shell
+
+    SOURCE
+       DICE users may use DMakefile (if included).
+       GNU-C support will be done in one future version.
+
+       All:
+       If you like to include a new language (like Français or Nederlands
+       etc.), send me a filled "Reboot_blank.ct" file named "Reboot_#?.ct"
+       (#? for your language). As an example, see "Reboot_deutsch.ct".
+       Note that I can currently only process "Reboot_#?.ct" files whose
+       language is supported by AmigaOS 3.1 (e.g. a AmigaDOS Locale language
+       driver exists).
+
+       SAS/C:
+       Use SMakefile to create the executable.
+       Note that the français locale file cannot be build with SAS/C SMake
+       because it does not support the 'ç' character.
+
+    AUTHOR's REQUEST
+        By  releasing  this program I do  not  place any obligations on you,
+        feel free to share this program with your  friends (and enemies).
+
+        If you want to blame me, report any bugs, or wants a new version
+        send your letter to:
+                        Roland Mainz
+                        Hohenstaufenstraße 8
+                        52388 Nörvenich
+                        GERMANY
+
+        Phone: (+49)(0)2426/901568
+        Fax:   (+49)(0)2426/901569
+
+        EMAIL is also available:
+        GISBURN@w-specht.rhein-ruhr.de
+
+        If you want to send me attachments larger than 1MB (up to 5MB,
+        more with my permission):
+        Up to August 1998 I'm reachable using this email address, too:
+        Reinhold.A.Mainz@KBV.DE
+
+        | Please put your name and address in your mails !
+        | German mailers should add their phone numbers.
+        | See BUGS section above when submitting bug reports.
+
+        Sorry, but I can only look once a week for mails.
+        If you don't hear something from me within three weeks, please
+        send your mail again (but watch about new releases) (problems with
+        this email port are caused by reconfigurations, hackers, network
+        problems etc.).
+
+        The  entire  "Reboot"  package may  be  noncommercially
+        redistributed, provided  that  the package  is always  distributed
+        in it's complete  form (including it's documentation).  A small copy
+        fee for media costs is okay but any kind of commercial distribution
+        is strictly forbidden! Comments  and  suggestions  how  to  improve
+        this program  are generally appreciated!
+
+        Thanks to Matt Dillon for his DICE, and Olaf 'Olsen'
+        Barthel for his help, ideas and some text clips from his
+        documentations.
+
+    SEE ALSO
+        exec.library/ColdReboot
+
+

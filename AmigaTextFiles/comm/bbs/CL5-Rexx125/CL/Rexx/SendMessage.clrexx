@@ -1,0 +1,76 @@
+/*
+**  $VER: SendMessage.clrexx 1.11 (16 Nov 1995)
+**
+**        © 1995 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      SendMessage.clrexx
+**
+**  FUNCTION:
+**
+**      Demostrationsskript für Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**
+**      Schickt eine Nachricht an einen Port.
+**
+**  $HISTORY:
+**
+**      1.0 - Release-Version
+**      1.1 - Window fontsensitiv
+**      1.11- Window um 100% verbreitert, damit erst späterer Zei-
+**            lenumbruch bei der Eingabe.
+**
+*/
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then do
+        say 'rexxsupport.library konnte nicht geöffnet werden!'
+        say 'Bitte kopieren Sie die Library von ihren Workbench-'
+        say 'disketten nach LIBS:.'
+        exit 10
+        end
+    end
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*80
+windowheight=Fontsize*15
+windowY=Fontsize+1
+WindowX=Fontsize
+
+
+
+/* Standard-IO umleiten */
+
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/SendMessage','W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+/* Eingabe */
+
+options prompt "Nachricht an welchen Port :"
+pull port
+options prompt "Bitte Nachricht eingeben  :"
+pull message
+address 'CL-SERVER'
+'MESSAGE 'port' 'message
+say ''
+say 'Nachricht wurde verschickt.'
+options prompt "<Bitte drücken Sie RETURN>"
+pull dummy
+call close STDOUT
+call close STDIN
+exit

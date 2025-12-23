@@ -1,0 +1,87 @@
+;
+;	Name : DELETE DIR
+;
+;	$VER: V1.00 / 26-01-95
+;
+;	Funktion : Scriptfile zum Loeschen eines Pfads inc. Brettern und Unterpfaden
+;
+;	Benoetigte AMMS-Befehle :
+;	-------------------------
+;	cd
+;	delete board
+;	delete dir
+;	delete fboard
+;	echo
+;	eod
+;	get dir
+;	gosub
+;	goto
+;	if
+;	parse
+;	return
+;
+;       Benoetigte Amiga-Dos-Befehle :
+;       ------------------------------
+;
+;       Variablen initialisieren :
+;       --------------------------
+ I=0					; Rekursionstiefe initialisieren
+
+;	Dirname einlesen
+
+_parse "Delete Dir" p0 N/Dirname DIRNAME0
+_if DIRNAME0 == "" then _eod
+
+;	Rekursionsschleife zum Loeschen alle Bretter und Pfade
+
+LOOP:
+ TMP=DIRNAME'I'
+_cd "'TMP'"				; In das zu loeschende Dir wechseln
+_gosub DELBOARDS			; Alle Bretter darin loeschen
+_gosub DELFBOARDS			; Alle Filebretter darin loeschen
+ I=I+1					; Rekursionstiefe erhoehen
+_get dir/dir "" DIRNAME'I'		; Unterpfad einlesen
+ TMP=DIRNAME'I'
+_if "'TMP'" != "" then _goto LOOP	; Wenn vorhanden, Rekursion
+
+BACK:
+ I=I-1					; Rekursionstiefe erniedrigen
+_cd /					; Ein Pfad zurueckwechseln
+_if/int I != 0 then _goto NEXT		; Wenn nicht Ausgangs-Pfad, verzw.
+ OLDDIR=DIRNAME'I'
+_echo "DELETE '{PATH}''OLDDIR' ..."	; Statusausgabe
+_delete dir/noconfirm "'OLDDIR'"	; Hauptpfad loeschen
+_eod					; Ende
+
+NEXT:
+ OLDDIR=DIRNAME'I'
+_get dir/dir "'OLDDIR'" DIRNAME'I'	; Naechsten Unterpfad einlesen
+ TMP=DIRNAME'I'
+_echo "DELETE '{PATH}''OLDDIR' ..."	; Statusausgabe
+_delete dir/noconfirm "'OLDDIR'"	; Vorgaenger loeschen
+_if "'TMP'" == "" then _goto BACK	; Wenn kein naechster Unterpfad, verzw.
+_goto LOOP				; -> Schleife
+
+;	Alle Bretter loeschen
+
+DELBOARDS:
+_get dir/bo "" BOARD			; Erstes Brett im Pfad einlesen
+DELBOARDS_LOOP:
+_if "'BOARD'" == "" then _return	; Wenn kein Brett gefunden, verzw.
+OLDBOARD=BOARD
+_get dir/bo "'OLDBOARD'" BOARD		; Naechstes Brett einlesen
+_echo "DELETE '{PATH}''OLDBOARD' ..."	; Statusausgabe
+_delete board/noconfirm "'OLDBOARD'"	; Vorgaenger-Brett loeschen
+_goto DELBOARDS_LOOP			; -> Schleife
+
+;	Alle Filebretter loeschen
+
+DELFBOARDS:
+_get dir/fbo "" BOARD			; Erstes Filebrett im Pfad einlesen
+DELFBOARDS_LOOP:
+_if "'BOARD'" == "" then _return	; Wenn kein Filebrett gefunden, verzw.
+OLDBOARD=BOARD
+_get dir/fbo "'OLDBOARD'" BOARD		; Naechstes Filebrett einlesen
+_echo "DELETE '{PATH}''OLDBOARD' ..."	; Statusausgabe
+_delete fboard/noconfirm "'OLDBOARD'"	; Vorgaenger-Filebrett loeschen
+_goto DELFBOARDS_LOOP			; -> Schleife

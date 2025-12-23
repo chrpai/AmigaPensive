@@ -1,0 +1,1422 @@
+; Jammer
+; This config is guaranteed to work on whatever version of WPL i'm currently
+; running.  It may/maynot work on future versions of WPL, and pretty much
+; definately won't work on older versions.
+; currently on WPL.library 0.97.04, JamMail.library 0.145
+
+ TransferOut:
+   SetUpdate "$(XPRWindow)$(line) - Out: $(Remote.Add)/inactive"
+   XprSend ""
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Send Status $(rc)"
+   Print "Turn around and receive\n"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   XprReceive ""
+   Set stat $(RC)
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Receive Status $(stat)"
+   XprClose
+   SetUpdate NULL
+   EndSession ALL
+   XprSetup jammail.library ""
+   XprSend "duration"
+   XprClose
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<Time> End of Fido Session with $(called) Duration: $(duration)"
+   ReplyCall $(stat)
+   Jump PostSession
+
+ TransferIn:
+   SetUpdate "$(XPRWindow)$(line) - In: $(Remote.Add)/inactive"
+   XprReceive ""
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Receive Status $(RC)"
+   Print "Turn around and Send\n"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   Delay 2
+   XprSend ""
+   Set stat $(RC)
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Send Status $(stat)"
+   XprClose
+   SetUpdate NULL
+   EndSession ALL
+   XprSetup jammail.library ""
+   XprSend "duration"
+   XprClose
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<Time> End of Fido Session with $(remote.address) Duration: $(duration)"
+   ReplyCall $(stat)
+   Jump PostSession
+
+ XTransferOut:
+   SetUpdate "$(XPRWindow)$(line) - Out: $(Remote.Add)/inactive"
+   XprSend ""
+   Set stat $(RC)
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Receive Status $(stat)"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   XprClose
+   SetUpdate NULL
+   EndSession ALL
+   XprSetup jammail.library ""
+   XprSend "duration"
+   XprClose
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<Time> End of Fido Session with $(called)  Duration: $(duration)"
+   ReplyCall $(stat)
+   Jump PostSession
+
+ XTransferIn:
+   SetUpdate "$(XPRWindow)$(line) - In: $(Remote.Add)/inactive"
+   XprReceive ""
+   Set stat $(RC)
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Send Status $(RC)"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   XprClose
+   SetUpdate NULL
+   EndSession ALL
+   XprSetup jammail.library ""
+   XprSend "duration"
+   XprClose
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<Time> End of Fido Session with $(remote.address)  Duration: $(duration)"
+   ReplyCall $(stat)
+   Jump PostSession
+
+ DoDial:
+   Set State "Calling $(Remote.Address)\n"
+   ModemClear   
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Trying To Connect To $(Remote.Address)"
+
+   Clear Remote.Number
+   XprSetup jammail.library ""
+   XprSend "lOokup"
+   XprClose
+   Cmp $(Remote.number) ""
+   FalseJump DoDialhavenumber
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> I don't know the number for $(Remote.Address)"
+   EndSession ALL
+   ReplyCall 20
+   Jump WaitRing
+
+  DoDialhavenumber:
+   Set Dial $(DialString)
+   Set DialDisplay "Normal"
+  DoDial1:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Scanning for Dial Collision"
+  DoDial1.2:
+   GetResponse 5
+   CmpI $(event) TIMEOUT
+   TrueJump DoDial2
+   cmp $(event) OK
+   truejump dodial1.2
+   CallForward JAMMAIL
+   cmp $(event) EXTRA
+   truejump dodiallogextra
+   cmp $(event) CID
+   TrueJump NotExtraIn2
+   cmp $(event) RING
+   TrueJump gotcid
+   Jump SlaveLoop
+
+  DoDialLogExtra:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastResponse)"
+   Jump DoDial1.2
+
+  DoDial2:
+   cmpi $(remote.type) NRC
+   FalseJump DoDial2NotNRC
+   SetBaud 300
+
+  DoDial2NotNRC:
+   EndSession ALL
+   SmartSend "$(Dial)$(Remote.number)|"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(Dial)$(Remote.number) ($(Dialdisplay))"
+   Set State "Dialing $(Remote.Address)\n"
+   GetResponse 120
+   send "\n"
+
+
+   cmpi $(remote.type) FIDO
+   FalseJump NotFidoDoDial
+   RexxMsg SY REXX "Address 'COMMAND' 'JamTool -r $(Remote.Zone).$(Remote.Net).$(Remote.Node).$(Remote.Point).$(Remote.Domain) $(event) no'"
+   Jump AfterTypeCheckDoDial
+
+  NotFidoDoDial:
+   RexxMsg SY REXX "Address 'COMMAND' 'JamTool -r $(Remote.Address) $(event) no'"
+
+  AfterTypeCheckDoDial:
+   Cmp $(event) EXTRA
+   FalseJump AfterTypeCheckNotExtra
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastresponse)"
+   GetResponse 5
+   Jump AfterTypeCheckDoDial
+
+  AfterTypeCheckNotExtra:
+   Cmp $(event) CONNECT
+   TrueJump Callconnect
+
+   CmpI $(lastresponse) CONNECT
+   FalseJump not300
+   Set Baud 300
+   Jump Callconnect
+
+  Not300:
+   Cmp $(event) TIMEOUT
+   FalseJump DoDial4
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Timeout"
+    smartsend "|AT|"
+    ReplyCall 10
+    Jump Freeline
+
+  DoDial4:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> -$(lastResponse)"
+   Cmp $(event) BUSY
+   FalseJump DoDial4.1
+   SmartSend "AT|"
+   ReplyCall 5
+   Jump Freeline
+
+  DoDial4.1:
+   Cmp $(event) MAID
+   FalseJump DoDial4.2
+   ReplyCall 10
+   SmartSend "AT|"
+   Jump Freeline
+
+  DoDial4.2:
+   Cmp $(event) LINE
+   FalseJump DoDial4.3
+   CallForward JAMMAIL$(line)
+   Jump GotCid
+
+  DoDial4.3:
+   Cmp $(event) RING
+   FalseJump DoDial4.5
+   CallForward JAMMAIL$(line)
+   Jump GotCid
+
+  DoDial4.5:
+   cmp $(event) CID
+   FalseJump FreeLine
+   CallForward JAMMAIL$(line)
+   Jump NotExtraIn2
+
+ DialTypeNotHere:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<time> Call Type '$(remote.type)' Not Supported!"
+   EndSession ALL
+   ReplyCall 20
+   Jump FreeLine
+
+ callconnect:
+   Set Start $<time>
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastResponse)($(baud))"
+   Set State "Handshaking with $(Remote.Address)\n"
+
+   CmpI $(Remote.type) UUCP
+   TrueJump DialTypeNotHere
+
+   CmpI $(Remote.type) UUCP2
+   TrueJump DialTypeNotHere
+
+   CmpI $(Remote.type) TERM
+   TrueJump DialTypeNotHere
+
+   CmpI $(Remote.type) NRC
+   TrueJump DialTypeNotHere
+
+   Set Host.Sitename "Hold On, We Have Something For You!"
+   Set MinSendPri 0 MaxSendPri 127
+   Set called $(Remote.Address)
+   Set State "Connected to $(Remote.Address)\n"
+   Cmp $(Pre_Session) ""
+   TrueJump NoPreSession
+   RexxMsg SY REXX "Address 'COMMAND' '$(Pre_Session)'"
+  NoPreSession:
+
+   BeginSession $(remote.address)
+   Set TryEMSI TRUE
+;0 aka's
+   Set RC $(TryEMSI)
+   FalseJump NotEMSI
+
+   XprSetup wplemsi.library "Outbound Emsi"
+   XprSend ""
+   XprClose
+   set RC $(EMSI)
+   FalseJump NotEMSIFail
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> EMSI HandShake!"
+   SetEnv $(line).Remote.Number $(Remote.Number)
+   SetEnv $(line).Host.Number $(Host.Number)
+   XprSetup jammail.library ""
+   XprSend "akalookup"
+   XprClose
+
+   Seta Remote $(remote.addresses)
+   Set Remote.Add $(Remote.domain).$(Remote.zone).$(Remote.net).$(Remote.node).$(Remote.point)
+   BeginSession "$(remote.addresses.valid) EMSI"
+   BeginSession "$(remote.addresses.unknown)"
+   BeginSession "$(remote.addresses.valid.2)"
+   BeginSession "$(remote.addresses.unknown.2)"
+   BeginSession "$(remote.addresses.valid.3)"
+   BeginSession "$(remote.addresses.unknown.3)"
+   BeginSession "$(remote.addresses.valid.4)"
+   BeginSession "$(remote.addresses.unknown.4)"
+   BeginSession "$(remote.addresses.valid.5)"
+   BeginSession "$(remote.addresses.unknown.5)"
+   BeginSession "$(remote.addresses.valid.6)"
+   BeginSession "$(remote.addresses.unknown.6)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Called $(called)"
+
+   Cmp $(remote.addresses.valid) ""
+   Truejump NoValidEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid)"
+   Cmp $(remote.addresses.valid.2) ""
+   Truejump NoValidEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid.2)"
+   Cmp $(remote.addresses.valid.3) ""
+   Truejump NoValidEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid.3)"
+   Cmp $(remote.addresses.valid.4) ""
+   Truejump NoValidEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid.4)"
+   Cmp $(remote.addresses.valid.5) ""
+   Truejump NoValidEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid.5)"
+   Cmp $(remote.addresses.valid.6) ""
+   Truejump NoValidEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid.6)"
+  NoValidEMSIout:
+
+   Cmp $(remote.addresses.unknown) ""
+   Truejump NounknownEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown)"
+   Cmp $(remote.addresses.unknown.2) ""
+   Truejump NoUnknownEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown.2)"
+   Cmp $(remote.addresses.unknown.3) ""
+   Truejump NoUnknownEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown.3)"
+   Cmp $(remote.addresses.unknown.4) ""
+   Truejump NoUnknownEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown.4)"
+   Cmp $(remote.addresses.unknown.5) ""
+   Truejump NoUnknownEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown.5)"
+   Cmp $(remote.addresses.unknown.6) ""
+   Truejump NoUnknownEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown.6)"
+  NoUnknownEMSIout:
+
+   Cmp $(remote.addresses.invalid) ""
+   Truejump NoBadEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid)"
+   Cmp $(remote.addresses.invalid.2) ""
+   Truejump NoBadEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid.2)"
+   Cmp $(remote.addresses.invalid.3) ""
+   Truejump NoBadEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid.3)"
+   Cmp $(remote.addresses.invalid.4) ""
+   Truejump NoBadEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid.4)"
+   Cmp $(remote.addresses.invalid.5) ""
+   Truejump NoBadEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid.5)"
+   Cmp $(remote.addresses.invalid.6) ""
+   Truejump NoBadEMSIout
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid.6)"
+  NoBadEMSIout:
+
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Name : $(remote.sitename)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Sysop: $(remote.sysop) ($(remote.city))"
+   Pattern $(remote.password) ""
+   TrueJump OutEmsiProd
+      RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Pass : $(remote.password)"
+  OutEmsiProd:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Using: $(remote.mailer) $(remote.version)/$(remote.serial)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Link : $(remote.link)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Compt: $(remote.compat)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Flags: $(remote.flags),$(remote.baud)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Time : $(remote.time)/$(host.time)"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   Set RC $(Remote.freq)
+   FalseJump CheckProtocolsOut
+
+   FindFreq $(remote.addresses.valid)
+   FindFreq $(remote.addresses.unknown)
+   FindFreq $(remote.addresses.valid.2)
+   FindFreq $(remote.addresses.unknown.2)
+   FindFreq $(remote.addresses.valid.3)
+   FindFreq $(remote.addresses.unknown.3)
+   FindFreq $(called)"
+   Jump CheckProtocolsOut
+
+  NotEMSI:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> EMSI Disabled, trying other handshake"
+   Jump PostNotEMSIFail
+
+  NotEMSIFail:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> EMSI Failed, trying other handshake"
+
+  PostNotEMSIFail:
+   Set Freq FALSE
+   GetOutbound "$(protocols)"
+   Cmp $(event) WAZOO
+   TrueJump IsOkOutbound
+   Cmp $(event) FTS1
+   TrueJump IsOkOutbound
+
+   EndSession ALL
+   ReplyCall 99
+   Jump PostSession2
+
+  IsOkOutbound:
+   CmpI $(called) $(Remote.Address)
+   TrueJump Fidoconnect2
+    Set Nodelist NONE
+    XprSetup jammail.library ""
+    XprSend "Lookup"
+    XprClose
+   cmp $(test.password) ""
+   TrueJump Dualpassed
+   cmp $(remote.password) $(test.password)
+   Truejump dualpassed
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<time> $(remote.address) failed Password test"
+
+   seta remote $(called)
+   Jump FidoConnect3
+
+  Dualpassed:
+   BeginSession $(remote.address)
+   Set State "Connected to $(called) $(Remote.Address)\n"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<time> Connected to $(called) $(remote.address)"
+   Jump Fidoconnect3
+  Fidoconnect2:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<time> Connected to $(remote.address)"
+
+  Fidoconnect3:
+   CmpI $(event) FTS1
+   FalseJump CallConnectWaZoo
+
+   SetMailerFlags "DY,PY"
+   XprSetup xprfts.library "7y,cy,ob,ib,sy,bn,an,ny,wy,fy"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> FTS-1: Setup RC:$(RC)"
+   Jump XTransferOut
+
+  CallConnectWaZoo:
+   Set IsOutbound TRUE
+   SubJump jammail!wazoo
+   Set IsOutbound FALSE
+
+  Fidoconnect4:
+   Set RC $(Remote.freq)
+   FalseJump Wazoo2EmsiOut
+
+   FindFreq $(called)
+   CmpI $(called) $(remote.address)
+   TrueJump Wazoo2EmsiOut
+   FindFreq $(Remote.address)
+
+  Wazoo2EmsiOut:
+   Set Remote.Compat $(YooHoo.$(host.wzcap))
+
+   CheckProtocolsOut:
+    Pattern $(Remote.Compat) "ZAP#?"
+    TrueJump ZapOut
+    Pattern $(Remote.Compat) "YMO#?"
+    TrueJump YModOut
+    Pattern $(Remote.Compat) "ZMO#?"
+    TrueJump ZipOut
+    Pattern $(Remote.Compat) "SLK#?"
+    TrueJump SeaLinkOut
+    Pattern $(Remote.Compat) "TLK#?"
+    TrueJump TeLinkOut
+
+   DietOut:
+    XprSetup xprfts.library "$(ftsflags.$(Remote.product))"
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: DietIFNA Setup RC:$(RC)"
+    Jump XTransferOut
+
+   TeLinkOut:
+    XprSetup xprfts.library "OT,SN,MN"
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: TeLink Setup RC:$(RC)"
+    Jump XTransferOut
+
+   SeaLinkOut:
+    XprSetup xprfts.library "OS,SF,WY,MN"
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: SeaLink Setup RC:$(RC)"
+    Jump XTransferOut
+
+   ZipOut:
+    SetMailerFlags "DE,PN"
+    XprSetup xprzedzap.library TN,OR,B16,F0,E30,AN,DN,KN,SN,RN,M1024 
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: ZedZip Setup RC:$(RC)"
+    Jump TransferOut
+
+   YModOut:
+    SetMailerFlags "DE,PN"
+    XprSetup xprymodem.library YB,Z1,C1,B1
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: YModem Setup RC:$(RC)"
+    Jump TransferOut
+
+   ZapOut:
+    SetMailerFlags "DN,PN"
+    XprSetup xprzedzap.library TN,OR,B16,F0,E30,AN,DN,KN,SN,RN,NY,M8192,C$(BAUD) 
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: ZedZap Setup RC:$(RC)"
+    Jump TransferOut
+
+;-------------- 
+
+ OwnDevNotMe:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<time> $(Owner) owns device - Waiting.."
+   Print "$(Owner) owns device - Waiting..\n"
+   set RC TRUE
+   Return
+
+ PostSession:
+   cmp $(Post_Session) ""
+   TrueJump PostSession2
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(post_session)"
+   RexxMsg SY REXX "Address 'COMMAND' '$(Post_Session)'"
+
+ PostSession2:
+   SignalSlave d JAMMAIL
+   clear event Return UserName
+   ModemClear
+   SmartSend "AT|"
+   getresponse 2
+   smartSend $(hangupstRing)
+
+ freeLine:
+   getresponse 2
+   cmpi $(event) OK
+   TrueJump slaveloop
+     ModemClose
+     Delay 2
+
+ slaveloop:
+   SubJump jammail!Setglobals
+   Set OwnDev jammail!OwnDevNotMe
+   Set State "Slaveloop\n"
+   Setpri $(Priority)
+   ModemOpen
+   TrueJump WaitRing
+      RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] Can't Open Modem!"
+      RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+      Return
+
+ WaitRing:
+   Cmp $(State) "Waiting."
+   TrueJump mainwaitloop
+    SmartSend "AT|"
+    System "delete >nil: env:$(line).#?"
+    BangIt:
+      Smartsend "~$(hangupstring)~"
+      Smartsend "|~$(bang)|"
+      getresponse 2
+      Set RC $<abort>
+         FalseJump BangIt2
+         RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Line $(line) Exiting"
+         ModemClose
+         Return
+     BangIt2:
+      cmp $(event) RING
+      TrueJump PostBang
+      cmp $(event) OK
+      TrueJump PostBang
+      ModemClose
+      Delay 2
+      ModemOpen
+      smartSend "$(hangupstRing)|"
+      Jump BangIt
+     PostBang:
+      smartSend "$(InitstRing)|"
+      print "\033[33m"
+      RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Waiting for Call..."
+      RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+      Set State "Waiting."
+      getresponse 4
+      Set Rings 0
+      Setenv $(Line).CID "Not Available"
+      Setenv $(Line).Rings "0"
+
+ MainWaitLoop:
+   SubJump jammail!ModemInit
+   FalseJump freeLine
+   cmpi $(event) OK
+   falsejump WaitRing1.22
+
+   CheckCall
+   TrueJump DoDial
+   Pattern $(Rings) 0#?
+   FalseJump WaitRing
+   Pattern $(State) Wait#?
+   FalseJump WaitRing
+
+   Set RC $<abort>
+   FalseJump WaitRing1
+      RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Line $(line) Exiting"
+      ModemClose
+      Return
+
+  WaitRing1:
+   SubJump jammail!Setglobals
+
+  WaitRing1.1:
+   Set OwnDevUnit TRUE
+   Set CallInterupt TRUE
+   GetResponse $(Timeoutvalue)
+  WaitRing1.22:
+   Set OwnDevUnit FALSE
+   Set CallInterupt FALSE
+   CmpI $(event) OWNDEVUNIT
+   TrueJump freeLine
+   CmpI $(event) Timeout
+   TrueJump Mainwaitloop
+   CmpI $(event) OK
+   TrueJump Mainwaitloop
+   Setpri $(Priority)
+  Waitring1.23:
+   CMP $(event) EXTRA
+   FalseJump NotExtraIn1
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastResponse)"
+     Jump WaitRing1.1
+  NotExtraIn1:
+   CmpI $(event) Ring
+   FalseJump WaitRing3
+     Set State "Ring..Ring..\n"
+     System "eval >env:$(Line).Rings $(Rings) + 1 lformat=\"%n\""
+     Set Rings ${$(Line).Rings}
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastResponse) $(Rings)"
+     cmpi $(answerring) 0
+     truejump gotcid
+     cmpi $(answerring) 1
+     truejump gotcid
+     Cmp $(Rings) $(AnswerRing)
+     TrueJump gotCID
+     Set Timeoutvalue 6
+     Jump WaitRing1.1
+
+  WaitRing3:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastResponse) ($(event))"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   Set State "$(event)\n"
+   Set Timeoutvalue 1
+   CmpI $(event) CID
+   FalseJump WaitRing1.1
+   Setenv $(Line).CID $(lastResponse)
+
+  gotCID:
+   SmartSend $(Answer)
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Answer"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+
+  GotCID2:
+   GetResponse 120
+   Cmp $(event) CONNECT
+   TrueJump CIDcarrier
+   Cmp $(event) TIMEOUT
+   FalseJump AfterAnswer
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> TimeOut"
+     Jump PostSession2
+  AfterAnswer:
+   Cmp $(event) MAID
+   FalseJump AfterAnswer2
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Modem TimeOut"
+     Jump PostSession2
+  AfterAnswer2:
+   Cmp $(event) EXTRA
+   FalseJump NotExtraIn2
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastResponse)"
+     Jump GotCid2
+  NotExtraIn2:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastResponse) ($(event))"
+   Cmp $(event) LINE
+   TrueJump WaitRing
+   Cmp $(event) RING
+   TrueJump gotcid
+   CmpI $(event) CID
+   FalseJump gotCID2
+   Setenv $(Line).CID $(lastResponse)
+   Jump gotCID2
+
+  CIDcarrier:
+   Set Start $<time>
+   Set State "Connected To ${$(Line).CID}\n"
+   Set MaxSendPri 127 MinSendPri -127
+   Set host.sitename "Welcome to Frontiers BBS!"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(lastResponse)($(baud))"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+
+   RexxMsg SY REXX "Address 'COMMAND' 'echo >env:$(line).date `date` noline'"
+   Set temp "\n\r$(lastResponse) / ${$(Line).date} $<Time>\n\r\n\r"
+   Print $(temp)
+   Send $(temp)
+   XprSetup jammail.library ""
+   XprSend "Type TEXT:Banner"
+   XprClose
+
+;---
+  mconnect:
+   Set Temp "\n\r**EMSI_REQA77E\n\r"
+   Print $(temp)
+   Send $(temp)
+   Set temp "\rWelcoming you with JamMail 0.98.421/${WPLName}\r\nLine $(Line) - $(modem)\r\n"
+   Print $(temp)
+   Send $(temp)
+   Set RC ${ZMH}
+   FalseJump mconnect0.1
+   Set Temp "\r\nNetwork Mail Time Zone is in Effect!  This system is currently Mail Only!\r\n\r\n"
+   Set Host.Freq false
+   Print $(temp)
+   Send $(temp)
+
+  mconnect0.1:
+   Set Temp "\n$(host.address)\n\n\rType ? for Help, or FR (or ESC twice) for Frontiers BBS: "
+   Print $(temp)
+   Send $(temp)
+   Clear temp namebuf
+
+   Setpri $(Priority)
+   GetInbound "$(protocols),GE,E0" 120
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Event: $(event)"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   Pattern $(event) LOGIN
+   FalseJump mconnect2
+     Pattern $(namebuf) ""
+     TrueJump mconnect
+     Pattern $(namebuf) "#?}{#?"
+     FalseJump NotPoPemsiin
+      Set Event "EMSI_INQ"
+      Set Host.Sitename "JamMail Detected Buggy EMSI"
+      RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(host.sitename)"
+      Jump mconnect2
+     NotPoPemsiIn:
+     Set State "User At Login\n"
+     Set UserName $(namebuf)
+     clear namebuf
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> UserCommand: $(UserName)"
+
+     CmpI $(UserName) ?
+     TrueJump Loginhelp
+     Set RC ${ZMH}
+     TrueJump MconnectZmh
+     Pattern $(UserName) freq#?
+     TrueJump Promptfreq
+     Pattern $(UserName) grab#?
+     TrueJump Promptfreq
+
+     Pattern $(UserName) "FILES"
+     TrueJump ZSendFR_FILES.LHA
+     Pattern $(UserName) "CFILES"
+     TrueJump ZSendFR_CNET.LHA
+     Pattern $(UserName) "DFILES"
+     TrueJump ZSendFR_DOTORAN.LHA
+     Pattern $(UserName) "GETUSERS"
+     TrueJump ZSendGU30_PACKAGE.LHA
+
+     CmpI $(UserName) bbs
+     TrueJump bbslaunch1
+     CmpI $(UserName) "FR"
+     TrueJump bbslaunch1
+    MconnectZmh:
+
+     CmpI $(UserName) off
+     TrueJump loginhangup
+     CmpI $(UserName) bye
+     TrueJump loginhangup
+     CmpI $(UserName) quit
+     TrueJump loginhangup
+     CmpI $(UserName) exit
+     TrueJump loginhangup
+     CmpI $(UserName) g
+     TrueJump loginhangup
+     CmpI $(UserName) CID
+     TrueJump displayCID
+
+   logintype:
+   Xprsetup jammail.library ""
+   XprSend "isvalid"
+   XprClose
+   Set RC $(isvalid)
+     FalseJump NotValidLoginType
+
+   Cmp $(username) help
+   TrueJump HelpByeType
+   Cmp $(username) goodbye
+   TrueJump HelpByeType
+   Xprsetup jammail.library ""
+   XprSend "type TEXT:$(username)"
+   XprClose
+   Jump mconnect
+
+  HelpByeType:
+   Xprsetup jammail.library ""
+   XprSend "Type TEXT:$(username)"
+   XprClose
+     Cmp $(UserName) goodbye
+     FalseJump mconnect
+     Jump PostSession2
+
+   NotValidLoginType:
+     set temp "Invalid String Entered\n"
+     send $(temp)
+     print $(temp)
+     Jump mconnect
+
+   loginhangup:
+     Set UserName goodbye
+     Jump logintype
+
+   loginhelp:
+     Set UserName help
+     Jump logintype
+
+   displayCID:
+      Set CallerID "\nCID: ${$(Line).CID}\n"
+      print $(callerid)
+      Send $(callerid)
+      Jump mconnect
+
+   bbslaunch1:
+     Set State "User Dropped To FR\n"
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<time> CNET:BBSWAKE PORT=$(line) BAUD=$(baud) LOCK=$(baudlocked)"
+     RexxMsg SY REXX "Address 'COMMAND' 'CNET:BBSWAKE PORT=$(line) BAUD=$(baud) LOCK=$(baudlocked)'"
+     CmpI $(RC) 0
+
+    bbslaunch1.3:
+     System "0"
+     Jump PostSession2
+
+   Promptfreq:
+     Set State "User Freqing Files\n"
+    XprSetup jammail.library ""
+    XprSend "Type TEXT:FReqBanner"
+    XprClose
+     Set temp "\r\nBatch Zmodem Download.  Enter one name per Line.  Q to Exit (Abort).\r\n\r\n"
+     Send $(temp)
+     print $(temp)
+     BeginSession $(FreqAddress)
+     System "delete >nil: t:freq-$(Line).req"
+     Set counter FALSE
+
+   Promptfreqprompt:
+     Set temp "Enter Filename to Download: "
+     Send $(temp)
+     print $(temp)
+     GetInbound "G1,G6,E0" 120
+     CmpI $(event) CARRIER
+     TrueJump mconnect
+     CmpI $(namebuf) q
+     truejump mconnect
+     CmpI $(namebuf) magic
+     FalseJump pfreqhelp
+    XprSetup jammail.library ""
+    XprSend "Type TEXT:MagicNames"
+    XprClose
+     Jump promptfreqprompt
+
+    pfreqhelp:
+     CmpI $(namebuf) "help"
+     TrueJump promptfreqhelp
+     Cmp $(namebuf) "?"
+     FalseJump prefreqAdd
+
+    promptfreqhelp:
+    XprSetup jammail.library ""
+    XprSend "Type $(freqhelp)"
+    XprClose
+     Jump promptfreqprompt
+
+    prefreqAdd:
+     CmpI $(namebuf) ""
+     FalseJump PromptfreqAdd
+     Set RC $(counter)
+     TrueJump Promptdofreq
+     Jump mconnect
+  
+   PromptfreqAdd:
+     Set username $(namebuf)
+    XprSetup jammail.library ""
+    XprSend "isvalid"
+    XprClose
+    Set RC $(isvalid)
+     FalseJump NotValidFreqAdd
+
+     Set counter TRUE
+     System "echo >>t:freq-$(Line).req $(namebuf)"
+     Jump PromptFreqPrompt
+
+   NotValidFreqAdd:
+     set temp "Invalid FileName!\n"
+     send $(temp)
+     print $(temp)
+     Jump PromptFreqPrompt
+
+   Promptdofreq:
+     Set State "User Freqing Files\n"
+     Set temp "Scanning for file(s)"
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(temp)"
+     Send "\r\n$(temp)\r\n"
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Run $(xferqsh) >>$(userfreqlog) $(userfreqcfg) freq-$(Line).req t:freq-$(Line).req $(FreqAddress) \"$(baud) on ${$(Line).date} $<Time>\""
+     System "Run $(xferqsh) >>$(userfreqlog) $(userfreqcfg) freq-$(Line).req t:freq-$(Line).req $(FreqAddress) \"$(baud) on ${$(Line).date} $<Time>\""
+     Delay 2
+     Set temp "Sending file(s) with Batch Zmodem\n\r\n\r"
+     print $(temp)
+     Send $(temp)
+     clear temp
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Starting Batch Send"
+     SetUpdate "$(XPRWindow)${$(Line).CID} - Freq Line $(Line)/inactive"
+     XprSetup xprzedzap.library "TN,OR,B16,F0,E10,AN,DN,KN,SY,RN,M1024"
+     XprSend ""
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Finished Batch Send"
+     XprClose
+     SetUpdate NULL
+     EndSession All
+     Jump mconnect
+
+   ZSendFR_FILES.LHA:
+     Set message "Listing of all files found on Frontiers BBS! (Updated Weekly!)"
+     Send $(message)
+     Set promptfile "FREQ:FR_FILES.LHA"
+     Set username "FR_FILES.LHA"
+     Jump PromptZSend
+
+   ZSendFR_CNET.LHA:
+     Set message "Listing of all CNET files found on Frontiers BBS! (Updated Weekly!)"
+     Send $(message)
+     Set promptfile "FREQ:FR_CNET.LHA"
+     Set username "FR_CNET.LHA"
+     Jump PromptZSend
+
+   ZSendFR_DOTORAN.LHA:
+     Set message "Listing of all files written by Dotoran of Frontiers BBS! (Updated Weekly!)"
+     Send $(message)
+     Set promptfile "FREQ:FR_DOTORAN.LHA"
+     Set username "FR_DOTORAN.LHA"
+     Jump PromptZSend
+
+   ZSendGU30_PACKAGE.LHA:
+     Set message "CNet Amiga, v2.63 thru v3.05c Short & Long OFFSET GetUser Values!"
+     Send $(message)
+     Set promptfile "udbase0:cnet_dotoran2/GU30_Package.LHA"
+     Set username "GU30_PACKAGE.LHA"
+     Jump PromptZSend
+
+   PromptZSend:
+     Set temp "\r\n\r\nSending '$(username)' with Zmodem Batch\n\r"
+     print $(temp)
+     Send $(temp)
+     SetUpdate "$(XPRWindow)$(line) - ${$(Line).CID}/inactive"
+     XprSetup xprzedzap.library "TN,OR,B16,F0,E30,AN,DN,KN,SY,RN,M1024"
+     XprSetFile $(promptfile) $(username) O
+     XprSend $(username)
+     Pattern $(filestatus) fail#?
+     TrueJump ZsendLogout
+     Send "\n\r$(cps) CPS ($(cpsp)%) of $(baud) Bps\n\r"
+    ZSendLogout:
+     Send $(FileStatus)!
+     XprClose
+     SetUpdate NULL
+     Jump mconnect
+
+   mconnect2:
+    Pattern $(namebuf) "#?}{#?"
+    FalseJump NotPoPin2
+    Set Event "EMSI_INQ"
+    Set Host.Sitename "JamMail Detected Bad EMSI!"
+
+   NotPopIn2:
+    Cmp $(event) EMSI_INQ
+    FalseJump mconnect2.2
+   Cmp $(Event) EMSI
+   FalseJump NotBuggyEMSIIn
+   Smartsend "|**EMSI_NAKEEC3\r"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Buggy EMSI!"
+   
+  NotBuggyEMSIIn:
+    XprSetup wplemsi.library "Receive"
+   XprReceive ""
+   XprClose
+   set RC $(EMSI)
+   FalseJump PostSession2
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> EMSI HandShake!"
+   SetEnv $(line).Remote.Number $(Remote.Number)
+   SetEnv $(line).Host.Number $(Host.Number)
+   XprSetup jammail.library ""
+   XprSend "akalookup"
+   XprClose
+
+   Seta Remote $(remote.addresses)
+   Set Remote.Add $(Remote.domain).$(Remote.zone).$(Remote.net).$(Remote.node).$(Remote.point)
+   BeginSession "$(remote.addresses.valid) EMSI"
+   BeginSession "$(remote.addresses.valid.2)"
+   BeginSession "$(remote.addresses.valid.3)"
+   BeginSession "$(remote.addresses.valid.4)"
+   BeginSession "$(remote.addresses.unknown)"
+   BeginSession "$(remote.addresses.unknown.2)"
+   BeginSession "$(remote.addresses.unknown.3)"
+   BeginSession "$(remote.addresses.unknown.4)"
+
+   Cmp $(remote.addresses.valid) ""
+   Truejump NoValidEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid)"
+   Cmp $(remote.addresses.valid.2) ""
+   Truejump NoValidEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid.2)"
+   Cmp $(remote.addresses.valid.3) ""
+   Truejump NoValidEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid.3)"
+   Cmp $(remote.addresses.valid.4) ""
+   Truejump NoValidEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Valid: $(remote.addresses.valid.4)"
+  NoValidEMSIin:
+
+   Cmp $(remote.addresses.unknown) ""
+   Truejump NoUnknownEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown)"
+   Cmp $(remote.addresses.unknown.2) ""
+   Truejump NoUnknownEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown.2)"
+   Cmp $(remote.addresses.unknown.3) ""
+   Truejump NoUnknownEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown.3)"
+   Cmp $(remote.addresses.unknown.4) ""
+   Truejump NoUnknownEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Unknown: $(remote.addresses.unknown.4)"
+  NoUnknownEMSIin:
+
+   Cmp $(remote.addresses.invalid) ""
+   Truejump NoBadEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid)"
+   Cmp $(remote.addresses.invalid.2) ""
+   Truejump NoBadEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid.2)"
+   Cmp $(remote.addresses.invalid.3) ""
+   Truejump NoBadEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid.3)"
+   Cmp $(remote.addresses.invalid.4) ""
+   Truejump NoBadEMSIin
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Bad  : $(remote.addresses.invalid.4)"
+  NoBadEMSIin:
+
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Name : $(remote.sitename)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Sysop: $(remote.sysop) ($(remote.city))"
+   Cmp $(remote.password) ""
+   TrueJump InEmsiProd
+      RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Pass : $(remote.password)"
+  InEmsiProd:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Using: $(remote.mailer) $(remote.version)/$(remote.serial)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Link : $(remote.link)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Compt: $(remote.compat)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Flags: $(remote.flags),$(remote.baud)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Time : $(remote.time)/$(host.time)"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Phone: $(remote.phone)"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   Jump CheckProtocolsIn
+
+
+  Mconnect2.2:
+   CmpI $(event) FTS1
+   FalseJump mconnect3
+     SetMailerFlags "DY,PY"
+     Set Remote.Address 1:1/1.1
+     XprSetup xprfts.library "7y,cy,ob,ib,sy,bn,an,ny,wy,fy"
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> FTS-1: Setup $(Setup) RC:$(RC)"
+     Jump xtransferin
+
+   mconnect3:
+     CmpI $(event) GOTYOOHOO
+     FalseJump mconnect4
+     SubJump jammail!wazoo
+     FalseJump WaitRing
+     WazooRespond
+     Print "Wazoo $(event)\n"
+     FalseJump PostSession2
+     BeginSession $(Remote.Address)
+     set Host.Compat $(YooHoo.$(host.wzcap))
+
+   CheckProtocolsIn:
+    Pattern $(Host.Compat) "ZAP#?"
+    TrueJump ZapIn
+    Pattern $(Host.Compat) "YMO#?"
+    TrueJump YModIn
+    Pattern $(Host.Compat) "ZMO#?"
+    TrueJump ZipIn
+    Pattern $(Host.Compat) "SLK#?"
+    TrueJump SeaLinkIn
+    Pattern $(Host.Compat) "TLK#?"
+    TrueJump TeLinkIn
+
+   DietIn:
+    XprSetup xprfts.library "$(ftsflags.$(Remote.product))"
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: DietIFNA Setup RC:$(RC)"
+    Jump XTransferIn
+
+   TeLinkIn:
+    XprSetup xprfts.library "OT,SN,MN"
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: TeLink Setup RC:$(RC)"
+    Jump XTransferIn
+
+   SeaLinkIn:
+    XprSetup xprfts.library "OS,SF,WY,MN"
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: SeaLink Setup RC:$(RC)"
+    Jump XTransferIn
+
+   ZipIn:
+    SetMailerFlags "DE,PN"
+    XprSetup xprzedzap.library TN,OR,B16,F0,E30,AN,DN,KN,SN,RN,M1024 
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: ZedZip Setup RC:$(RC)"
+    Jump TransferIn
+
+   YModIn:
+    SetMailerFlags "DE,PN"
+    XprSetup xprymodem.library YB,Z1,C1,B1
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: YModem Setup RC:$(RC)"
+    Jump TransferIn
+
+   ZapIn:
+    SetMailerFlags "DN,PN"
+    XprSetup xprzedzap.library TN,OR,B16,F0,E30,AN,DN,KN,SN,RN,NY,M8192,C$(BAUD) 
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Proto: ZedZap Setup RC:$(RC)"
+    Jump TransferIn
+
+   mconnect4:
+   EndSession ALL
+   ReplyCall 111
+   Jump PostSession2
+
+
+ ; called on both inbound and outbound after receiving a yoohoo
+ Wazoo:
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   CmpI $(host.address) ${host.address}
+   trueJump PostWazooAKA
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(line)] $<time> My AKA: $(host.address)"
+
+  PostWazooAKA:
+   Set NODELIST NONE
+   XprSetup jammail.library ""
+   XprSend "decode"
+   XprSend "Lookup"
+   XprClose
+
+   CmpI $(Test.Type} FIDO
+   TrueJump WaZoo2
+   CmpI $(Test.Type} ""
+   TrueJump WaZoo2
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> System TYPE conflict (Not Fido)"
+   Set RC FALSE
+   Return
+
+  WaZoo2:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Name : $(Remote.sitename) ($(Remote.Address))"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Sysop: $(Remote.sysop) ($(Test.city))"
+
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+
+   Set Remote.Add $(Remote.domain).$(Remote.zone).$(Remote.net).$(Remote.node).$(Remote.point)
+
+   Pattern $(Remote.password) ""
+   TrueJump wazooproducts
+     RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Pass : $(Remote.password)"
+
+  wazooproducts:
+   Pattern $(mailername.$(Remote.product)) ""
+   TrueJump wazoo2.1
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Using: $(mailername.$(Remote.product)) $(Remote.product_maj).$(Remote.product_min)"
+   Jump wazoo2.2
+
+  wazoo2.1:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Using: $(Remote.product) $(Remote.product_maj).$(Remote.product_min)"
+
+  wazoo2.2:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> WaZoo:$(Remote.Wazoo) ($(remote.wzcap))"
+   RexxMsg NY LOGPROC "FlushLog JamMailLogs"
+   Set RC $(IsOutbound)
+   TrueReturn
+   Pattern $(Test.password) "?#?"
+   TrueJump WazooPWCheck 
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> No Password Required!"
+   Pattern $(Remote.password) "?#?"
+   FalseJump EndWazoo
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Given: '$(Remote.password)'"
+   Jump EndWazoo
+
+  WazooPWCheck:
+   CmpI $(Test.password) $(Remote.password)
+   TrueJump WazooPWProtected
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Password Error: His:'$(Remote.password)' Ours:'$(Test.password)'"
+   Set RC FALSE
+   Return
+
+  WazooPWProtected:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Password Protected Session"
+
+ EndWazoo:
+   Set RC TRUE
+   Return
+
+ Setglobals:
+
+   SetPri $(priority)
+ ;Cleans - documentation of variables and saves memory
+
+  Clear temp start stat event lastresponse rc return dial
+  Clear remote.address remote.add remote.number remote.type remote.city
+  Clear called remote.password remote.flags remote.sysop 
+  Clear remote.time host.time remote.addresses remote.addresses.1
+  Clear remote.compat namebuf username whatrun test.password
+  Clear remote.addresses.invalid remote.addresses.invalid.2
+  Clear remote.addresses.invalid.3 remote.addresses.invalid.4
+  Clear remote.addresses.valid remote.addresses.valid.2
+  Clear remote.addresses.valid.3 remote.addresses.valid.4
+  Clear remote.addresses.unknown remote.addresses.unknownn.2
+  Clear remote.addresses.unknown.3 remote.addresses.unknown.4
+ ;Jumps
+   Set preinbound  jammail!preinbound  Postinbound  jammail!Postinbound 
+   Set preoutbound jammail!preoutbound Postoutbound jammail!Postoutbound
+
+ ;General
+
+   Set TimeOutValue $(TimeOutValue.$(line))
+   Set SerReadBuf     16
+   Set SerWriteBuf    16
+   Set XferqSH        "jammail:xfreqsh"
+   Set InboundLog     "logs:inbound.log"
+   Set InboundCfg     "mail:xferqsh.cfg"
+   Set FreqLog        "logs:freq.log"
+   Set FreqCfg        "mail:xfreq.cfg"
+   Set UserFreqCfg    "mail:xfreq.cfg"
+   Set UserFreqLog    "logs:userfreq.log"
+
+   Set FreqAddress    "User#1:0/0.$(Line)"
+   Set FreqHelp       "TEXT:FreqHelp"
+
+ ;Fido variables
+   Set inbound "INBOUND:"  outbound "OUTBOUND:"
+   Set pickup "TRUE" host.freq "TRUE"
+   Set Protocols "G1,D1,G6,D6"
+   Set MaxSendPri 127 MinSendPri -128
+
+   Set Post_Session ""
+   Set Pre_Session ""
+
+   Set Host.Addresses "1:260/121.0@fidonet"
+   Set Host.Serial "JamMail 0.98.421 Jun 28 1994 (20:48:31)"
+   Seta host FidoNet#1:260/121.0
+   Set host.wzdomain $(host.domain)
+   Setenv Host.address $(host.address)
+   Set host.sysop "Dotoran (David Weeks)"
+   Set Host.City "Buffalo, New York, USA"
+   Set Nodelist traplist
+   Set NodelistDir "Nodelist:" Cache TRUE
+   Set host.wzcap 13
+   Set host.compat "ZAP,YMO,ZMO,SLK,TEL,ARC,XMA"
+
+ ;Mailers Config
+   Set mailername.0   "FTS1"
+   Set mailername.5   "OPUS"
+   Set mailername.7   "WPL.Library"
+   Set mailername.12  "FrontDoor"
+   Set mailername.26  "D'Broke"
+   Set mailername.27  "Binkley"
+   Set mailername.50  "Paragon/StarNet/MEBBS"
+   Set mailername.57  "TrapDoor"
+   Set mailername.58  "Welmat"
+   Set ftsflags.58    "7n,by"
+   Set mailername.66  "TIMS"
+   Set mailername.105 "Portal of Power"
+   Set mailername.106 "MacWoof"
+   Set ftsflags.106   ""
+   Set mailername.170 "Xenolink"
+   Set mailername.196 "ProMailer"
+   Set mailername.254 "MelMail"
+   Set ftsflags.254   "ot"
+
+   Set YooHoo.1 Diet
+   Set YooHoo.4 ZMO
+   Set YooHoo.8 ZAP
+
+   Set Baud       $(BaudRate)
+   Set BaudLocked $(BaudRate)
+   Return
+
+ ;---------
+
+  preinbound:
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Receiving: '$(remfile)'"
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Temporary: '$(tempfile)'"
+    Return
+
+  Postinbound:
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(fileStatus): '$(infile)' ($(filesize) bytes)"
+    Pattern $(fileStatus) Fail#?
+    TrueReturn
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> CPS $(CPS) ($(CPSP)%)"
+    Set whatrun "Run $(xferqsh) >>$(inboundlog) $(inboundcfg) $(remfile) $(infile) \"$(Remote.Address)\" $(baud)"
+    Pattern $(remfile) "#?.req"
+    FalseJump Postinbound2
+    Set RC ${ZMH}
+    TrueJump Postinbound2
+    Set whatrun "Run $(xferqsh) >>$(freqlog) $(freqcfg) $(remfile) $(infile) \"$(Remote.Address)\" \"Received at $(baud) on ${$(Line).date} $<Time>\""
+
+  Postinbound2:
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(whatrun)"
+    RexxMsg SY REXX "Address 'COMMAND' '$(whatrun)'"
+    Return
+
+  preoutbound:
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> Sending: $(remfile) ($(filesize) bytes)"
+    Return
+
+  Postoutbound:
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> $(fileStatus): $(localfile)"
+    Pattern $(fileStatus) Fail#?
+    TrueReturn
+    RexxMsg NY LOGPROC "PutLog JamMailLogs [$(Line)] $<Time> CPS $(CPS) ($(CPSP)%)"
+    Return
+
+
+ startup-1:
+   Set Line 1
+   Set TimeOutValue.1 300
+   Set State "Configuring Line\n"
+   Set device "serial.device" unit 0 serflags 164
+
+   Set Host.Phone "716-823-9892"
+   Set Host.Baud "14400"
+   Set Host.Flags "V32b, V42b"
+
+   Set baudrate      19200
+   Set Locked        TRUE
+   Set DTR_Control   0
+   Set HangupString  "~+++|~~~ATH0|"
+   Set AnswerRing    1
+   Set Bang          "|AT|"
+
+   Set modem "V32bis Modem"
+   AddResponse  OK   "OK"
+   AddResponse  BUSY "BUSY"
+   AddResponse  MAID "NO CARRIER"
+   AddResponse  LINE "NO DIALTONE"
+   AddResponse  FIND "CONNECT "
+   AddResponse  RING "RING"
+   AddResponse  300  "CONNECT"
+
+   Set Atten         "AT|"
+   Set InitStRing    "ATZ1|"
+   Set SlowModem     "FALSE"
+   Set Answer        "ATA|"
+
+   Set DialStRing    "ATM1DT"
+   SetStatus "RAW:0/22/617/30/$(line) - $(MODEM)/Inactive"
+   Set XPRWindow "RAW:0/11/640/130/"
+   Set priority 0
+   Jump slaveloop
+
+  ModemInit:
+   modemclear
+   smartsend $(atten)
+   getresponse 4
+   cmpi $(event) OK
+   truereturn
+   smartsend $(initstring)
+   getresponse 4
+   cmpi $(event) OK
+   truereturn
+   cmpi $(event) ring
+   truereturn
+   cmpi $(event) cid
+   truereturn
+   cmpi $(event) time
+   truereturn
+   set RC $<abort>
+   truereturn
+   jump modeminit
+
+ startup:
+   Set logport LOGPROC
+   Set stack 20000
+   RexxMsg NY LOGPROC "PutLog JamMailLogs "
+   RexxMsg SY REXX "Address 'COMMAND' 'echo >env:m.date `date` NOLINE'"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs \033[32m[M] $<Time> Startup on ${M.Date}"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [M] $<Time> JamMail 0.98.421 Jun 28 1994 (20:48:31), ${wplname}"
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [M] $<Time> Kickstart ${kickstart}, Workbench ${workbench}"
+   Set priority 1
+
+   System "delete >nil: env:m.#?"
+   Launch JAMMAIL jammail!Scheduler -3 10000
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [M] $<Time> Master Slave Exiting.."
+   Launch JAMMAIL1 jammail!startup-1 1 20000
+;   SetStatus s:jammail.out
+;   -Listconfig jammail
+   Set RETURN 0
+   Return
+
+ Scheduler:
+   Set CallInterupt TRUE
+   Set NODELIST traplist
+   Set nodelistdir "Nodelist:" Cache TRUE
+   Set device nullmodem.device unit 8 serflags 164
+   SetStatus "RAW:0/220/617/30/JamMail_Scheduler/inactive"
+   print "\033[33mJamMail Scheduler Launched!\n\n "
+   ModemOpen
+   Waitevent 2
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [S] $<Time> JamMail Scheduler Launched!"
+
+  schedule:
+   RexxMsg RY JAMMAIL1 "string $$(state)"
+   Pattern $(result2) Wait#?
+   TrueJump SchedDoLookup
+   print " $<time> No Empty Lines. \233\113\r "
+   Jump endscheddial
+
+  SchedDoLookup:
+   system "Jamtool >nil: -s"
+   CheckCall
+   FalseJump afterschedcheck
+
+   System "eval >env:jamtool/todial ${jamtool/todial} + 1 lformat=\"%n\""
+   SetEnv Jamtool/todial-${jamtool/todial} $(remote.address)
+   ReplyCall 0
+
+  AfterSchedCheck:
+   pattern ${JamTool/ToDial} ""
+   falsejump isone
+   Setenv JamTool/ToDial 0
+
+  isone:
+   print "\r $<time> ToDial: ${JamTool/ToDial}\233\113\r "
+   Cmp ${JamTool/ToDial} 0
+   truejump endscheddial
+
+  schedloop:
+   print "\n  ${JamTool/ToDial} - ${JamTool/ToDial-${JamTool/ToDial}}\r"
+   RexxMsg RN JAMMAIL1 "call ${JamTool/ToDial-${JamTool/ToDial}}"
+
+  Postschedcall:
+   waitevent 5
+   set RC $(breakd)
+   truejump preendscheddial
+   set RC $(breakc)
+   truejump endsched
+   set RC $<abort>
+   truejump endsched
+   System "eval >env:JamTool/ToDial ${JamTool/ToDial} - 1 lformat=\"%n\""
+   pattern ${JamTool/ToDial} 0#?
+   falsejump schedloop
+  preendscheddial:
+   print "\n\n"
+
+  endscheddial:
+   print "\r $<time> ToDial: ${JamTool/ToDial}  Waiting 600\233\113\r"
+   WaitEvent 600
+   set RC $(breakd)
+   truejump endscheddial
+   set RC $(breakc)
+   truejump endsched
+   set RC $<abort>
+   truejump endsched
+   jump schedule
+
+  endsched:
+   RexxMsg NY LOGPROC "PutLog JamMailLogs [S] $<Time> Scheduler Exiting"
+   Address JAMMAIL1 "Abort"
+   Address LOGPROC "Abort"
+   ModemClose
+   Return
+

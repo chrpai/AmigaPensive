@@ -1,0 +1,11 @@
+
+Please enter the official abbreviation for your country as used in the
+Olympics.  Following are several examples:
+
+AUS	Austria		BEL	Belgium		CAN	Canada
+COL	Columbia	ESP	Spain		FIN	Finland
+FRA	France		GBR	Great Britain	GER	Germany
+HOL	Netherlands	ITA	Italy		KUW	Kuwait
+MEX	Mexico		NOR	Norway		PHI	Philippines
+POR	Portugal	SUI	Switzerland	SWE	Sweden
+USA	United States

@@ -1,0 +1,2614 @@
+@Database "cnmp"
+@master cnmp.doc
+@Width 80
+@TAB 3
+
+@REMARK Created by Ray Akey w/the initial aid of AuToGuide ©1995 Rune Espeseth
+
+@Node Main "Table Of Contents"
+
+    @{l}CNetMultiPort v1.0B - THE Multi-port programming aid for CNet Amiga@{ul}
+
+      Written and developed using the SAS/C Development System v6.51
+                      copyright © 1995 Metal Software
+
+
+                      @{B} TABLE OF CONTENTS @{UB}
+
+   @{" --preface--       "         link preface}                @{" --introduction--  " link introduction}
+   @{" --disclaimer--    "      link disclaimer}                @{" --overview--      " link overview}
+   @{" --usage--         "           link usage}                @{" --input-output--  " link input-output}
+   @{" compiling/linking "       link compiling}
+
+   @{b}@{" registration, bugs and suggestions to Metal Software "       link metalsoft}@{ub}
+
+   @{" --eventmasks--    "      link eventmasks}
+   ======================================================
+   @{" UserMsg_Event     "   link UserMsg_Event}                @{" UserKey_Event     " link UserKey_Event}
+   @{" UserTimer_Event   " link UserTimer_Event}                @{" Rexx_Event        " link Rexx_Event}
+   @{" ReplyMsg_Event    "  link ReplyMsg_Event}                @{" UserBreak_Event   " link UserBreak_Event}
+
+   @{" --Messages--      "        link messages}                @{" --MsgTypes--      " link MsgTypes}
+   ======================================================
+   @{" CNMP_ADDPORT      "    link CNMP_ADDPORT}                @{" CNMP_REMOVEPORT   " link CNMP_REMOVEPORT}
+   @{" CBMP_VARSINIT     "   link CNMP_VARSINIT}                @{" CNMP_VARSREMOVE   " link CNMP_VARSREMOVE}
+   @{" CNMP_TEXTECHO     "   link CNMP_TEXTECHO}                @{" CNMP_WAITNOTIFY   " link CNMP_WAITNOTIFY}
+   @{" CNMP_RESUMENOTIFY " link CNMP_RESUMENOTIFY}                @{" CNMP_ENTRYCONFIRM " link CNMP_ENTRYCONFIRM}
+   @{" CNMP_ENTRYPERMIT  " link CNMP_ENTRYPERMIT}                @{" CNMP_ENTRYREFUSE  " link CNMP_ENTRYREFUSE}
+   @{" CNMP_FLUSHALL     "   link CNMP_FLUSHALL}                @{" CNMP_KICKPORT     " link CNMP_KICKPORT}
+   @{" CNMP_DUMPUSER     "   link CNMP_DUMPUSER}                @{" CNMP_STATUS       " link CNMP_STATUS}
+
+   @{" --IOHandler--     "     link IOHandler()}
+
+   CNMP Functions
+   ======================================================
+   @{" HandleIO          "      link HandleIO()}                @{" FileUserMsg       " link FileUserMsg()}
+   @{" InitCNMP          "      link InitCNMP()}                @{" KBFlush           " link KBFlush()}
+   @{" InitCnmpCluster   " link InitCnmpCluster()}                @{" FreeCnmpCluster   " link FreeCnmpCluster()}
+   @{" CreateCNMPMsgPort " link CreateCNMPMsgPort()}                @{" PortFromMsg       " link PortFromMsg()}
+   @{" PortFromNum       "   link PortFromNum()}                @{" PortFromName      " link PortFromName()}
+   @{" GetCNMPMsg        "    link GetCNMPMsg()}                @{" GetNTReplyMsg     " link GetNTReplyMsg()}
+   @{" FindCNMPorts      "  link FindCNMPorts()}                @{" SetTimeout        " link SetTimeout()}
+   @{" CleanupTimeout    " link CleanupTimeout()}                @{" CheckCNMPExists   " link CheckCNMPExists()}
+   @{" SendCNMPMessage   " link SendCNMPMessage()}                @{" FreeCNMPList      " link FreeCNMPList()}
+   @{" CNMPortToList     " link CNMPortToList()}                @{" NotifyCNMPRemove  " link NotifyCNMPRemove()}
+   @{" FreeUserMsgs      "  link FreeUserMsgs()}                @{" DisposeCNMPMsg    " link DisposeCNMPMsg()}
+   @{" DisposeCNMPType   " link DisposeCNMPType()}                @{" RemoveCNMPortList " link RemoveCNMPortList()}
+   @{" GetPermission     " link GetPermission()}                @{" RefuseEntry       " link RefuseEntry()}
+   @{" PermitEntry       "   link PermitEntry()}                @{" HandleNT_REPLYMSG " link HandleNT_REPLYMSG()}
+   @{" CarrierCheck      "  link CarrierCheck()}
+
+   ARexx Issues - via EasyRexx (C) 1994,1995, Ketil Hunn
+   ======================================================
+   @{" Context Numbers   "    link ArexxContext}                @{" ARexxCommandTable "  link ARexxCommandTable}
+   @{" HandleRexx()      "    link HandleRexx()}
+
+@ENDNODE
+@NODE preface "cnmp/--preface--"
+
+
+CNetMultiPort v1.0BETA
+----------------------
+
+This package and all code contained within copyright © 1995 MetalSoft
+
+Cnet Amiga's "empty.c" programming shell copyright © Perspective Software
+(empty.c and a diff.txt also to illustrate the scope of CNetMultiPort's code)
+
+EasyRexx is (C) 1994,1995, Ketil Hunn
+
+Written, developed and compiled by Ray Akey AKA Heavy Metal
+source code beta-tested by MetalSoft's team of worldwide Beta-testers
+
+Developed using and for the SAS/C programming environment.
+
+@{b}** This package is NOT FREEWARE **@{ub}
+
+@ENDNODE
+@NODE introduction "cnmp/--introduction--"
+
+
+                               Introduction
+                               ============
+   Because of the countless hours or work I have put into this project,
+I DO expect every programmer/developer/Sysop who uses CNMP when coding
+to REGISTER IT.  Great care has been taken to assure that the documentation
+is as clear and concise as possible and that the package is VERY stable
+provided you READ the documentation.
+
+   You don't need to worry about reading C= Amiga ROM Kernal Manuals for the
+Messaging system because CNMP takes most of that burden.  What you need to
+know is spelled out pretty clearly and I am available on a few networks
+(including FidoNet and Clink) to aid you in times of utter disaster or when
+something just doesn't go "click".  The registration fee(s), as with most of
+my other projects, are very liberal and I'm not asking to make millions but
+I DO expect support if support is to be gained in return.  The Amiga
+community as a whole needs to embrace it's own more than ever in these times
+and I plan to stick it out no matter what comes of Escom and it's plans for
+us.  As long as there is an Amiga computer left on the face of the earth, and
+provided my own doesn't go schizoid on me, I will be here to support them.
+Make no mistake about that. BUT there is a price - I need to eat. :)
+
+   Please support developers as they (we?) are the Amiga's lifeblood.
+Anyways, back to a lighter note and the reason you grabbed this
+package -> CNetMultiPort!
+
+@ENDNODE
+@NODE disclaimer "cnmp/--disclaimer--"
+
+
+           Legal Crap (but important crap) Bug Reports and stuff
+           =====================================================
+   Any and all applications developed using  CNetMultiPort become the property
+of their author(s) but the file called  "CNetMultiPort.nfo," that is included
+with this development package, must be included in any distribution packages.
+Failure to do so may result in legal action and public humiliation.  >8-]  If
+you are  in  compliance  with the above  restrictions  all code  becomes your
+property but MetalSoft  still retains the copyright to the CNetMultiPort code
+used within.
+
+   While we/I take great care to designing SAFE/SYSTEM-FRIENDLY
+products, Metal Software assumes no liability for damage whether caused by
+another programmer developing applications with CNMP or caused my MS projects
+themselves.  If a problem does pop up, the best we can do is fix it ASAP!
+Because of this, we need TO BE TOLD ABOUT BUGS!  Don't take the "This is 
+crap" mentality where you toss a perfectly good product in the trash bin
+just because of a simple bug that crept in at the last minute or one that
+pops up because the package hasn't been tested from the angle that you are
+approching it from.  WE NEED BUG REPORTS IF WE ARE TO FIX THEM!  Please
+notify us if and when they are found.  There are many methods to reach me.
+See the bottom of this document for more information.
+ 
+
+
+@ENDNODE
+@NODE overview "cnmp/--overview--"
+
+
+                              The Big Picture
+                              ===============
+   CNetMultiPort(tm), hereafter referred to as CNMP, was borne of a need for
+CNet 3.5 applications that require Multi-User/Multi-Port communication.  Over
+the last couple years I have seen people asking for MUD-like capabilities for
+CNet and I have never seen this call satisfied.  After about 6 months of
+playing with the idea, I figured it was time to do something about it NOW.
+
+   Development of CNMP began on or about 21-Apr-1995 and has been the number
+1 priority as far as programming goes (with a small grace period in early May
+due to a family tragedy).
+
+   CNMP will be continuously updated as new features/capabilities are
+suggested and development will continue through the CNet 3.5 series with
+altercations made to assure the most efficient and task-friendly handling of
+inter-port/process communications with applications stemming far beyond the
+CNet PORT level.
+
+   Already planned from MetalSoft are things such as sysop<->user real time
+chat with a GadTools or BOOPSI (I've not decided which as of yet..) GUI for
+the sysop side and a one-on-one split-screen chat. This is not to say that
+others can't try their hand at projects like this. These are only examples to
+show the average Sysop what to expect for the future, even on a package such
+as 3.05c that doesn't have a hell of a lot of hope as far as MUDs and
+applications that require inter-port/process communications. Just because I
+am concentrating on Chat-style applications for examples does not mean that
+CNMP is a dead end.
+
+   Anything that requires multi-port communications are possible.  CNMP is
+capable of signalling a port when there are Message Port Events, Timer Events
+and Keyboard Events.  These events and their meanings, as well as how to check
+for them, are discussed more indepth later.
+ 
+ 
+@ENDNODE
+@NODE usage "cnmp/--usage--"
+
+
+                                Using CNMP
+                                ==========
+   CNetMultiPort is a link library that provides a very powerful set of
+functions to the CNet application/Pfile/door programmer.  To use functions
+in the CNMP link library, you must add certain variables to your "empty.c"
+code and to your "SC" and "SLINK" commands.
+
+What to #include in your source (.c) files
+=========================================
+   To use CNMP, the following #includes must be present in your source
+file(s):
+
+      #include <libraries/easyrexx.h>
+      #include <cnmp/cnmp.h>
+      #include <clib/cnmp_protos.h>
+
+
+What variables need to be added to your source (.c) files
+=========================================================
+   To use CNMP, the following variables must be present in your source
+file(s):
+
+      /* see "Cluster members" for an explanation of this structure
+       * and variables.
+       */
+      struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *MyCnmpCluster=NULL;
+      BOOL PORTPERMISSION=FALSE;
+
+
+      /* for Arexx support */
+      char                RexxPortName[40];
+      struct Library      *EasyRexxBase=NULL;
+      struct ARexxContext *RexxContext=NULL;
+
+      /* see "EasyRexx implementation" for Arexx details */
+      struct ARexxCommandTable rxtbl[] =
+         {
+         /* rexx tagname, rexxcommand, argformat, userdata */
+         };
+      }; 
+
+
+What initialization code needs to be added to your source (.c) files
+==============================================================
+   To use CNMP, the following code must be present in your source
+file(s) IMMEDIATELY after CNet's initialization routines (see the included
+test project CNMPConf.c for example placement/location of this code): 
+
+      /*********************************************************************
+       * Initialize the CNMP ports and structures that make CNMP possible
+       * DO NOT CHANGE ANYTHING IN THIS SECTION OF CODE!!
+       *
+       * NOTE: YOU pick a "BasePortName" to use.  Try and keep it unique!
+       *       MetalSoft will attempt to keep a list of baseport names used
+       *       by registered CNMP users/developers.  To get a list, simply
+       *       contact me using any of the methods outlined in the section
+       *       describing registration procedures.
+       */
+      if( !(MyCnmpCluster = InitCNMP(z, "BasePortName", sizeof(struct @{"PortVars" Link "include:cnmp/cnmp.h/Main" 17}))) )
+         {
+         GetOut("Could not create CNMP(tm) cluster\n", 0);
+         }
+
+      /* Create the Rexx port */
+      if(EasyRexxBase=OpenLibrary(EASYREXXNAME, EASYREXXVERSION))
+         {
+         /* set the arexx port name to BasePortNameREXXn where n=port number */
+         sprintf(RexxPortName, "%sREXX%d", MyCnmpCluster->CNMP_BASEPORT, z->InPort);
+         RexxContext = AllocARexxContext(ER_Portname, RexxPortName,
+                                         ER_CommandTable, rxtbl,
+                                         TAG_DONE) ;
+         }
+      else
+         {
+         PutText("ERROR 504: arexx port not opened!\n");
+         }
+      /**********************************************************************
+       * end of CNMP initalization. DO NOT CHANGE ANY CODE ABOVE THIS POINT *
+       * or CNMP may behave strangely or cause software failures            *
+       **********************************************************************/
+
+@ENDNODE
+@NODE input-output "cnmp/--input-output--"
+
+
+                          I/O handling techniques
+                          =======================
+  To simplify matters, with CNMP, you basically send messages using
+@{"SendCNMPMessage()" Link SendCNMPMessage()}, wait for messages using @{"HandleIO" Link HandleIO()}, get them using
+@{"GetCNMPMsg()" Link GetCNMPMsg()} and dispose of them using @{"DisposeCNMPMsg()" Link DisposeCNMPMsg()}.
+
+   While there are many methods that may be used to handle CNMP I/O, the
+one that works best is to put HandleIO in a while{} loop.  CNMP requires
+that you call the HandleIO function to receive input and output from other
+CNMP Ports, for timeout messages from the timer.device, messages from ARexx
+and, optionally, the keyboard of the current port.  The only stream that you
+can get I/O from without calling HandleIO is the current port's keyboard
+buffer. This allows you to still let a user enter input without having to weed
+through messages from other ports/ARexx and the timer.device.
+
+   HandleIO performs a number of duties to reduce the burden of MessagePort
+handling (ie. you don't have to write your own message port handler/code)
+You simply call HandleIO and it returns a bit battern of signals (flags)
+relating to what type of event/message was received. (see CNMP's @{"HandleIO" Link HandleIO()}
+AutoDocs for more information.
+
+@ENDNODE
+@NODE eventmasks "cnmp/--eventmasks--"
+
+
+                 HandleIO/Message Bit-patterns/Event Masks
+                 =========================================
+   The bit pattern/mask returned by @{"HandleIO" Link HandleIO()} is the basis for CNMP messaging.
+There are six types of Event Masks currently implemented and there is
+provision in the "cluster" structure (see "CLUSTER" for more information) so
+that, if desired, advanced programmers may add their own events.  The current
+event types or masks are:
+
+   @{"UserMsg_Event" Link UserMsg_Event}
+   @{"UserKey_Event" Link UserKey_Event}
+   @{"UserTimer_Event" Link UserTimer_Event}
+   @{"Rexx_Event" Link Rexx_Event}
+   @{"ReplyMsg_Event" Link ReplyMsg_Event}
+   @{"UserBreak_Event" Link UserBreak_Event}
+
+@ENDNODE
+@NODE UserMsg_Event "cnmp/UserMsg_Event"
+
+
+                    User Message Events (UserMsg_Event)
+                    -----------------------------------
+   @{"HandleIO" Link HandleIO()} returns the UserMsg_Event bit set if a User Message Event is
+received.  A User Message event is a message that is received from a remote
+CNMP.  In other words, a message that another port has sent to the port that
+called HandleIO.  To get the message(s) received from remote port, you must
+use the function @{"GetCNMPMsg()" Link GetCNMPMsg()}.
+
+   A snippet of code to show the format:
+
+
+
+   /* your basic HandleIO call */
+   ReturnBits = HandleIO(ER_SIGNAL(RexxContext), MyCnmpCluster);
+   if(ReturnBits & UserMsg_Event)
+      {
+      PutText("We received notification of a msg from a remote port\n");
+      /* now get message using GetCNMPMsg() */
+      }
+
+   See also @{"GetCNMPMsg()" Link GetCNMPMsg()}, @{"DisposeCNMPMsg()" Link DisposeCNMPMsg()}, @{"FileUserMsg()" Link FileUserMsg()} and @{"FreeUserMsgs()" Link FreeUserMsgs()}
+
+@ENDNODE
+@NODE UserKey_Event "cnmp/UserKey_Event"
+
+
+                      Keyboard Events (UserKey_Event)
+                      -------------------------------
+   @{"HandleIO" Link HandleIO()} returns the UserKey_Event bit set if a there are characters
+waiting in the user's CNet keyboard buffer.
+
+   A snippet of code to show the format:
+
+
+
+   ReturnBits = HandleIO(ER_SIGNAL(RexxContext), MyCnmpCluster);
+   if(ReturnBits & UserKey_Event)
+      {
+      /*
+       * PutText("There are characters waiting in the user's keybuffer\n");
+       *...now get the input using EnterLine() or OneKey()
+       */
+      }
+
+
+
+   You can check for this condition (characters in keyboard buffer) yourself
+with the following code:
+
+      if(z->KB1 != z->KB2)
+         {
+         /*
+          * characters are waiting in z->KBuff.  Use EnterLine(), OneKey()
+          * or your own custom function(s) to get input.
+          */
+         }
+
+There is a CNMP defined macro in CNMP.H called KEY_CHECK that does the check.
+Simply use the code below if you wish to use the macro:
+
+      if(KEY_CHECK)
+         {
+         /*
+          * characters are waiting in z->KBuff.  Use EnterLine(), OneKey()
+          * or your own custom function(s) to get input.
+          */
+         }
+
+@ENDNODE
+@NODE UserTimer_Event "cnmp/UserTimer_Event"
+
+
+                   timer.device events (UserTimer_Event)
+                   -------------------------------------
+   A timer.device generated event occurs every 5/8 second while @{"HandleIO" Link HandleIO()}
+is active.  This allows HandleIO to return even if no messages from
+remote ports, arexx or keyboard are received.  This can be useful if you
+have to do other processing while still waiting for other messages/events.
+
+   A snippet of code to show the format:
+
+
+
+   /* your basic HandleIO call */
+   ReturnBits = HandleIO(ER_SIGNAL(RexxContext), MyCnmpCluster);
+   if(ReturnBits & UserTimer_Event)
+      {
+      PutText("received timer event\n");
+      /* No messages waiting. do other stuff that needs to be done */
+      }
+
+   See also @{"CleanupTimeout()" Link CleanupTimeout()} and @{"SetTimeout()" Link SetTimeout()}
+
+@ENDNODE
+@NODE Rexx_Event "cnmp/Rexx_Event"
+
+
+                         ARexx Events (Rexx_Event)
+                         -------------------------
+   ARexx events are only available if you have added the #includes and
+code that are outlined in the sections titled, "What to #include in your
+source (.c) files," "What variables need to be added to your source
+(.c) files" and, "What initialization code needs to be added to your source
+(.c) files."
+   If so, @{"HandleIO" Link HandleIO()} will return Rexx_Event is an Arexx message has been
+received from an ARexx script file.
+
+   A snippet of code to show the format:
+
+
+
+   /* your basic HandleIO call */
+   ReturnBits = HandleIO(ER_SIGNAL(RexxContext), MyCnmpCluster);
+   if(ReturnBits & Rexx_Event)
+      {
+      PutText("received ARexx event\n");
+      /* Call HandleRexx() to process ARexx messages */
+      }
+
+   See also @{"HandleRexx()" Link HandleRexx()}
+
+@ENDNODE
+@NODE ReplyMsg_Event "cnmp/ReplyMsg_Event"
+
+
+                    NT_ReplyMsg Events (ReplyMsg_Event)
+                    -----------------------------------
+   Without going much into detail of the process of exec message handling,
+NT_ReplyMsg is the type of message that is returned to an exec message
+port when a remote port has receved and made its obligatory reply to that
+message.  NT_ReplyMsg's must NOT be replied to or exec will produce an
+"enforcer hit" due to replying to a message twice.  CNMP takes advantage
+of NT_ReplyMsg by using it to notify CNMP that it should free the memory
+allocated for it's exec Message.  This is all completely transparent to
+you, the programmer, and the user.  When you receive a ReplyMsg_Event,
+all you need do is call @{"DisposeCNMPMsg()" Link DisposeCNMPMsg()} with a pointer to the message
+that was returned.
+
+   A snippet of code to show the format is you wish to use this feature:
+
+
+
+   /* your basic HandleIO call */
+   ReturnBits = HandleIO(ER_SIGNAL(RexxContext), MyCnmpCluster);
+   if(ReturnBits & ReplyMsg_Event)
+      {
+      /* get all waiting NT_REPLYMSG messages and dispose of them */
+      while( (UserCNMPMsg=GetNTReplyMsg( -1, MyCnmpCluster  )) )
+         {
+         HandleNT_REPLYMSG(UserCNMPMsg);
+         DisposeCNMPMsg(UserCNMPMsg, MyCnmpCluster);
+         }
+      }
+
+@ENDNODE
+@NODE UserBreak_Event "cnmp/UserBreak_Event"
+
+
+                    User Break Event (UserBreak_Event)
+                    ----------------------------------
+   A User Break Event is received if a CTRL-C is received by a CNMP
+process.  For example, if you do a "break 14" and process 14 is the
+program/Pfile that uses CNMP, a User Break Event is generated at the CNMP
+user port.  ArtM (Amiga Real Time Monitor) can also generate a user break
+by selecting the CNMP process and pressing the BREAK button/gadget.  Under
+most circumstances, you will simply call the cleanup function GetOut()
+to abort the port process.  This flag is useful if you wish to sent remote
+ports messages, for exmaple, to notify them that the current port has been
+forced to exit due to an externally generated CTRL-C.
+
+   A snippet of code to show the format:
+
+
+   /* your basic HandleIO call */
+   ReturnBits = HandleIO(ER_SIGNAL(RexxContext), MyCnmpCluster);
+   if(ReturnBits & UserBreak_Event)
+      {
+      PutText("received user break (CTRL-C) event\n");
+      }
+
+@ENDNODE
+@NODE messages "cnmp/--Messages--"
+
+
+   Messages are sent to remote ports using the @{"SendCNMPMessage()" Link SendCNMPMessage()} function.
+@{"SendCNMPMessage()" Link SendCNMPMessage()} accepts 5 arguments, one of them being a @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} structure.
+(see the autodocs for SendCNMPMessage for the other arguments)  The CNMPMsg
+structure is what contains the information sent to a remote port, the type
+of message to send, the target port number (or "ALL" for all ports) etc,..
+We have a pre-allocated CNMPMsg set up in our "CnmpCluster" that was
+initialized in the @{"InitCNMP()" Link InitCNMP()} sequence.  This is the CNMPMsg that you
+will fill out for each message that you send to another port.  It's full
+member name is cc_cnmpmsg or MyCnmpCluster->cc_cnmpmsg if you have
+declared your cluster as
+
+   struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *MyCnmpCluster;
+
+   (See "CnmpCluster" for more information on other CnmpCluster members)
+
+To send a message to another port, you must fill this structure out as
+follows: 
+
+   1. set the FromPort member equal to the CNet port number of the port you
+      are sending this message to.  Specify "ALL" for all ports.
+      Currently, only a single port number or "ALL" are allowed. More
+      detailed "range" parsing will be available in registered/future
+      releases.
+
+      Note that FromPort is type (char []) so you must use sprintf() to
+      convert the integer to a string representation as follows:
+
+         /* this example would send the completed message to port 3 */
+         int PortNum;
+         PortNum = 3
+         sprintf(MyCnmpCluster->cc_cnmpmsg->FromPort, "%s", PortNum);
+
+   2. Set the CNMP_Type to the type of message you are sending (see the
+      section titled @{"--MsgTypes--" Link MsgTypes} for currently implemented
+      CNMP_Types and for information on creating/defining your own CNMP_Types.
+
+      Example:
+
+      /* This would set the message type as CNMP_VARSINIT. */
+      MyCnmpCluster->cc_cnmpmsg->CNMP_Type = CNMP_VARSINIT;
+
+   3. Set the VarsX variable(s) that apply to your CNMP_Type.
+
+      Basically, the VarsX members of the @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} structure are LONG
+      data types (you may typecast them to other types if so needed)
+      which undergo no memory Allocation/Freeing.  The @{"DataX" Link include:cnmp/cnmp.h/Main 30} members,
+      however, are different.  These are POINTERS to memory locations.
+      Also present is a @{"DataXLen" Link include:cnmp/cnmp.h/Main 30} for each DataX member.  If
+      DataXLen == 0 then no memory Aloocation/freeing is performed.
+      If DataXLen > 0 then memory is malloc()'d for DataX and
+      then Free()'d when the message is returned (after the remote port
+      is finished with it - all transparent to you and the user!)
+
+      Example:
+
+         MyCnmpCluster->cc_cnmpmsg->Data1 = "f1";
+         MyCnmpCluster->cc_cnmpmsg->Data1Len=4;
+
+      The above example sets Data1 equsal to the string f1 (plus the
+      usual NULL character (\0) at the end, for string data.
+
+      Data1Len, therefore, must be set to the length of the string
+      which is four (4) including the NULL byte.  CNMP Will allocate 4 bytes
+      of memory for the data, copy the string into the actual message packet
+      that is sent to the remote port, and then send it.  When the message is
+      returned with NT_ReplyMsg set, CNMP frees the memory that was allocated
+      for that message - all transparent to you and the user.  Basically, You
+      need only send messages using @{"SendCNMPMessage()" Link SendCNMPMessage()}, wait for messages using
+      @{"HandleIO" Link HandleIO()}, read them using @{"GetCNMPMsg()" Link GetCNMPMsg()} and dispose of them using
+      @{"DisposeCNMPMsg()" Link DisposeCNMPMsg()}.  More is required but that is basically CNMP summed up.
+
+   4. Call the function @{"SendCNMPMessage()" Link SendCNMPMessage()} to tell CNMP to send the message to
+      the specified remote port(s).
+
+
+@ENDNODE
+@NODE MsgTypes "cnmp/--MsgTypes--"
+
+
+                             Defining MsgTypes
+                          ======================
+   Perhaps the most powerful feature of CNMP is its definable message types.
+If you want your application to support a specific type of message, you
+define it. CNMP has a handful of pre-defined message types.  These are:
+
+   @{"CNMP_ADDPORT" Link CNMP_ADDPORT}
+   @{"CNMP_REMOVEPORT" Link CNMP_REMOVEPORT}
+   @{"CNMP_VARSINIT" Link CNMP_VARSINIT}
+   @{"CNMP_VARSREMOVE" Link CNMP_VARSREMOVE}
+   @{"CNMP_TEXTECHO" Link CNMP_TEXTECHO}
+   @{"CNMP_WAITNOTIFY" Link CNMP_WAITNOTIFY}
+   @{"CNMP_RESUMENOTIFY" Link CNMP_RESUMENOTIFY}
+   @{"CNMP_REQUESTNOTIFY" Link CNMP_REQUESTNOTIFY}
+   @{"CNMP_ENTRYCONFIRM" Link CNMP_ENTRYCONFIRM}
+   @{"CNMP_ENTRYPERMIT" Link CNMP_ENTRYPERMIT}
+   @{"CNMP_ENTRYREFUSE" Link CNMP_ENTRYREFUSE}
+   @{"CNMP_FLUSHALL" Link CNMP_FLUSHALL}
+   @{"CNMP_KICKPORT" Link CNMP_KICKPORT}
+   @{"CNMP_DUMPUSER" Link CNMP_DUMPUSER}
+   @{"CNMP_STATUS" Link CNMP_STATUS}
+
+   See the autodoc entry for each specific type for more information.
+
+   But you may define your own message types by inserting a #define command
+   into your source (.c) file or the header (.h) file for your application.
+   Please DO NOT put your new message type in @{"include:cnmp/cnmp.h" Link include:cnmp/cnmp.h/Main 1} as it may get
+   over-written by accident when you install updates to CNMP.
+
+   Also, please be sure to start numbering your user-defined CNMP_Types
+   at 500 for future compatibility.
+
+      #define CNMP_MyNewMsgType 500
+
+   This would define a new message type with an integer of 500.  When
+   @{"HandleIO" Link HandleIO()} returns with the @{"UserMsg_Event" Link UserMsg_Event} bit set, you do a check to see
+   if the message type received by the port is any of the (pre-defined AND
+   user-defined) CNMP_Types supported.  This is done using a switch/case loop.
+   To add your newly created CNMP_Type, simply insert the following code
+   into the switch{} routine that handles your CNMP_types:
+
+      case CNMP_MyNewMsgType:
+         /* code to handle your new type is inserted here */
+         break;
+
+  See the section titled @{"--IOHandler--" Link IOHandler() for more information on the
+switch/case handler.
+
+@ENDNODE
+@NODE CNMP_ADDPORT "cnmp/CNMP_ADDPORT"
+
+
+   #defined as
+
+   CNMP_ADDPORT 300
+
+   function:  notify remote ports that another port has entered.
+   arguments: set @{"Data1" Link include:cnmp/cnmp.h/Main 30} = MyCnmpCluster->cc_myport->PortName
+
+@ENDNODE
+@NODE CNMP_REMOVEPORT "cnmp/CNMP_REMOVEPORT"
+
+
+   #defined as
+
+   CNMP_REMOVEPORT 301
+
+   function:  notify remote ports to remove your port from their linked lists.
+   arguments: @{"Data1" Link include:cnmp/cnmp.h/Main 30} = PortName
+
+@ENDNODE
+@NODE CNMP_VARSINIT "cnmp/CNMP_VARSINIT"
+
+   #defined as
+
+   CNMP_VARSINIT  302
+   
+   function:  use this to setup shared variables between ports.
+   arguments: Data3 = pointer to PortVar structure
+
+   See also @{"CNMP_VARSREMOVE" Link CNMP_VARSREMOVE}
+
+@ENDNODE
+@NODE CNMP_VARSREMOVE "cnmp/CNMP_VARSREMOVE"
+
+   #defined as
+
+   CNMP_VARSREMOVE 303
+
+   function:  notify remote port(s) to remove our variables from their
+              remote port variable list(s)
+
+   arguments: none.  Set all @{"DataX" Link include:cnmp/cnmp.h/Main 30} and @{"VarX" Link include:cnmp/cnmp.h/Main 30} variables to 0 or NULL.
+
+
+@ENDNODE
+@NODE CNMP_TEXTECHO "cnmp/CNMP_TEXTECHO"
+
+   #defined as
+
+   CNMP_TEXTECHO 304
+
+   function:  an OLM-type method of sending text to a remote port
+
+   arguments: @{"Var1" Link include:cnmp/cnmp.h/Main 30}     = TRUE (1) for PRIVATE MSG,  FALSE (0) for NON-PRIVATE MSG)
+              @{"Data1" Link include:cnmp/cnmp.h/Main 30}    = text/string to send
+              Data1Len = size (in bytes) of the data in Data1
+              Data3    = Handle of user that sent this message (NULL or
+                         0 if not a user-sent message)
+
+
+@ENDNODE
+@NODE CNMP_WAITNOTIFY "cnmp/CNMP_WAITNOTIFY"
+
+   #defined as
+
+   CNMP_WAITNOTIFY 306
+
+   function:  notify the remote port not to process anymore msgs from our port
+              until we send @{"CNMP_RESUMENOTIFY" Link CNMP_RESUMENOTIFY}
+              this entails GETTING the message and storing it in the linked
+              list but not to process any of them.
+
+   arguments: none
+
+
+@ENDNODE
+@NODE CNMP_RESUMENOTIFY "cnmp/CNMP_RESUMENOTIFY"
+
+   #defined as
+
+   CNMP_RESUMENOTIFY 307
+
+   function:  message from remote port to resume processing of messages from
+              that port.
+
+   arguments: none
+
+@ENDNODE
+@NODE CNMP_ENTRYCONFIRM "cnmp/CNMP_ENTRYCONFIRM"
+
+   #defined as
+
+   CNMP_ENTRYCONFIRM 309
+
+   function:  remote port sends this CNMP_Type if it wants to ask another port
+              if it is allowed to enter.
+
+   arguments: none
+
+
+@ENDNODE
+@NODE CNMP_ENTRYPERMIT "cnmp/CNMP_ENTRYPERMIT"
+
+   #defined as
+
+   CNMP_ENTRYPERMIT 310
+
+   function:  Send to remote port to notify it that entry is allowed
+              If @{"CNMP_REQUESTCONFIRM" Link CNMP_REQUESTCONFIRM} is sent and CNMP_PORTPERMIT is received
+              as a reply, a @{"CNMP_ADDPORT" Link CNMP_ADDPORT} message should be sent next to tell
+              the remote port to add this port to it's list
+
+   arguments: none
+
+   See also @{"CNMP_ADDPORT" Link CNMP_ADDPORT}
+
+
+@ENDNODE
+@NODE CNMP_ENTRYREFUSE "cnmp/CNMP_ENTRYREFUSE"
+
+   #defined as
+
+   CNMP_ENTRYREFUSE 311
+
+   function:   this message type is sent to a remote port that has requested
+               confirmation of entry.  It is a message that notifies the
+               remote port that is is not granted access to join/enter
+               the shared set of message ports that make up the application.
+
+
+@ENDNODE
+@NODE CNMP_FLUSHALL "cnmp/CNMP_FLUSHALL"
+
+   #defined as
+
+   CNMP_FLUSHALL 312
+
+   function:  tells port(s) to clear/free all messages that have piled up
+              ie. remote port is telling another port to call the function
+              @{"FreeUserMsgs()" Link FreeUserMsgs()}
+
+   arguments: none
+
+
+@ENDNODE
+@NODE CNMP_KICKPORT "cnmp/CNMP_KICKPORT"
+
+   #defined as
+
+   CNMP_KICKPORT 313
+
+   function:  forces port(s) to exit/quit
+              this does NOT dump the user from the CNet port but exits the
+              CNMP application/program.
+
+   arguments: none
+
+
+@ENDNODE
+@NODE CNMP_DUMPUSER "cnmp/CNMP_DUMPUSER"
+
+   #defined as
+
+   CNMP_DUMPUSER 314
+
+   function:  force the user to exit from CNMP AND dump him/her from the CNet
+              port.
+
+   arguments: none
+
+
+@ENDNODE
+@NODE CNMP_STATUS "cnmp/CNMP_STATUS"
+
+   #defined as
+
+   CNMP_STATUS 315
+
+   function:  send a status message to another port.  Status messages
+              are usually just informative messages detailing program
+              progress.
+
+
+@ENDNODE
+@NODE IOHandler() "cnmp/--IOHandler--"
+
+                   Basic routine/code for CNMP handling
+                   ====================================
+   This is one method (but not the only) that can be used to get and
+send CNMP messages from/to other ports.  Please read/check this section
+over completely as there are MANY C comments that may be important to your
+understanding of CNMP.  There are also code hints & tips throughout.  Most
+of this code is exactly what is used in CNMPConf, a small user conference
+replacement that I wrote to aid in CNMP developement:
+
+   /* Main event loop */
+   /* flush keyboard buffer */
+   KBFlush(z);
+   while(!done)
+     {
+     MsgMask = HandleIO(ER_SIGNAL(RexxContext), MyCnmpCluster );
+     CheckFlowControl(); /* forces CNEt to update it's keyboard buffers */
+
+     if(!CarrierCheck(z)) /* carrier check routine */
+       {
+       GetOut("", 0);
+       }
+
+     /*
+      * Check message port events first - they have priority because
+      * they must be processed ASAP!  (ie. the remote port may not be
+      * present/available later.  This is of no consequence code-wise
+      * but the port may not receive your reply message (if you send
+      * one) later.
+      *
+      * ADDPORT events are user notifiable/permissible and if you wish to be
+      * notified of a port's intent to enter and have control over it set
+      * PORTPERMISSION=1 or PORTPERMISSION=TRUE.
+      * PORTPERMISSION==1 causes CNMP(tm) to send a @{"CNMP_ENTRYCONFIRM" Link CNMP_ENTRYCONFIRM}
+      * to all available CNMP(tm) ports on entry.
+      *
+      * Sending a @{"CNMP_ENTRYPERMIT" Link CNMP_ENTRYPERMIT} in reply will
+      * allow the remote port to converse with the current port and share
+      * data between them. The port will only be allowed to converse with
+      * ports that have sent CNMP_ENTRYPERMIT in reply.  All other ports
+      * will act as if that port does not exist and those ports will not be
+      * seen by the port that requested permission.
+      *
+      * It is possible to alter the @{"CNMP_ADDPORT" Link CNMP_ADDPORT} message check to function
+      * in this manner also..  All you need do is do your permission check
+      * before you call @{"CNMPortToList()" Link CNMPortToList()}.
+      *
+      * When the you are finished with a message, you
+      * should call DisposeCNMPMessage() to let
+      * us take care of freeing and disposal of it.
+      * messages that are not "disposed" will pile up and
+      * eat memory.  ALL messages are cleaned up on exit
+      * as a precautionary measure but PLEASE do not rely
+      * on this feature as it is ignorant of systems that
+      * may have very little RAM to spare
+      * also note that messages WILL be lost if the system
+      * runs low on memory.  There is no way around this
+      * except to send the message CNMP_FREEALL to all
+      * ports.  CNMP_FREEALL causes all ports to flush
+      * their message lists.  Please use this message type
+      * sparingly as any queued messages are
+      * deleted/removed before they are user processed thus causing
+      * them to be purged without the interpreter processing them.
+      *
+      * types CNMP_ADDPORT, CNMP_REMOVEPORT, CNMP_VARSINIT,
+      * and @{"CNMP_VARSREMOVE" Link CNMP_VARSREMOVE} are not affected by this at the
+      * @{"HandleIO" Link HandleIO()} level.  In other words, @{"CNMP_FLUSHALL" Link CNMP_FLUSHALL}
+      * affects messages that would have been returned to you
+      * via @{"GetCNMPMsg()" Link GetCNMPMsg()}.
+      * it should be also noted that a port can be "removed"
+      * at any time so ports should ALWAYS be checked
+      * for validity before sending messages or accessing
+      * remote port data.  This can be done using the
+      * @{"PortFromMsg()" Link PortFromMsg()} or @{"PortFromNum()" Link PortFromNum()} or @{"CheckCNMPExists()" Link CheckCNMPExists()}
+      * functions.  I recommend using @{"CheckCNMPExists()" Link CheckCNMPExists()} as it
+      * checks to see if the actual **Exec** MsgPort exists whereas
+      * PortFromMsg() and PortFromNum() check only at the level
+      * of the current port's linked list which may not be valid
+      * 100% of the time.  The validity of these two functions
+      * is directly related to the amount of time that has passed
+      * between your calls to @{"GetCNMPMsg()" Link GetCNMPMsg()}.   If you wait long
+      * periods of time between @{"GetCNMPMsg()" Link GetCNMPMsg()} calls, then you are
+      * sacrificing  the validity of your port lists.  The REMOTE ports may
+      * go away before all messages have been handled.  This doesn't affect
+      * your port message list but the remote port that send the message may
+      * have already exited/quit and may not be present to receive a reply
+      * (if you send one).
+      */
+
+     /*
+      * we should check @{"ReplyMsg_Event" Link ReplyMsg_Event}s and @{"UserMsg_Event" Link UserMsg_Event}s first!  This frees
+      * RAM and also speeds up the message server by shortening the queued
+      * message list.
+      */
+
+     if(MsgMask & ReplyMsg_Event)
+       {
+       /* get NT_REPLYMSG from any and all ports and handle them */
+       while((UserCNMPMsg=GetNTReplyMsg( -1, MyCnmpCluster  )))
+          {
+          HandleNT_REPLYMSG(UserCNMPMsg);
+          DisposeCNMPMsg(UserCNMPMsg, MyCnmpCluster);
+          }
+       }
+     if(MsgMask & Rexx_Event)
+       {
+       /* An arexx event/msg was sent to us.. Handle it.. */
+       @{"HandleRexx()" Link HandleRexx()};
+       }
+     if(MsgMask & UserBreak_Event)
+       {
+       /* received CTRL-C */
+       GetOut("^C", 0);
+       }
+     if(MsgMask & @{"UserMsg_Event" Link UserMsg_Event})
+       {
+       /*
+        * There is a remote message waiting at our message port.
+        * use @{"GetCNMPMsg()" Link GetCNMPMsg()} to get them one at a time.
+        * use @{"DisposeCNMPMsg()" Link DisposeCNMPMsg()} to clean the msg up after used.
+        */
+
+       while((UserCNMPMsg=GetCNMPMsg( -1, MyCnmpCluster )))
+         {
+         switch(UserCNMPMsg->CNMP_Type)
+           {
+           case @{"CNMP_ADDPORT" Link CNMP_ADDPORT}:
+             /*
+              * Check if this message holds a NEW port to be added
+              * We could also do checking on the port/user to see if
+              * entry is allowed.
+              * if you want to refuse a user entry, simply do not call
+              * @{"CNMPortToList()" Link CNMPortToList()}.  If you call
+              * CNMPortToList(), his port is added to your list of ports
+              * and your port is added to his.
+              */
+
+             sprintf(OtherPortName, "%s%d",
+                                           MyCnmpCluster->CNMP_BASEPORT,
+                                           UserCNMPMsg->FromPort);
+
+             CNMPortToList(MyCnmpCluster, UserCNMPMsg->FromPort,
+                                                         OtherPortName);
+             break;
+
+           case @{"CNMP_REMOVEPORT" Link CNMP_REMOVEPORT}:
+             /* we have been notified that a remote port has exited.
+              * CNMP takes care of removing the port from it's lists
+              * so all we need do is clean up our application specific
+              * data for that port.  The port number is held in the
+              * variable "FromPort" in the @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} structure.
+              */
+
+             sprintf(z->ABuffer, "port %d has exited\n",
+                                                 UserCNMPMsg->FromPort);
+             PutA();
+             break;
+
+           case @{"CNMP_KICKPORT" Link CNMP_KICKPORT}:
+             /* This port has been given the boot by a remote port */
+             sprintf(z->ABuffer, "You have been kicked by port %d!\n",
+                                                 UserCNMPMsg->FromPort);
+             PutA();
+
+             /* We free all messages now, before exiting, just in case */
+             FreeUserMsgs(MyCnmpCluster);
+
+             /* disable any further messages from being received. */
+             MyCnmpCluster->cc_ignoremsgs=TRUE;
+
+             done = TRUE;
+             break;
+
+           case @{"CNMP_STATUS" Link CNMP_STATUS}:
+             /* user implemented - simply a status message */
+             sprintf(z->ABuffer, "<Status> %s", (char *)UserCNMPMsg->Data1);
+             PutA();
+             break;
+           case @{"CNMP_TEXTECHO" Link CNMP_TEXTECHO}:
+             /*
+              * CNMP_TEXTECHO - printable message sent from another
+              * port!
+              *
+              * In this implementation, Var1 is being used as symbolic
+              * of a PRIVATE message to another port.  This does NOT
+              * have to be the case with all CNMP applications.  YOU,
+              * the PROGRAMMER have the power to make it represent
+              * whatever you wish.
+              */
+             if( UserCNMPMsg->@{"Var1" Link include:cnmp/cnmp.h/Main 30} == TRUE )
+               {
+               /* PRIVATE MESSAGE to user - print handle and message */
+               if(UserCNMPMsg->Data3)
+                 {
+                 /* handle recieved */
+                 sprintf(z->ABuffer, "(%s) %s\n\0",
+                                          (char *)UserCNMPMsg->Data3,
+                                          (char *)UserCNMPMsg->Data1);
+                 PutA();
+                 }
+               else
+                 {
+                 /* no handle received so print message only, no handle */
+                 sprintf(z->ABuffer, "%s\n",
+                                          (char *)UserCNMPMsg->Data1);
+                 PutA();
+                 }
+               }
+             else
+               {
+               /* PUBLIC MESSAGE - print handle and message */
+               if(UserCNMPMsg->Data3)
+                 {
+                 /* handle recieved */
+                 sprintf(z->ABuffer, " %s: %s\n", (char *)UserCNMPMsg->Data3, (char *)UserCNMPMsg->Data1);
+                 PutA();
+                 }
+               else
+                 {
+                 /* no handle received so print message only, no handle */
+                 sprintf(z->ABuffer, "%s\n", (char *)UserCNMPMsg->Data1);
+                 PutA();
+                 }
+               }
+             break;
+           case @{"CNMP_ENTRYCONFIRM" Link CNMP_ENTRYCONFIRM}:
+             /*
+              * CNet port UserCNMPMsg->FromPort has requested confirmation
+              * that it may enter.
+              *
+              * Call the function PermitEntry(UserCNMPMsg) to allow
+              * entry.
+              *
+              * Call the function RefuseEntry(UserCNMPMsg) to
+              * refuse/disallow that port.
+              *
+              * This can be used to check a user's handle/account/access/etc..
+              * before letting him/her enter.
+              *
+              * This test program will ALWAYS allow users in by never
+              * checking anything and by always sending a CNMP_ENTRYPERMIT
+              * message in reply via @{"PermitEntry()" Link PermitEntry()}.
+              *
+              * The first argument to PermitEntry() and @{"RefuseEntry()" Link RefuseEntry()}
+              * MUST be a copy of the CNMP_ENTRYCONFIRM message that was
+              * sent to request permission.
+              *
+              * The second argument to PermitEntry is a string that is
+              * echo'd the remote user.  Simply pass an empty string ("")
+              * if you don't want anything printed on the remote end
+              */
+
+             PermitEntry(UserCNMPMsg, "", MyCnmpCluster);
+             break;
+           case @{"CNMP_VARSINIT" Link CNMP_VARSINIT}:
+             /* remote port sending it's data to us - don't forget to
+              * send ours in return
+              */
+
+             /* find the port */
+             if(TempRemotePort=PortFromMsg(UserCNMPMsg, MyCnmpCluster))
+               {
+               if(!TempRemotePort->PortVars)
+                 {
+                 /*
+                  * port found - set the remote port data pointer
+                  * if we don't already have it
+                  */
+                 TempRemotePort->PortVars = UserCNMPMsg->Data3;
+
+                 /*
+                  * give the remote port access to our declared
+                  * variables also
+                  */
+                 sprintf(PortRange, "%d", TempRemotePort->PortNum);
+                 MyCnmpCluster->cc_cnmpmsg->FromPort = z->InPort;
+                 MyCnmpCluster->cc_cnmpmsg->CNMP_Type = CNMP_VARSINIT;
+                 MyCnmpCluster->cc_cnmpmsg->Data3 = MyCnmpCluster->cc_portvars;
+                 MyCnmpCluster->cc_cnmpmsg->Data2 = NULL;
+                 MyCnmpCluster->cc_cnmpmsg->Data1 = NULL;
+                 SendCNMPMessage(MyCnmpCluster, PortRange, MyCnmpCluster->cc_cnmpmsg, FALSE, FALSE);
+                 }
+               }
+             break;
+           case @{"CNMP_ENTRYPERMIT" Link CNMP_ENTRYPERMIT}:
+             if(PORTPERMISSION == 1)
+               {
+               /* print text if existent */
+               if(UserCNMPMsg->Data1)
+                  PutText((char *)UserCNMPMsg->Data1);
+
+               /*
+                * Permission allowed - Notify remote port that we have
+                * entered!
+                */
+               sprintf(PortRange, "%d", UserCNMPMsg->FromPort);
+               MyCnmpCluster->cc_cnmpmsg->FromPort = z->InPort;
+               MyCnmpCluster->cc_cnmpmsg->CNMP_Type = CNMP_ADDPORT;
+               MyCnmpCluster->cc_cnmpmsg->Data1 = NULL;
+               MyCnmpCluster->cc_cnmpmsg->Data2 = NULL;
+               MyCnmpCluster->cc_cnmpmsg->Data3 = NULL;
+               SendCNMPMessage(MyCnmpCluster, PortRange, MyCnmpCluster->cc_cnmpmsg, FALSE, FALSE);
+
+               /*
+                * give the remote port(s) access to our declared
+                * variables
+                */
+               MyCnmpCluster->cc_cnmpmsg->CNMP_Type = CNMP_VARSINIT;
+               MyCnmpCluster->cc_cnmpmsg->Data3 = MyCnmpCluster->cc_portvars;
+               SendCNMPMessage(MyCnmpCluster, PortRange, MyCnmpCluster->cc_cnmpmsg, FALSE, FALSE);
+               }
+             break;
+           case CNMP_DISPLAY_TV:
+             /*
+              * we really don't need the @{"PortFromMsg()" Link PortFromMsg()} function called
+              * below.
+              * It is for example's sake only.  We could have printed
+              * our testvar without it.  It was required in this case
+              * because we are printing the CNet port number that the
+              * message was received from and we don't know it until we
+              * find the remote port.
+              */
+             if(TempRemotePort=PortFromMsg(UserCNMPMsg, MyCnmpCluster))
+               {
+               sprintf(z->ABuffer, "Remote Port %d wants us to display \"testvar\".  testvar=%d\n", TempRemotePort->PortNum, MyCnmpCluster->cc_portvars->testvar);
+               PutA();
+               }
+             else
+               {
+               PutText("ERROR 601: Could not get port from message\n");
+               }
+             break;
+           }
+
+         /* note - due to the way CNMP(tm) is set up, it is okay for
+          * CNMPorts to ignore message types.  Important ones are handled
+          * by @{"HandleIO" Link HandleIO()}.  Message that you don't use will be disposed of
+          * anyways, at this point, by @{"DisposeCNMPMsg()" Link DisposeCNMPMsg()}.  If you want to
+          * trap/handle any message types that you have added or #defined
+          * yourself, add them - here - before your @{"DisposeCNMPMsg()" Link DisposeCNMPMsg()} call.
+          *
+          * REMEMBER!!: FOR EVERY @{"GetCNMPMsg()" Link GetCNMPMsg()} that you do, you must do
+          *             a DisposeCNMPMessage() !!
+          */
+
+         DisposeCNMPMsg(UserCNMPMsg, MyCnmpCluster);
+         }
+       }
+
+     /*
+      * Check if there is a pending keyboard event
+      * here we are being redundant by check both the MsgMask AND
+      * the actual z-KBx keyboard dequeue variables but this is only
+      * an example so it's okay.. :)
+      * Usually, only one or the other is required.
+      */
+     if( (MsgMask & UserKey_Event) || (z->KB1 != z->KB2) )
+       {
+       if( (z->KBuff[z->KB1] == 13) || (z->KBuff[z->KB1] == 8) )
+         {
+         /*
+          * flushes the keyboard if the first character is <ENTER> or <DEL>
+          * this behavious is required for the conference replacement
+          * program.  Other applications may not need this behaviour.
+          */
+         KBFlush(z); /* CNMP Keyboard flush routine */
+         }
+       else
+         {
+         /*
+          * there are keys (other than ENTER or DEL) waiting in the
+          * keyboard buffer
+          *
+          * Keyboard handling section - user has pressed a key.  Use
+          * EnterLine() or OneKey() to read it..
+          */
+         EnterLine(255, 2048, "> ");
+
+         if(strlen(z->InBuffer))
+           {
+           if(!stricmp(z->InBuffer, "help"))
+             {
+             DoHelp();
+             }
+           else if(z->InBuffer[0] == 92)
+             {
+             /*
+              * first character of user entered string is a backslash,
+              * therefore, a conference command
+              */
+
+             if(!stricmp(z->InBuffer, "\\Quit"))
+               {
+               FreeUserMsgs(MyCnmpCluster);
+               IgnoreMsgs=TRUE;
+               done=TRUE;  /* flag done=TRUE so that program will exit */
+               }
+             else if(!strnicmp(z->InBuffer, "\\fg", 3))
+               /*
+                * change foreground color
+                * this is another application defined routine for the
+                * CNMP Conference replacement program.
+                */
+               {
+               if(strlen(z->InBuffer+3) == 1)
+                 {
+                 switch(z->InBuffer[3])
+                   {
+                   case '0':
+                   case '1':
+                   case '2':
+                   case '3':
+                   case '4':
+                   case '5':
+                   case '6':
+                   case '7':
+                   case '8':
+                   case '9':
+                   case 'a':
+                   case 'b':
+                   case 'c':
+                   case 'd':
+                   case 'e':
+                   case 'f':
+                      MyFgColor = z->InBuffer[3];
+                      break;
+                   default:
+                      sprintf(z->ABuffer,
+                             "\nERROR 509: color value '%c' out of range.\n",
+                             z->InBuffer[3]);
+                      PutA();
+                      break;
+                   }
+                 }
+               else
+                 {
+                 PutText("ERROR 506: You must specify an single MCI color value from 0-E\n           (ie. 0 for \c0, 1 for \c1)\n\n");
+                 }
+               }
+             else if(!stricmp(z->InBuffer, "\\list"))
+               {
+               DoHelp();
+               }
+             else if(!strnicmp(z->InBuffer, "\\kick", 5))
+               {
+               /*
+                * NOTE: I am using \KICK to force the user OUT of the
+                * P-File.  Normally, if you are using ROOMS/channels for
+                * a conference, you would kick the user from the CURRENT
+                * channel, not the whole conference program.
+                */
+
+               if(strlen(z->InBuffer+5))
+                 {
+                 strcpy(z->ABuffer, z->InBuffer+5);
+                 if(CheckDigits(z->ABuffer)) /* CNMP routine to check
+                                               if a string is ALL
+                                               digits/numeric */
+                   {
+                   /* string is all digits */
+                   z->uz[0] = atoi(z->ABuffer);
+                   if(TempRemotePort = PortFromNum(z->uz[0], MyCnmpCluster))
+                      {
+                      KickUser(TempRemotePort);
+                      }
+                   }
+                 else
+                   {
+                   /* assume string is a handle or name since it's not all digits */
+                   if(TempRemotePort = PortFromName(z->ABuffer, MyCnmpCluster, myp))
+                     {
+                     /* Found the port */
+                     KickUser(TempRemotePort);
+                     }
+                   }
+                 }
+               else
+                 {
+                 PutText("[ERROR 505]: You must specify a port or user name to kick\n\n");
+                 }
+               }
+             else if(!stricmp(z->InBuffer, "\\cnmports"))
+               {
+               /*
+                * List currently allocated ports with the same
+                * CNMP "@{"BASENAME" Link BASENAME}"
+                */
+               if(MyCnmpCluster->cc_firstport)
+                 {
+                 PutText("\n## Handle                PortName\n== ===================== ========\n");
+                 TempRemotePort=MyCnmpCluster->cc_firstport;
+                 while(TempRemotePort)
+                   {
+                   sprintf(z->ABuffer, "%2d %-21.21s %s\n", TempRemotePort->PortNum, (TempRemotePort->PortVars) ? TempRemotePort->PortVars->z->user1.Handle : "Unknown", TempRemotePort->PortName);
+                   PutA();
+                   TempRemotePort=TempRemotePort->NextPort;
+                   }
+                 DoReturn();
+                 }
+               }
+             else if(!strnicmp(z->InBuffer, "\\var++", 6))
+               {
+               /* just a test to demonstrate remote port variable alteration */
+               z->uz[0] = atoi(z->InBuffer+6);
+               if(TempRemotePort = PortFromNum(z->uz[0], MyCnmpCluster))
+                 {
+                 TempRemotePort->PortVars->testvar++;
+   
+                 /* here is an example of a user installed CNMP_Type
+                  * this type simply tells the remote port to display the
+                  * contents of it's PortVar variable testvar
+                  * To add this user-installed CNMP_Type, we added a
+                  * define.  Don't forget to add a handler for this message
+                  * type to the routine that handles your CNMP_Types..
+                  */
+                 sprintf(PortRange, "%d", TempRemotePort->PortNum);
+                 MyCnmpCluster->cc_cnmpmsg->FromPort = z->InPort;
+                 MyCnmpCluster->cc_cnmpmsg->CNMP_Type = CNMP_DISPLAY_TV; /* TV = acronym for testvar */
+                 MyCnmpCluster->cc_cnmpmsg->Data1 = NULL;
+                 MyCnmpCluster->cc_cnmpmsg->Data2 = NULL;
+                 MyCnmpCluster->cc_cnmpmsg->Data3 = NULL;
+                 SendCNMPMessage(MyCnmpCluster,
+                                                   PortRange,
+                                                   MyCnmpCluster->cc_cnmpmsg,
+                                                   TRUE,
+                                                   FALSE);
+                 }
+               }
+             else if(!strnicmp(z->InBuffer, "\\VARSCHECK", 10))
+               {
+               /* check on the state of variables from port x */
+               /* this is just an example                     */
+   
+               z->uz[0] = atoi(z->InBuffer+10);
+               if(TempRemotePort = PortFromNum(z->uz[0], MyCnmpCluster))
+                 {
+                 sprintf(z->ABuffer, "z->uz[0]: %d\n", z->uz[0]);
+                 PutA();
+                 sprintf(z->ABuffer, "CNetPort: %d\n",
+                                        TempRemotePort->PortVars->z->InPort);
+                 PutA();
+                 sprintf(z->ABuffer, "User    : %s\n",
+                                  TempRemotePort->PortVars->z->user1.Handle);
+                 PutA();
+                 sprintf(z->ABuffer, "Account#: %d\n",
+                                            TempRemotePort->PortVars->z->id);
+   
+                 MakeDate(&TempRemotePort->PortVars->z->user1.ConnectDate,
+                                                                z->InBuffer);
+                 sprintf(z->ABuffer, "Logon   : %s\n", z->InBuffer);
+                 PutA();
+                 
+                 sprintf(z->ABuffer, "testvar : %d\n",
+                                          TempRemotePort->PortVars->testvar);
+                 PutA();
+                 }
+               else
+                 {
+                 sprintf(z->ABuffer, "Could not find port %d\n", z->uz[0]);
+                 PutA();
+                 }
+               }
+             else if(!stricmp(z->InBuffer, "\\CLS"))
+               {
+               /*
+                * this is an example of a command affecting the local screen
+                * only
+                */
+               PutText("f1");
+               }
+             else if(!stricmp(z->InBuffer, "\\CLSALL"))
+               {
+               /* this is an example of a command affecting all port screens */
+               /* take care of our own screen first. */
+               PutText("f1");
+               /*
+                * send text to other port(s) here - *remember: YOU decide
+                * what the @{"VarX" Link include:cnmp/cnmp.h/Main 30} and
+                * @{"DataX" Link include:cnmp/cnmp.h/Main 30} are going to represent
+                */
+
+               /*
+                * I use Var1 as a "flag" and in the case of a @{"CNMP_TEXTECHO" Link CNMP_TEXTECHO}
+                * message, it will always mean PRIVATE if TRUE,
+                * PUBLIC/BROADCAST if FALSE
+                */
+               MyCnmpCluster->cc_cnmpmsg->Var1 = FALSE;
+
+               /*
+                * I use Data1 for the pointer to the remote user's MESSAGE in
+                * the case of CNMP_TEXTECHO messages
+                */
+               MyCnmpCluster->cc_cnmpmsg->Data1 = "f1";
+
+               /* 4 bytes long */
+               MyCnmpCluster->cc_cnmpmsg->Data1Len=4;
+
+               /*
+                * I use Data2 as a pointer to the remote user's HANDLE in the
+                * case of CNMP_TEXTECHO messages
+                */
+               MyCnmpCluster->cc_cnmpmsg->Data2 = NULL;
+
+               /* CNMP_Type sets the type of Message */
+               MyCnmpCluster->cc_cnmpmsg->CNMP_Type = @{"CNMP_TEXTECHO" Link CNMP_TEXTECHO};
+
+               /* Send this message to ALL known ports! */
+               SendCNMPMessage(MyCnmpCluster, "ALL", MyCnmpCluster->cc_cnmpmsg, TRUE, FALSE);
+               }
+             else if(!strnicmp(z->InBuffer, "\\msg", 4))
+               {
+               /*
+                * application defined
+                * Here we send a PRIVATE message to the requested port
+                */
+               if(!strlen(z->InBuffer+4))
+                 {
+                 PutText("\nYou must specify a port number if you wish to send a private message\n(ie. \\priv0)\n\n");
+                 }
+               else
+                 {
+                 strcpy(PortRange, z->InBuffer+4);
+                 RemoveLeadingSpace(PortRange);
+                 if(strlen(PortRange))
+                   {
+                   if(stricmp(PortRange, "ALL"))
+                     {
+                     /*
+                      * user is not broadcasting..  Check for name or port
+                      * number
+                      */
+                     if(CheckDigits(PortRange))
+                       {
+                       /* string is all digits */
+                       z->uz[0] = atoi(PortRange);
+                       if(TempRemotePort = PortFromNum(z->uz[0], MyCnmpCluster))
+                         {
+                         /* Found the port */
+                         sprintf(PortRange, "%d", TempRemotePort->PortNum);
+                         }
+                       else
+                         {
+                         sprintf(z->ABuffer, "ERROR 507: %s not found\n\n", PortRange);
+                         PutA();
+                         PortRange[0]=0;
+                         }
+                       }
+                     else
+                       {
+                       /*
+                        * assume string is a handle or name since it's not all
+                        * digits
+                        */
+                       if(TempRemotePort = PortFromName(PortRange, MyCnmpCluster, myp))
+                         {
+                         /* Found the port */
+                         sprintf(PortRange, "%d", TempRemotePort->PortNum);
+                         }
+                       else
+                         {
+                         sprintf(z->ABuffer, "ERROR 508: %s not found\n\n", PortRange);
+                         PutA();
+                         PortRange[0]=0;
+                         }
+                       }
+                     }
+                   if(strlen(PortRange))
+                     {
+                     sprintf(z->ABuffer, "msg %s> ", PortRange);
+                     EnterLine(70, 0, z->ABuffer);
+                     if(strlen(z->InBuffer))
+                       {
+                       /*
+                        * send text to other port here - *remember: YOU
+                        * decide what the VarX and DataX are going to
+                        * represent
+                        */
+                       MyCnmpCluster->cc_cnmpmsg->Var1 = TRUE;
+     
+                       /*
+                        * I use Var1 as a "flag" and in the case of a
+                        * @{"CNMP_TEXTECHO" Link CNMP_TEXTECHO} message, it will always
+                        * mean PRIVATE if TRUE, PUBLIC/BROADCAST if FALSE
+                        */
+                       sprintf(z->ABuffer, "z%cc%c%s", MyBgColor, MyFgColor, z->InBuffer);
+                       MyCnmpCluster->cc_cnmpmsg->Data1Len = sizeof(UBYTE)*strlen(z->ABuffer)+1;
+
+                       /*
+                        * I use Data1 for the pointer to the remote user's
+                        * MESSAGE in the case of CNMP_TEXTECHO messages
+                        */
+                       MyCnmpCluster->cc_cnmpmsg->Data1 = z->ABuffer;
+
+                       /*
+                        * I use Data3 as a pointer to the remote user's HANDLE
+                        * in the case of CNMP_TEXTECHO messages
+                        */
+                       MyCnmpCluster->cc_cnmpmsg->Data3 = &z->user1.Handle;
+
+                       /* CNMP_Type sets the type of Message */
+                       MyCnmpCluster->cc_cnmpmsg->CNMP_Type = @{"CNMP_TEXTECHO" Link CNMP_TEXTECHO};
+
+                       /* Send this message only to the user specified port! */
+                       SendCNMPMessage(MyCnmpCluster, PortRange, MyCnmpCluster->cc_cnmpmsg, TRUE, FALSE);
+                       }
+                     }
+                   }
+                 }
+               }
+             else
+               {
+               strcpy(z->InBuffer, z->InBuffer + 1);
+               if(!CommonCommands())
+                 {
+                 PutText("\nEnter \"\LIST\" for a summary of commands\n\n");
+                 }
+               else
+                 {
+                 PutText("\n");
+                 }
+               }
+             }
+           else
+             {
+             /*
+              * send text to other port here - remember: YOU decide what the
+              * VarX and DataX are going to represent
+              * I chose them to represent what I needed them to be applied to
+              * for this mini conference set-up..
+              * p.s. the character 8 check below is a backspace trap.
+              */
+             if(strlen(z->InBuffer))
+               {
+               if(z->InBuffer[0] == 8)
+                 {
+                 DoReturn();
+                 }
+               else
+                 {
+                 sprintf(z->ABuffer, "z%cc%c%s", MyBgColor, MyFgColor, z->InBuffer);
+                 MyCnmpCluster->cc_cnmpmsg->Data1Len = sizeof(UBYTE)*strlen(z->ABuffer)+1;
+
+                 /*
+                  * I use Var1 as a "flag" and in the case of a
+                  * @{"CNMP_TEXTECHO" Link CNMP_TEXTECHO} message, it will always
+                  * mean PRIVATE if TRUE, PUBLIC/BROADCAST if FALSE
+                  */
+                 MyCnmpCluster->cc_cnmpmsg->Var1 = FALSE;
+
+                 /*
+                  * I use Data1 for the pointer to the remote user's MESSAGE
+                  * in the case of CNMP_TEXTECHO messages
+                  */
+                 MyCnmpCluster->cc_cnmpmsg->Data1 = z->ABuffer;
+                 MyCnmpCluster->cc_cnmpmsg->Data2 = NULL;
+
+                 /*
+                  * I use Data3 as a pointer to the remote user's HANDLE in
+                  * the case of CNMP_TEXTECHO messages
+                  */
+                 MyCnmpCluster->cc_cnmpmsg->Data3 = &z->user1.Handle;
+
+                 /* CNMP_Type sets the type of Message */
+                 MyCnmpCluster->cc_cnmpmsg->CNMP_Type = @{"CNMP_TEXTECHO" Link CNMP_TEXTECHO};
+
+                 /* Send this message to ALL known ports! */
+                 SendCNMPMessage(MyCnmpCluster, "ALL", MyCnmpCluster->cc_cnmpmsg, TRUE, FALSE);
+                 }
+               }
+             }
+           }
+         }
+       }
+     if(MsgMask & UserTimer_Event)
+       {
+       /* Do other processing here. Anything that requires periodic
+          checking/processing can be done here */
+       /* This timeout message occurs approximately every 3/8 seconds */
+
+       /* NOTE: Cnet seems to only check OLMs at PROMPTS (ie. EnterLine())
+        * So you will have to check z->OLMWaiting to see if an OLM exists..
+        * Also, the only place CNet allows an OLM to be displayed is at a
+        * prompt.  ie.  During EnterLine().  OLMs will not appear unless
+        * you call EnterLine().  Thus, OLMs will not be displayed until
+        * you require input from the user.
+        */
+       }
+     CheckFlowControl();
+     } /* end of while(!done) loop */
+
+@ENDNODE
+@NODE InitCNMP() "InitCNMP()"
+
+@{b}  NAME@{ub}
+   InitCNMP -- Initializes the CnmpCluster required by CNMP and also opens
+               all required message ports and the timer.device.
+
+@{b}  SYNOPSIS@{ub}
+   Cluster = InitCNMP(CNetPortData, @{"BASENAME" Link BASENAME}, portvarsize)
+
+   struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *InitCNMP(struct PortData *, char *, LONG)
+
+@{b}  FUNCTION@{ub}
+   This routine allocates memory for the CnmpCluster structure and calls
+   the @{"CreateCNMPMsgPort()" Link CreateCNMPMsgPort()} function to open the required message ports
+   required by CNMP.
+
+@{b}  INPUTS@{ub}
+   CnetPortData  - a pointer to the Portdata structure for the current
+                   port.
+   BASENAME      - string buffer that represents the BASENAME of the
+                   current application.  Each seperate application coded
+                   with CNMP must have a unique BASENAME to avoid conflicts
+                   with other CNMP applications.
+   portvarsize   - the size of the PortVar structure
+                   ie. sizeof(struct @{"PortVars" Link "include:cnmp/cnmp.h/Main" 17})
+
+@{b}  RESULT@{ub}
+   Cluster - pointer to an allocated, initialized CnmpCluster structure or
+             NULL (0L) on fail.
+
+@ENDNODE
+@NODE CreateCNMPMsgPort() "CreateCNMPMsgPort"
+
+@{b}  NAME@{ub}
+   CreateCNMPMsgPort -- Opens a MsgPort to be used for CNMP communication
+
+@{b}  SYNOPSIS@{ub}
+   MessagePort = CreateCNMPMsgPort(PortName)
+
+   struct MsgPort *CreateCNMPMsgPort(char *)
+
+@{b}  FUNCTION@{ub}
+   This routine creates a named Exec MsgPort initialized and ready for use
+   and returns a pointer to that message port.
+
+@{b}  RESULT@{ub}
+   MessagePort - a pointer to the intialized Exec MsgPort.
+
+@ENDNODE
+@NODE PortFromMsg() "PortFromMsg"
+
+@{b}  NAME@{ub}
+   PortFromMsg -- finds and returns the CNMP @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111} that sent a message.
+
+@{b}  SYNOPSIS@{ub}
+   remoteport = PortFromMsg(cnmpmsg, cluster)
+
+   struct @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111} *PortFromMsg(struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}  FUNCTION@{ub}
+   This routine extracts information about a port from the specified CNMPMsg
+   and returns a pointer to the RemotePort structure that was opened by
+   that port.
+
+@{b}  INPUTS@{ub}
+   cnmpmsg - a @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} that was received from a remote port
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}  RESULT@{ub}
+   remoteport - a pointer to the RemotePort structure of the port that sent
+                the message.
+
+@ENDNODE
+@NODE PortFromNum() "PortFromNum"
+
+@{b}  NAME@{ub}
+   PortFromNum -- finds and returns the port specified by the given CNet port
+                  number.
+
+@{b}   SYNOPSIS@{ub}
+   remoteport = PortFromNum(portnum, cluster)
+
+   struct @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111} *PortFromNum(short, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   This routine accepts a CNet port number and returns a pointer to the
+   RemotePort opened for that Cnet port.
+
+@{b}   INPUTS@{ub}
+   portnum - The CNet port number of the port you wish to find.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   remoteport - a pointer to the RemotePort structure of the port that sent
+                the message.
+
+@ENDNODE
+@NODE PortFromName() "PortFromName"
+
+@{b}  NAME@{ub}
+   PortFromName -- find and returns the port specified by the given username
+                   or handle.
+
+@{b}   SYNOPSIS@{ub}
+   remoteport = PortFromName(username, cluster)
+
+   struct @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111} *PortFromName(char *, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   This routine accepts a user's name or handle and returns a pointer to
+   the CNMP message port that is presently open on his CNet port.
+
+@{b}   INPUTS@{ub}
+   username - a user handle or name
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   remoteport - a pointer to the RemotePort that resides on the specified
+   user's CNet port.
+
+
+@ENDNODE
+@NODE GetCNMPMsg() "GetCNMPMsg"
+
+@{b}  NAME@{ub}
+   GetCNMPMsg -- Gets the next queued CNMP message.
+
+@{b}   SYNOPSIS@{ub}
+   cnmpmsg = GetCNMPMsg(fromport, cluster)
+
+   struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *GetCNMPMsg(LONG, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125})
+
+@{b}   FUNCTION@{ub}
+   This routine gets the first queued message of type CNMPMsg from a given
+   port.
+
+@{b}   INPUTS@{ub}
+   fromport - a specific CNet port number or -1 if you want the next
+              queued message regardless of the port number.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   cnmpmsg - a pointer to the CNMPMsg.
+
+@ENDNODE
+@NODE GetNTReplyMsg() "GetNTReplyMsg"
+
+@{b}  NAME@{ub}
+   GetNTReplyMsg -- Gets the next queued CNMP message of type NT_ReplyMsg.
+
+@{b}   SYNOPSIS@{ub}
+   cnmpmsg = GetNTReplyMsg(fromport, cluster)
+
+   struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *GetNTReplyMsg(LONG, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125})
+
+@{b}   FUNCTION@{ub}
+   This routine gets the first queued message of type CNMPMsg that is also
+   tagged as NT_ReplyMsg from a given port.
+
+@{b}   INPUTS@{ub}
+   fromport - a specific CNet port number or -1 if you want the next
+              queued NT_ReplyMsg message regardless of the port number.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   cnmpmsg - a pointer to the CNMPMsg.
+
+@ENDNODE
+@NODE FindCNMPorts() "FindCNMPorts"
+
+@{b}  NAME@{ub}
+   FindCNMPorts -- Finds and creates a list of all currently active CNMP
+                   ports that have the same BASENAME.
+
+@{b}   SYNOPSIS@{ub}
+   FindCNMPorts(baseport,cluster)
+
+   void FindCNMPorts(char *, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125})
+
+@{b}   FUNCTION@{ub}
+   This routines finds all remote CNMP ports that share a common @{"BASENAME" Link BASENAME}.
+   As it finds other CNMP ports, it adds them to a CNMP maintained list of
+   currently valid CNMP ports.
+
+@{b}   INPUTS@{ub}
+   @{"BASENAME" Link BASENAME} - the same basename that was used to in the @{"InitCNMP()" Link InitCNMP()}
+              call, used to initialize your CNMP port.
+   cluster - the CnmpCluster that was initialized and returned by InitCNMP()
+
+@{b}   RESULT@{ub}
+   none
+
+@ENDNODE
+@NODE SetTimeout() "SetTimeout"
+
+@{b}  NAME@{ub}
+   SetTimeout -- Posts a time request of x seconds and y micros.
+
+@{b}   SYNOPSIS@{ub}
+   success = SetTimeout(seconds, mics, cluster)
+
+   BOOL SetTimeout(LONG, LONG, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125})
+
+@{b}   FUNCTION@{ub}
+   This routines aborts any previously posted time requests and posts a new
+   time request with a timeout of x seconds and y micros. This is VERY important if you
+   wish to call @{"HandleIO" Link HandleIO()} and want it to return after 5/8 seconds even if
+   there is no Arexx message or Remote port messages waiting.  This is a
+   very useful feature of CNMP as it allows your program to do other
+   processing before calling @{"HandleIO" Link HandleIO()} again to wait for more messages or
+   another timeout.
+
+   NOTE:  The seconds and micrs values are summed to produce a single time
+          request of x seconds and y micros.
+
+@{b}   INPUTS@{ub}
+   seconds - the number of seconds to wait before returning a @{"UserTimer_Event" Link UserTimer_Event}.
+   mics    - the number of micros to wait beore returning a @{"UserTimer_Event" Link UserTimer_Event}
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   TRUE is the time request was succesfully posted, FALSE if an error occured.
+
+@ENDNODE
+@NODE CleanupTimeout() "CleanupTimeout"
+
+@{b}  NAME@{ub}
+   CleanupTimeout -- Aborts a previously posted timer request.
+
+@{b}   SYNOPSIS@{ub}
+   CleanupTimeout(cluster)
+
+   void CleanupTimout(struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125})
+
+@{b}   FUNCTION@{ub}
+   This function aborts any previously posted CNMP time request.  Use this
+   abort time requests before exiting your application.  This function is
+   already called by the GetOut() function in the CNMPempty.c source file
+   that accompanies the CNMP package.
+
+@{b}   INPUTS@{ub}
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   none
+
+@ENDNODE
+@NODE CheckCNMPExists() "CheckCNMPExists"
+
+@{b}  NAME@{ub}
+   CheckCNMPExists -- This function accepts a CNet port number and returns a
+                      pointer to the CNMPort that is open on that CNet port.
+
+@{b}   SYNOPSIS@{ub}
+   remoteport = CheckCNMPExists(portnum, cluster)
+
+   struct @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111} *CheckCNMPExists(int, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   This function accepts a CNet port number and returns a pointer to the
+   CNMPort that is open on that CNet port.
+   This function differs from @{"PortFromNum()" Link PortFromNum()} in that this routine checks the
+   actual validity of the port itself whereas PortFromNum() simply checks the
+   local port list.
+
+@{b}   INPUTS@{ub}
+   portnum  - the CNet port number of the CNMPort you wish to find or check.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   remoteport - a pointer to the CNMPort that is open on the given CNet port.
+
+@ENDNODE
+@NODE SendCNMPMessage() "SendCNMPMessage"
+
+@{b}  NAME@{ub}
+   SendCNMPMessage -- sends the a CNMPMsg to a remote port.
+
+@{b}   SYNOPSIS@{ub}
+   success = SendCNMPMessage(cluster, portnum, message, echolocal, overridecheck)
+
+   BOOL SendCNMPMessage(struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *, char *, struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *, BOOL, BOOL)
+
+@{b}   FUNCTION@{ub}
+   Sends a properly filled CNMPMsg to the desired remote CNet port number.
+
+@{b}   INPUTS@{ub}
+   cluster       - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+   portnum       - an ASCII representation of the CNet port number you wish your
+                   message to be sent to.  "ALL" may be subsituted if you wish to
+                   BROADCAST the message to all presently valid CNMP @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111}s
+                   that share the same BASEPORT name.
+   message       - a pointer to a filled out @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} structure.
+   echolocal     - set TRUE if you wish this message to be sent to your own
+                   port.  set FALSE if you wish this message to be send to only
+                   remote ports.
+   overridecheck - SendCNMPMessage has an internal sanity check that checks
+                   if the remote port is in the LOCAL port list.  In some
+                   instances this may not be desired, as in the case of a
+                   port that has just entered it's CNMP process and has
+                   not yet been added to the local port list.  Set
+                   overridecheck = TRUE or 1 if you wish SendCNMPMessage to
+                   bypass it's internal validity check.
+
+@{b}   RESULT@{ub}
+   success - TRUE is message was successfully sent.  FALSE if error.
+             NOTE: Broadcast messages (messages addressed to "ALL" ports) will
+                   always return TRUE.
+
+@ENDNODE
+@NODE FreeCNMPList() "FreeCNMPList()"
+
+@{b}   NAME@{ub}
+   FreeCNMPList -- Frees the memory used for the local port list.
+
+@{b}   SYNOPSIS@{ub}
+   FreeCNMPList(cluster)
+
+   void FreeCNMPList( struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} * )
+
+@{b}   FUNCTION@{ub}
+   This function frees all memory used to hold the list of remote ports
+   that was created by @{"FindCNMPPorts()" Link FindCNMPorts()}, therefore making the list empty.
+
+@{b}   INPUTS@{ub}
+   cluster       - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   none
+
+@ENDNODE
+@NODE CNMPortToList() "CNMPortToList"
+
+@{b}   NAME@{ub}
+   CNMPortToList -- Adds the specified CNet Port number with the specified
+                    CNMP port name to the list of local @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111}s.
+
+@{b}   SYNOPSIS@{ub}
+   firstport = CNMPortToList(cluster, portnum, portname)
+
+   struct @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111} *CNMPortToList(struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *, int, char *)
+
+@{b}   FUNCTION@{ub}
+   This function adds the specified CNet Port number with the specified CNMP
+   port name to the list of local RemotePorts.
+
+@{b}   INPUTS@{ub}
+   cluster  - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+   portnum  - the CNet port number of the CNMP port to add
+   portname - the name of the RemotePort to add to the local port list.
+
+@{b}   RESULT@{ub}
+   firstport - always returns a pointer to the first RemotePort in the
+               local list.
+
+@ENDNODE
+@NODE NotifyCNMPRemove() "NotifyCNMPRemove"
+
+@{b}   NAME@{ub}
+   NotifyCNMPRemove -- notifies all other ports in the local port list that
+                       the current port is exiting/quitting.
+
+@{b}   SYNOPSIS@{ub}
+   NotifyCNMPRemove(cluster)
+
+   void NotifyCNMPRemove(struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   notifies all other ports in the local port list that the current port is
+   exiting/quitting. This causes the remote ports to remove this port from
+   their local port list(s).
+
+@{b}   INPUTS@{ub}
+   cluster  - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+   RESULTS
+   none
+
+@ENDNODE
+@NODE CarrierCheck() "CarrierCheck"
+
+@{b}   NAME@{ub}
+   CarrierCheck -- Checks the current CNet port for lost/dropped carrier, user
+                   time up and dumped user.
+
+@{b}   SYNOPSIS@{ub}
+   carrier = CarrierCheck(z)
+
+   BOOL CarrierCheck(struct PortData *z)
+
+@{b}   FUNCTION@{ub}
+   Checks the current CNet port for lost/dropped carrier, user time up and
+   dumped user.
+
+@{b}   INPUTS@{ub}
+   z - a pointer to the PortData structure of the local CNet port.
+
+   RESULTS
+   carrier = TRUE if carrier is present, FALSE if no carrier.
+
+@ENDNODE
+@NODE KBFlush() "KBFlush"
+
+@{b}   NAME@{ub}
+   KBFlush -- Flushes the keyboard buffer of the local CNet port.
+
+@{b}   SYNOPSIS@{ub}
+   KBFlush(portdata)
+
+   void KBFlush(struct PortData *z)
+
+@{b}   FUNCTION@{ub}
+   Flushes the keyboard buffer of the local CNet port. (thanks to Bob Maple
+   [The Brazilian] for this code from over a year ago.. :)
+
+   Since this code was not my own (even though it's a single, simple line of
+   code), here it is in case you may need it for other projects:
+
+      z->KB1=z->KB2=0;
+
+
+@{b}   INPUTS@{ub}
+   z - a pointer to the PortData structure of the local CNet port.
+
+   RESULTS
+   none
+
+@ENDNODE
+@NODE HandleIO() "HandleIO"
+
+@{b}   NAME@{ub}
+   HandleIO -- Handles receipt and processing/storing of messages from remote
+               CNMP ports.
+
+@{b}   SYNOPSIS@{ub}
+   returnmask = HandleIO(rexxcontext, cluster)
+
+   LONG HandleIO(ULONG, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   Handles receipt and processing/storing of messages from remote CNMP ports.
+
+@{b}   INPUTS@{ub}
+   rexxcontext - the signal mask of the ARexx user port. I use EasyRexx in
+                 the example CNMPConf.c because it is very easy to implement
+                 for even the most inexperienced C coders.  If you use
+                 EasyRexx in your applcation, simply specify the following
+                 as rexxcontext:
+
+                     ER_SIGNAL(RexxContext)
+
+   cluster  - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   returnmask - a set of OR'd signal bits representing the types of messages
+                returned.  Be sure to test the returnmask for ALL bits that
+                you are expecting as more than one bit may be returned set
+                in the returnmask.
+
+@ENDNODE
+@NODE FileUserMsg() "FileUserMsg"
+
+@{b}   NAME@{ub}
+   FileUserMsg -- Stores the specified message in the local list of saved
+                  messages from other ports.
+
+@{b}   SYNOPSIS@{ub}
+   firstmessage = FileUserMsg(usermessage, cluster)
+
+   struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *FileUserMsg(struct CNMPMsg *, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   Stores the specified message in the local list of saved messages from other
+   ports.
+
+@{b}   INPUTS@{ub}
+   usermessage - a message of type CNMPMsg that is to be added to the local
+                 list of saved messages.
+   cluster     - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   firstmessage - a pointer to the first message in the local list of saved
+                  messages
+
+@ENDNODE
+@NODE FreeUserMsgs() "FreeUserMsgs"
+
+@{b}   NAME@{ub}
+   FreeUserMsgs -- Deletes all messages in the saved local list of messages
+                   and frees all memory that was required to save them.
+
+@{b}   SYNOPSIS@{ub}
+   FreeUserMsgs(cluster)
+
+   void FreeUserMsgs(struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   Deletes all messages in the local list of saved messages and frees all
+   memory that was required to hold them. 
+
+@{b}   INPUTS@{ub}
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   none
+
+@ENDNODE
+@NODE DisposeCNMPMsg() "DisposeCNMPMsg"
+
+@{b}   NAME@{ub}
+   DisposeCNMPMsg -- Removes the specified message from the local list of saved
+                     messages and frees the memory that was set aside for it.
+
+@{b}   SYNOPSIS@{ub}
+   DisposeCNMPMsg(message, cluster)
+
+   void DisposeCNMPMsg( struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   Removes the specified message from the local list of saved messages and
+   frees the memory that was set aside for it.
+
+@{b}   INPUTS@{ub}
+   message - a pointer to the message that is to be disposed of/killed.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   none
+
+
+@ENDNODE
+@NODE DisposeCNMPType() "DisposeCNMPType"
+
+@{b}   NAME@{ub}
+   DisposeCNMPType -- Disposes messages of a given CNMP_Type that were
+                      received from the specified remote port.
+
+@{b}   SYNOPSIS@{ub}
+   success = DisposeCNMPType(msgtype, portnum, cluster)
+
+   BOOL DisposeCNMPType(LONG, LONG, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125})
+
+@{b}   FUNCTION@{ub}
+   Scans the saved list of remote messages and disposes messages of a given
+   CNMP_Type that were received from the specified remote port.
+
+@{b}   INPUTS@{ub}
+   msgtype - the CNMP_Type that you wish to dispose of.
+   portnum - the CNet port number from which the messages to be disposed
+             of originated.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   success - TRUE if one or more messages were killed, FALSE if none were
+             disposed of.
+
+@ENDNODE
+@NODE RemoveCNMPortList() "RemoveCNMPortList"
+
+@{b}   NAME@{ub}
+   RemoveCNMPortList -- Removes the specified port from the local list of
+                        ports.
+
+@{b}   SYNOPSIS@{ub}
+   success = RemoveCNMPortList(remport, cluster)
+
+   BOOL RemoveCNMPortList(struct @{"RemotePort" Link "include:cnmp/cnmp.h/Main" 111} *, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   Removes the specified port from the local list of ports.
+
+@{b}   INPUTS@{ub}
+   remport - a pointer to the RemotePort to be removed from our local list.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   success - TRUE if port removed, FALSE if error or port non-existent in
+             list.
+
+@ENDNODE
+@NODE PermitEntry() "PermitEntry"
+
+@{b}   NAME@{ub}
+   PermitEntry -- Sends a message of type @{"CNMP_ENTRYPERMIT" Link CNMP_ENTRYPERMIT} to a remote port.
+
+@{b}   SYNOPSIS@{ub}
+   PermitEntry(rmessage, echostring, cluster)
+
+   void PermitEntry(struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *, char *, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   Sends a message of type CNMP_ENTRYPERMIT to a remote port. You must
+   be in possesion of a message received from that remote port as that
+   message is where PermitEntry gets the port information from.  Usually,
+   this message is sent after receipt of a @{"CNMP_ENTRYCONFIRM" Link CNMP_ENTRYCONFIRM} message if
+   the remote port is to be allowed to enter/share the CNMP network of
+   message ports.
+
+@{b}   INPUTS@{ub}
+   rmessage - a pointer to a CNMPMsg received from the remote port
+              (ie. a message received using the @{"GetCNMPMsg()" Link GetCNMPMsg()} function)
+   echostring - a string that will be displayed to the remote user when his
+                port receives the CNMP_ENTRYPERMIT message.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   none
+
+@ENDNODE
+@NODE HandleNT_REPLYMSG() "HandleNT_REPLYMSG"
+
+@{b}   NAME@{ub}
+   HandleNT_REPLYMSG -- Tells CNMP to take care of/reply to messages of type
+                        NT_REPLYMSG.
+
+@{b}   SYNOPSIS@{ub}
+   HandleNT_REPLYMSG(message)
+
+   void HandleNT_REPLYMSG(struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *)
+
+@{b}   FUNCTION@{ub}
+   Tells CNMP to take care of/reply to messages of type NT_REPLYMSG. Usually,
+   this function is called as soon as @{"HandleIO" Link HandleIO()} returns with the
+   @{"ReplyMsg_Event" Link ReplyMsg_Event} bit set and you have gotten the message pointer using
+   @{"GetNTReplyMsg()" Link GetNTReplyMsg()}.
+
+@{b}   INPUTS@{ub}
+   message - a pointer to the message received from the function
+             GetNTReplyMsg()
+
+@{b}   RESULT@{ub}
+   none
+
+
+@ENDNODE
+@NODE GetPermission() "GetPermission"
+
+@{b}   NAME@{ub}
+   GetPermission -- Asks a remote port for permission to enter/join the
+                    set of shared/networked message ports.
+
+@{b}   SYNOPSIS@{ub}
+   success = GetPermission(portnum, cluster)
+
+   BOOL GetPermission(LONG, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   This function sends a message of type @{"CNMP_ENTRYCONFIRM" Link CNMP_ENTRYCONFIRM} to the CNMP message
+   port opened on the specified CNet port number.
+
+@{b}   INPUTS@{ub}
+   portnum = the CNet port number of the remote CNMP message port.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   success = TRUE if message sent, FALSE if error.
+
+@ENDNODE
+@NODE RefuseEntry() "RefuseEntry"
+
+@{b}   NAME@{ub}
+   RefuseEntry -- Signals a remote port (one that has sent us a
+                  @{"CNMP_ENTRYCONFIRM" Link CNMP_ENTRYCONFIRM} message) that it is not allowed to
+                  enter/use the shared set of CNMP ports.
+
+@{b}   SYNOPSIS@{ub}
+   RefuseEntry(remotemsg, echostr, cluster)
+
+   void RefuseEntry(struct @{"CNMPMsg" Link include:cnmp/cnmp.h/Main 30} *, char *, struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *)
+
+@{b}   FUNCTION@{ub}
+   Signals a remote port (one that has sent us a CNMP_ENTRYCONFIRM message)
+   that it is not allowed to enter/use the shared set of CNMP ports that is
+   is requesting access to.
+
+@{b}   INPUTS@{ub}
+   remotemsg - a pointer to the CNMPMsg (of type CNMP_ENTRYCONFIRM) that
+               was sent by the remoote port.
+   echostr   - pointer to a string of textthat will be displayed on the remote
+               user's port.
+   cluster - the CnmpCluster that was initialized and returned by @{"InitCNMP()" Link InitCNMP()}
+
+@{b}   RESULT@{ub}
+   none
+
+@ENDNODE
+@NODE InitCnmpCluster() "InitCnmpCluster"
+
+@{b}   NAME@{ub}
+   InitCnmpCluster -- allocate memory for a CnmpCluster structure and the
+                      PortVars structure that accompanies it.
+
+@{b}   SYNOPSIS@{ub}
+   cluster = InitCnmpCluster(portvarsize)
+
+   struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *InitCnmpCluster(LONG)
+
+@{b}   FUNCTION@{ub}
+   allocate memory for a CnmpCluster structure and the PortVars structure that
+   accompanies it.
+
+@{b}   INPUTS@{ub}
+   portvarsize - the size of the PortVar structure
+                 ie. sizeof(struct @{"PortVars" Link "include:cnmp/cnmp.h/Main" 17})
+
+@{b}   RESULT@{ub}
+   cluster - a pointer to the allocated (CnmpCluster *) structure.
+
+
+@ENDNODE
+@NODE FreeCnmpCluster() "FreeCnmpCluster"
+
+@{b}   NAME@{ub}
+   FreeCnmpCluster -- frees the memory used for the CnmpCluster that was
+                      reserved using the @{"InitCnmpCluster()" Link InitCnmpCluster()} function.
+
+@{b}   SYNOPSIS@{ub}
+   FreeCnmpCluster(cluster, portvarsize)
+
+   void FreeCnmpCluster(struct @{"CnmpCluster" Link "include:cnmp/cnmp.h/Main" 125} *, LONG)
+
+@{b}   FUNCTION@{ub}
+   Frees the memory used for the CnmpCluster that was allocated and
+   initialized using the InitCnmpCluster() function.
+
+@{b}   INPUTS@{ub}
+   cluster     - a pointer to the CNMPCluster structure that was returned by
+                 the InitCnmpCluster() function.
+   portvarsize - the size of your PortVars structure.
+                 ie. sizeof(struct @{"PortVars" Link "include:cnmp/cnmp.h/Main" 17})
+
+@{b}   RESULT@{ub}
+   none
+
+@ENDNODE
+@NODE HandleRexx() "HandleRexx"
+
+   If you are using the included EasyRexx ((C) 1994,1995, Ketil Hunn),
+HandleRexx() (or something similar) is the function you will use to handle
+Arexx messages.  Here is a sample HandleRexx function with some simple Arexx
+commands and their handler functions:
+
+
+/**************************************************************************
+ * This function not part of CNMP - this IS required for EasyRexx
+ **************************************************************************/
+void HandleRexx( void )
+{
+	UBYTE ResultString[255];
+	LONG ResultLong=0;
+
+	if(GetARexxMsg(RexxContext))
+		{
+		switch(RexxContext->id)
+			{
+			case AREXX_QUIT:
+				/* received quit message from ARexx */
+				ReplyARexxMsg(RexxContext, TAG_DONE);
+				GetOut("", 0);
+				break;
+			case AREXX_TEXTECHO:
+				/* Recieved a message from ARexx to echo/print some text */
+				sprintf(z->ABuffer, "z4c6AREXX_MSG:q1 %s\n", ARGSTRING(RexxContext, 0));
+				PutA();
+				break;
+			case AREXX_VERSION:
+				/* received a message from ARexx to print the version number */
+				sprintf(ResultString, "%s", vers+5);
+				break;
+			case AREXX_INC_TV:
+				/* received a message from ARexx to increment this port's testvar variable */
+				MyCnmpCluster->cc_portvars->testvar += ARGNUMBER(RexxContext, 0);
+				break;
+			case AREXX_SHOW_TV:
+				/* received a message from ARexx to display this port's testvar variable */
+				sprintf(z->ABuffer, "** Arexx asked us to display testvar:  testvar=%d\n", MyCnmpCluster->cc_portvars->testvar);
+				PutA();
+				break;
+			case AREXX_QUERY_TV:
+				/* received a message from ARexx to return this port's testvar variable */
+				ResultLong=MyCnmpCluster->cc_portvars->testvar;
+				break;
+			}
+		if(strlen(ResultString))
+			ReplyARexxMsg(RexxContext, ER_ResultString, ResultString, TAG_DONE);
+		else if(ResultLong)
+			ReplyARexxMsg(RexxContext, ER_ResultLong, ResultLong, TAG_DONE);
+		else
+			ReplyARexxMsg(RexxContext, TAG_DONE);
+		}
+}
+
+@ENDNODE
+@NODE BASENAME "BASENAME"
+
+   BASENAME
+   The CNMP BASENAME is a string of text that serves as an "identifier" for
+   the set of shared message ports that a particular application uses.  Each
+   application must have a unique BASENAME so that it does not conflict with
+   other CNMP applications.  For example, a chat program written by MetalSoft
+   may use a BASENAME of "MS-CHAT" or "chat23A5" where a CNet Help Bot may
+   have a BASENAME of "BOT45X2".  The BASENAME is what CNMP uses to name and
+   find other ports that are using the same application.  Each CNMP Message
+   Port is named BASENAMEx where x = the CNet port number on which the
+   application is running.
+
+NOTE: YOU set the BASENAME that your application will use when you call the
+      function @{"InitCNMP()" Link InitCNMP()}.
+
+MetalSoft will be keeping a list of BASENAMEs currently in use by registered
+CNMP developers. To get a list, simply contact us using any of the methods
+outlined in the section describing registration procedures.
+
+@ENDNODE
+@NODE metalsoft "MetalSoft"
+
+   Metal Software
+   ==============
+
+   For bug reports, registration and general information, MetalSoft can be
+contacted via the following network addresses:
+
+   INTERNET: rakey@metshop.jammys.net
+   FIDONET: Ray Akey@1:246/74
+   Clink: Ray Akey@911:8000/2
+
+also, at the MetalSoft support BBS, "The Metal Shoppe BBS":
+
+   line 1: +1.519.256.0278
+   line 2: +1.519.255.7378
+
+and through snail mail (regular post) at:
+
+   Ray Akey
+   411 Bridge Ave.
+   Windsor, Ontario
+   Canada  N9B 2M3
+
+@ENDNODE
+@NODE ArexxContext "Context Numbers"
+
+   NAME
+   Context Numbers
+
+   FUNCTION
+   Context numbers are integers defined as a signal of which Arexx command
+   was received from an ARexx script.  Each Context number must be unique
+   from other context numbers used in the application.  Context numbers work
+   hand in hand with the @{"ARexxCommandTable" Link ARexxCommandTable} to allow easy implementation of
+   ARexx to your application/program.
+
+   If you want to #define your own ARexx commands for CNMP applications,
+   please start numbering them at 500 to retain compatibility with future
+   versions of CNMP.
+
+
+   EXAMPLES
+   #define AREXX_QUIT                1
+   #define AREXX_VERSION             2
+   #define YOUR_AREXX_COMMAND        500
+   #define YOUR_SECOND_AREXX_COMMAND 501
+
+@ENDNODE
+@NODE ARexxCommandTable "ArexxCommandTable"
+
+   NAME
+   ARexxCommandTable
+
+   FUNCTION
+   The ARexxCommandTable is a lookup table for EasyRexx.  The command table
+   is an array of ARexxCommandTable structures, each defining a single ARexx
+   command that your application will support. The structure is laid out as
+   follows:
+
+
+         ContextNumber, "Rexx_Command",   "ArgString",   UserData
+
+
+    - the first element of the command table is the @{"ContextNumber" Link ContextNumber} of the
+      Arexx command.
+
+    - the second element of the command table is the actual ARexx command
+      that will be used in ARexx scripts.
+
+    - the third element of the command table is a string that describes the
+      argument(s) that the ARexx command will accept.
+ 
+    - the fourth element of the command table is tagged as "UserData" which,
+      for CNMP, is not explicitly used. Feel free, however, to take advantage
+      of advanced C techniques by placing a function pointer there and alter
+      @{"HandleRexx()" Link HandleRexx()} to pass control to that function.  For the sake of novices,
+      we will stick to the easy stuff throughout this document.
+
+
+      From @{"EasyRexxGuide" link "EasyRexxGuide/Main"} by Ketil Hunn:
+      =============================================
+      When easyrexx.library receives an AREXX command  that matches a command
+      in the command table, it will parse  the arguments according to the
+      template.
+
+      If the arguments do not match or are too few it will reply the message
+      with an error and your application will never hear the message.
+
+      If success, your application will  receive  the command with all
+      arguments stuffed in an array with the first argument in 0, second in 1
+      etc.
+
+      Useful macros to get ARexx arguments:
+      ARGSTRING(context, i) - returns the string in argument i.
+      ARGNUMBER(context, i) - returns the number in argument i.
+      ARG(context, i)       - returns 0 if the argument  is NULL and non-zero if
+                              it present.
+      ARGBOOL(context,i)    - returns TRUE if  the  argument  is  not  empty and
+                              FALSE if it is.
+
+      Defining templates
+      Options in the template are separated  by  commas.   To get the results
+      of EasyRexx message, you examine the array of longwords you passed to it
+      (one entry per option in the template).  Exactly  what  is put in a
+      given entry depends on the type of option.   The  default  is  a string
+      (a sequence of non-whitespace characters, or delimited by quotes, which
+      will be stripped, in which case the entry will be a pointer.
+
+      Options can be followed by  modifiers,  which  specify  things such as
+      the type of the option.  Modifiers are  specified by following the
+      option with a / and a single character  modifier.  Multiple modifiers
+      can be specified by using multiple /s.  Valid modifiers are:
+
+      /S -  Switch.  This is considered a boolean  variable,  and will be set
+                     if the option name appears in the command-line. The entry
+                     is the boolean (0 for not set, non-zero for set).
+
+      /K -  Keyword. This means that the option  will  not be filled unless
+                     the keyword appears. For example if the template is
+                     "Name/K", then unless "Name=<string>" or "Name <string>"
+                     appears in the command line, Name will not be filled.
+
+      /N -  Number.  This parameter is considered a decimal number. If an
+                     invalid number is specified, an  error will be returned.
+                     The entry will be a pointer to the longword number
+                     (this is how you know if a number was specified).
+
+      /T -  Toggle.  This is similar to a  switch, but when specified causes
+                     the boolean value to "toggle".  Similar to /S.
+
+      /A - Required. This keyword must be given a value during command-line
+                     processing, or an error is returned.
+
+      /F -  line.    If this is specified, the entire rest of the line is
+                     taken as the parameter for the option, even if other
+                     option keywords appear in it.
+
+      /M -  strings. This means the argument will take any number of strings,
+                     returning them as an array of strings. Any arguments not
+                     considered to be  part  of another option will be added
+                     to this option. Only one /M should be specified in a
+                     template. Example for a template "Dir/M,All/S" the
+                     command-line "foo bar all qwe" will set the boolean
+                     "all", and return  an  array consisting of "foo", "bar",
+                     and "qwe". The entry in the array will  be a pointer to
+                     an array of string pointers, the last of which will be
+                     NULL.
+
+   There is an interaction between /M  parameters and /A parameters. If there
+   are unfilled /A parameters after  parsing,  it  will grab strings from the
+   end of a previous /M parameter  list  to  fill  the /As.  This is used for
+   things like Copy ("From/A/M,To/A").
+   ======= END OF EasyRexxGuide segment =========
+
+
+      Here is an example ARexxCommandTable:
+
+      struct ARexxCommandTable rxtbl[] =
+      	{
+      	AREXX_QUIT,			"CNMPQUIT",		 NULL,			NULL,
+      	AREXX_TEXTECHO,	"CNMPECHO",     "STRING/F",	NULL,
+      	AREXX_VERSION,		"CNMPVER",	    NULL,			NULL,
+      	AREXX_INC_TV,		"CNMPVARINC",	 "AMOUNT/N",	NULL,
+      	AREXX_QUERY_TV,	"CNMPVARQUERY", NULL,			NULL,
+      	AREXX_SHOW_TV,		"CNMPVARSHOW",  NULL,         NULL,
+      	TABLE_END,
+	};
+
+   See @{"HandleRexx" Link HandleRexx()} for the function that handles
+   these ARexx commands.  Also see @{"EasyRexxGuide" link "EasyRexxGuide/Main"} for more info
+
+@ENDNODE
+@NODE compiling "compiling/linking"
+
+   Compiling and linking your CNMP program
+   =======================================
+
+   To compile and link your CNMP program on a single line, you use the same
+   compile command as usual, but with two additions:
+
+      link lib=lib:cnmp.o lib=lib:easyrexx.lib
+
+   The command I use to compile AND LINK CNMP applications in one command is:
+
+      sc <sourcename.c> GST=/cnh/i GSTIMM LIB=lib:cres.o lib=LIB:cnmp.o lib=lib:EasyRexx.lib PARMS=REG NOSTKCHK CPU=ANY COMNEST STRMERGE verbose link
+
+   To compile without linking:
+
+      sc <sourcename.c> GST=/cnh/i GSTIMM PARMS=REG NOSTKCHK CPU=ANY COMNEST STRMERGE verbose
+
+   To link:
+
+      slink FROM LIB:c.o "sourcename.o"+"lib:CNMP.o" TO <ProgName> LIB lib:cres.o LIB:sc.lib LIB:amiga.lib LIB:easyrexx.lib VERBOSE NOICONS
+
+@ENDNODE

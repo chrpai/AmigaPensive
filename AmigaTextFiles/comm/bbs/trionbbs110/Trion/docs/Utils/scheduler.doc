@@ -1,0 +1,143 @@
+
+
+
+   =====( Scheduler V1.10 )=============================================
+
+
+        Trion 'Scheduler' Utility.
+
+        (c) Copyright Paul Spijkerman, '96-'98. All rights reserved.
+
+        Written for use with the Trion BBS package.
+
+
+   ===================================================================
+
+   The trion scheduler is a programm that starts programms and
+   script at specific times. You can do things what you do regularly
+   do by a programm .. like calling out and do maintenance.
+   It is very much like a cron utility with a few little differences.
+
+   It has an optional window with the time in big digits and a list
+   of the next events.
+   When it is started with no arguments it reads "trion:cfg/scheduler.cfg"
+   instead of a crontab and keeps a log in "trion:log/scheduler.log",
+   but you can change this by using arguments on the command line.
+
+
+   These are the arguments the Scheduler understands:
+
+   CONFIG <path/name>        default:  trion:cfg/scheduler.cfg
+   LOG    <path/name>        default:  trion:log/scheduler.log
+   WINDOW <xpos> <ypos>      default:  x=450 y=55
+   ONTRION                   default:  On Workbench
+   NOWINDOW
+   PRI    <priority>         default:  priority=0
+   STACK  <stack>            default:  stack=2048
+   12HOUR or 24HOUR
+
+
+   The programm default opens a window with a clock and a list of
+   events, but by using NOWINDOW this can be overruled.
+
+   When you use the ONTRION option the window will be opened
+   on the Trion public screen when available instead of the
+   workbench screen.
+   Note that you can't iconize the TrionRM screen until
+   you close the scheduler window.
+   Note that it isn't a problem to have the screen always open, but
+   it slows the mail processor a little when unpacking mail because
+   it has to update the screen after each message.
+   The Trion:down script still works because it also quits the
+   scheduler.
+   Couldn't think of a better way to implement this at this moment,
+   well actually I just thougth of something.
+   Just add to the "event" program commands to Iconize and DeIconize
+   the scheduler and then call the "event" program when TrionRM
+   is Iconized or Deiconized. Have to think if that is a 
+   really smart thing to do.
+
+
+   The clock in the window can be of the 12 hour (AM/PM) type or
+   of of the 24 hour type depending on what argument you use
+   on the command line. Default is the 12 hour type.
+
+
+   Also there is a utility called "event" what was meant to
+   add events ... but at this time it can be used to remove
+   the scheduler from the system by typeing "event -Q".
+
+
+   The format of the scheduler.cfg (crontab) looks very much like
+   that of other cron utilities:
+
+   min hour day month DayOfWeek "command args" ["Description"]
+
+   The only difference is the an optional description for use
+   in the scheduler window. And because there has to be some
+   separation between commands and description they both
+   have to be between "".
+
+   Also there are some arguments that can be placed after
+   the command part that are filtered out by scheduler
+   and used for starting a programm:
+
+
+     >outfile                   <- redirect output to "outfile"
+     >>outfile                  <- same but add to existing file
+     <infile                    <- redirect input from "infile"
+     :PRI    <prioriteit>       <- Suplies a priority for this task
+     :STACK  <stack>            <- Suplies an amount of stack for this task
+     :STDIO                     <- Input/Output of this task is redirected
+                                   to the shell where scheduler was started
+                                   from instead of NIL:
+
+
+
+
+   How to make a scheduler.cfg (Crontab)..
+
+
+   The scheduler.cfg consists or 3 types or lines, blank lines,
+   comment lines and event lines.
+
+   Comment lines start with a "#" or a ";" character.
+
+
+   Event lines have this format:
+
+   min hour day month DayOfWeek "command args" ["Description"]
+
+
+   The first 5 fields, are specifications for what range of values this
+   command has to be run. A "*" means that any value is acceptable.
+   The fields can consist of a row of numbers separated by a ",".
+   Also ranges (numbers separated by a "-") may be used instead of
+   a number.
+
+   Months range from 1 (January) to 12 (December).
+   The Day Of Week ranges from 0 (Sunday) to 6 (Saturday).
+
+
+   For example:
+
+   * * * * *  "Date"
+
+   Would run the command Date every minute of every hour of every day
+   of every month regardless of the day of the week.
+
+	15 * * * *  "Date"
+
+   Only runs on the 15th minute of each hour.
+
+   0 10,12-16,18 * * *  "Date"
+
+   Runs at the start of the hours 10, 12, 13, 14, 14, 16 and 18.
+
+   0 3 * * 2,4,6   "c:execute trion:scripts/PollHub 14:103/3"  "Call Paul"
+
+   This calls out on Tuesday, Thursday and Saterday at 3 AM.
+
+
+
+

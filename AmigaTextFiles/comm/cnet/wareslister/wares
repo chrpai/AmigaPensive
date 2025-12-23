@@ -1,0 +1,73 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+		Wares Lister v2.0
+
+		Written by
+
+		Chris Parker
+
+		Orange County Programmers BBS
+		(714)854-0613
+
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+options results
+bufferflush
+
+
+					/****************************/
+WFile = "GFILES:Wares"			/* File name for Wares List */
+					/****************************/
+
+
+GetUser 1
+UserName = result
+Do until OK = 1
+  Transmit "\f1\z6\c1 Wares Lister v2.0 \z0\c7 Written by \c1Chris Parker"
+  Transmit ""
+  Query    "\c7Enter the \c1name\c7 of the ware your requesting. \c4>\c1 "
+  ware = result
+  ware = overlay(ware,"",1,39)
+  Query    "\c7For which computer (Enter \c1Amiga\c7 or \c1IBM\c7). \c4>\c1"
+  comp = result
+  comp = upper(comp)
+  comp = overlay(comp,"",1,10)
+  Transmit " "
+  Transmit "\c1"||ware||"\c7, \c1"||comp||"  \c3[\c1Y\c3/\c1n\c3/\c1q\c3]\c1"
+  getchar
+  ans = result
+  if ans ~= "N" then OK = 1
+  if ans = "Q" then exit
+end
+Line.0 = "\c1"||ware||" "||comp||" "||UserName
+
+if exists(WFile) then do
+  call open(File,WFile,'R')
+  i = 0
+  do until eof(File)
+    i = i + 1
+    Line.i = readln(File)
+  end
+  i = i - 1
+  call close File
+end
+else do
+  Line1 = "\f1\q1\n1  \c7File Name"
+  Line2 = "\c7Computer"
+  Line3 = "\c7 Requestor"
+  Line1 = Overlay(Line1,"",1,51)
+  Line2 = Overlay(Line2,"",1,13)
+  Line4 = "\c2----------------------------------------------------------------"
+  Line.1 = Line1||Line2||Line3
+  Line.2 = Line4
+  i = 2
+end
+
+call open(File,WFile,'W')
+  do j = 1 to i
+    call writeln(File,Line.j)
+  end
+  call writeln(File,Line.0)
+call close File
+exit
+

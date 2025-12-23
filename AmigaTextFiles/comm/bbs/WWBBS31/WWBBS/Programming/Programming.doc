@@ -1,0 +1,48 @@
+World Wide BBS 3.0 (2.4.95)
+Copyright © 1995 Arthur Choung
+---
+
+     Just want to tell you that when you are executing another program you
+should use SetMode() to change the input mode to CON (cooked) and then
+change it back to RAW, if in fact you do use raw mode in the first place.
+Most programs probably expect to be in CON mode and those who do switch to
+RAW probably change to CON upon exiting.
+
+     If you choose to use the shared library wwbbs.library, then you must
+not perform the standard break checking code (control-c) as it may abort
+while writing an all-important config file.  You should always check for
+a control-c though, and I recommend that you have a global variable named
+panic, or something to that effect, and set it when a break is received.
+And then of course check the panic variable during loops or wherever else
+appropriate.  I use:
+
+BOOL panic=FALSE;
+void __regargs _CXBRK(void);
+void __regargs _CXBRK(void) { panic=TRUE; }
+
+     Functions such as getchar(), etc. will return the EOF-condition when a
+panic condition has occurred, such as loss of carrier.
+
+     You can use embedded codes to use the builtin color codes of WWBBS,
+through printf(), puts(), etc.  There are:
+
+     ~r - reset terminal (ESC [0m)
+     ~h - header color as defined in SystemPrefs
+     ~i - input color
+     ~o - output color
+     ~p - prompt color
+     ~s - system color
+
+     There is also a support lib code which you can link to your programs.
+It provides five functions, Ask(), GetLine(), ShowText(), RunEditor(), and
+Pager()..  It was compiled with SAS/C.  I have included the source so you
+can use it with other compilers.
+
+     I have included the "include" files for using wwbbs.library.  Note
+that the pragmas are for use with SAS/C, but I have included the .fd file
+to allow you to create your own pragmas.  Note that many of the functions
+have accompanying "build-on-the-stack" tag calls, so you will have to
+create those also if you wish to use them.
+
+     I will attempt to fully document the use of wwbbs.library in the next
+release.

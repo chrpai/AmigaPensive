@@ -1,0 +1,382 @@
+# makefile for Amiga Citadel and the utilities
+
+#OB = citsrc:
+#LINKOPTS = VERBOSE addsym
+LINKOPTS = VERBOSE nodebug
+#
+#LCFLAGS = -D1 -ja -ba -ma -cf  -O   -Hinc.p -w  -o$(OB)
+#
+#.c.o :
+#     lc $(LCFLAGS) $*
+
+NLSTOBJS = nlstat.o
+NeTsOBJS = netstat.o
+UTILOBJS = sysutil.o util_lib.o slist.o
+#UTILOBJS = slist.o
+RESETOBJS = reset_net.o libroom.o libmsg.o libnet.o $(UTILOBJS)
+MSGCOMM  = msgnfmt.o compact.o virt.o libmsg.o libnet.o libroom.o
+AFFOBJS  = aff.o affsys.o  $(UTILOBJS) libnet.o
+2ndOBJS  = 2ndfmt.o $(UTILOBJS)
+MSGOOBJS = msgout.o   $(UTILOBJS) $(MSGCOMM)  mailfwd.o
+MSGAOBJS = msgadd.o   $(UTILOBJS) $(MSGCOMM)
+VIRTOBJS = va.o va2.o vasys.o     $(UTILOBJS) libroom.o libnet.o libmsg.o
+CLOGOBJS = clog.o     $(UTILOBJS)
+CVRTOBJS = cvrtlog.o  $(UTILOBJS)
+VERFOBJS = verify.o   $(UTILOBJS)
+EXPAOBJS = expand.o   $(UTILOBJS) libmsg.o
+LOGEOBJS = logedit.o  $(UTILOBJS) mailfwd.o
+CLRYOBJS = clray.o    $(UTILOBJS)
+POPUOBJS = popular.o  $(UTILOBJS) libroom.o libmsg.o
+CALLOBJS = callstat.o $(UTILOBJS)
+LOGSOBJS = logstat.o  $(UTILOBJS)
+ADDUOBJS = adduser.o  $(UTILOBJS)
+VEXFOBJS = vexfind.o  $(UTILOBJS)
+DATCOBJS = datachng.o $(UTILOBJS) libroom.o libnet.o virt.o libmsg.o
+ROUTOBJS = routmail.o $(UTILOBJS) libroom.o libnet.o virt.o libmsg.o mapsys.o nodeedit.o msgnfmt.o
+CLENOBJS = clean.o    $(UTILOBJS) libroom.o libmsg.o
+REC1OBJS = recover1.o $(UTILOBJS) libroom.o
+REC2OBJS = recover2.o $(UTILOBJS) libroom.o libmsg.o
+NODEOBJS = nodelist.o $(UTILOBJS) libnet.o virt.o
+NETLOBJS = netlist.o  $(UTILOBJS) libnet.o virt.o
+
+
+CTDLOBJS = ctdl.o arch.o areas.o bio.o calllog.o\
+           compact.o domains.o events.o floors.o\
+                 hot_help.o info.o log.o mailfwd.o  cc.o\
+                 misc.o modem.o msg.o msgnfmt.o netcall.o\
+                 netitl.o netmisc.o netrcv.o rooma.o\
+           roomb.o route.o slist.o tools.o virt.o\
+                 virt2.o vortex.o sysarc.o sysdep1.o sysdep2.o\
+                 sysdep3.o sysdoor.o sysedit.o syszm.o netcache.o \
+                 cit_zmodem.o minrexx.o \
+                 roqwk.o getenv.o sysdep4.o file_comments.o
+
+#  libmem.o  <--only needed to track memory problems
+
+LIBSOBJS =  libcryp.o liblog.o liblog2.o libmsg.o libnet.o libroom.o libtabl.o
+
+
+both:      ctdl confg
+all :      both utils
+
+ctdl: inc.gst  ctdllib.lib smakefile  $(CTDLOBJS)
+        slink <WITH <
+                FROM lib:catch.o $(CTDLOBJS)
+                      TO ctdl
+                      LIBRARY  ctdllib.lib lib:scms.lib lib:scs.lib lib:amiga.lib
+          $(LINKOPTS) MAP ctdl.map fhls
+<
+
+ctdllib.lib :   $(LIBSOBJS)
+              oml ctdllib.lib r $(LIBSOBJS)
+
+confg: inc.gst confg.o confg2.o syscfg.o slist.o tools.o ctdllib.lib
+    slink <WITH <
+           from lib:catch.o confg.o confg2.o syscfg.o
+           slist.o tools.o to confg library ctdllib.lib lib:scs.lib
+           $(LINKOPTS) MAP confg.map fhls
+<
+
+utils    : adduser callstat clean clog clray culldir cvrtlog datachng\
+           expand logedit logstat msgadd msgout nodelist popular\
+           recover1 recover2 verify vexfind virtadm nlstat 2ndfmt aff\
+           netstat netlist reset_net
+
+utils2   : routmail
+
+remove   : inc.gst
+           delete clog clray callstat adduser vexfind logstat popular
+           delete clean nodelist recover1 recover2 datachng logedit expand
+           delete verify cvrtlog  msgadd msgout virtadm culldir aff
+           delete nlstat routmail netstat netlist
+           delete     clog.o    clray.o callstat.o  adduser.o  vexfind.o
+           delete  logstat.o  popular.o    clean.o nodelist.o recover1.o
+           delete recover2.o datachng.o  logedit.o   expand.o   verify.o
+           delete  cvrtlog.o   msgadd.o   msgout.o  virtadm.o  culldir.o
+           delete      aff.o   nlstat.o routmail.o  netstat.o netlist.o
+
+nlstat   : $(NLSTOBJS)
+           slink <WITH <
+                 FROM LIB:c.o $(NLSTOBJS) to nlstat
+                 LIB LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+netstat   : $(NeTsOBJS)
+           slink <WITH <
+                 FROM LIB:c.o $(NeTsOBJS) to netstat
+                 LIB LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+routmail : $(ROUTOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(ROUTOBJS) to routmail
+                 LIB LIB:scs.lib ctdllib.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+2ndfmt : $(2ndOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(2ndOBJS) to 2ndfmt
+                 LIB LIB:scs.lib ctdllib.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+virtadm  : $(VIRTOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(VIRTOBJS) to virtadm
+                 LIB LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+
+aff      : $(AFFOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(AFFOBJS) to aff
+                 LIB LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+clog     : $(CLOGOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(CLOGOBJS) to clog
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+msgadd   : $(MSGAOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(MSGAOBJS) to msgadd
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+msgout   : $(MSGOOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(MSGOOBJS) to msgout
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+cvrtlog  : $(CVRTOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(CVRTOBJS) to cvrtlog
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+verify   : $(VERFOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(VERFOBJS) to verify
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+expand   : $(EXPAOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(EXPAOBJS) to expand
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+logedit  : $(LOGEOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(LOGEOBJS) to logedit
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+nodelist : $(NODEOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(NODEOBJS) to nodelist
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+netlist  : $(NETLOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(NETLOBJS) to netlist
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+recover1 : $(REC1OBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(REC1OBJS) to recover1
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+recover2 : $(REC2OBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(REC2OBJS) to recover2
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+logstat  : $(LOGSOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(LOGSOBJS) to logstat
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+clean    : $(CLENOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(CLENOBJS) to clean
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+reset_net : $(RESETOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(RESETOBJS) to reset_net
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+vexfind  : $(VEXFOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(VEXFOBJS) to vexfind
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+datachng : $(DATCOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(DATCOBJS) to datachng
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+adduser  : $(ADDUOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(ADDUOBJS) to adduser
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+clray     : $(CLRYOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(CLRYOBJS) to clray
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+popular   : $(POPUOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(POPUOBJS) to popular
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+callstat  : $(CALLOBJS)  ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o $(CALLOBJS) to callstat
+                 LIB ctdllib.lib LIB:scms.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+culldir  : culldir.o   ctdllib.lib
+           slink <WITH <
+                 FROM LIB:c.o culldir.o to culldir
+                 LIB ctdllib.lib LIB:scs.lib LIB:amiga.lib
+                 $(linkopts)
+<
+
+inc.gst   : include.c
+                   sc  noobjname shortint makegst=inc.gst include.c
+                   gst inc.gst
+
+2ndfmt.o    : 2ndfmt.c      2ndfmt.h slist.h
+adduser.o   : adduser.c     ctdl.h
+aff.o       : aff.c         ctdl.h
+affsys.o    : affsys.c      ctdl.h
+arch.o      : arch.c        ctdl.h
+areas.o     : areas.c       ctdl.h
+bio.o       : bio.c         ctdl.h
+calllog.o   : calllog.c     ctdl.h
+callstat.o  : callstat.c    ctdl.h
+cc.o        : cc.c          ctdl.h
+Cit_Qwk.o   : Cit_Qwk.c     ctdl.h slist.h
+cit_zmodem.o: cit_zmodem.c  ctdl.h sysdep.h xproto.h zmodem.h xprzmodem.h
+clean.o     : clean.c       ctdl.h
+clog.o      : clog.c        ctdl.h
+clray.o     : clray.c       ctdl.h
+compact.o   : compact.c     ctdl.h
+confg.o     : confg.c       ctdl.h
+confg2.o    : confg2.c      ctdl.h
+ctdl.o      : ctdl.c        ctdl.h
+culldir.o   : culldir.c
+cvrtlog.o   : cvrtlog.c     ctdl.h
+datachng.o  : datachng.c    ctdl.h
+domains.o   : domains.c     ctdl.h 2ndfmt.h
+events.o    : events.c      ctdl.h
+expand.o    : expand.c      ctdl.h
+file_comments.o   : file_comments.c     ctdl.h
+floors.o    : floors.c      ctdl.h
+getenv.o    : getenv.c
+     sc param=both getenv.c nolink
+hot_help.o  : hot_help.c    ctdl.h
+include.o   : include.c     slist.h
+info.o      : info.c        ctdl.h
+libcryp.o   : libcryp.c     ctdl.h
+liblog.o    : liblog.c      ctdl.h
+liblog2.o   : liblog2.c     ctdl.h
+libmem.o    : libmem.c
+libmsg.o    : libmsg.c      ctdl.h
+libnet.o    : libnet.c      ctdl.h
+libroom.o   : libroom.c     ctdl.h
+libtabl.o   : libtabl.c     ctdl.h
+log.o       : log.c         ctdl.h
+logedit.o   : logedit.c     ctdl.h
+logstat.o   : logstat.c     ctdl.h
+mailfwd.o   : mailfwd.c     ctdl.h
+mapsys.o    : mapsys.c      ctdl.h
+minrexx.o   : minrexx.c     minrexx.h
+misc.o      : misc.c        ctdl.h
+modem.o     : modem.c       ctdl.h
+mr.o        : mr.c
+msg.o       : msg.c         ctdl.h
+msgadd.o    : msgadd.c      ctdl.h
+msgnfmt.o   : msgnfmt.c     ctdl.h
+msgout.o    : msgout.c      ctdl.h 2ndfmt.h
+netcache.o  : netcache.c    ctdl.h
+netcall.o   : netcall.c     ctdl.h
+netitl.o    : netitl.c      ctdl.h
+netlist.o   : netlist.c     ctdl.h
+netmisc.o   : netmisc.c     ctdl.h
+netrcv.o    : netrcv.c      ctdl.h
+netstat.o   : netstat.c
+nlstat.o    : nlstat.c
+nodeedit.o  : nodeedit.c    ctdl.h
+nodelist.o  : nodelist.c    ctdl.h
+node_edit.o : node_edit.c   ctdl.h
+popular.o   : popular.c     ctdl.h
+recover1.o  : recover1.c    ctdl.h
+recover2.o  : recover2.c    ctdl.h
+reset_net.o : reset_net.c   ctdl.h
+rooma.o     : rooma.c       ctdl.h
+roomb.o     : roomb.c       ctdl.h
+ROqwk.o     : ROqwk.c       ctdl.h
+route.o     : route.c       ctdl.h
+routmail.o  : routmail.c    ctdl.h citamap.h
+slist.o     : slist.c       ctdl.h slist.h
+stroll.o    : stroll.c      ctdl.h
+sysarc.o    : sysarc.c      ctdl.h
+syscfg.o    : syscfg.c      ctdl.h c68door.h
+sysdep1.o   : sysdep1.c     ctdl.h
+sysdep2.o   : sysdep2.c     ctdl.h minrexx.h
+sysdep3.o   : sysdep3.c     ctdl.h minrexx.h
+sysdep4.o   : sysdep4.c     ctdl.h
+sysdoor.o   : sysdoor.c     ctdl.h c68door.h
+sysedit.o   : sysedit.c     ctdl.h
+sysutil.o   : sysutil.c     ctdl.h sysutil.h
+syszm.o     : syszm.c       ctdl.h
+tools.o     : tools.c       ctdl.h
+util_lib.o  : util_lib.c    ctdl.h
+va.o        : va.c          ctdl.h
+va2.o       : va2.c         ctdl.h
+vasys.o     : vasys.c       ctdl.h
+verify.o    : verify.c      ctdl.h c68door.h
+vexfind.o   : vexfind.c     ctdl.h
+virt.o      : virt.c        ctdl.h
+virt2.o     : virt2.c       ctdl.h
+vortex.o    : vortex.c      ctdl.h

@@ -1,0 +1,445 @@
+#ifndef	DAYDREAM_H
+#define	DAYDREAM_H	1
+
+#include <exec/types.h>
+
+struct DayDream_CallersLog
+{
+	UWORD clog_userid;
+	UWORD clog_nodenumber;
+	ULONG clog_logondate;
+	ULONG clog_logoffdate;
+	ULONG clog_timeonline;
+	ULONG clog_bytesup;
+	ULONG clog_bytesdown;
+	UWORD clog_filesup;
+	UWORD clog_filesdown;
+	UWORD clog_privmsgs;
+	UWORD clog_pubmsgs;
+	ULONG clog_connectspeed;
+	ULONG clog_flags;
+	char  clog_freeblock[260];
+};
+
+struct DayDream_User
+{
+  char user_realname[26];
+  char user_handle[26];
+  char user_organization[26];
+  char user_zipcity[21];
+  char user_voicephone[21];
+  char user_password[16];
+  UBYTE	user_screenlength;
+  UBYTE	user_protocol;
+  ULONG	user_toggles;
+  char user_signature[45];
+  UBYTE	freeslot1;
+  ULONG	user_ulbytes;
+  ULONG	user_dlbytes;
+  UWORD	user_ulfiles;
+  UWORD	user_dlfiles;
+  UWORD	user_pubmessages;
+  UWORD	user_pvtmessages;
+  UWORD	user_connections;
+  UBYTE	user_fileratio;
+  UBYTE	user_byteratio;
+  char user_computermodel[21];
+  UBYTE	freeslot2;
+  ULONG	user_freedlbytes;
+  UBYTE	user_failedlogins;
+  UBYTE	user_securitylevel;
+  UBYTE	user_joinconference;
+  UBYTE	freeslot3;
+  ULONG	user_firstcall;
+  ULONG	user_lastcall;
+  ULONG	user_conferenceacc1;
+  ULONG	user_conferenceacc2;
+  UWORD	user_dailytimelimit;
+  UWORD	user_account_id;
+  UWORD	user_timeremaining;
+  UWORD	user_freedlfiles;
+  UWORD	user_fakedfiles;
+  ULONG	user_fakedbytes;
+  char  user_inetname[9];
+  char 	user_freeblock[23];
+};
+
+struct DayDream_Conference
+{
+  UBYTE	CONF_NUMBER;
+  char CONF_NAME[40];
+  char CONF_PATH[40];
+  UBYTE	CONF_FILEAREAS;
+  UBYTE	CONF_UPLOADAREA;
+  UBYTE	CONF_MSGBASES;
+  UBYTE	CONF_COMMENTAREA;
+  UBYTE	CONF_UNUSED1;
+  UWORD	CONF_ATTRIBUTES;
+  char CONF_ULPATH[50];
+  char CONF_NEWSCANAREAS[30];
+  char CONF_PASSWD[16];
+  char CONF_FREEBLOCK[116];
+};
+
+struct DayDream_MsgBase
+{
+  UBYTE	MSGBASE_FLAGS;
+  UBYTE	MSGBASE_NUMBER;
+  UWORD	MSGBASE_LOWEST;
+  UWORD	MSGBASE_HIGHEST;
+  UWORD	MSGBASE_MSGLIMIT;
+  char MSGBASE_NAME[21];
+  char MSGBASE_FREEBLOCK2[8];
+  char MSGBASE_FN_TAG[26];
+  char MSGBASE_FN_ORIGIN[58];
+  UBYTE MSGBASE_FN_FLAGS;
+  UWORD MSGBASE_FN_ZONE;
+  UWORD MSGBASE_FN_NET;
+  UWORD	MSGBASE_FN_NODE;
+  UWORD	MSGBASE_FN_POINT;
+  UBYTE	MSGBASE_READACCESS;
+  UBYTE	MSGBASE_POSTACCESS;
+  char MSGBASE_FREEBLOCK1[68];
+};
+
+struct DayDream_Message
+{
+  UWORD	MSG_NUMBER;
+  UWORD	MSG_NEXTREPLY;
+  UWORD	MSG_FLAGS;
+  char MSG_AUTHOR[26];
+  char MSG_RECEIVER[26];
+  char MSG_SUBJECT[68];
+  ULONG	MSG_CREATION;
+  ULONG	MSG_RECEIVED;
+  UWORD	MSG_READCOUNT;
+  UWORD	MSG_ORIGINAL;
+  char MSG_PASSWORD[16];
+  UWORD	MSG_FN_PACKET_ORIG_ZONE;
+  UWORD	MSG_FN_PACKET_ORIG_NET;
+  UWORD	MSG_FN_PACKET_ORIG_NODE;
+  UWORD	MSG_FN_PACKET_ORIG_POINT;
+  UWORD	MSG_FN_ORIG_ZONE;
+  UWORD	MSG_FN_ORIG_NET;
+  UWORD	MSG_FN_ORIG_NODE;
+  UWORD	MSG_FN_ORIG_POINT;
+  ULONG	MSG_FN_MSGID;
+  UWORD	MSG_FN_DEST_ZONE;
+  UWORD	MSG_FN_DEST_NET;
+  UWORD	MSG_FN_DEST_NODE;
+  UWORD	MSG_FN_DEST_POINT;
+  char MSG_ATTACH[33];
+  char MSG_FREEBLOCK[85];
+};
+
+#define MSG_FLAGS_PRIVATE (1L<<0)
+#define MSG_FLAGS_DELETED (1L<<1)
+
+struct DayDream_Protocol
+{
+  UBYTE PROTOCOL_ID;
+  char PROTOCOL_NAME[20];
+  UBYTE PROTOCOL_EFFICIENCY;
+  char PROTOCOL_XPRLIBRARY[30];
+  char PROTOCOL_INITSTRING[30];
+  UBYTE PROTOCOL_FLAGS;
+  char PROTOCOL_FREEBLOCK[117];
+};
+
+
+struct DayDream_DisplayMode
+{
+  UBYTE DISPLAY_ID;
+  char DISPLAY_PATH[9];
+  UWORD DISPLAY_ATTRIBUTES;
+  UBYTE DISPLAY_INCOMING_TABLEID;
+  UBYTE DISPLAY_OUTGOING_TABLEID;
+  char DISPLAY_FONT[20];
+  UWORD DISPLAY_FONTSIZE;
+  UBYTE DISPLAY_STRINGS;
+  char DISPLAY_FREEBLOCK[63];
+};
+
+
+struct DayDream_AccessPreset
+{
+  UBYTE	ACCESS_SECLEVEL;
+  UBYTE	ACCESS_PRESETID;
+  UWORD	ACCESS_FREEFILES;
+  ULONG	ACCESS_FREEBYTES;
+  char ACCESS_DESCRIPTION[29];
+  UBYTE	ACCESS_STATUS;
+  char ACCESS_FREEBLOCK[12];
+};
+
+struct DayDream_MainConfig
+{
+  char	CFG_BOARDNAME[26];
+  char	CFG_SYSOPNAME[26];
+  UBYTE CFG_CHATMODE;
+  UBYTE CFG_LOCALSCREEN;
+  ULONG CFG_DEFAULTS;
+  char	CFG_SERIALCODE[5];
+  char	CFG_DEFAULTASCPATH[21];
+  char	CFG_CHATDLPATH[41];
+  UBYTE	CFG_DISPLAYMODE;
+  ULONG	CFG_COPYBUFFER;
+  UBYTE	CFG_JOINIFAUTOJOINFAILS;
+  char	CFG_COLORSYSOP[11];
+  char	CFG_COLORUSER[11];
+  UBYTE	CFG_LINEEDCHAR;
+  char	CFG_SYSTEMPW[16];
+  char	CFG_NEWUSERPW[16];
+  char	CFG_OLUSEREDPW[16];
+  ULONG	CFG_UNIQUEMSGNUMBER;
+  UBYTE	CFG_DIRFILEBUFFERSIZE;
+  UBYTE	CFG_NEWUSERPRESETID;
+  ULONG	CFG_IDLETIMEOUT;
+  ULONG	CFG_FREEHDDSPACE;
+  ULONG	CFG_FLAGS;
+  char	CFG_SHELLPW[16];
+  char  CFG_ALIENS[40];
+  char  CFG_FSEDCOMMAND[71];
+  char  CFG_FREEDLLINE[100];
+  char  CFG_OLMS[41];
+  UBYTE CFG_COSYSOPLEVEL;
+  UBYTE CFG_CONTROLCODE;
+  char  CFG_HOMES[40];
+  UWORD CFG_GID;
+  UWORD CFG_UID;
+  char  CFG_CHATCMD[71];
+  char	CFG_FREESLOT1[3395];
+};
+
+struct	DayDream_Multinode
+{
+  UBYTE	MULTI_NODE;
+  UBYTE	MULTI_DEVICE;
+  UWORD	MULTI_MINBAUD;
+  UWORD	MULTI_MINBAUDNEW;
+  ULONG MULTI_UNUSED;
+  char	MULTI_FONTNAME[20];
+  UWORD	MULTI_FONTSIZE;
+  UBYTE	MULTI_SCREENFLAGS;
+  UBYTE	MULTI_OTHERFLAGS;
+  char	MULTI_COMMAND[32];
+  BYTE	MULTI_PRIORITY;
+  char	MULTI_TEMPORARY[33];
+  UBYTE MULTI_PEN1;
+  UBYTE MULTI_PEN2;
+  UBYTE MULTI_PEN3;
+  UBYTE MULTI_PEN4;
+  UBYTE MULTI_PEN5;
+  UBYTE MULTI_PEN6;
+  UBYTE MULTI_PEN7;
+  UBYTE MULTI_PEN8;
+  UBYTE MULTI_PEN9;
+  UBYTE MULTI_PEN10;
+  UBYTE MULTI_PEN11;
+  UBYTE MULTI_PEN12;
+  char	MULTI_FREE[88];
+};
+
+struct DayDream_Version
+{
+  char	VER_VERSION[36];
+  UWORD	VER_CONFERENCESIZE;
+  UWORD	VER_MSGBASESIZE;
+  UWORD	VER_USERSIZE;
+  UWORD	VER_ACCESSLEVELSIZE;
+  UWORD	VER_ARCHIVERSIZE;
+  UWORD	VER_MAINCONFIGSIZE;
+  UWORD	VER_EXTCMDSIZE;
+  UWORD	VER_IODEVICESIZE;
+  UWORD	VER_MESSAGESIZE;
+  UWORD	VER_MULTINODESIZE;
+  UWORD	VER_EXTPROTOCOLSIZE;
+  UWORD	VER_DISPLAYSIZE;
+  UWORD	VER_SECURITYSIZE;
+  char	VER_FREEBLOCK[38];
+};
+
+struct NodeStruct {
+	struct NodeStruct *ns_Prev;
+	struct NodeStruct *ns_Next;
+	struct DayDream_User *ns_ub;
+	UWORD ns_Unused;
+	UBYTE ns_Nodenumber;
+	UBYTE ns_Flags;
+	struct Screen *ns_Screen;
+	APTR ns_Activity;
+	ULONG ns_ConnectionRate;
+	APTR ns_Pagereason;
+	struct DayDream_Multinode *ns_Currnode;
+	};
+
+struct DayDream_IO_Device
+{
+  UWORD	IOD_UNIT;
+  ULONG	IOD_DTERATE;
+  char	IOD_NAME[26];
+  char	IOD_PREINIT[16];
+  char	IOD_OFFHOOK[16];
+  char	IOD_ANSWER[16];
+  char	IOD_INITIALIZE[61];
+  char	IOD_RESPONSE_OK[16];
+  char	IOD_RESPONSE_RING[16];
+  char	IOD_RESPONSE_NOCARRIER[16];
+  char	IOD_RESPONSE_CONNECT[16];
+  char	IOD_SPEEDID1[10];
+  char	IOD_SPEEDID2[10];
+  char	IOD_SPEEDID3[10];
+  char	IOD_SPEEDID4[10];
+  char	IOD_SPEEDID5[10];
+  char	IOD_SPEEDID6[10];
+  char	IOD_SPEEDID7[10];
+  char	IOD_SPEEDID8[10];
+  char	IOD_SPEEDID9[10];
+  char	IOD_SPEEDID0[10];
+  char	IOD_ERRORCORRECTIONID[7];
+  UWORD	IOD_SPEED1;
+  UWORD	IOD_SPEED2;
+  UWORD	IOD_SPEED3;
+  UWORD	IOD_SPEED4;
+  UWORD	IOD_SPEED5;
+  UWORD	IOD_SPEED6;
+  UWORD	IOD_SPEED7;
+  UWORD	IOD_SPEED8;
+  UWORD	IOD_SPEED9;
+  UWORD	IOD_SPEED0;
+  UBYTE	IOD_CONNECTDELAY;
+  UBYTE	IOD_INITDELAY;
+  ULONG	IOD_SETUPBITS;
+  char  IOD_AFTERCALL[41];
+  char	IOD_FREEBLOCK1[21];
+
+};
+
+struct	DayDream_Archiver
+{
+  UBYTE	ARC_FLAGS;
+  char	ARC_EXTENSION[6];
+  char	ARC_NAME[21];
+  char	ARC_CMD_TEST[80];
+  char	ARC_EXTRACTFILEID[80];
+  char	ARC_ADDFILEID[80];
+  char  ARC_VIEW[80];
+  char	ARC_CORRUPTED1[16];
+  char	ARC_CORRUPTED2[16];
+  char	ARC_CORRUPTED3[16];
+  UBYTE ARC_VIEWLEVEL;
+  char	ARC_FREEBLOCK[3];
+};
+
+struct	DayDream_Schedule
+{
+  UBYTE	SCHDL_HOUR;
+  UBYTE	SCHDL_BITS;
+  char	SCHDL_SYSTEMPW[16];
+  char	SCHDL_NEWUSERPW[16];
+  char	SCHDL_FREEBLOCK1[166];
+};
+
+struct	DD_ExternalCommand
+{
+  char	EXT_NAME[11];
+  UBYTE	EXT_CMDTYPE;
+  UBYTE	EXT_SECLEVEL;
+  char	EXT_COMMAND[87];
+  char	EXT_FREEBLOCK1[100];
+};
+
+struct DD_Seclevel
+{
+  UBYTE	SEC_SECLEVEL;
+  UBYTE	SEC_FILERATIO;
+  UBYTE	SEC_BYTERATIO;
+  UBYTE	SEC_PAGESPERCALL;
+  UWORD	SEC_DAILYTIME;
+  ULONG	SEC_CONFERENCEACC1;
+  ULONG	SEC_CONFERENCEACC2;
+  ULONG	SEC_ACCESSBITS1;
+  ULONG	SEC_ACCESSBITS2;
+  ULONG	SEC_ACCESSBITS3;
+  ULONG	SEC_ACCESSBITS4;
+  char	SEC_FREE[20];
+};
+
+struct DD_UploadLog
+{
+  UWORD UL_SLOT;
+  char  UL_FILENAME[32];
+  ULONG UL_FILESIZE;
+  ULONG UL_TIME;
+  UWORD UL_BPSRATE;
+  UBYTE UL_NODE;
+  UBYTE UL_CONF;
+  ULONG UL_FREE;
+};
+
+struct DD_DownloadLog
+{
+  UWORD DL_SLOT;
+  char  DL_FILENAME[32];
+  ULONG DL_FILESIZE;
+  ULONG DL_TIME;
+  UWORD DL_BPSRATE;
+  UBYTE DL_NODE;
+  UBYTE DL_CONF;
+  ULONG DL_FREE;
+};
+
+struct FileChainItem
+{
+  struct MinNode FCI_HEADER;
+  char   FCI_PATH[72];
+  char   FCI_FILE[32];
+  ULONG  FCI_SIZE;
+  ULONG  FCI_BITS;
+  UBYTE  FCI_CONF;
+};
+
+#define SECB_DOWNLOAD			0
+#define SECB_UPLOAD			1
+#define SECB_READMSG			2
+#define SECB_ENTERMSG			3
+#define SECB_PAGE			4
+#define SECB_COMMENT			5
+#define SECB_BULLETINS			6
+#define SECB_FILESCAN			7
+#define SECB_NEWFILES			8
+#define SECB_ZIPPYSEARCH		9
+#define SECB_RUNDOOR			10
+#define SECB_JOINCONF			11
+#define SECB_CHANGEMSGAREA		12
+#define SECB_CHANGEINFO			13
+#define SECB_RELOGIN			14
+#define SECB_TAGEDITOR			15
+#define SECB_USERSTATS			16
+#define SECB_VIEWTIME			17
+#define SECB_HYDRATRANSFER		18
+#define SECB_EXPERTMODE			19
+#define SECB_EALLMESSAGE		20
+#define SECB_FIDOMESSAGE		21
+#define SECB_PUBLICMESSAGE		22
+#define SECB_READALL			23
+#define SECB_USERED			24
+#define SECB_VIEWLOG			25
+#define SECB_SYSOPDL			26
+#define SECB_USERLIST			27
+#define SECB_DELETEANY                  28
+#define SECB_REMOTESHELL                29
+#define SECB_WHO                        30
+#define SECB_MOVEFILE			31
+
+#define SECB_SELECTFILECONFS		0
+#define SECB_SELECTMSGBASES		1
+#define SECB_SENDNETMAIL        	2
+#define SECB_OLM			3
+
+#define SUB_ONLYHANDLES			0
+#define SUF_ONLYHANDLES			1
+#define SUB_ONLYREALNAMES		1
+#define SUF_ONLYREALNAMES		2
+
+#endif

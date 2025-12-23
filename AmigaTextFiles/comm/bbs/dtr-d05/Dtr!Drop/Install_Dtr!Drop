@@ -1,0 +1,87 @@
+;
+;   Desaster Installer v3.0
+;
+
+(set @abort-button 	"Quit Game")
+(set @app-name 		"Dtr!Drop v0.5")
+(set @copyfileshelp 	"Dtr!Help\n---------\n\nSelect the files you want to copy and push the proceed button.")
+(set @getdtrdoorsdir	"Dtr!Help\n---------\n\nSelect the directory where the Dtr!Drop directory will be created. (Usually Doors:Desaster/ or similar)")
+(set @bbscmdhelp	"Dtr!Help\n---------\n\nNow give me the name of the BBSCMD the installer shall create.")
+(set @accesslevelhelp	"Dtr!Help\n---------\n\nEnter the minimum accesslevel that will be needed to call Small!Wall in your bbs.")
+
+(set #accesslevelprompt	"Enter the minimum accesslevel for Dtr!Drop")
+(set #exitmsg 		"\n\nA BBSCMD has been created.\n\nFor bugreports, suggestions, gifts:\ntolpan@skom.rhein.de\ndtrwebhq@aol.com")
+(set #welcometext 	"Installation for Dtr!Drop v0.5 - Go on to start installation.\n")
+(set #getdtrdoorsdir	"Select your Desaster directory (a Dtr!Drop dir will be created)")
+(set #copyfilesprompt 	"Select the files you want to be copied.")
+(set #bbscmdnameprompt	"Enter the name of the BBSCMD that will be created")
+(set #file1		"Dtr!Drop Executable (FIM)")
+(set #file2		"Dtr!Drop Documentation (Doc)")
+
+(welcome #welcometext)
+
+(set dtrdoors	(askdir		(prompt #getdtrdoorsdir)
+		(help		@getdtrdoorsdir)
+		(default	"Doors:Desaster/" (newpath))
+		)
+)
+
+(if (= (exists "Files/Dtr!Drop.Fim") 0)
+	(set #file1 (cat #file1 "     [N/A]"))
+)
+(if (= (exists "Documentation/Dtr!Drop.Doc") 0)
+	(set #file2 (cat #file2 "  [N/A]"))
+)
+
+(set files2copy	(askoptions	(choices #file1 #file2)
+		(prompt #copyfilesprompt)
+		(help @copyfileshelp)
+		(default 15)
+		)
+)
+
+(set destdir	(tackon dtrdoors	"Dtr!Drop"))
+(makedir	destdir)
+
+(set	bbscmdname	(askstring (prompt #bbscmdnameprompt)
+			(help	@bbscmdhelp)
+			(default	"KICK")
+			)
+)
+
+(set	accesslevel	(asknumber (prompt #accesslevelprompt)
+			(help	@accesslevelhelp)
+			(range	0 255)
+			(default	"250")
+			)
+)
+
+(if (<> files2copy 0)
+	(
+		(if	(AND (IN files2copy 0) (exists "Files/Dtr!Drop.Fim")
+			)
+			(
+			(copyfiles (source "Files/Dtr!Drop.Fim")
+				(dest destdir)
+				(nogauge)
+			)
+			(set	doorcmd		(tackon	destdir	"Dtr!Drop.Fim"))
+			(set	makebbscmd	("Files/MakeCMD NAME=%s PATH=%s SERVERNAME=Dtr!Drop STACK=4096 ACSLEVEL=%ld CMDTYPE=-1 MULTINODE PRI=0 DOORTYPE=0 NR NC CF SR SC AR AC RD" bbscmdname doorcmd accesslevel))
+			(run	makebbscmd)
+			)
+		)
+
+		(if 	(AND (IN files2copy 1) (exists "Documentation/Dtr!Drop.Doc")
+			)
+			(
+				(copyfiles (source "Documentation/")
+				(dest destdir)
+				(all)
+				(nogauge)
+				)
+			)
+		)
+	)
+)
+
+(exit #exitmsg)

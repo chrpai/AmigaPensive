@@ -1,0 +1,373 @@
+.key pat	;This allows a keyword to be passed to LhA2LZX in the internal variable "pat".  It will be the archive name that is stored here
+.bra {		;This changes the normal AmigaDOS brackets < and > to { and }...
+.ket }		;...because we need to use the character > for ouput re-direction - more on this later
+
+if NOT EXISTS env:LhA2LZXpath				;If the path of LhA2LZX is not known...
+	list LhA2LZX LFORMAT=%F%N >env:LhA2LZXpath	;...get it, and store it in the file 'env:LhA2LZXpath'
+endif
+
+if "`which RequestChoice`" NOT EQ "RES RequestChoice"	;This checks to see if some of the program files that LhA2LZX uses are already resident in memory...
+	Resident > NIL: C:RequestChoice PURE		;...and if they are not, they will be loaded into memory to save loading them off disk every time they are used
+endif							;If LhA2LZX has been run before in the same sitting, these programs will already be in memory
+							
+if "`which RequestFile`" NOT EQ "RES RequestFile"	;Comments like this one will not be read by LhA2LZX when it is running - it ignores anything after a semi-colon
+	Resident > NIL: C:RequestFile PURE
+endif
+
+if "`which Eval`" NOT EQ "RES Eval"	;Anything surrounded by `backticks` will be evaluated first, and the result is then given in its place (see 'v2.2' in the 'Program History' in the .guide for a fuller explanation and more examples)
+	Resident > NIL: C:Eval PURE	;As another example, if you type "List `RequestFile`" in a CLI, the RequestFile requester will pop up, and the file(s) you select will be passed to the program 'List', and they will be listed
+endif					;It would be just the same as if you had typed "List RAM:new.file RAM:othernew.file RAM:old.file", which would list all the details about those 3 files, if you had selected those 3 files in the RequestFile requester
+
+if "`which List`" NOT EQ "RES List"	;If the result of `which List`, which will find the path of the program 'List', is not the text 'RES List' (which means it is resident in memory)...
+	Resident > NIL: C:List PURE	;...this line will be processed.  If the reult IS 'RES List'...
+endif					;...LhA2LZX skips to this line from the 'if...'line
+
+
+; $VER: LhA2LZX 3.2a (24.7.98) Richard Burke
+; Above is a version string, to give details of the file's creation date, author and version number
+
+Failat 60					;Allows errors when using LhA & LZX to be captured - this is to do with Return Codes (you will read more about these later - they are the numbers returned from an operation to tell you its outcome)
+
+lab Beg						;'Lab' stands for 'Label', and gives us a reference point that we can easily 'skip' back to whenever we want
+
+if NOT EXISTS "$LhA2LZXpath"			;This checks to see if the path of the location of where LhA2LZX is actually exists. The $ symbol means 'the contents of the environmental variable stored as the file env:LhA2LZXpath'. If LhA2LZX is stored in DH1:Stuff, this line will read 'if NOT EXISTS Dh1:Stuff/LhA2LZX' - ie, if LhA2LZX does not exist there then execute the next command line. If it *can* be found there, we skip to the next 'endif'
+RequestChoice >nil: "LhA2LZX Error Message" "You must CD to the LhA2LZX drawer!*nSee docs for details!" "Quit"
+	quit					;If the file isn't there, there's no point in carrying on...
+endif
+
+which >env:nl2zwlha lha all			;Finds the location of the LhA tool
+if WARN						;If the LhA tool cannot be found
+	RequestChoice >nil: "LhA2LZX Error Message" "Can't find 'LhA' tool!*nSee docs for details!" "Quit"
+	skip end				;Here we skip to the end, where all the files created so far are deleted
+endif
+
+if "$nl2zwlha" EQ "RES LhA"
+	echo lha >env:nl2zwlha
+endif
+
+which >env:nl2zwlzx lzx all			;Finds the location of the LZX tool e.g. 'C:LZX'
+if WARN
+	RequestChoice >nil: "LhA2LZX Error Message" "Can't find 'LZX' tool!*nSee docs for details!" "Quit"
+	skip end
+endif
+
+if "$nl2zwlzx" EQ "RES LZX"
+	echo lzx >env:nl2zwlzx
+endif
+
+which >env:nl2zinf inf all			;Finds the location of the 'inf' tool e.g. 'C:inf'
+if WARN
+	RequestChoice >nil: "LhA2LZX Error Message" "Can't find 'inf' tool!*nSee docs for details!" "Quit"
+	skip end
+endif
+
+if NOT EXISTS L:lzx.keyfile			;The registered version of LZX won't work without the keyfile
+	RequestChoice >nil: "LhA2LZX Error Message" "Can't find lzx.keyfile!*nSee docs for details!" "Quit"
+	skip end
+endif
+
+if NOT EXISTS env:nl2zorig			;If starting, default path of archive is RAM:
+	echo "*"RAM:*"" >env:nl2zorig		;Asterisks are used before quote marks to tell AmigaDOS to use the quote character - here the text "RAM:" will be stored in env:nl2zorig instead of the text RAM:
+endif
+
+if NOT EXISTS env:nl2zd				;If starting, default path of temporary drawer l2z is RAM:
+	echo RAM: >env:nl2zd			;Here the text 'RAM:' is redirected to the file 'env:nl2zd' - this means the text is now stored in 'env:nl2zd', which is also created by the redirection
+endif
+
+if EXISTS env:LhA2LZXl2zpath			;If the file ENV:LhA2LZXl2zpath exists (which stores the path of the temporary directory 'l2z'), the script will perform the actions to endif
+	cd $LhA2LZXl2zpath			;Current Directory is now that which is stated in the contents of the environmental variable 'LhA2LZXl2zpath'
+	if EXISTS l2z				;If the directory exists...
+		delete l2z/#? ALL FORCE >NIL:	;...the contents of the temporary drawer used to store the archive files are deleted to start freshly. '>NIL:' means 're-direct the output of this operation to the NIL: device'. This will suppress any output.
+	else					;If the directory doesn't exist...
+		makedir l2z >nil:		;...create it...
+	endif
+	skip beg1				;...then we skip to the main body of the program
+endif
+
+lab Temp					;If a location for 'l2z' hasn't already been chosen, we now choose where to put it
+RequestChoice >env:nl2zdrw "Default directory" "Where should I store temporary files? A*ntemporary drawer called 'l2z' will be*ncreated in your selected destination, and*nRAM: will be checked for space if chosen" "RAM:" "Other" "Cancel"
+if $nl2zdrw EQ 1				;If the left button (i.e. RAM:) is chosen. The right-most button is assigned a value 0, and the other buttons are given ascending values from 1 on the left
+	echo "*"RAM:*"" >envarc:LhA2LZXl2zpath
+	copy envarc:LhA2LZXl2zpath TO env:LhA2LZXl2zpath >nil:	;The directory is saved as default for subsequent runs
+	cd RAM:
+	makedir l2z >NIL:			;Here we create the drawer
+endif
+
+if $nl2zdrw EQ 2				;If "Other" is chosen
+	lab Other
+	RequestFile >env:LhA2LZXl2zpath TITLE "Where should 'l2z' be made?" DRAWERSONLY NOICONS POSITIVE Create DRAWER RAM:
+	if WARN					;If the close gadget or the 'Cancel' button is chosen, RequestFile gives a Return Code of 5, which is detected by the WARN statement (this is set if the RC is 5 or greater)
+		skip Temp back			;As the label 'Temp' occured previously in this file, we need to use the 'back' keyword to tell it to search backwards through this file instead of forwards
+	endif
+
+	if $LhA2LZXl2zpath EQ "Ram Disk:"		;If user clicks on RAM: in file requester...
+		echo "*"RAM:*"" >envarc:LhA2LZXl2zpath	;...we change the text stored in 'env:LhA2LZXl2zpath' from 'Ram Disk:' to 'RAM:' to make things easier when checking for amount of memory needed later on
+	endif
+
+	echo >env:nl2zd $LhA2LZXl2zpath		;Get rid of quotation marks around the drawer name. This will read something like 'echo >env:nl2zd "DH1:TempStuff/"', and Echo will echo whatever is written inside the "quotation marks"
+	if NOT EXISTS $LhA2LZXl2zpath		;This will check if the drawer exists, and if it doesn't it will tell the user
+		RequestChoice "LhA2LZX Error Message" "PATH does not exist!" "Choose again!"
+		skip Other BACK
+	else
+		cd $LhA2LZXl2zpath
+		makedir l2z >NIL:
+	endif
+endif
+
+if $nl2zdrw EQ 0				;If "Cancel" is chosen
+	skip end
+endif
+
+
+
+
+;...And now on to the main workings...
+
+
+
+
+lab beg1
+echo "{pat}" >env:nl2zl				;This saves the filename input "pat" to an env variable
+list >env:nl2zpatsize env:nl2zl LFORMAT=%L	;This gets the size of the filename
+if $nl2zpatsize EQ 1				;If no filename has been given...
+	skip exe				;...jump to the procedure that lets you choose one...
+else						;...otherwise...
+	skip File				;...start processing the file
+endif
+
+lab exe
+RequestFile >env:nl2zldfls TITLE "Choose file(s) to convert" POSITIVE Convert ACCEPTPATTERN #?.(lha|lzx|lzh) MULTISELECT DRAWER $nl2zorig
+if WARN					;If no files are chosen...
+	skip end			;...quit LhA2LZX
+endif
+list >RAM:LhA2LZX.exe `type env:nl2zldfls` LFORMAT="execute *"$LhA2LZXpath*" *"%F%N*""	;The archives chosen from the requester will be output in a special format - something like 'execute "dh1:Scripts/LhA2LZX" "dh1:TempStuff/new.lzx"'
+
+execute RAM:LhA2LZX.exe			;Execute the file which lists all the archives to process - it is best just to read 'RAM:LhA2LZX.exe' whilst you are running 'LhA2LZX' to see what it contains!
+delete RAM:LhA2LZX.exe FORCE >NIL:	;After all the files have been processed, delete the listing file
+echo "*e[0;0H*e[J"			;This clears the output window
+echo "*n*n*n                       *e[1;32m  Thank you for using"
+echo "                              *e[33m LhA *e[0m*e[3;1m2 *e[0m*e[2mLZX"	;All the *e[... parts do is change the colour/style of the text - known as ANSI - see "v2.2" in "Program History" in the .guide
+echo "*n*n*n"				;All these echoes are merely to thank you for using this wonderful script!
+quit			;The end of LhA2LZX  :^(
+
+
+lab File
+
+echo "*"{pat}*"" >env:nl2zldfl
+list >env:nl2zorig $nl2zldfl LFORMAT="*"%F*""	;Get the path of the directory that the file is in, surrounded by quotation marks
+if $nl2zorig EQ "Ram Disk:"
+	echo "*"RAM:*"" >env:nl2zorig		;For some reason, if RAM: is chosen, "RAM:" is stored in env:nl2zldfl but "Ram Disk:" is stored in env:nl2zorig...
+endif
+echo >env:nl2zo $nl2zorig			;Get rid of the quotes around the directory name
+
+if NOT EXISTS $nl2zorig				;On the off-chance that someone has entered a path via the CLI which doesn't actually exist...
+	RequestChoice >nil: "LhA2LZX Error Message" "PATH does not exist!" "Try again"
+	skip end				;...skip to the end
+endif
+
+if NOT EXISTS $nl2zldfl
+	RequestChoice >nil: "LhA2LZX Error Message" "FILE does not exist!" "Try again"
+	skip end
+endif
+
+lab Tilde
+search env:nl2zldfl ~ >nil:			;Here we search the archive name to see if it contains a tilde (~), which LZX cannot process
+if $RC EQ 0					;If the Return Code is 0 (i.e. if the search was successful and a tilde was found)...
+	RX lha2lzx.rexx	tilde >NIL:		;If a tilde is found, call the AREXX program 'lha2lzx.rexx' to rename the file without a tilde
+endif
+
+list >env:nl2zsuf $nl2zldfl LFORMAT=%E		;Gives suffix of the archive only
+
+if $nl2zsuf NOT EQ lha				;If file doesn't have .lha suffix
+	if $nl2zsuf NOT EQ lzx			;If file doesn't have .lzx suffix
+		if $nl2zsuf NOT EQ lzh		;If file doesn't have .lzh suffix (which is de-archived by LhA and LZX)
+			RequestChoice "LhA2LZX Error Message" "File $nl2zl is NOT an LhA or LZX archive!" "Ooops!"
+			skip end
+		endif
+	endif
+endif
+
+if $nl2zsuf EQ lzh
+	rename $nl2zldfl AS "$nl2zo$nl2zbnm.lha"	;Rename the .lzh archive with an .lha suffix, as it is virtually the same anyway and will make things easier later on
+	echo "*"$nl2zo$nl2zbnm.lha*"" >env:nl2zldfl	;Get the new file name
+	echo $nl2zldfl >env:nl2zl
+endif
+
+list >env:nl2zbnm1 $nl2zldfl LFORMAT=%S		;Strips the path of the archive to give only the filename with suffix
+list >env:nl2zbnm $nl2zldfl LFORMAT=%M		;Removes .lzx, .lha or .lzh suffix from filename
+list >env:nl2zcom $nl2zldfl LFORMAT=%C		;Gets file comment
+list >env:nl2zdat $nl2zldfl LFORMAT=%D DATES	;Gets file creation date
+list >env:nl2ztim $nl2zldfl LFORMAT=%T		;Gets file creation time
+list >env:nl2zprot $nl2zldfl LFORMAT=%A		;Gets the file protection bits
+rx lha2lzx.rexx prot >NIL:			;Call the AREXX script 'lha2lzx.rexx' and tell it to execute the 'protection' procedure
+list >env:nl2zcomsz env:nl2zcom LFORMAT=%L	;Gets size of comment
+
+lab Memchk					;This labels the following section as "Memchk" so the script can skip to this point from anywhere in the script if it encounters the line "skip Memchk"
+set nl2zmemsz `avail flush total`		;Saves the result from "avail flush total" (try it in a Shell - it gets the total size of available memory) as ENV:nl2zmemsz
+cd $nl2zorig					;CD's to the directory of the original archive
+list >env:nl2zflsz $nl2zldfl LFORMAT=%L		;Gets size of original archive
+eval >env:nl2zflmem $nl2zflsz * 4		;Multiplies the archive size by 4
+eval >env:nl2zflk $nl2zflmem / 1024		;Gives the size of the required memory in Kilobytes, as it will be easier to read and relate to than bytes
+if NOT $nl2zmemsz VAL GT $nl2zflmem		;If your available memory size is less than 4 times the size of the original archive (LZX often decompresses to 3-4 times the size of the archive)...
+	if $LhA2LZXl2zpath EQ "RAM:"			;...and RAM: has been chosen to store temporary files...
+		RequestChoice >env:nl2znomem "! Insufficient Memory!" "There may be insufficient memory to store temporary files in RAM:*n(may need at least $nl2zflk k)" "Choose other path" "Continue anyway" "Cancel"
+		if $nl2znomem EQ 0		;"Cancel"
+			skip end
+		endif
+		if $nl2znomem EQ 1		;"Other"
+			skip Other back
+		endif
+	endif
+endif
+
+if $nl2zsuf EQ lha
+	echo LZX >env:nl2znsuf			;Gives the type of file to convert to in a requester later
+	echo LhA >env:nl2zsuf
+endif
+
+if $nl2zsuf EQ lzx
+	echo LhA >env:nl2znsuf
+	echo LZX >env:nl2zsuf			;Makes it look better in the requester
+endif
+
+
+lab Extra
+echo "*e[0 p"				;This clears the display (the output CLI)
+RequestChoice >env:nl2zext "Convert $nl2zl to . . ." "Do you want to convert $nl2zl to the other*nfiletype or to the smallest archive?*n*nConvert from $nl2zsuf to:" "$nl2znsuf" "Smallest" "Repack" "Cancel"
+if $nl2zext EQ 0			;If 'Cancel' is selected
+	skip end			;This skips back to the section labelled 'end', at the end
+endif
+
+if $nl2zext EQ 3			;If 'Repack' is selected...
+	echo $nl2znsuf >env:nl2zsuf1	;...temporarily swap the suffix...
+	echo $nl2zsuf >env:nl2znsuf	;...with the other file type suffix...
+	echo $nl2zsuf1 >env:nl2zsuf	;...so that the correct program is used to repack the archive. We cleverly make LhA2LZX think that an LhA archive is an LZX archive to re-archive it using LhA, and vice versa
+endif
+
+lab Conv				;This part until 'lab end' converts the archive to either LhA or LZX, and saves whichever type the user requested
+echo "*e[0;0H*e[J"
+cd $LhA2LZXl2zpath
+cd l2z
+"$nl2zwlzx" x -a -F -x -X0 $nl2zldfl	;As the LZX keyfile is now available, the ability to de-archive LhA files is possible, and also much quicker
+if NOT $RC EQ 0				;If user aborts it will skip to 'end'
+	skip er				;RC stands for Return Code - the number returned by LhA if the operation fails
+endif
+	
+if $nl2zsuf EQ lzx						;Means it is an LZX archive
+	"$nl2zwlha" -2 -a -r -F -y -M -e -x a $nl2zbnm #?	;If not aborted, file is archived
+	if NOT $RC EQ 0						;If user aborts it will skip to 'end'
+		skip er
+	endif
+else							;Means it is an LhA/LZH archive
+	"$nl2zwlzx" -r -e -3 -X -F a -Qf $nl2zbnm #?	;If not aborted, file is archived
+	if NOT $RC EQ 0					;If user aborts it will skip to 'end'
+		skip er
+	endif
+endif
+
+if $nl2zext EQ 3			;If 'Repack' was selected
+	echo $nl2znsuf >env:nl2zsuf	;Replace the original suffix
+	echo 2 >env:nl2zext		;Now that the conversion has been done, we treat the rest of the process as if we want the smallest archive
+endif
+
+lab Size
+list >env:nl2zold $nl2zldfl LFORMAT=%L			;Gets the size of the original archive
+list >env:nl2znew $nl2zbnm.$nl2znsuf LFORMAT=%L		;Gets the size of the new archive
+eval >env:nl2zdiff $nl2zold - $nl2znew			;Subtracts the size of the new from the original
+eval >env:nl2zdiff1 $nl2znew - $nl2zold			;Subtracts the size of the original from the new
+$nl2zinf $nl2zldfl QUIET >env:nl2zvolsz			;Gets the amount of free space of destination disk
+rx lha2lzx.rexx size >NIL:				;Call the AREXX script 'lha2lzx.rexx' and tell it to execute the 'size' procedure
+echo "now replaces" >env:nl2znowrep			
+eval >env:nl2zendsz $nl2zvolsz + $nl2zold - $nl2znew	;Calculates how much free space will be left on the disk when the old archive is replaced
+
+if $nl2zdiff GT 10000 VAL
+	eval >env:nl2zdifft $nl2zdiff / 1024
+	echo >env:nl2zdifftt k
+else
+	echo >env:nl2zdifft $nl2zdiff
+	echo >env:nl2zdifftt bytes
+endif
+
+if $nl2zdiff1 GT 10000 VAL
+	eval >env:nl2zdiff1t $nl2zdiff1 / 1024
+	echo >env:nl2zdiff1tt k
+else
+	echo >env:nl2zdiff1t $nl2zdiff1
+	echo >env:nl2zdiff1tt bytes
+endif
+
+if $nl2znew GE $nl2zold VAL				;Original archive is smaller than the new one, so the original is kept
+	if $nl2zext EQ 2				;If the user wanted to convert to the other filetype
+		
+		RequestChoice > NIL: " $nl2zl used" "Using the original archive because it's $nl2zdiff1t $nl2zdiff1tt *nsmaller!" "Okay"		;The difference in file sizes is cleverly given
+		skip end
+	endif
+endif
+
+lab Size1
+if 0 GE $nl2zendsz VAL			;If there won't be enough room for the new archive on the destination disk...
+	RequestChoice >env:nl2zaltpathreq "! Error !" "New archive is too large to fit on disk!*n*nDo you want to choose another path*nto save the new archive to?" "Yes" "No"
+	if $nl2zaltpathreq EQ 0
+		skip end
+	else
+		lab AltPath
+		RequestFile >env:nl2zaltpath TITLE "Choose alternate path..." POSITIVE Save DRAWERSONLY DRAWER RAM: ;...choose a new save path
+		if NOT EXISTS $nl2zaltpath
+			RequestChoice >NIL: "! Error !" "Path does not exist!" "Doh!"
+			skip AltPath BACK
+		else
+			$nl2zinf $nl2zaltpath QUIET >env:nl2zvolsz		;Get the amount of free space of the new path
+			rx lha2lzx.rexx size >NIL:				;Call the AREXX script 'lha2lzx.rexx' and tell it to execute the 'size' procedure
+			eval >env:nl2zendsz $nl2zvolsz + $nl2zold - $nl2znew	;Calculates how much free space will be left on the disk when the old archive is replaced
+			if 0 GE $nl2zendsz VAL
+				skip Size1 BACK
+			else
+				copy env:nl2zaltpath TO env:nl2zorig QUIET	;Put the new save path in place of the old
+				echo "has been converted from" >env:nl2znowrep	;This changes some text in a requester later on, to make the requester text make more sense
+				echo >env:nl2zo $nl2zorig			;Get rid of the quotes around the directory name
+				echo "Hello World!" >env:nl2zcheck		;This is a "dummy" file, created so that we know the destination has changed
+			endif
+		endif
+	endif
+endif
+
+if NOT EXISTS env:nl2zcheck					;If the dummy file does not exist...
+	delete $nl2zldfl QUIET					;...delete the original archive...otherwise leave it on the disk
+endif
+copy "$nl2zbnm.$nl2znsuf" TO $nl2zorig QUIET			;Copy the new archive over in place of the original
+protect "$nl2zo$nl2zbnm.$nl2znsuf" $nl2zprot >NIL:
+if NOT env:nl2zcomsz EQ 1					;If the original archive had a comment...
+	rx lha2lzx.rexx comment >NIL:				;Call the AREXX script 'lha2lzx.rexx' and tell it to execute the 'filecomment' procedure
+	filenote FILE "$nl2zo$nl2zbnm.$nl2znsuf" "$nl2zcom"	;...copy it to the new archive
+endif
+setdate "$nl2zo$nl2zbnm.$nl2znsuf" $nl2zdat $nl2ztim		;Sets the date of the new archive to the old
+if $nl2zext EQ 1						;If the user wanted to convert to the other filetype
+	if $nl2znew GT $nl2zold VAL
+		RequestChoice > NIL: "! Operation Successful !" "$nl2zo$nl2zbnm.$nl2znsuf*n  $nl2znowrep*n$nl2zl*n  and is $nl2zdiff1t $nl2zdiff1tt larger" "Okay"
+	else
+		RequestChoice > NIL: "! Operation Successful !" "$nl2zo$nl2zbnm.$nl2znsuf*n  $nl2znowrep*n$nl2zl*n  and is $nl2zdifft $nl2zdifftt smaller!" "Nice one!"
+	endif
+else
+	RequestChoice > NIL: "! $nl2zo$nl2zbnm.$nl2znsuf used !" "Using the new archive because it's $nl2zdifft $nl2zdifftt smaller!" "Nice one!"
+endif
+
+skip end
+
+lab er						;This will only be reached if an error has occured during the de-/archiving process
+RequestChoice >NIL: "LhA2LZX Error Message" "An error/user-abort has occured!*n*nSee docs for details" "Okay"
+
+lab end
+if EXISTS env:LhA2LZXl2zpath
+	cd $LhA2LZXl2zpath
+	if EXISTS l2z
+		delete l2z ALL QUIET FORCE	;Delete all the temporary files
+	endif
+endif
+
+if EXISTS RAM:l2z				;This is in case the drawer where 'l2z' was located had to be changed from RAM: due to insufficient memory
+	delete RAM:l2z ALL QUIET FORCE
+endif
+
+list >nil: ENV:nl2z#? TO T:l2ztmp LFORMAT "delete %S%S >NIL:"	;This generates a list of all the environment variables used and deletes them
+execute T:l2ztmp >nil:						;The variables are actually deleted by this line
+delete T:l2ztmp >nil:						;The new script generated is deleted here.  Now everything LhA2LZX created during its running has been disposed of.

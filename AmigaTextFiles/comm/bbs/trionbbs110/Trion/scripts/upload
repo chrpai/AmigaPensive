@@ -1,0 +1,116 @@
+.KEY  file,archive,desc
+;.DEF file=nix
+.BRA  <
+.KET  >
+
+
+;;;  This script will be executed after an Upload with the
+;;;  name of the Uploaded file.
+
+;;;  archive = "RAW" | "ZIP | "LHA" | "LZX" | "ZOO" | "ARJ" | "ARC" | "DMS"
+
+
+
+echo  ""                                          >>trion:log/uploadlist
+echo  Information on upload: <file>.              >>trion:log/uploadlist
+echo  ----------------------------------------    >>trion:log/uploadlist
+echo  Archive type is: <archive>.                 >>trion:log/uploadlist
+echo  Checking integrity of the archive:          >>trion:log/uploadlist
+
+
+cd trion:upload
+
+
+;;;  In this script you can check for viruses
+
+
+
+IF <archive> EQ lha
+;   makedir ram:vircheck
+;   copy <file> ram:vircheck
+;   lha x ram:vircheck/<file> ram:vircheck
+;   virus_checker -q >t:infec STDOUT RAM:vircheck/
+;   delete ram:vircheck/#? all
+;   delete ram:vircheck
+EndIf
+
+
+IF <archive> EQ lzx
+;   makedir ram:vircheck
+;   copy <file> ram:vircheck
+;   lzx x ram:vircheck/<file> ram:vircheck
+;   virus_checker -q >t:infec STDOUT RAM:vircheck/
+;   delete ram:vircheck/#? all
+;   delete ram:vircheck
+EndIf
+
+
+
+;;;  In this script you can remove BBS ads
+
+;;;  In this script you can extract file descriptions (File_ID.DIZ)
+;;;  for use by the BBS
+
+
+
+IF <archive> EQ raw
+;   list trion:upload/<file>                        >>trion:log/uploadlist
+   echo  No information on this archive type.      >>trion:log/uploadlist
+EndIf
+
+IF <archive> EQ zip
+   unzip -d <file> File_ID.DIZ
+;   unzip -l <file>  >>trion:log/uploadlist
+   unzip -t <file>  >>trion:log/uploadlist
+EndIf
+
+IF <archive> EQ lha
+   lha d <file> #?.displayme
+   lha x <file> File_ID.DIZ
+;   lha l <file>  >>trion:log/uploadlist
+   lha t <file>  >>trion:log/uploadlist
+EndIf
+
+IF <archive> EQ lzx
+   lzx d <file> #?.displayme
+   lzx x <file> File_ID.DIZ
+;   lzx l <file>  >>trion:log/uploadlist
+   lzx t <file>  >>trion:log/uploadlist
+EndIf
+
+IF <archive> EQ zoo
+;   zoo D <file> #?.displayme
+   zoo e <file> File_ID.DIZ
+;   zoo l <file>  >>trion:log/uploadlist
+   zoo -t <file>  >>trion:log/uploadlist
+EndIf
+
+IF <archive> EQ arj
+   unarj l <file>  >>trion:log/uploadlist
+   unarj t <file>  >>trion:log/uploadlist
+EndIf
+
+IF <archive> EQ arc
+   arc d <file> #?.displayme
+   arc x <file> File_ID.DIZ
+;   arc l <file>  >>trion:log/uploadlist
+   arc t <file>  >>trion:log/uploadlist
+EndIf
+
+IF <archive> EQ dms
+;   dms View <file>  >>trion:log/uploadlist
+   dms Test <file>  >>trion:log/uploadlist
+EndIf
+
+IF <archive> EQ raw
+   MagicDiz e <file> File_ID.DIZ
+EndIf
+
+
+IF exists File_ID.DIZ
+   rename File_ID.DIZ <desc>
+EndIf
+
+
+cd trion:
+

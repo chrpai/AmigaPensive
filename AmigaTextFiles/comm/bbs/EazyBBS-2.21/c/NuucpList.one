@@ -1,0 +1,61 @@
+.KEY onedir/A
+.BRA {
+.KET }
+
+; We use "NewList" (nl) to list directory contents.
+; NewList is a highly configurable, very cool and freely distributable
+; directory-lister by Phil Dietz.  (the guy with the funny manuals ;-)
+;
+; The alias "newlistarea1" shows all available files, "newlistarea2"
+; new files of the last 10 days, and finally "newlistarea3" shows new
+; files of the last 24 hours.
+
+;alias newlistarea1 nl -h -I -n -Z -o -s           -R -B -t -F "%10s  %d  %-30n %N" -D "%2d-%.3M-%02y" []
+;alias newlistarea2 nl -h -I -n -Z -o -sd -r -N 10 -R -B -t -F "%10s  %d  %-30n %N" -D "%2d-%.3M-%02y" []
+;alias newlistarea3 nl -h -I -n -Z -o -sd -r -N 1  -R -B -t -F "%10s  %d  %-30n %N" -D "%2d-%.3M-%02y" []
+
+alias newlistarea1 nl -o -ulhItZB -s           -F "%10s  %d  %-30n %N" -D "%2d-%.3M-%02y" []
+alias newlistarea2 nl -o -ulhItZB -sd -r -N 10 -F "%10s  %d  %-30n %N" -D "%2d-%.3M-%02y" []
+alias newlistarea3 nl -o -ulhItZB -sd -r -N 1  -F "%10s  %-30n %N" -D "%2d-%.3M-%02y" []
+alias newlistarea4 nl -o -hItZB   -sd -P -@    -F "%-45n %7v %d %N"    -D "%2d.%02m.%02y" []
+
+; The pattern excludes all files beginning with "#" (hashmark),
+; and all files named "|LIST|", "|NORMAL|" or "|OWNER|".
+
+newlistarea1 "MB_FILES:{onedir}/~('##?|'|LIST'||'|NORMAL'||'|OWNER'|)" >t:anon-list.index.tmp
+newlistarea2 "MB_FILES:{onedir}/~('##?|'|LIST'||'|NORMAL'||'|OWNER'|)" >t:anon-list.recent.tmp
+newlistarea3 "MB_FILES:{onedir}/~('##?|'|LIST'||'|NORMAL'||'|OWNER'|)" >t:anon-list.1day.tmp
+newlistarea4 "MB_FILES:{onedir}/~('##?|'|LIST'||'|NORMAL'||'|OWNER'|)" >t:anon-list.index_xp.tmp
+
+Echo NOLINE >t:anon-list.empty
+
+MB:C/Cmp t:anon-list.empty t:anon-list.index.tmp >NIL:
+If WARN
+	Echo "Directory of *"MB_FILES:{onedir}*" on `Date`" >>t:anon-list.index
+	Type t:anon-list.index.tmp    >>t:anon-list.index
+	Echo "*N*N" NOLINE >>t:anon-list.index
+EndIf
+
+MB:C/Cmp t:anon-list.empty t:anon-list.recent.tmp >NIL:
+If WARN
+	Echo "Directory of *"MB_FILES:{onedir}*" on `Date`" >>t:anon-list.recent
+	Type t:anon-list.recent.tmp   >>t:anon-list.recent
+	Echo "*N*N" NOLINE >>t:anon-list.recent
+EndIf
+
+MB:C/Cmp t:anon-list.empty t:anon-list.1day.tmp >NIL:
+If WARN
+	Echo "Directory of *"MB_FILES:{onedir}*" on `Date`" >>t:anon-list.1day
+	Type t:anon-list.1day.tmp     >>t:anon-list.1day
+	Echo "*N*N" NOLINE >>t:anon-list.1day
+EndIf
+
+MB:C/Cmp t:anon-list.empty t:anon-list.index_xp.tmp >NIL:
+If WARN
+	Echo "Directory of *"MB_FILES:{onedir}*" on `Date`" >>t:anon-list.index_xp
+	Type t:anon-list.index_xp.tmp >>t:anon-list.index_xp
+	Echo "*N*N" NOLINE >>t:anon-list.index_xp
+EndIf
+
+Delete t:anon-list.index.tmp t:anon-list.recent.tmp t:anon-list.1day.tmp t:anon-list.index_xp.tmp t:anon-list.empty QUIET
+

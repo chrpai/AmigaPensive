@@ -1,0 +1,116 @@
+(set #bad-kick "FRequest braucht mindestens Kickstart 3.0")
+(set #prg "Welches Pointprogramm benutzten sie?")
+(set #mainpath "Bitte das Zeilverzeichnis für FRequest angeben")
+(set #mainhelp
+        (cat
+            "FRequest sollte irgendwo im Pfad installiert\n"
+            "werden, damit das ARexx Skript es findet.\n"
+            "Es kann aber auch zusammen mit dem Skript ins\n"
+            "Rexx/ Verzeichnis kopiert werden\n\n"
+            @getdir-help
+        )
+)
+(set #md-exit
+        (cat
+            "FRequest ist nun installiert. Microdot sollte nun im Rexx/Nachrichten-Makros Menu\n"
+            "den Eintrag FRequest haben\n"
+            "\nViel Spaß beim Requesten!"
+        )
+)
+
+(set #zp-exit
+        (cat
+            "FRequest ist nun installiert. Das File FKeys.zp sollte nun um den Eintrag\n"
+            "F1:SYS:Rexxc/RX ZP:Rexx/FRequest.zprx %s\n"
+            "erweitert werden.\n"
+            "\nViel Spaß beim Requesten!"
+        )
+)
+(set #mainfile "FRequest")
+
+(set #welcometxt
+        (cat
+            "Willkommen zur Installation von FRequest 1.02.\n"
+            "FRequest benötigt mindestens:\n"
+            "  - Kickstart 3.0\n"
+            "  - MUI 3.1\n"
+        )
+)
+
+
+
+(welcome #welcometxt)
+
+; Check Kickstart (>= v3.0) Version.
+
+(if (< (/ (getversion) 65536) 39)
+        (abort #bad-kick)
+)
+
+
+(set #pprog
+        (askchoice
+                (help @askchoise-help)
+                (prompt #prg)
+                (choices
+                    "Microdot"
+                    "ZPoint"
+                )
+                (default 0)
+        )
+)
+
+
+(select #pprog
+    (
+    (set #dirtext "Bitte wählen sie das Rexx/ Verzeichnis von Microdot aus")
+    (set #rexxdir "Microdot:Rexx/")
+    (set #rexxfile "Rexx/FRequest.mdmrexx")
+    )
+    (
+    (set #dirtext "Bitte wählen sie das Rexx/ Verzeichnis von Zodiac's Point aus")
+    (set #rexxdir "ZP:Rexx/")
+    (set #rexxfile "Rexx/FRequest.zprx")
+    )
+)
+
+(set #rexxpath
+    (askdir
+        (prompt  #dirtext )
+        (help    @askdir-help)
+        (default #rexxdir)
+    )
+)
+(copyfiles
+    (source  #rexxfile)
+    (dest    #rexxpath)
+    (files)
+)
+
+(if (= @user-level 1)
+    (copyfiles
+        (source  #mainfile)
+        (dest    "c:")
+        (files)
+    )
+    ;else
+    (
+
+        (set #mainpath
+            (askdir
+                (prompt  #mainpath)
+                (help    #mainhelp)
+                (default "c:")
+            )
+        )
+        (copyfiles
+            (source  #mainfile)
+            (dest    #mainpath)
+            (files)
+        )
+    )
+)
+(select #pprog
+    (EXIT #md-exit)
+    (EXIT #zp-exit)
+)

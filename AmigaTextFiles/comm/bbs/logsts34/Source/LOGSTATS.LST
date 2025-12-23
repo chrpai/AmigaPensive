@@ -1,0 +1,390 @@
+' ***************************************************************
+' LogStats
+' By Peter Deane
+'
+' Version 3.4  (9  December  1994)
+'
+' This one gets rid of the log so no scripts required for lamer sysops
+' No longer reads s:Metro.config
+' Had to also re-write Phillip's record section since I lost the source
+' for his Logstats program (quicker re-writing than finding I think)
+'
+' Version 3.3  (6  November  1991)
+'
+' added in the 'Yesterday' summary. Goes to the command line you call
+' the program with (eg 1.> Logstats.run BBS:TEXTFILES1/TEXT 50 )
+' if run with no extension, won't produce this file.
+'
+' Version 3.2  (20 September 1991) [GFA]
+'
+' Converted to GFA - This is going to be BLOODY fast, mate!
+'
+' Goes through a Metro Log (called from the midnight event)
+' and collects stats on:
+'    Call Numbers
+'    Private Messages Posted
+'    Public Messages Posted
+'    Downloads
+'    Uploads
+'    Doors Played
+'    Feedback messages posted -> Private messages
+'
+' ***************************************************************
+'
+MODE 1
+'
+cline$=_dosCmd$
+' cline$="BBS:Textfiles1/Text_505"
+'
+OPEN "O",#5,"*",80
+PRINT #5
+PRINT #5,"Running LogStats Midnight Program"
+PRINT #5
+PRINT #5,"Here we go gathering stats, (in May?)"
+RELSEEK #5,0
+'
+path$="BBS:BBSFILES/"
+'
+' find Hi User #
+'
+IF EXIST(path$+"hiuser")
+  flnm$=path$+"hiuser"
+  OPEN "I",#2,flnm$,24
+  LINE INPUT #2,hiuser$
+  hiuser%=VAL(hiuser$)
+  CLOSE #2
+ELSE
+  PRINT #5
+  PRINT #5,"ERROR! No '"+path$+"hiuser' file found!!"
+  logerror%=2
+  GOTO crashout
+ENDIF
+'
+' find old Hi User #
+'
+IF EXIST(path$+"Logstats.oldhi")
+  flnm$=path$+"Logstats.oldhi"
+  OPEN "I",#2,flnm$,24
+  LINE INPUT #2,oldhi$
+  oldhi%=VAL(oldhi$)
+  CLOSE #2
+ELSE
+  PRINT #5
+  PRINT #5,"ERROR! No '"+path$+"Logstats.oldhi' file found!!"
+  logerror%=3
+  GOTO crashout
+ENDIF
+'
+' save new hi User #
+'
+flnm$=path$+"Logstats.oldhi"
+OPEN "O",#2,flnm$,24
+PRINT #2,hiuser$
+CLOSE #2
+'
+'
+PRINT #5
+PRINT #5,"There are ";hiuser%;" users on the system."
+RELSEEK #5,0
+DIM stats%(hiuser%,5)
+flnm$=path$+"Logstats"
+PRINT #5
+PRINT #5,"Reading in the old logstats data."
+RELSEEK #5,0
+'
+IF EXIST(flnm$)
+  OPEN "I",#2,flnm$,4096
+  FOR k%=1 TO oldhi%
+    FOR l%=0 TO 5
+      INPUT #2,stats%(k%,l%)
+    NEXT l%
+  NEXT k%
+  CLOSE #2
+ELSE
+  PRINT #5
+  PRINT #5,"ERROR! No '"+flnm$+"' file found!!"
+  logerror%=4
+  GOTO crashout
+ENDIF
+'
+PRINT #5
+PRINT #5,"Examining today's log."
+RELSEEK #5,0
+flnm$=path$+"log"
+flnm2$=path$+"log.big"
+'
+ycalls%=0
+ypub%=0
+ypri%=0
+ydoor%=0
+yup%=0
+ydown%=0
+'
+IF EXIST(flnm$)
+  OPEN "I",#2,flnm$,4096
+  IF EXIST(flnm2$)
+    OPEN "A",#3,flnm2$,4096
+  ELSE
+    OPEN "O",#3,flnm2$,4096
+  ENDIF
+  '
+  DO
+    LINE INPUT #2,fred$
+    PRINT #3,fred$
+    fred$=UPPER$(fred$)
+    IF INSTR(fred$,"ID:")>0
+      num%=VAL(MID$(fred$,5,4))
+      INC stats%(num%,0)
+      INC ycalls%
+    ELSE IF INSTR(fred$,"POSTED A PUB")>0
+      INC stats%(num%,1)
+      INC ypub%
+    ELSE IF INSTR(fred$,"POSTED A PRI")>0
+      INC stats%(num%,2)
+      INC ypri%
+    ELSE IF INSTR(fred$,"DOWNLOADED")>0
+      INC stats%(num%,3)
+      INC ydown%
+    ELSE IF INSTR(fred$,"UPLOADED")>0
+      INC stats%(num%,4)
+      INC yup%
+    ELSE IF INSTR(fred$,"PLAYED")>0
+      INC stats%(num%,5)
+      INC ydoor%
+    ELSE IF INSTR(fred$,"POSTED A FEE")>0
+      INC stats%(num%,2)
+      INC ypri%
+    ENDIF
+  LOOP UNTIL EOF(#2)
+  CLOSE #2
+  CLOSE #3
+  '
+  KILL flnm$
+  '
+  PRINT #5
+  PRINT #5,"Saving out the new stats file."
+  RELSEEK #5,0
+  flnm$=path$+"Logstats"
+  '
+  OPEN "O",#2,flnm$,4096
+  FOR k%=1 TO hiuser%
+    PRINT #2,stats%(k%,0);",";stats%(k%,1);",";stats%(k%,2);",";stats%(k%,3);",";stats%(k%,4);",";stats%(k%,5)
+  NEXT k%
+  CLOSE #2
+  '
+ELSE
+  PRINT #5
+  PRINT #5,"ERROR! No '"+flnm$+"' file found!!"
+  logerror%=5
+  GOTO crashout
+  '
+ENDIF
+'
+IF TRIM$(cline$)<>""
+  flnm$=TRIM$(cline$)
+  '
+  ' Do the "World Record" code Phillip put in ages ago that I now
+  ' don't have source for (well I do now - wonder if it's the same?)
+  '
+  rcalls%=0
+  rpub%=0
+  rpri%=0
+  rdoor%=0
+  rup%=0
+  rdown%=0
+  '
+  IF EXIST(flnm$)
+    OPEN "I",#2,flnm$,4096
+    WHILE NOT EOF(#2)
+      LINE INPUT #2,xx$
+      xxu$=UPPER$(xx$)
+      IF INSTR(xxu$,"MOST")
+        IF INSTR(xxu$,"CALLS")
+          rcalls%=VAL(MID$(xx$,24,5))
+          rcalls$=MID$(xx$,32,9)
+        ELSE IF INSTR(xxu$,"PUBLIC M")
+          rpub%=VAL(MID$(xx$,24,5))
+          rpub$=MID$(xx$,32,9)
+        ELSE IF INSTR(xxu$,"PRIVATE M")
+          rpri%=VAL(MID$(xx$,24,5))
+          rpri$=MID$(xx$,32,9)
+        ELSE IF INSTR(xxu$,"DOORS")
+          rdoor%=VAL(MID$(xx$,24,5))
+          rdoor$=MID$(xx$,32,9)
+        ELSE IF INSTR(xxu$,"UPLOADS")
+          rup%=VAL(MID$(xx$,24,5))
+          rup$=MID$(xx$,32,9)
+        ELSE IF INSTR(xxu$,"DOWNLOADS")
+          rdown%=VAL(MID$(xx$,24,5))
+          rdown$=MID$(xx$,32,9)
+        ENDIF
+      ENDIF
+    WEND
+    CLOSE #2
+  ENDIF
+  '
+  @dateconv(DATE$)
+  '
+  ' So, did we break any records??
+  '
+  IF ycalls%>rcalls%
+    rcalls%=ycalls%
+    rcalls$=pd.date$
+  ENDIF
+  IF ypub%>rpub%
+    rpub%=ypub%
+    rpub$=pd.date$
+  ENDIF
+  IF ypri%>rpri%
+    rpri%=ypri%
+    rpri$=pd.date$
+  ENDIF
+  IF ydoor%>rdoor%
+    rdoor%=ydoor%
+    rdoor$=pd.date$
+  ENDIF
+  IF yup%>rup%
+    rup%=yup%
+    rup$=pd.date$
+  ENDIF
+  IF ydown%>rdown%
+    rdown%=ydown%
+    rdown$=pd.date$
+  ENDIF
+  '
+  OPEN "O",#2,flnm$
+  '
+  PRINT #2
+  PRINT #2," ---------------------------------------"
+  PRINT #2,"         Yesterday on this BBS:"
+  PRINT #2," ---------------------------------------"
+  @spaceout(STR$(ycalls%),4)
+  PRINT #2,SPACE$(spc%)+STR$(ycalls%)+" calls were accepted,"
+  @spaceout(STR$(ypub%),4)
+  PRINT #2,SPACE$(spc%)+STR$(ypub%)+" public messages were posted,"
+  @spaceout(STR$(ypri%),4)
+  PRINT #2,SPACE$(spc%)+STR$(ypri%)+" private messages were posted,"
+  @spaceout(STR$(ydoor%),4)
+  PRINT #2,SPACE$(spc%)+STR$(ydoor%)+" doors were entered,"
+  @spaceout(STR$(yup%),4)
+  PRINT #2,SPACE$(spc%)+STR$(yup%)+" files were uploaded, and"
+  @spaceout(STR$(ydown%),4)
+  PRINT #2,SPACE$(spc%)+STR$(ydown%)+" files were downloaded."
+  PRINT #2
+  PRINT #2," ---------------------------------------"
+  PRINT #2,"         Overall System Records"
+  PRINT #2," ---------------------------------------"
+  @spaceout(STR$(rcalls%),4)
+  PRINT #2," Most calls:           "+SPACE$(spc%)+STR$(rcalls%)+" on "+rcalls$
+  @spaceout(STR$(rpub%),4)
+  PRINT #2," Most public messages: "+SPACE$(spc%)+STR$(rpub%)+" on "+rpub$
+  @spaceout(STR$(rpri%),4)
+  PRINT #2," Most private messages:"+SPACE$(spc%)+STR$(rpri%)+" on "+rpri$
+  @spaceout(STR$(rdoor%),4)
+  PRINT #2," Most doors entered:   "+SPACE$(spc%)+STR$(rdoor%)+" on "+rdoor$
+  @spaceout(STR$(rup%),4)
+  PRINT #2," Most uploads:         "+SPACE$(spc%)+STR$(rup%)+" on "+rup$
+  @spaceout(STR$(rdown%),4)
+  PRINT #2," Most downloads:       "+SPACE$(spc%)+STR$(rdown%)+" on "+rdown$
+  CLOSE #2
+ENDIF
+'
+END
+'
+crashout:
+'
+IF EXIST(path$+"Logstats.errors")
+  OPEN "A",#1,path$+"Logstats.errors",1024
+ELSE
+  OPEN "O",#1,path$+"Logstats.errors",1024
+ENDIF
+PRINT #1
+PRINT #1,"Logstats midnight program recording an error!"
+PRINT #1
+PRINT #1,"Please rectify the situation! We couldn't access a file somewhere!"
+PRINT #1
+PRINT #1,"Error code was "+STR$(logerror%)
+PRINT #1
+SELECT logerror%
+CASE 1
+  PRINT #1,"Your Metro.config was not located in the s: directory."
+  PRINT #1,"Beats me how the BBS was running in any case!"
+CASE 2
+  PRINT #1,"You have no 'hiuser' file in the BBSFILES directory."
+  PRINT #1,"Any new user to login would now overwrite old users!"
+  PRINT #1,"You will need to create a file in BBSFILES with a text editor"
+  PRINT #1,"called 'hiuser'. This is a 1 line file with a number on it."
+  PRINT #1,"The number to use can be calculated by dividing the size"
+  PRINT #1,"(in bytes) of BBSFILES/userlog by 125."
+CASE 3
+  PRINT #1,"There is no 'logstats.oldhi' file in the BBSFILES directory."
+  PRINT #1,"I think you'll need to run the generator program on this, although"
+  PRINT #1,"duplicating your 'hiuser' file to 'logstats.oldhi' MAY solve"
+  PRINT #1,"this problem. Ensure that this number matches the number of lines"
+  PRINT #1,"in the actual 'logstats' data file."
+CASE 4
+  PRINT #1,"There is no 'logstats' file in the BBSFILES directory."
+  PRINT #1,"You will need to generate one using the generator program,"
+  PRINT #1,"or find your backup copy and replace it."
+CASE 5
+  PRINT #1,"There is no 'log' in the BBSFILES directory."
+  PRINT #1,"Maybe it was real quiet today, eh? In any case, no stats could"
+  PRINT #1,"be updated, but this is not a fatal error. To get a logfile,"
+  PRINT #1,"just log in to Metro, or ensure another script you are running"
+  PRINT #1,"in the midnight event is NOT deleting it until AFTER you run"
+  PRINT #1,"this program. Otherwise how else can we get to the stats??"
+ENDSELECT
+PRINT #1
+'
+END
+'
+PROCEDURE spaceout(thing$,col%)
+  '
+  ' [Needs the string to format, and the column width it's going to]
+  ' [Returns spc% - the number of spaces required - 0 if field overflow]
+  '
+  IF LEN(thing$)>col%
+    spc%=0
+  ELSE
+    spc%=(col%-LEN(thing$))
+  ENDIF
+  '
+RETURN
+'
+PROCEDURE dateconv(ddt$)
+  ' converts date to Fido style DD-Mmm-YY
+  ' string to use is pd.date$
+  pd.temp$=ddt$
+  pd.date1$=LEFT$(pd.temp$,2)
+  pd.date2$=MID$(pd.temp$,4,2)
+  pd.date3$=RIGHT$(pd.temp$,2)
+  pd.month%=VAL(pd.date1$)
+  pd.month$="Xxx"
+  IF pd.month%=1
+    pd.month$="Jan"
+  ELSE IF pd.month%=2
+    pd.month$="Feb"
+  ELSE IF pd.month%=3
+    pd.month$="Mar"
+  ELSE IF pd.month%=4
+    pd.month$="Apr"
+  ELSE IF pd.month%=5
+    pd.month$="May"
+  ELSE IF pd.month%=6
+    pd.month$="Jun"
+  ELSE IF pd.month%=7
+    pd.month$="Jul"
+  ELSE IF pd.month%=8
+    pd.month$="Aug"
+  ELSE IF pd.month%=9
+    pd.month$="Sep"
+  ELSE IF pd.month%=10
+    pd.month$="Oct"
+  ELSE IF pd.month%=11
+    pd.month$="Nov"
+  ELSE IF pd.month%=12
+    pd.month$="Dec"
+  ENDIF
+  pd.date$=pd.date2$+"-"+pd.month$+"-"+pd.date3$
+RETURN
+'

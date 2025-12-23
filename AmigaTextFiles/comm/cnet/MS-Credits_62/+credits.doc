@@ -1,0 +1,184 @@
+                         C-Net ** 2.62+ ** Credits
+                   Written by Ray Akey (AKA Heavy Metal)
+                           The Metal Shoppe BBS
+                               519-255-7378
+
+
+** CHANGES 6.2:
+----------------
+1. recompiled for C-Net version change (2.77+)
+
+
+** CHANGES 6.1:
+----------------
+1. Small bug fix where PCredits was not opening P-Files/UD after a post.
+
+
+** CHANGES 5.2:
+---------------
+1. Recompiled for version 2.19 of CNet Amiga.
+
+** CHANGES 5.0b:
+----------------
+1.  Now capable of using a Responses/Downloads ratio to judge whether
+    CreditsClose closes the UD and/or P-Files.
+
+	New Files:
+	----------
+	GoodRatio.message - Copy to SysText: and edit to your liking.
+	                    If this file does not exist, the user is not notified
+                       that he/she has a good responses/dloads ratio.
+	
+ New Sysops: See INSTALLATION and Changes 4.0 for a description of where the
+             other files go.
+
+
+** Changes 4.0:
+---------------
+You can now set which access groups must post/respond before entering the
+Pfiles or UD..  And all aspects are fully configurable!
+
+NEW files: Copy "ClosedPfiles.message" and "ClosedUD.message" to your SYSTEXT:
+           directory and edit them to your liking. If they do not exist, no
+           problem, no messages will be displayed to the user at login to
+           tell him/her that the pfiles, UD or both are closed if their access
+           is not included in "sysdata:credits.data" (more on this later).
+  
+If you were previously using my CREDITS prgs and either the open pfiles or
+open UD "after reponse" options and have edited line 99 of your bbstext to
+include the follwing line:
+
+                          \#2pfiles:CreditsClose\
+
+..then you must remove this line from this point of your BBSTEXT!!!!
+
+CreditsClose is now performed at login to close the UD/Pfiles, or both,
+depending on the user's access.
+
+Search for the line of BBSTEXT that says something to the effect of
+"@ Logon complete"..  And add the following so it reads as such:
+
+\#2pfiles:CreditsClose\Scan for new files, etc,...
+
+^^^^^^^^^^^^^^^^^^^^^^^ must be EXACT, the rest may read different depending
+on whether you've edited it previously. I've chosen this point as it is not
+abortable here by the user as it may be in sys.welcome or any other place.
+
+Lines 9 and 10 of "sysdata:Credits.data" should be edited to contain typical 
+C-Net notation access that you wish to enter the pfiles or UD without posting 
+or responding.. Both lines may be set different. Use access configurations in
+the following C-Net format.
+
+					1-3,9    <-- would allow ACCESS groups 1,2,3 and 9 in without
+                            forcing a post or response but all other groups
+                            MUST post/respond or both (depending on your other
+                            credits.data settings.
+
+After doing ALL of the above, quit and reload C-Net to put the new CREDITS
+programs into effect.
+
+NOTE: YOU NO LONGER HAVE TO "SAVE CONFIG" WITH THE PFILES OR UD CLOSED,
+      therefore, the C-Net config settings have no effect on this program!
+      Although, if you have to close your UD for technical problems, it would
+      be wise to set the "open UD after response" option off so that the UD is
+      not opened when you wish it closed for maintenance or other purposes.
+      Same thing for the Pfiles, if enabled.
+
+
+INSTALLATION:
+-------------
+ Copy pcredits, rcredits and CreditsClose to your Pfiles directory.  Load up
+CED or some other EMacs type text editor and look for line 400 of your BBSTEXT
+which reads "Item Filing" or something like that and change it to (or add to
+it):
+
+   \#2pfiles:pcredits\
+
+Now look for line 478 that says "Response filing"  and change it to
+(or add to it):
+
+   \#2pfiles:rcredits\
+
+and that's it for the program itself..  Now on to the data file...
+
+
+CREDITS.DATA
+------------
+ This file MUST be in your "sysdata:" directory and it contains the following
+information:
+
+line 1: open pfiles after response,   0 = don't care, 1 = yes
+        if YES (1), the program "CreditsClose" must be used. More 
+        on CREDITSCLOSE below..
+line 2: open UDBase after response,   0 = don't care, 1 = yes
+        if YES (1), the program "CreditsClose" must be used.
+line 3: Use Pfile points or UDBytes.  0 = UDbytes, 1 = Pfile points.
+line 4: Bypass credit awarding.       0 = no, 1 = bypass
+line 5: is the initial value in BYTES that is awarded for posting.
+line 6: is the number of credits added per word and after calculated, the value
+        in line 1 is added to the total word credits.
+line 7: is the initial value in BYTES also that is awarded for responding.
+line 8: is the number of credits to add per word and is calculated in 
+        the same manner as the values awarded in line 5 & 6 were.
+line 9: is the access to allow INTO the UD without posting/responding first.
+line 10:is the access to allow INTO the PFILES without posting/responding first.
+line 11:is the MINIMUM responses/downloads ratio before bypassing CreditsClose.
+        values from 0-50 acceptable (0=bypass ratio check)
+
+ If line 1 was 1000 (1k) and line 2 was 10..  If a user made a response with
+10 words in it, he would receive (10 words x 10 bytes) + 1000 bytes or 1100
+(1.1k) bytes worth of credits..  If you want to bypass the word value and just
+award a non-changing value for posting and/or responding, put a 0 in lines 2
+and 4 and make lines 1 and 3 the value you wish to give the user for his posts
+and responses (respectively).
+
+Lines 9 and 10 should contain typical C-Net notation access that you wish to
+enter the pfiles or UD without posting or responding (bypassing mandatory
+posting/responding).
+
+					1-3,9    <-- would allow ACCESS groups 1,2,3 and 9 in without
+                            forcing a post or response.
+
+There are notes to this effect in the credits.data file that I have included in
+the Credits.lzh file and may be left there for future reference. Also, see the
+"Changes" at the top of this file.
+
+
+CREDITSCLOSE:
+-------------
+ If you want users to post/respond before entering either the P-Files or UDBase,
+or BOTH, set the proper line in Credits.data to a 1..  Both can be set to a "1"
+at the same time if you choose both the UDBase AND pfiles to be opened after
+a response or post.
+
+ This is where "CreditsClose" comes in..  Due to the way C-Net is set up,
+the pfiles and UD cannot be set to close when a user logs in without this
+additional program so, add CreditsClose to your bbstext at the line
+where the string "Scan files base for new?" is (line 308) as follows:
+
+\#2pfiles:CreditsClose\Scan files base for new
+
+^^^^^^^^^^^^^^^^^^^^^^^ MUST BE EXACT!! The rest of the line may depend on 
+                        whether you have previously edited BBSTEXT at this 
+                        point or not.
+
+ This line will ensure that the pfiles and/or UD is closed when the next user
+logs in and will remain closed until they either POST or RESPOND. If you set 
+only the Pfiles option to a 1, then only the Pfiles will be closed after
+CreditsClose is finished, if you set the udbase option to a 1, then only the UD
+will be closed after CreditsClose is complete.  And finally, if you set BOTH
+UD and pfiles options to a "1", then BOTH will be closed when the user logs on
+unless you have set lines 9 and 10 of credits.data to bypass their access group.
+
+
+ In future versions, a specific number of posts/responses per call can be 
+specified before either of the two will be opened. AND will allow specific
+accounts to bypass the restrictions in effect. Still working on these..
+
+
+ Hope you enjoy C-Net Credits and please address any comments to Heavy Metal
+on Future World or call my BBS:
+
+                             The Metal Shoppe
+                       519-255-7378 (12-2400 baud)
+                       519-256-0278 (2400-19200 baud)

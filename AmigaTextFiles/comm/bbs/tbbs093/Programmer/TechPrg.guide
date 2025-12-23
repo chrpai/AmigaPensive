@@ -1,0 +1,979 @@
+@database TechnoBBS.guide
+@$VER: TechnoBBS_Programming_Information 00.93
+@node Main "TechnoBBS Programmer Documentation"
+
+  @{b}Information on programming the TechnoBBS system@{ub}
+
+  (Version 0.93)
+
+    @{b}Contents:@{ub}
+
+  @{"  Introduction                 " link Introduction}
+  @{"  TechCon's private port       " link TechCon_Private}
+  @{"  Addressing the ARexx ports   " link ARexx_Ports}
+  @{"  StdIn/StdOut through TechIO  " link StdIO}
+  @{"  Structures                   " link Structs}
+
+Note: The structures and examples in this documentation require the
+following typedefs:
+
+typedef unsigned long ulong;
+typedef unsigned short uword;
+typedef unsigned char ubyte;
+typedef void *obj;
+
+These are much better looking to use than the exec/types.h non-standard,
+capitalized type names.
+
+@endnode
+
+@node StdIO "Using stdin/stdout through TechIO"
+
+The easiest (but also the most limited) way of using the TechnoBBS system
+from any program is by having the program use the input/output streams for
+I/O and redirecting the programs streams to the TechIO-handler.
+
+This method probably doesn't require any examples, you should just make
+sure that your program will exit safely if the carrier is lost.  Normally,
+TechIO will make it look like you've reached the end of a file for the
+input stream.  You can also use TechIO options for sending break signals on
+loss of carrier.
+
+@endnode
+
+@node ARexx_Ports "Addressing ARexx ports of the TechnoBBS system"
+
+Both TechCon and each TechnoBBS node have an ARexx port that can be used to
+communicate with the system.  The easiest way to do this is by using the
+ARexx language.  TechMenu also addresses these ports.
+
+It is also possible to address the ARexx ports directly.  Here are some
+example routines for calling ARexx commands and functions from C:
+
+/*
+ * RexxCmd - Send a command to an ARexx port
+ *
+ * You should have rexxsyslib.library open and a global variable called
+ * APortName containing the name of the ARexx port the command should be
+ * sent to.  You also need a message port called ReplyPort.
+ *
+ * Usage: RexxCmd("<command name>");
+ * 
+ */
+
+void RexxCmd(ubyte *arg)
+{
+    struct RexxMsg *rxm;
+    struct MsgPort *RxPort;
+
+    if(rxm = CreateRexxMsg(ReplyPort, NULL, NULL)) {
+        rxm->rm_Node.mn_Node.ln_Name = "REXX";
+        rxm->rm_Action = RXCOMM;
+        ARG0(rxm) = CreateArgstring(arg, strlen(arg));
+        Forbid();
+        if(RxPort = FindPort(APortName)) PutMsg(RxPort, (struct Message *)rxm);
+        Permit();
+        if(!RxPort) {
+            /* Set error condition - port doesn't exist */
+        } else {
+            WaitPort(ReplyPort);
+            while(GetMsg(ReplyPort)) ;
+            if(rx->rm_Result1 > 5) {
+                /* Set error condition - returned error */
+            }
+        }
+        ClearRexxMsg(rxm, 1);
+        DeleteRexxMsg(rxm);
+    }
+}
+
+/*
+ * RexxFnc - Call an ARexx function
+ *
+ * Requires the same stuff as RexxCmd
+ *
+ * Usage: result = RexxFnc("<function name>", ["<arg>", "<arg>", ...], NULL);
+ *
+ * result is a string, you should free() it after use
+ *
+ */
+
+ubyte *theArgs[16];
+
+__stkargs ubyte *RexxFnc(ubyte *arg, ...)
+{
+    va_list va;
+    ubyte *res;
+    int cc;
+
+    va_start(va, arg);
+    theArgs[0] = arg;
+    for(cc = 1; cc < 16 && ((ulong *)va)[cc - 1]; cc++) theArgs[cc] = (obj)((ulong *)va)[cc - 1];
+    if(cc < 16) theArgs[cc] = NULL;
+    res = DoRxFnc(theArgs);
+    va_end(va);
+    return(res);
+}
+
+void *DoRxFnc(UBYTE **arg)
+{
+    struct RexxMsg *rxm;
+    struct MsgPort *RxPort;
+    ubyte *res;
+
+    res = strdup("");
+    if(rxm = CreateRexxMsg(ReplyPort, NULL, NULL)) {
+        int cc;
+
+        rxm->rm_Node.mn_Node.ln_Name = "REXX";
+        rxm->rm_Action = RXFUNC | RXFF_RESULT;
+        for(cc = 0; arg[cc] && cc < 16; cc++) rxm->rm_Args[cc] = CreateArgstring(arg[cc], strlen(arg[cc]));
+        rxm->rm_Action |= (cc - 1) & 0xf;
+        Forbid();
+        if(RxPort = FindPort(PName)) PutMsg(RxPort, (struct Message *)rxm);
+        Permit();
+        if(!RxPort) {
+            /* Set error condition - port doesn't exist */
+        } else {
+            WaitPort(ReplyPort);
+            while(GetMsg(ReplyPort)) ;
+            if(!rxm->rm_Result1) {
+                if(rxm->rm_Result2) {
+                    free(res);
+                    res = strdup((ubyte *)rxm->rm_Result2);
+                    DeleteArgstring((ubyte *)rxm->rm_Result2);
+                }
+            } else if(rxm->rm_Result1 > 5) {
+                /* Set error condition - returned error */
+            }
+        }
+        ClearRexxMsg(rxm, 1);
+        DeleteRexxMsg(rxm);
+    }
+    return(res);
+}
+
+These example routines are safe, since they FindPort() the message port
+each time.  If you want to avoid having to do this, you must have a global
+ARexx message port pointer and lock whatever programs port is in question
+to make sure it doesn't disappear.  For TechCon, you must perform an
+@{"ID_INCOPENCOUNT" link ID_INCOPENCOUNT}.  For a node, you should do the following:
+
+Forbid();
+if(RxPort = FindPort(APortName)) RexxCmd("LockCarrier");
+Permit();
+
+The name of TechCon's ARexx port is "TechCon", the name of a nodes port is
+"Tech_<node number>".
+
+See TechnoBBS.guide for lists of ARexx commands and functions.
+
+PostMsgRaw is the only ARexx command that isn't intended for use from real
+ARexx scripts:
+
+@{b}Usage:@{ub}          PostMsgRaw <address> <msg. area>
+
+Uses the node this is addressed to for posting a message.  This is the
+recommended way of posting messages.  The <address> is a pointer to a
+MemMsg structure in hex.  The message area number is in decimal.
+
+@endnode
+
+@node Introduction "Introduction"
+
+This documentation quickly describes how to communicate with different
+parts of the TechnoBBS system from low-level languages (the examples are in
+C, but it isn't difficult to make similar routines in Assembler or any
+other languages that support system library calls).
+
+Before attempting to make programs that communicate with the TechnoBBS
+system, you should be somewhat familiar with the TechnoBBS system in
+general.  It is recommended that you know how to control the TechnoBBS
+system using ARexx and/or TechMenu scripts before attempting to do anything
+directly.  (Except if you only use stdio for communicating through the
+TechIO dos-handler)
+
+Never access any files directly while TechCon is active.  You shouldn't
+trust the structures of the files to remain the same, either.  The methods
+of communication described in this documentation are recommended for access
+to the TechnoBBS system whenever ARexx scripts aren't adequate.
+
+There are three methods (in addition to ARexx and TechMenu scripts, which
+are not described in this documentation) of communicating with the
+TechnoBBS system:
+
+        Through @{"TechCon's private port" link TechCon_Private}
+
+        By @{"addressing the ARexx ports" link ARexx_Ports}
+
+        Using @{"StdIn/StdOut through TechIO" link StdIO}
+
+@endnode
+
+@node TechCon_Private "The 'TechCon_Private' message port"
+
+TechCon has a "private" message port which is used for receiving commands
+and requests for global structures from nodes and utilities.  The name of
+the message port is "TechCon_Private".
+
+TechCon is used to perform operations such as loading/saving messages,
+users etc. to avoid problems with multi-node systems.
+
+The structure for messages sent to this port is:
+
+/* Note: The int type is long */
+
+struct BBSMsg {
+    struct Message Msg; /* An exec message */
+    int SendingNode;    /* The number of the node sending the message or
+                           -1 if sent by a utility */
+    uword ID;           /* The ID number of the command this message is
+                           supposed to cause TechCon to perform */
+    obj result;         /* The result field pointing to whatever result
+                           data is returned by the call (if any) */
+    int Ret;            /* Used by some calls for all kinds of stuff
+                           (used to be a result field) */
+    obj data;           /* Additional data for the command, whenever the
+                           command requires any */
+};
+
+This structure may change -- extensions may be added.  Future versions
+should be compatible with old utilities, though.
+
+Currently defined ID-values available to utilities (not only nodes) are:
+
+#define ID_BEGINMSGH    11
+#define ID_ENDMSGH      12
+#define ID_LOADMSG      13
+#define ID_SAVEMSG      14
+#define ID_UPDATEMSG    15
+#define ID_GETMSGAREA   16
+#define ID_GETFILEROOT  17
+#define ID_UPDATEFILES  18
+#define ID_LOADUSER     19
+#define ID_SAVEUSER     20
+#define ID_GETUSERPATH  21
+#define ID_KILLUSER     22
+#define ID_GETINDEX     23
+#define ID_GETUSERNUM   26
+#define ID_FREEDVEC     27
+#define ID_INCOPENCOUNT 28
+#define ID_DECOPENCOUNT 29
+#define ID_GETNUMAREAS  30
+#define ID_GETNUMNODES  31
+#define ID_GETUSERNAME  37
+#define ID_GETSIGS      43
+#define ID_SETLOWMSG    44
+#define ID_DELMSGFILE   45
+#define ID_LOCKFILEROOT 46 /* 0.91 */
+#define ID_FREEFILEROOT 47 /* 0.91 */
+#define ID_MOVEFILE     48 /* 0.92 */
+
+Here is an example of a routine that could be used for sending command
+messages to TechCon:
+
+void *SendBBSMsg(uword ID, void *data)
+{
+    static struct BBSMsg *sndmsg = NULL;
+
+    if(!sndmsg) sndmsg = calloc(sizeof(struct BBSMsg), 1);
+    else bzero(sndmsg, sizeof(struct BBSMsg));
+    sndmsg->SendingNode = -1;
+    sndmsg->ID = ID;
+    sndmsg->data = data;
+    sndmsg->Msg.mn_ReplyPort = ReplyPort;
+    PutMsg(TechConPort, (struct Message *)sndmsg);
+    Wait(1 << ReplyPort->mp_SigBit);
+    while(GetMsg(ReplyPort)) ;
+    return(sndmsg->result);
+}
+
+Before this, you should have ReplyPort created and a pointer to the
+"TechCon_Private" port in TechConPort.  In the beginning of your program,
+you could have something like:
+
+struct MsgPort *ReplyPort, *TechConPort;
+
+...
+    if(ReplyPort = CreateMsgPort()) {
+        Forbid();
+        if(TechConPort = FindPort("TechCon_Private")) SendBBSMsg(ID_INCOPENCOUNT, NULL);
+        Permit();
+        if(TechConPort) {
+            ...
+            SendBBSMsg(ID_DECOPENCOUNT, NULL);
+        } else {
+            /* Inform of error */
+        }
+        DeleteMsgPort(ReplyPort);
+    } else {
+        /* Inform of error */
+    }
+...
+
+Using ID_INCOPENCOUNT will increase the open count of TechCon and prevent
+it from closing (so the message port can't disappear while you're running).
+Having it in the same Forbid() with the FindPort() command makes sure the
+port doesn't disappear before you send the command.
+
+Information on the commands available:
+
+        (Version 0.93)
+
+        @{"ID_BEGINMSGH    " link ID_BEGINMSGH}
+        @{"ID_ENDMSGH      " link ID_ENDMSGH}
+        @{"ID_LOADMSG      " link ID_LOADMSG}
+        @{"ID_SAVEMSG      " link ID_SAVEMSG}
+        @{"ID_UPDATEMSG    " link ID_UPDATEMSG}
+        @{"ID_GETMSGAREA   " link ID_GETMSGAREA}
+        @{"ID_GETFILEROOT  " link ID_GETFILEROOT}
+        @{"ID_UPDATEFILES  " link ID_UPDATEFILES}
+        @{"ID_LOADUSER     " link ID_LOADUSER}
+        @{"ID_SAVEUSER     " link ID_SAVEUSER}
+        @{"ID_GETUSERPATH  " link ID_GETUSERPATH}
+        @{"ID_KILLUSER     " link ID_KILLUSER}
+        @{"ID_GETINDEX     " link ID_GETINDEX}
+        @{"ID_GETUSERNUM   " link ID_GETUSERNUM}
+        @{"ID_FREEDVEC     " link ID_FREEDVEC}
+        @{"ID_INCOPENCOUNT " link ID_INCOPENCOUNT}
+        @{"ID_DECOPENCOUNT " link ID_DECOPENCOUNT}
+        @{"ID_GETNUMAREAS  " link ID_GETNUMAREAS}
+        @{"ID_GETNUMNODES  " link ID_GETNUMNODES}
+        @{"ID_GETUSERNAME  " link ID_GETUSERNAME}
+        @{"ID_GETSIGS      " link ID_GETSIGS}
+        @{"ID_SETLOWMSG    " link ID_SETLOWMSG}
+        @{"ID_DELMSGFILE   " link ID_DELMSGFILE}
+        @{"ID_LOCKFILEROOT " link ID_LOCKFILEROOT}
+        @{"ID_FREEFILEROOT " link ID_FREEFILEROOT}
+        @{"ID_MOVEFILE     " link ID_MOVEFILE}
+
+@endnode
+
+@node ID_MOVEFILE "ID_MOVEFILE"
+
+(TechCon version 0.92 and above)
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_MOVEFILE, fmd);
+
+struct FileMoveDat *fmd;
+
+Moves (or deletes, if the destination directory is NULL) a file from one
+directory to another.  It copies the actual file, changes the filenode's
+Node.ln_Name field, Remove()s the node from the flist of the source
+directory and Insert()s it in the flist of the destination directory (also
+renumbering the area).
+
+@{b}Args:@{ub}
+
+fmd->sdir = <source DirNode, the file should be in this directory>
+fmd->ddir = <destination DirNode or NULL for delete>
+fmd->fncopy = <a copy of the FileNode-structure of the file you wish to
+        move/delete, Node.ln_Name must be the same as the actual node's,
+        this CAN be a pointer to the actual FileNode-structure>
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_GETINDEX "ID_GETINDEX"
+
+@{b}Usage:@{ub}          ie = SendBBSMsg(ID_GETINDEX, mr);
+
+struct IndexEntry *ie;
+struct MsgReq *mr;
+
+Returns a pointer to an IndexEntry-structure for the message requested or
+NULL.  If successful, you must perform a FreeVec(ie) when you're done with
+the data.
+
+@{b}Args:@{ub}
+
+mr->Area = <number of area to load index from>;
+mr->MsgNum = <message number to load index of>;
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_BEGINMSGH "ID_BEGINMSGH"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_BEGINMSGH, NULL);
+
+Tells TechCon that lots of messages are going to be handled soon, and that
+it should keep any message files that are opened open.  This should be used
+before doing something that requires fast access to messages.  @{"ID_ENDMSGH" link ID_ENDMSGH}
+must be called after you're done, or you might end up with a corrupted
+message base.
+
+@endnode
+
+@node ID_ENDMSGH "ID_ENDMSGH"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_ENDMSGH, NULL);
+
+Ends a message handling session started with @{"ID_BEGINMSGH" link ID_BEGINMSGH}.
+
+@endnode
+
+@node ID_LOADMSG "ID_LOADMSG"
+
+@{b}Usage:@{ub}          lm = SendBBSMsg(ID_LOADMSG, mr);
+
+struct LoadedMsg *lm;
+struct MsgReq *mr;
+
+Loads a message.  You must free the message returned by calling
+FreeVec(lm->msg);
+
+Returns NULL on failure.
+
+@{b}Args:@{ub}
+
+mr->Area = <area number to load message from>;
+mr->MsgNum = <message number to load>;
+
+@{b}Results:@{ub}
+
+lm->msg = <pointer to the actual message>;
+lm->Length = <total message length>;
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_SAVEMSG "ID_SAVEMSG"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_SAVEMSG, mr);
+
+struct MsgReq *mr;
+
+Saves a message.  This is a low-level routine and it is recommended that
+you do not use it for saving messages.  Save messages through a node,
+instead.
+
+@{b}Args:@{ub}
+
+mr->Area = <area number to save the message to>;
+mr->bmsg = <pointer to the message to save>;
+mr->MsgLen = <total length of the message>;
+mr->MText = <pointer to where the message text starts in mr->bmsg>;
+mr->ToUser = <pointer to where the name of the user the message is to
+              starts in mr->bmsg;
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_UPDATEMSG "ID_UPDATEMSG"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_UPDATEMSG, mr);
+
+struct MsgReq *mr;
+
+Updates a message.  The message length must remain the same, this should be
+used for changing the header part of the message only (fields that are
+defined in the FMsg structure).
+
+@{b}Args:@{ub}
+
+mr->Area = <area number to update message in>;
+mr->bmsg = <pointer to the message to update>;
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_GETMSGAREA "ID_GETMSGAREA"
+
+Usage:          acfg = SendBBSMsg(ID_GETMSGAREA, (void *)area);
+
+int area;
+struct AreaCfg *acfg;
+
+Returns a pointer to the configuration of message area number area or NULL
+on failure.
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_GETFILEROOT "ID_GETFILEROOT"
+
+For nodes only, use @{"ID_LOCKFILEROOT" link ID_LOCKFILEROOT}
+
+@endnode
+
+@Node ID_UPDATEFILES "ID_UPDATEFILES"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_UPDATEFILES, NULL);
+
+Updates the global file list.
+
+@endnode
+
+@node ID_LOADUSER "ID_LOADUSER"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_LOADUSER, ur);
+
+struct UserReq *ur;
+
+Loads information on a user into a structure that you have allocated.
+
+@{b}Args:@{ub}
+
+ur->name = <name of the user to load>;
+ur->user = <a pointer to an empty user structure allocated by your program>;
+
+@{b}Results:@{ub}
+
+Your structure pointed to by ur->user contains information on the user, if
+loading the user was successful.
+
+After using the user structure, you must call @{"ID_FREEDVEC" link ID_FREEDVEC} for the following
+fields:
+
+ur->user->Name
+ur->user->Password
+ur->user->CharSet
+ur->user->Extension
+ur->user->Locale
+ur->user->Protocol
+
+And each name and node in the &ur->user->Misc list.
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_SAVEUSER "ID_SAVEUSER"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_SAVEUSER, ur);
+
+struct UserReq *ur;
+
+Saves the information on a user.  If the ur->user->Number field is 0, a new
+directory is created for the user.
+
+@{b}Args:@{ub}
+
+ur->name = <name of the user to save>;
+ur->user = <a pointer to a user structure containing all the required
+            information>;
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_GETUSERNUM "ID_GETUSERNUM"
+
+@{b}Usage:@{ub}          num = (int)SendBBSMsg(ID_GETUSERNUM, name);
+
+int num;
+UBYTE *name;
+
+Returns the number of a user matching the given name (a pattern) or 0 if a
+user by that name doesn't exist.
+
+@endnode
+
+@node ID_KILLUSER "ID_KILLUSER"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_KILLUSER, name);
+
+UBYTE *name;
+
+Kills a user matching the given name.
+
+@endnode
+
+@node ID_FREEDVEC "ID_FREEDVEC"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_FREEDVEC, ptr);
+
+void *ptr;
+
+This is used to free memory returned by some commands.
+
+@endnode
+
+@node ID_INCOPENCOUNT "ID_INCOPENCOUNT"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_INCOPENCOUNT, NULL);
+
+Increases TechCon's open count to prevent it from exiting.  You must call
+@{"ID_DECOPENCOUNT" link ID_DECOPENCOUNT} as many times as you call ID_INCOPENCOUNT.
+
+@endnode
+
+@node ID_DECOPENCOUNT "ID_DECOPENCOUNT"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_DECOPENCOUNT, NULL);
+
+Decreases TechCon's open count (which has been increased by
+@{"ID_INCOPENCOUNT" link ID_INCOPENCOUNT}).  TechCon can only exit when its open count is 0.
+
+@endnode
+
+@node ID_GETNUMAREAS "ID_GETNUMAREAS"
+
+@{b}Usage:@{ub}          num = (int)SendBBSMsg(ID_GETNUMAREAS, NULL);
+
+int num;
+
+Returns the number of message areas that exist.  This is also the number of
+the highest message area.
+
+@endnode
+
+@node ID_GETNUMNODES "ID_GETNUMNODES"
+
+@{b}Usage:@{ub}          num = (int)SendBBSMsg(ID_GETNUMNODES, NULL);
+
+int num;
+
+Returns the number of nodes configured in the system.  This is the number
+of remote nodes and also the maximum node number.
+
+@endnode
+
+@node ID_GETUSERNAME "ID_GETUSERNAME"
+
+@{b}Usage:@{ub}          name = SendBBSMsg(ID_GETUSERNAME, pattern);
+
+UBYTE *name, *pattern;
+
+Returns the name of the first user matching the given pattern.  @{"ID_FREEDVEC" link ID_FREEDVEC}
+must be called for the result.
+
+@endnode
+
+@node ID_GETSIGS "ID_GETSIGS"
+
+@{b}Usage:@{ub}          siglist = SendBBSMsg(ID_GETSIGS, NULL);
+
+struct MinList *siglist;
+
+Returns a list containing struct SigDat entries.  These are the SIGs
+configured.
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_SETLOWMSG "ID_SETLOWMSG"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_SETLOWMSG, mr);
+
+struct MsgReq *mr;
+
+Changes the low message of a message area.  Does NOT delete the .MDT files
+containing the messages lower than the new low message value, only updates
+the .IDX file.  This should be called during a message handling session.
+
+@{b}Args:@{ub}
+
+mr->Area = <area number to set low message of>;
+mr->MsgNum = <new lowmsg value>;
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_DELMSGFILE "ID_DELMSGFILE"
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_DELMSGFILE, mr);
+
+struct MsgReq *mr;
+
+Deletes a message file (a file with an .MDT extension).
+
+Warning:  Doesn't check if the messages in the file are still within the
+area, be careful with this command
+
+@{b}Args:@{ub}
+
+mr->Area = <area number to delete message file from>;
+mr->MsgNum = <message file number to delete>;
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_LOCKFILEROOT "ID_LOCKFILEROOT"
+
+(TechCon version 0.91 and above)
+
+@{b}Usage:@{ub}          FileRoot = SendBBSMsg(ID_LOCKFILEROOT, NULL);
+
+struct DirNode *FileRoot;
+
+Returns a pointer to the global file area data structures and increases the
+lock count.  You must call @{"ID_FREEFILEROOT" link ID_FREEFILEROOT} even if the returned value is
+NULL!
+
+Note: While the lock count is non-zero, ID_UPDATEFILES is disabled (does
+nothing).  Starting with version 0.92 ID_UPDATEFILES commands are just
+delayed until the FileRoot is released.
+
+@{b}See also:@{ub}       @{"Structures" link Structs}
+
+@endnode
+
+@node ID_FREEFILEROOT "ID_FREEFILEROOT"
+
+(TechCon version 0.91 and above)
+
+@{b}Usage:@{ub}          SendBBSMsg(ID_FREEFILEROOT, NULL);
+
+Decreases the lock count of the file root structures.  This must be called
+as many times as you have called @{"ID_LOCKFILEROOT" link ID_LOCKFILEROOT}.
+
+Starting with TechCon version 0.92, the final ID_FREEFILEROOT checks if
+there have been any ID_UPDATEFILES commands while the lock was active and
+updates the file list if there has.
+
+@endnode
+
+@node Structs "Structures"
+
+struct SigDat {         /* SIG configuration structure */
+    struct MinNode Node;
+    int SigNum;
+    char *Name;
+    int MinAcc;
+    int Mask;
+    struct MinList Areas; /* List of nodes with ln_Name fields pointing to
+                             a struct AreaCfg */
+};
+
+struct FAreaCfg {       /* File area configuration structure */
+    ubyte *Name;
+    int MinAcc;
+    int UpAcc;
+    int DownAcc;
+    int Mask;
+    int UpMask;
+    int DownMask;
+    struct MinList *FreeDL;     /* List of nodes with ln_Name fields
+                                   pointing to a parsed pattern */
+    struct MinList *NoUpload;   /* List of nodes with ln_Name fields
+                                   pointing to a parsed pattern */
+    ubyte *Redirect;
+    struct MinList *Misc;       /* TechCon 0.91+ */
+};
+
+struct FidoNode {       /* FidoNet address structure */
+    struct Node nd;
+    int Zone;
+    int Net;
+    int Node;
+    int Point;
+};
+
+struct AreaCfg {        /* Message area configuration */
+    int AreaNr;
+    ubyte *Name;
+    int Type;
+    ulong LowMsg;
+    ulong HiMsg;
+    int MsgFile;
+    int MinAcc;
+    int ReadAcc;
+    int WriteAcc;
+    int RPAcc;
+    int Mask;
+    int ReadMask;
+    int WriteMask;
+    int RPMask;
+    ubyte *EchoTag;
+    ubyte *Origin;
+    ulong HiWater;
+    int NoImport;
+    struct MinList *ExportTo;   /* List of struct FidoNodes */
+    struct MinList *Misc;       /* List of nodes w/ ln_Name pointing to a
+                                   string */
+    struct FidoNode *AKA;
+    int nmdt;   /* PRIVATE - don't touch */
+    long mdt;   /* PRIVATE - don't touch */
+    long idx;   /* PRIVATE - don't touch */
+    int mod;   /* Set this if you change anything during a message handling
+                  session */
+};
+
+struct BBSMsg {         /* See info on TechCon private port for comments in
+                           fields */
+    struct Message Msg;
+    int SendingNode;
+    uword ID;
+    void *result;
+    int Ret;
+    void *data;
+    int Node;
+};
+
+struct LoadedMsg {      /* This is what LoadMsg() returns (for some reason) */
+    struct FMsg *msg;
+    ulong Length;
+};
+
+struct MsgReq {         /* Used for lots of stuff */
+    int Area;
+    ulong MsgNum;
+    struct FMsg *bmsg;
+    ulong MsgLen;
+    ubyte *MText;
+    ubyte *ToUser;
+};
+
+struct FileMoveDat {
+    struct DirNode *sdir, *ddir;
+    struct FileNode *fncopy;
+};
+
+struct MsgId {          /* A binary parsed version of a MSGID: or REPLY:
+                           field */
+    uword Zone;
+    uword Net;
+    uword Node;
+    uword Point;
+    ulong ID;
+};
+
+struct IndexEntry {     /* Message index */
+    ulong MsgNum;
+    uword FileNum;
+    uword OffSet;
+    ulong MsgLen;
+    struct MsgId MSGID;
+    struct MsgId REPLY;
+};
+
+#define MSG_PRIVATE     0x0001
+#define MSG_LOCAL       0x0002 /* Stupid, I don't remember what this is for
+                                  (ignore it) */
+#define MSG_RECEIVED    0x0004
+#define MSG_SENT        0x0008 /* Has been sent (FidoNet) */
+#define MSG_FILEATT     0x0010 /* Has a file attached */
+#define MSG_KILLSENT    0x0020 /* On local, kill on receive (not useful) */
+#define MSG_DEAD        0x0040 /* A dead message - Loading will fail */
+
+struct MemMsg {         /* Recommended format for message storage in memory */
+    ulong MsgNum;
+    ulong Original;
+    ulong FirstReply;
+    ulong PrevReply;
+    ulong NextReply;
+    uword Bits;
+    uword OrigZone;
+    uword OrigNet;
+    uword OrigNode;
+    uword OrigPoint;
+    uword DestZone;
+    uword DestNet;
+    uword DestNode;
+    uword DestPoint;
+    ubyte DateTime[20];
+    ubyte *AttFile;
+    ubyte *FromUser;
+    ubyte *ToUser;
+    ubyte *Subject;
+    ubyte *MsgText;
+};
+
+struct FMsg {           /* Message format as found in .MDT files */
+    ulong MsgNum;
+    ulong Original;
+    ulong FirstReply;
+    ulong PrevReply;
+    ulong NextReply;
+    uword Bits;
+    uword OrigZone;
+    uword OrigNet;
+    uword OrigNode;
+    uword OrigPoint;
+    uword DestZone;
+    uword DestNet;
+    uword DestNode;
+    uword DestPoint;
+    ubyte DateTime[20];
+        /* Null terminated attached file name (full, w/path) */
+        /* Null terminated from */
+        /* Null terminated to */
+        /* Null terminated subject */
+        /* Null terminated message text */
+};
+
+struct FileNode {       /* File structure */
+    struct Node Node;
+    ubyte *Name;
+    ubyte *Comment;
+    ulong Size;
+    ulong Prot;
+    ulong Days;
+    ulong Mins;
+    ulong Ticks;
+    ubyte *Uploader;
+    uword LongDesc;
+    ubyte **DescLines;
+    uword Number;
+    unsigned Free : 1;
+};
+
+struct DirNode {        /* Directory structure */
+    struct Node Node;
+    ubyte *DirName;
+    struct MinList *flist; /* List of struct FileNodes */
+    struct MinList *dlist; /* List of struct DirNodes */
+    struct DirNode *Parent; /* This node can be found in Parent->dlist */
+    struct FAreaCfg *fc;
+    unsigned HasExt : 1;
+};
+
+struct UserVal {        /* This is actually in the file like this */
+    uword Lines;
+    short Access;
+    long BytesLeft;
+    long FilesLeft;
+    ulong BytesDown;
+    ulong FilesDown;
+    ulong BytesUp;
+    ulong FilesUp;
+    uword ByteRatio;
+    uword FileRatio;
+    ulong Messages;
+    short TimeDay;
+    short TimeCall;
+    short TimeLeft;
+    short CallsDay;
+    short CallsLeft;
+    short TimeBank;
+    short MaxTimeBank;
+    ulong AvgCps;
+    ulong AvgCpsMul;
+    ulong Mask;
+    ulong TotalCalls;
+    ulong LastCall;
+    unsigned StripCols : 1;
+    unsigned SlowTerm : 1;
+    unsigned SimpleTerm : 1;
+    unsigned StripAll : 1;
+};
+
+struct BBSUser {        /* User structure */
+    ubyte *Name;
+    ubyte *Password;
+    ubyte *CharSet;
+    ubyte *Extension;
+    ubyte *Locale;      /* Used to be a locale, now a string file
+                           (determines language, anyhow) */
+    ubyte *Protocol;
+    ulong *HighRead;    /* Array of highread pointers */
+    ubyte *AMode;       /* Array of 'S' or 'N' */
+    struct MinList Misc; /* A list of nodes with ln_Name ptr to string
+                            containing misc definition for user */
+    int Number;
+    struct UserVal val;
+};
+
+@endnode
+

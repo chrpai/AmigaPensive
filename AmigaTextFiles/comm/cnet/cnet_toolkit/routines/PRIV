@@ -1,0 +1,14 @@
+PRIV: procedure expose priv handle status
+  arg mode,block,priv,id;c=left(mode,1)
+  if datatype(id,"n")=0 then do;findaccount id;id=result;end
+  if id=0 then do;transmit "Invalid Handle! Aborted!";return;end
+  loadscratch id;getscratch 1;handle=result
+  if handle="!" then do;transmit "Empty Account! Aborted!"
+    savescratch (-id);return;end
+  getscratch 1401332+block*48;a=reverse(d2c(result,4))
+  if c="E" then a=BitSET(a,priv);if c="D" then a=BitCLR(a,priv)
+  if c="T" then a=BitCHG(a,priv);priv=word("No Yes",BitTST(a,priv)+1)
+  if c="V" then do;savescratch (-id);return;end
+  setobject c2d(reverse(a));putscratch 1401332+block*48
+  savescratch id;status=result
+ return

@@ -1,0 +1,41 @@
+Echo "Example - Before running, edit is recommended"
+Quit
+
+Set Quelle `RequestFile DRAWER Ram: TITLE "ListVersion: Medium ?" DRAWERSONLY NOICONS`
+If EXISTS "$Quelle"
+  Set Auswahl `RequestChoice TITLE " ListVersion" BODY "LHEX LZX Dateien entpacken ?" GADGETS "Ja|Nein"`
+
+  FailAt 1
+  Echo " *nProgressing *"$Quelle*"  " NOLINE
+  C:Date
+  Echo "ListVersion ... " NOLINE
+  If $Auswahl EQ 1
+
+    Resident C:LHEX PURE                                             ; LHEX
+    Resident C:UNLZX PURE                                            ; UNLZX
+
+    ListVersion "$Quelle" ALL DEPACK >Ram:ListeA
+
+    Resident LHEX REMOVE
+    Resident UNLZX REMOVE
+
+  Else
+    ListVersion "$Quelle" ALL >Ram:ListeA
+  Endif
+
+  Echo "*nFilter Mist ... " NOLINE
+  LV_Filter_D Ram:ListeA >Ram:ListeB
+
+;  Delete Ram:ListeA QUIET
+
+  C:Rename Ram:ListeB Ram:VersionsListe
+
+  Echo "" 
+  C:PackX Ram:VersionsListe LIB MASH.100 NOOW EXT .xM KEEP           ; XPK - Package
+  Delete Ram:VersionsListe QUIET
+
+  Echo "*nRam:VersionsListe*n*nREADY" NOLINE
+Endif
+
+Unset Quelle
+Unset Auswahl

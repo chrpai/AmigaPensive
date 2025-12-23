@@ -1,0 +1,790 @@
+***************************************************************************
+*                                                                         *
+*                          SerServer & Con1-Handler                       *
+*                                                                         *
+*             All parts (c) Copyright 1993 by Michael R. Mossman.         *
+*                                                                         *
+*                Released for private, non-commercial use.                *
+*                                                                         *
+*                         Compiled with SAS 6.20.                         *
+*                                                                         *
+***************************************************************************
+
+
+What is it?
+
+       Maybe a better name would have been CliBBS, but I started with
+SerServer and so it will stay. It is a personal (with the lack of a better
+word) BBS program. It gives the user a full CLI with restrictions setup by
+the sysop. I don't like the word BBS in this case, because, any program
+that offers a CLI to strangers, can be a lot of trouble. I wrote the
+program so that I can log on to my computer from work and do all of the
+things that I do from home in a CLI. I do not recommend that you let any
+Tom, Dick or Harry in to use this program. You will end up with formatted
+hard drives and sleepless nights. It has three user levels, and full Zmodem
+UP/DOWNLOAD. It could be a very useful program for a few friends and your
+self to use, when working on a common project. A place to share files. It
+offers limited message sending and receiving. A full screen ANSI editor can
+be used for remote programming.
+
+What files are in the zoo?
+
+       Con1-Handler   - this is the DOS handler for the CLI.
+
+       SerServer      - this is the serial device interface and 
+                        it talks to Con1-Handler.
+
+       SSEmacs        - this is the full screen ANSI editor.
+
+       SSEmacs.cmds   - text file of Emacs commands.
+
+       SySop          - This program configures the "BBS" and 
+                        maintains the user/password list.
+
+       SShelp         - This is just a text file that you edit,
+                        to tell users what commands and devices,
+                        are available to them.
+
+       SSlogon        - Another text file that the user gets 
+                        before they enter their name and 
+                        password.
+
+       SSgreeting     - Another text file that the user gets 
+                        after login.
+
+       SSlogoff       - Another text file that the user gets 
+                       during logoff.
+
+       mountlist      - This shows how to enter the Con1-Handler
+                        in your mountlist.
+
+       Xprzmodem.library - This library does the Zmodem send and receive
+                        functions for SerServer.
+
+
+Setting it up!
+
+
+       A sample of the config file, looks like this;
+
+
+[R] Reconfigure   ~~~~~~~~~~~~~  Configuration  ~~~~~~~~~~~~~
+    Home Device      : vd0:
+    Modem String     : ATE0 Q0 V1 &D2  &C1 S0=0
+
+    Script Path/File : s:bbs-shell
+    Check Carrier    : 1
+    Terminate        : 0
+    Lock BaudRate    : 0
+    Modem Uses &D2   : 1
+    Max Baud         : 2400
+    Upload Level     : 2
+    Download Level   : 1
+
+[1] Level 1 Cmds   : 10
+[2] Level 1 Devs   : 3
+
+[3] Level 2 Cmds   : 20
+[4] Level 2 Devs   : 5
+
+
+The Home Device
+
+There must be one device that is common to all level users. This is called
+the "HOME DIRECTORY DEVICE". The root of this device is where all level of
+users will start from when they log on. It is also the area that all
+uploads and downloads take place. A file must be moved here, before it can
+be sent. Received files will arrive here.
+
+
+The Modem String
+
+The modem string has to be just right for this program to work. I use ATE0
+L0 M1 Q0 V1 &D2 on a Supra 2400. I will explain each entry in case your
+modem is not a Supra.
+
+          E0 - Modem does not echo back commands (this is 
+               important.
+
+          L0 - Low speaker volume (does not matter).
+
+          M1 - Speaker on until carrier received (does not 
+               matter).
+
+          Q0 - Modem returns result codes after commands (this 
+               is important).
+
+          V1 - Selects Verbal result codes (this is important).
+
+         &D2 - Modem hangs up, disables autoanswer, and goes to
+               command state upon ON-to-OFF transition of DTR 
+               line (this is important).
+
+         &C1 - DCD ON indicates a data carrier from the remote modem
+               (this is important).
+
+ DO NOT PUT THE MODEM IN THE AUTOANSWER MODE eg. ATS0=1.
+
+
+Script Path/File
+
+Set up a script file that will be run by CLI that the user is in. The path
+and file name will be entered into the config file. A sample of this file
+is provided later on in the docs. You must have this file.
+
+
+Check Carrier
+
+This switch can be set to 0 or 1. This switch tells SerServer if you want
+the carrier detect line checked. In normal operation, this would be set to
+1. When a user hangs up or something happens to the phone connection,
+SerServer will reset if this switch is 1. If you wanted to set up SerServer
+on a seven wire hardware interface between two computers without wiring the
+carrier detect line, this could be set to 0.
+
+
+Terminate
+
+This switch can be set to 0 or 1. If you want SerServer to run as a stand
+alone program and recycle when a user logs off, then set this switch to 0.
+If you want to launch SerServer from another program, like a BBS or a FIDO
+frontend (WelMat or TrapDoor), then set this switch to 1. Serserver will
+then terminate, and return to the calling program, when a user logs off. In
+this configuration, SerServer will not do any modem handling. It will drop
+the DTR line if it detects buffer dumps or user problems, but always
+returns to the calling program with the DTR high.
+
+
+Lock BaudRate
+
+This switch can be set to 0 or 1. With normal modems this will be set to 0
+(eg. - Supra 2400).  With high speed modems (eg. - HST Dual Standard), you
+can set a fixed baud rate between the computer and modem and a variable
+line baud rate. This is called "locked baud" and can be used by SerServer
+if this switch is set to 1.
+
+
+Modem Uses &D2
+
+This switch can be set to 0 or 1. If your modem supports &D2 or a like
+function (described above), then set this switch to 1.  If your modem does
+not support this function, then you can set this switch to 0. SerServer
+will then try to send commands to the modem via the "+++" escape sequence.
+It will also try to hangup by sending a "+++ATH0". SerServer has more
+control if the modem uses the &D2 command.
+
+
+Max Baud
+
+This is the maximum baud rate of your modem or the locked baud rate if the
+"Lock BaudRate" switch is set 1.
+
+
+Upload Level
+
+This is the level of user that can upload to your system (this is much more
+dangerous then downloading and should require a higher level). If you
+select a level of 4 for up/downloading, then no level user will be able to
+send or receive files.
+
+
+Download Level
+
+This is the same as above, but is the level required for downloading.
+
+
+Level 1 & 2 Commands
+
+These are the DOS commands that the different level users can execute.
+Choose wisely! (Format seems to be a bad choice.) Commands that open their
+own window should not be used, because most of them will not return control
+to the CLI and the remote user can not close the window. You might ask, why
+two levels? I find that I can trust some people more then others. You might
+loan your Corvette to some friends and the Volkeswagon to others.
+
+
+Level 1 & 2 Devices
+
+These are the devices (eg.- ram:, df0:, vd0: etc.) that are available to the
+two lower user levels. Think very carefully about what devices you select.
+(I try to keep people off my hard drive.)
+
+Now make a mountlist entry for the Con1-Handler. (A sample of this is
+included in the lharc.) Make a directory somewhere called "SSbbs". Then
+assign it, eg. - assign SSbbs: device:subdirectory/SSbbs. Create a 
+subdirectory off of SSbbs: and call it "mail".  
+Now execute Sysop and select "R" for configure. It will put a file in the
+assigned SSBBS: subdirectory called SSconfig. Enter the previous well
+thought out data. Now move SerServer, Sysop, SSlogon, SSEmacs, SShelp,
+SSlogoff, and SSgreeting into the assigned SSBBS: subdirectory (the text
+files, SShelp, SSgreeting SSlogoff and SSlogon, do not have
+to be present for SerServer to work). Copy xprzmodem.library into the Libs:
+subdirectory. Copy Con1-Handler into the L: subdirectory. The DOS commands
+copy, cd, newcli, mount, run and endcli, must be in the C: subdirectory.
+Use Sysop to enter yourself and who ever, in the userlist. This will
+create a file called SSpasswords in the assigned SSBBS: subdirectory.
+Make sure that the sysop is the first entry in the password file and 
+remember the password. You will be asked for this password every time you 
+run this program to make changes. The program does this to prevent someone
+from uploading the file to the BBS and making changes to the config or
+passwords. The program also writes to the log if you fail the password.
+
+Now do the following:
+
+cd SSBBS:
+SerServer
+
+
+Now the program is up and running and ready for someone to logon. The text
+that is received from the Con1-Handler and the serial device is send to the
+CLI window that serserver is started up from. The program can be terminated
+by selecting the CLI window and typing Control C. People logging on should
+set their terminal programs for 8N1.
+
+
+Commands
+
+SerServer will parse the command line for level 1 and 2 users. If a user
+types "df0:dir" then the parser will eliminate the "df0:" and only "dir"
+will be sent to CLI (this assumes that dir is an allowed command). This
+along with alias (as shown later) will prevent users from renaming files
+(to an allowed command name) and then uploading and executing them.
+Commands that should not be allowed to level 1 and 2 users are execute,
+alias, assign, protect, endcli and format.
+
+
+Help
+
+A user can type "help" or "?" along the command line and get a help file
+if the Sysop provides a text file called "help".
+
+
+Mail
+
+At a CLI prompt a user can type "mail" and they can leave private or public
+mail. Private mail is created in a file under the users name (the name of
+the user who is to receive the mail). Private mail will be deleted after it
+is read by the user. Public mail is put in a file called "ALL". It will
+grow in size until the sysop either deletes it or edits it. (Some text
+editors can handle this file.) All messages are saved in "SSbbs:mail/". 
+
+
+Editor
+
+SSEmacs is a full screen ANSI editor. It is can be used by users that have
+the upload level and if the command "editor" is available  to that level of
+user in the config file. To use the editor from remote, you must be using
+an ANSI terminal program. To use the editor, type "editor" or "editor
+filepath". The FULL path must be given for the file. You can get help for
+the editor when in it, by hitting CTRL-C. The editor will wait 5 mins for
+something to be typed. If a key is not pressed in that time, the editor
+will terminate back to SerServer without saving the file. It will also
+terminate without saving on loss of carrier. So save often!
+
+SSEmacs is an adapted version of uEmacs from Fish Disk #6. I have tried some
+of it's features but I leave it up to you to find it's bugs. Then tell the
+original programmer! Many thanks go to Thomas J. Eshelman for the idea of a
+remote editor and then the help in getting it. If your friend had not
+uploaded the source, SerServer would not have an editor. 
+
+
+Logoff
+
+To leave the system from remote, just type "logoff" along the  command line.
+
+
+MultiPort Serial Cards
+
+SerServer will now use the ASDG serial card. I happen to have this one, so I
+added support for it. If someone wants to send me programming docs for the
+other serial cards, I will add them also. SerServer faults out to
+the internal serial device. To use it on the  ASDG card, type;
+
+    SerServer siosbx.device 0    <or>
+    SerServer siosbx.device 1    <or>
+    SerServer serial.device 0    <will also work for the normal device>   
+
+ This is done when SerServer is started up or in the script file. 
+
+
+Command History
+
+The remote user can access a ten command history by typing CTRL-R at the
+remote terminal.
+
+
+Chat
+
+This version of SerServer has a chat mode (in the menu bar). It can only be
+entered when the user is waiting on the command line. There is no paging of
+the sysop from the users end. This does not prevent you from adding a CLI
+command to sound a bell or flash the screen. To terminate chat, the Sysop
+types a "*" while in the chat mode.
+
+
+Intuition Thingies
+
+I have added some menu items to SerServer. SerServer steals the DOS window,
+and adds a menu and title to it. It also changes the window  colour, to
+prevent you from typing into it (like I have often done). Serserver will
+not start up if there is not a window to put output to. Do not try to run
+it as a background task. 
+
+Things to think about!
+
+Level 3 is the highest level user. There is no parsing of the command line
+for a level 3 user. If format is in the command path and a level 3 user
+says "format drive DH0: name NOTHING" then your brand new hard drive will
+erase it's brains. The same thing can happen with any level user, if you
+make the command available to them. If you make Alias available as a
+command then users can do things like "alias dir format" and type "dir
+drive DH0: name NOTHING" and format your hard drive if DH0: is one of the
+available devices and dir is an allowed command.
+
+How about if you make zoo an available command and a user puts format
+renamed as dir in the zoo. They can then de-zoo the file and format your
+hard drive because the CLI will find dir command in the current path
+(really format) before it goes to c:.
+
+Endcli will terminate SerServer from a remote. I felt that this was handy
+for the sysop to drop the program from a remote terminal but can be a
+problem, if it is an allowed command. What I'm trying to say is, pick your
+commands and devices carefully. And most important, know who the hell your
+letting on your computer! 
+
+
+Timings and Stuff
+
+Anyone is allowed one minute to type in their name at the login prompt,
+another minute for the password. Everyone is allowed three tries and then
+it hangs up. Level 1 and level 2 users are allowed two minutes of
+inactivity at a CLI prompt before the program drops them. Level 3 users can
+be at a CLI all day and do nothing and the program will not hang up. In the
+Mail section of the program, time outs will happen to any level user. There
+is no limit to the over all on time for any level user as long as they are
+doing something. 
+
+
+Log Keeping
+
+The program keeps a log in the BBS: subdirectory called "log'. This requires
+that BBS disk NOT be write protected.
+
+
+Zmodem Stuff
+
+The program uses Zmodem for up/downloads. Sending from a remote is easy. I
+used Online!, Telix and JrComm for testing. Just select 16 bit CRC and at a
+CLI prompt in the BBS, select upload in Online!, JrComm, or Telix. Pick the
+files and then sit back and wait (have a beer)
+till they all arrive at the BBS.
+
+Sending files requires a little more work. First the files have to be in the
+"HOME DIRECTORY DEVICE" root. Use copy to move them there. Then along the
+CLI prompt line type:
+
+     send file1 file2 file3 (etc)
+
+ Make sure your terminal program is setup for auto downloads.
+
+
+Neet Things
+
+There are some neet things that you can do with Alias. It can provide a
+whole bunch of extra commands this way. Say you want users to be able to
+read the log file but don't want them to have access to Df0: where the
+SSbbs: files are kept. You can then set up an Alias that reads like this:
+
+      Alias log type SSbbs:log
+
+You then add log as a command to the Sysop program, and users can read the
+log file. Say you have a bunch of users that don't know dos commands. You
+can add help files for each allowed command by doing something like this.
+Create a subdirectory off SSbbs: called "help". Then put a text file in
+there called "dir". This text file will explain the "Dir" command and it's
+options. Then set up an Alias like this:
+
+     Alias what type SSbbs:help/[] 
+ 
+The user then types "what dir" and gets a help file on "Dir". What has to be
+added to the allowed commands. 
+
+
+Scripts
+
+Here are a couple example scripts to show you how to set up the the BBS and
+use the alias command.
+
+assign SSbbs: df0:SSbbs
+stack 10000
+SSbbs:serserver
+endcli
+
+
+And here is the remote-shell script. (Used in the config file)
+
+stack 10000
+cd vd0:
+Prompt "(%N) %S>> 
+alias dir c:dir                  <---- You should have an entry like these
+alias list c:list                      for every allowed command for
+alias type c:type                      Level 1 & 2 users. This helps prevent
+alias echo c:echo                      users uploading and executing a file.
+alias copy copy [] NOPRO BUF=10  <---- allows copied protected files to be
+                                       deleted.
+alias log type SSbbs:log         <---- Gives the log to users.
+alias what type SSbbs:help/[]    <---- If you want help files.
+
+
+When you configure the system, you can say that HOME: is the "HOME 
+DIRECTORY DEVICE" and then assign it to any place that you want. This
+will save going into the SySop program to change it, just reassign it.
+
+
+NewCLI ?
+
+When SerServer starts up, it executes the command "NewCLI Con1:". This gives
+the user a CLI, rather then a SHELL. If you want the features of a SHELL-Seg
+(alias command), then you should have the following line in your Startup
+-Sequence;
+
+        resident CLI L:Shell-Seg SYSTEM pure add
+           ( This is not needed under WB 2.04, 2.10 or 3.00 )
+
+
+WelMat or TrapDoor
+
+When you launch SerServer from either of these two programs or a BBS, you
+must have the SHARED bit set for the serial device. You do this in the
+config file for both of these programs. To call SerServer from these
+programs, you would have a line in their config file, that would look like
+this;
+
+        SerServer SerialDevice UnitNumber %l
+where;
+       SerialDevice is either serial.device, siosbx.device or newser.device.
+       UnitNumber   is 0 to 4, depending on the port you wish to use.
+       %l           is the connect baud rate (link rate) between the two
+                    modems.
+
+
+BBS Programs and the Likes Of
+
+If your board can run doors or external up/download programs, then it
+probably can launch SerServer. The following are things to look for;
+
+     1) The board can share the serial port.
+     2) The board stops receiving serial port I/O during the time SerServer
+        is running. A sign of this problem, is when the board receives one
+        charactor and SerServer gets the next. 
+     3) The command line for SerServer is the same for a BBS as FIDO fronted
+        program.
+
+SerServer has been tested with the DIALOG Professional BBS program. This BBS
+uses a DOS handler much like the Con1: handler in SerServer and normally
+expects doing all of the serial device I/O. With the help of a couple of
+script files, these problems can be over come.
+
+     echo >ram:SerServe.bat "failat 100*nstack 50000*ndlg:tfreeze -p tr0*n
+                SSbbs:serserver serial.device 0*ndlg:tcont -p tr0*nendcli" 
+     newshell newcon:0/0/640/100/SerCli from ram:SerServe.bat
+     Wait 5
+     echo "Returning to the BBS..."
+
+(Please Note....The above "Echo" command is all one line. It generates
+a script file in Ram:, that is execute by this script.)
+
+
+HST or Other Like High Speed Modems
+
+SerServer will make connections at the following baud rates;
+
+ 300, 600, 1200, 2400, 4800, 7200, 9600, 12000 14400, 16800, 19200, 38400.
+
+
+
+Note to SerServer Version 2.22 Users
+
+If you are running version 2.22 all ready, please transfer Con1-Handler,
+SerServer, Sysop, xprzmodem.library and SSEmacs to the correct directories.
+These are new versions and SerServer 2.23 will not work properly without
+these new files.
+Delete the old password file.
+
+
+Bugs and Other Critters of the Night
+
+SerServer will not work with any of the Arp shells. The Con1-Handler wants
+to talk to a BCPL program, so use NewCLI, NewShell or WShell.
+
+
+SerServer has been tested under WorkBench 2.00
+
+Well this is version 2.23, so what can I say. People doing buffer dumps and
+hanging up in the middle of things can always be a problem. I have tried to
+catch these problems, but bugs always seem to surface. I am releasing the
+executable but will retain the source on this one. Let me know if you find
+any problems. Please don't say it just locked up, try to tell me what the
+program was doing, when it locked up!
+
+
+Things to Do
+
+Programs like this always have things that can be added. I been asked to
+make SerServer into a BBS program. The answer is "NO!!". I wrote SerServer
+as a remote slave CLI for people (me) who like to play on their Amiga when
+they are away using an (dirty word) IBM clone.
+
+     - Add a menu item to re-read the config file.
+     - Add support for more multiport serial cards.
+
+
+I program for me first and you last!!  
+
+
+CopyRight and Things
+
+I am retaining the copyright on Con1-Handler and SerServer Version 2.23 but
+will release it's use to the public for non-commercial use.
+
+
+How To Rip Me Apart
+
+You can contact me on CompuServe, my UI is 76515,3017. You can also reach me
+on Fido Net 1:255/19. You can write me,
+ 
+                   Mike Mossman
+                   15 Kenneth Dr.
+                   Quispamsis, N.B.
+                   Canada  E2G 1J1 
+
+Thanks
+
+Many thanks to Wayne Marchand, Graeme Weir and the Mad Scientist for
+debugging and helpful comments. A real big thanks goes out to Mad for
+running SerServer under his DIALOG bbs. This found bugs, that would
+have taken years to find by using a term prog on my 500 and SerServer
+installed on my 2500.
+
+
+History
+
+   Version 1.00 - Original alpha testing version. Not released to public.
+
+   Version 1.01 - Fixed bug in dropped carrier lockup. Program was 
+                  waiting on timer message that never came. Fixed 
+	               PassWordMaker so that it did not wreck the password 
+	               file when editing user entries. Not released to public.
+
+   Version 1.02 - Added log keeping and moved sz & rz into the C: 
+                  subdirectory from the "HOME DIRECTORY". Not released to
+                  the public.
+
+   Version 1.03 - PassWordMaker was rewritten by The Mad Scientist and 
+                  called Sysop. Thanks a lot Doug! (call his BBS at
+	          506-455-2808). Added the mail feature and caught a
+	          few more bugs. Added Mail to the Sysop program so
+	          the sysop can read his own mail (or anyone's). 
+                  Made level 1 and 2 users command line get parsed
+	          so a path can not be set to a command. Password 
+                  protected the Sysop file. Released version.
+
+   Version 1.04 - Added raw mode to the Con1-Handler. This is still not
+                  used but might be in future versions. Not released
+	          to the public.
+
+   Version 1.05 - Added intuition type stuff and chat mode. Not released 
+                  to the public.
+
+   Version 1.06 - Added support for multiport serial cards. Only the 
+                  ASDG card is used now. Need docs on other cards, so	
+	          I can set the DTR line. Not released to the public.
+
+   Version 2.00 - This was a big one and figured that SerServer needed
+                  a new first number. A full screen ANSI editor was added
+                  with full serial driving routines. It's run with
+                  SerServer in the shared serial mode, like an external
+	          protocol driver. Now I can program at work on my Amiga.
+                  Fixed a bug, where by the parser would allow the command
+                  "editor" pass when "edit" was an allowed command. If
+                  carrier is lost or dropped in the middle of a command like
+                  "dir dh0: all", SerServer will wait till it has received
+                  all of the command output from Con1: before it answers the
+                  phone. The same holds true if the sysop terminates the 
+                  program in the middle of this type of command. SerServer
+                  now sets the Process structure pr_WindowPtr to -1, so that
+                  requestors are not brought up by it. Fixed a bug in the 
+                  chat mode, so that if the carrier was dropped, the program
+                  reset properly. Released version.
+
+     Version 2.10 Beta - Fixed a bug in the backspace, where by a user
+                  could backspace over the "Login" prompt and corrupt
+	          memory.
+
+                  Added a feature in the config file to prevent the
+                  checking of the carrier detect line. This allows the
+	          program to be run over a seven wire hardware interface
+	          (no modems).
+
+	          The serial device is now shared everywhere and a full
+	          seven wire interface must be used between the serial port
+                  and modem.
+
+                  SerServer now mounts the the Con1: handler and calls
+	          "NewCLI Con1:".
+
+                  The program will no longer attempt to send a file by
+	          the name of "*", if requested by the remote user.
+
+                  A ten line command history has been added. The remote
+	          user can use this feature by typing CTRL-R at his
+	          terminal.
+
+                 SerServer now gives limited support to modems that
+	         do not have the &D2 command. It will send the escape
+	         sequence "+++" to the modem before it sends a modem
+	         string. It will also try to hang up with an "ATH0"
+	         command if the config program is told that the modem
+	         does not support &D2. The best support is with modems	
+	         that have the &D2 command.
+
+	         A "*" entered for the user level in the user file,
+	         will give a message to a user logging on. The message
+	         is "User Purged From Data Base" and drop them.
+
+	         SerServer will now terminate on user logoff and return
+	         to a calling program if the terminate switch is set in
+	         the config file. This allows BBS programs to run
+ 	         SerServer as a door or SerServer to be called by a FIDO
+	         front end. SerServer has been tested with TrapDoor and
+                 WelMat.
+
+	         Made the file reader run faster. It needed a little
+	         speed.
+
+                 Program now handles complex "CONNECT XXXX" messages from
+	         HST modems.
+
+	         Corrected several timing problems which would lock up
+	         the program.
+
+                 Now purges the line after a connect is made. This is
+	         to "quiet" the line.
+
+	         LockBaud mode added to config file for support of high
+	         speed modems running in the locked mode.
+
+	         Made changes in the Con1-Handler and SerServer, so less
+	         messages are being passed between them. This gets rid
+	         of some overhead and possibility of errors.
+
+	         Better logging is done when problems happen.
+
+	         Reasons for startup problems are now sent to the Sysop
+	         in the SerServer window.
+
+	         SerServer will open it's own window if the terminate
+	         switch is set in the config file. This is to prevent
+	         some possible conflicts with the program that launched
+	         SerServer.
+
+	         All windows are now in the RAW: mode. This prevents
+	         the program from locking up if the Sysop types into
+	         the SerServer window.
+
+	         Beta release - Not released to the public.
+
+  Version 2.20 - Found a bug that prevented SerServer from running in a
+                 dos script file. File redirection was incorrectly being
+                 done on closing.
+
+                 CTRL-C action was changed to prevent the same code from
+                 being executed twice when CTRL-C was hit twice by the
+                 sysop.
+
+                 Fixed problem in SS that caused a system crash if Con1:
+                 was not in the mount list.
+
+                 Added a file read for log off time, called "logoff".
+
+                 Sysop program now prevents incorrect values from being 
+                 entered for the switches (eg - terminate). Sysop will
+                 now prevent incorrect user levels from being entered.
+
+                 SerServer now uses the xprzmodem.library. This allows 
+                 more control over the up/download when the carrier is 
+                 dropped etc. It has been tested with version 2.1 of this
+                 library. It will not work with version 2.0. The sysop
+                 can stop the file transfer by hitting the "ESC" key. 
+                 Many thanks to W.G.J. Langevel for the XPR concept and
+                 to Rick Huebner for the Zmodem library.
+
+                 SerServer now supports the CTRL-D break from remote, to
+                 stop execution of a script file.
+
+                 SerServer now intercepts three Intuition functions to
+                 prevent the CLI task from opening windows etc. The three
+                 functions are OpenWindow, OpenScreen, and AutoRequest.
+                 The code remains resident when SerServer terminates.
+                 It only effects the CLI coprocess that runs with Con1.
+                 All other processes function normally.
+
+                 Added code to support the newser.device. This is a build
+                 your own multi-serial board type kit from "Amazing 
+                 Computing" and the parts can be purchased from "The
+                 Puzzle Factory, Inc" in Veneta, OR. I changed the device
+                 driver so that SerServer could control the DTR line. The
+                 executable and source are in a file called "NewSer.LZH".
+                 To see if you have the right version of device driver to
+                 work with SS, do a "type newser.device hex" on the
+                 executable, and the version number should be "1.1s".
+
+                 Corrected a bug in the Con1-Handler where it would free
+                 memory twice when doing a "copy file-name to *".
+
+  Version 2.21 - Fixed a small bug that prevented SS from running under 
+                 WB 2.04 in the non-terminate mode. Thanks to a nice
+                 fellow by the name of Dan Griffin for his help !!
+               
+                 SS will now only set the shared bit if it is open
+                 in the terminate mode. The Front End/BBS controls
+                 how the serial port is opened in the shared mode.
+
+                 SS now controls the DTR line via the C= method, instead
+                 of a direct absolute address hit.
+
+  Version 2.22 - Tried to let SerServer use the serial flag bits from 
+                 the program that called it (in the terminate mode).
+                 This does not seem to work with some programs. SS now
+                 opens the serial device in the shared mode, saves the
+                 old serial flag bits, sets them to values that SS needs
+                 and then  returns them to the previous values before
+                 closing.
+  
+  Version 2.23 - Worked on window opening. Should now work with NSTC,
+                 PAL and overscan in both modes.
+                 
+               - Fixed CTRL-C problem when used on DOS command from
+                 remote.
+                 
+               - Changed the data format for the SSpassword file so
+                 that SySop and SerServer are now using the same binary
+                 structure for this file.
+                 
+               - Recompiled under SAS 6.2
+               
+               - Worked on ZModem transfer screen so that it would allow
+                 faster transfers.
+                 
+               - Added more modem connect rates, so that SS will work better
+                 with high speed modems.
+                 
+               - Added version numbers to Sysop, SerServer and Con1-
+                 Handler. You should now be able to type "Version SerServer"
+                 and get it's version number.
+                 
+               - Renamed the SerServer directory to SSbbs: and all of the
+                 text and control files to SS-something. This is because
+                 the old bbs: directory was in conflict with some
+                 bbs programs. The SS-something identifies who the files
+                 belong to.

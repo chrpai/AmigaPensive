@@ -1,0 +1,81 @@
+/*
+** CNdomoConfig declarations
+** by Kelly Cochran
+** Last updated: Sat Oct 17 20:29:25 1998
+*/
+
+#ifndef _CNDOMOCONFIG_H
+#define _CNDOMOCONFIG_H
+
+#include <libraries/bgui.h>
+#include <libraries/bgui_macros.h>
+#include <proto/bgui.h>
+
+#define CNDC_VERS "1"
+#define CNDC_REVS "6"
+
+const char *version = "\0$VER: CNdomoConfig "CNDC_VERS"."CNDC_REVS" "__AMIGADATE__;
+
+struct Library *BGUIBase;
+struct Library *CNetBase;
+struct MsgPort *CNDMsgPort;
+
+/* Gadget ID creation */
+enum {
+   CND_ABOUT = 1,
+   CND_QUIT,
+   CND_SAVE,
+   CND_TABS,
+
+   CND_LIST_LV,
+   CND_LIST_NAME,
+   CND_LIST_FROM,
+   CND_LIST_REPLYTO,
+   CND_LIST_ERRORTO,
+   CND_LIST_PASSWD,
+   CND_LIST_DIGESTNUM,
+   CND_LIST_ARTICLENUM,
+   CND_LIST_DIGESTSIZE,
+   CND_LIST_MAXPOSTSIZE,
+   CND_LIST_ADD,
+   CND_LIST_DELETE,
+   CND_LIST_OWNER,
+
+   CND_FLAGS_CLOSED,
+   CND_FLAGS_MODERATED,
+   CND_FLAGS_DIGEST,
+   CND_FLAGS_CONFIRM,
+   CND_FLAGS_HANDLEADMIN,
+   CND_FLAGS_PRIVATE,
+   CND_FLAGS_PREFIXLIST,
+   CND_FLAGS_SETLISTFROM,
+   CND_FLAGS_SENDSPOOL,
+   CND_FLAGS_ARCHIVE,
+
+   CND_USER_LV,
+   CND_USER_ADD,
+   CND_USER_DELETE,
+   CND_USER_ADDRESS,
+   CND_USER_PASSWD,
+
+   CND_POSTER_LV,
+   CND_POSTER_ADD,
+   CND_POSTER_DELETE,
+   CND_POSTER_ADDRESS,
+   CND_POSTER_PASSWD,
+
+   CND_PENDING_LV,
+   CND_PENDING_ADD,
+   CND_PENDING_DELETE,
+   CND_PENDING_ADDRESS,
+   CND_PENDING_PASSWD,
+
+   CND_BANNED_LV,
+   CND_BANNED_ADD,
+   CND_BANNED_DELETE,
+   CND_BANNED_ADDRESS,
+
+   CND_NUM_OBJS
+};
+
+#endif /* _CNDOMOCONFIG_H */

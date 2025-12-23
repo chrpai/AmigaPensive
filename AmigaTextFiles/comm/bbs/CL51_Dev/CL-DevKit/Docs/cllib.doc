@@ -1,0 +1,613 @@
+TABLE OF CONTENTS
+
+cl.lib/---history---
+cl.lib/---overview---
+cl.lib/--locale-support--
+cl.lib/--readargs-support--
+cl.lib/cl_addlog
+cl.lib/cl_alloc
+cl.lib/cl_allochook
+cl.lib/cl_allochooka4
+cl.lib/cl_allochooka4d
+cl.lib/cl_free
+cl.lib/cl_popdir
+cl.lib/cl_pushdir
+cl.lib/cl_setpri
+cl.lib/cl_setprwindowptr
+cl.lib/cl_strdup
+cl.lib/---history---                                     cl.lib/---history---
+
+ 8.4
+ ---
+ - locale support code insisted on "locale.library" to be openable.
+
+ 8.5
+ ---
+ - added ftzs.a code to avoid time() constantly opening ENV:TZ
+
+ 8.6
+ ---
+ - modified to open clutil V36
+
+ 8.7
+ ---
+ - added libinit for cl_route.library (CLRBase)
+ - locale support code cleaned up to use SetProgramDir() instead
+   of directly modifying pr_HomeDir
+
+ 8.8
+ ---
+ - added sasum.a code to speed up integer math operations.
+
+ 8.9
+ ---
+ - added replacement constructor for AslBase which opens
+   "asl.library" V38 instead of V37.
+ - added "__stack = 8192" define to be on the safe side
+   for MUI operations.
+
+ 8.10
+ ----
+ - replaced Connectline: with Prgdata: throughout
+
+ 8.11
+ ----
+ - replaced PRGDATA: with CONNECTLINE: throughout (ich find das nicht
+   zum Lachen ;-)
+
+ 8.12
+ ----
+ - modified to open clutil V38+
+ - added constructor/destructor for CLMidbBase (clmidb.library)
+
+ 8.13
+ ----
+ - CLMidbBase constructor was accidentally missing.
+
+ 9.0
+ ---
+ - cl_allochook() is no longer contained in the clalloc module.
+ - added cl_allochooka4()
+
+ 9.1
+ ---
+ - modified to open clutil V39+
+
+ 9.2
+ ---
+ - added constructor for "cl_mailmaster.library"
+
+ 9.3
+ ---
+ - modified to open clutil V40+
+
+ 9.4
+ ---
+ - added constructor for "clxfer.library"
+
+ 10.0
+ ----
+ - added cl_allocstrtab()
+ - modified to open clutil V41+
+
+ 10.1
+ ----
+ - removed sasum.a from lib
+
+ 10.2
+ ----
+ - modified cl_allochooka4() to not using "h_Data" for it's own purpose,
+   and to correctly pass a pointer to the hook itself in A0. New
+   function cl_allochooka4d() to set h_Data as well.
+
+ 10.3
+ ---
+ - modified to open clutil V42+
+
+ 10.4
+ ----
+ - added constructor for "cl_text.library"
+
+ 11.0
+ ----
+ - modified to open clutil V44+
+ - removed constructor for cllog.library
+ - added constructor for cl_log.library
+ - changed cl_addlog to use cl_log.library
+
+ 11.1
+ ----
+ - clsystem.library-Constructor now does CLS_LoadList()
+ - clboard.library-Constructor now does CLB_LoadList()
+
+ 11.2
+ ----
+ - changed CLMBase constructor to use cl_msg.library instead
+   of the now obsolete "cl_message.library"
+ - modified to open clutil V46+
+
+ 11.3
+ ----
+ - modified to open clutil V47+
+
+ 13.0
+ ----
+ - added constructor for cl_shell.library
+
+ 14.1
+ ----
+ - added __clctype-constructor (see cl/ctype.h)
+
+ 15.0
+ ----
+ - added constructor for cl_ansi.library
+
+cl.lib/---overview---                                   cl.lib/---overview---
+
+   "cl.lib" is a link library containing several support functions
+   for writing Connectline applications using SAS/C 6.51. Mainly,
+   it is the link interface for several services provided by
+   the "clutil.library" and other Connectline specific libs.
+
+   It contains constructors/destructors for automatic opening
+   of all Connectline specific libraries, just like sc.lib contains
+   the same for the standard Amiga libraries.
+
+cl.lib/--locale-support--                           cl.lib/--locale-support--
+
+   "cl.lib" 3.0 Locale support
+
+   Define the name of your program's catalog as
+   char *__clcatalogname = "prefs/system.catalog";
+   and dereference the given LocaleInfo structure.
+
+   The constructor temporarly changes PROGDIR:
+   to point to CONNECTLINE: in order to allow
+   applications to be started from wherever the
+   user wants without worrying about the path.
+
+   You may set
+   char *__clbuiltinlanguage = "...";
+   to change the builtin language name. Defaults
+   to "Deutsch".
+
+
+cl.lib/--readargs-support--                       cl.lib/--readargs-support--
+
+   "cl.lib" 2.0 ReadArgs() template support functions
+
+   Define your command template by setting
+   char **__clargstemplate = "<ReadArgs-Template>"
+   The args array will automagically be allocated by
+   the lib function.
+
+   Setting "__clargshelp" to a non-NULL value enables
+   ReadArgs's extend help facility.
+
+   A ReadArgs() error will cause your application to
+   terminate immediately, printing an errorcode consisting
+   of the CLI program name and the errorstring (via PrintFault())
+
+   The ReadArgs() function is linked in by
+   referencing "__clargs" inside your code.
+
+   New for V6: setting __clargsquiet to the integer index
+   of a switch item inside your args list causes your
+   process Input/Output handles to be replaced bei NIL:.
+   This is for easy implementation of QUIET/S-like
+   template options. Example: Template is "FILES/M,MULTI/S,QUIET/S",
+   so setting "long __clargsquiet = 2;" will cause the arg parser
+   to examine the QUIET switch of the args and then shut down any
+   Input/Output.
+
+cl.lib/cl_addlog                                             cl.lib/cl_addlog
+
+   NAME    
+   cl_addlog -- add entry to logfile (V7)
+   cl_addlogargs -- args pointer version of cl_addlog (V7)
+
+   SYNOPSIS
+   cl_addlog( loglevel, fmtstring [,arg1...] )
+   cl_addlogargs( loglevel, fmtstring, argptr )
+
+   void cl_addlog( LONG, STRPTR, ... );
+   void cl_addlogargs( LONG, STRPTR, APTR );
+
+   FUNCTION
+   Add lines to log file with defined logID.
+
+   INPUTS
+   loglevel -- log level of entry (not used until V11)
+   fmtstring -- standard printf()-like formating string
+   arg1 -- (optional) args
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+   All outputs have a definied log ID which must be set by
+   declaring
+
+    char *__cllogid = "LOGID";
+ 
+   in your code.
+
+   BUGS
+
+   SEE ALSO
+
+cl.lib/cl_alloc                                               cl.lib/cl_alloc
+
+   NAME    
+   cl_alloc -- allocate from program's private pool (V2)
+
+   SYNOPSIS
+   memblock = cl_alloc( size )
+
+   void * cl_alloc( int );
+
+   FUNCTION
+   Allocates some memory from the program's private
+   pool.
+
+   INPUTS
+   size  -- size of block to allocate
+
+   RESULT
+   memblock - Pointer to memory block, or NULL on error
+
+   EXAMPLE
+
+   NOTES
+   The cl.lib memory support functions consist of a constructor/destructor
+   pair which initializes and destroy an exec memory pool via clutil.library.
+   cl_alloc(), cl_free() and cl_strdup() work as their standard counterparts,
+   just via the pool. Every and all memory left ist automagically freed
+   upon program termination.
+
+   You can modify the pool attributes with three longwords. Default defines
+   are also contained within "cl.lib", but may be overriden on your behalf.
+
+   long __clpoolmemflags       Default: MEMF_CLEAR
+   long __clpoolpuddlesize    Default: 8192
+   long __clpooltresholdsize  Default: 4096
+
+   These functions are not reentrant (unless linked with "cres.o")
+
+   These functions are a just _very_ thin layer over "clutil.library"
+   and quite efficient.
+
+   BUGS
+
+   SEE ALSO
+   cl.lib/cl_free, cl.lib/cl_strdup, cl.lib/cl_allochook
+
+cl.lib/cl_allochook                                       cl.lib/cl_allochook
+
+   NAME    
+   cl_allochook -- allocate and fill out a hook structure (V4)
+
+   SYNOPSIS
+   hook = cl_allochook( funcpointer, data )
+
+   struct Hook * cl_allochook( HOOKFUNC, APTR );
+
+   FUNCTION
+   Allocates and initializes a standard HOOK structure.
+
+   INPUTS
+   funcpointer -- hook function (h_Entry)
+   data -- optional function data (h_Data)
+
+   RESULT
+   hook -- Pointer to hook structure.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+   cl.lib/cl_free, cl.lib/cl_strdup, cl.lib/cl_alloc
+
+cl.lib/cl_allochooka4                                   cl.lib/cl_allochooka4
+
+   NAME    
+   cl_allochooka4 -- allocate and fill out a hook structure
+                     with automatic A4 saving (V9)
+
+   SYNOPSIS
+   hook = cl_allochooka4( funcpointer )
+
+   struct Hook * cl_allochooka4( HOOKFUNC );
+
+   FUNCTION
+   Allocates and initializes a standard HOOK structure.
+   A4 will be saved in private date, and h_Entry will point to
+   a special function which saves and loads A4 upon
+   calling the real function. 
+
+   INPUTS
+   funcpointer -- hook function. A4 will already be
+                  set up upon entry.
+
+   RESULT
+   hook -- Pointer to hook structure.
+
+   EXAMPLE
+
+   NOTES
+   Using this function is more efficient than declaring your
+   hook function "__saveds" and it also works with resident
+   code generation.
+
+   Until V10.2 of "cl.lib", this function modified A0 and used h_Data
+   for A4 storage.
+
+   BUGS
+
+   SEE ALSO
+   cl.lib/cl_free, cl.lib/cl_strdup, cl.lib/cl_allochook
+
+cl.lib/cl_allochooka4d                                 cl.lib/cl_allochooka4d
+
+   NAME    
+   cl_allochooka4d -- allocate and fill out a hook structure
+                     with automatic A4 saving and h_Data setup (V10)
+
+   SYNOPSIS
+   hook = cl_allochooka4d( funcpointer, data )
+
+   struct Hook * cl_allochooka4d( HOOKFUNC, APTR );
+
+   FUNCTION
+   Allocates and initializes a standard HOOK structure.
+   A4 will be saved in private date, and h_Entry will point to
+   a special function which saves and loads A4 upon
+   calling the real function. 
+
+   INPUTS
+   funcpointer -- hook function. A4 will already be
+                  set up upon entry.
+   data -- your custom data.
+
+   RESULT
+   hook -- Pointer to hook structure.
+
+   EXAMPLE
+
+   NOTES
+   Using this function is more efficient than declaring your
+   hook function "__saveds" and it also works with resident
+   code generation.
+
+   Until V10.2 of "cl.lib", this function modified A0 and used h_Data
+   for A4 storage.
+
+   BUGS
+
+   SEE ALSO
+   cl.lib/cl_free, cl.lib/cl_strdup, cl.lib/cl_allochook, cl.lib/cl_allochook
+a4
+
+cl.lib/cl_free                                                 cl.lib/cl_free
+
+   NAME    
+   cl_free -- free memory allocated from program's private pool.
+
+   SYNOPSIS
+   cl_free( memblock )
+
+   void cl_free( void * );
+
+   FUNCTION
+   Frees memory previously allocated by a call to cl_alloc(),
+   cl_strdup() or cl_allochook().
+
+   INPUTS
+   memblock -- block to be freeed.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+   The cl.lib memory support functions consist of a constructor/destructor
+   pair which initializes and destroy an exec memory pool via clutil.library.
+   cl_alloc(), cl_free() and cl_strdup() work as their standard counterparts,
+   just via the pool. Every and all memory left ist automagically freed
+   upon program termination.
+
+   You can modify the pool attributes with three longwords. Default defines
+   are also contained within "cl.lib", but may be overriden on your behalf.
+
+   long __clpoolmemflags       Default: MEMF_CLEAR
+   long __clpoolpuddlesize    Default: 8192
+   long __clpooltresholdsize  Default: 4096
+
+   These functions are not reentrant (unless linked with "cres.o")
+
+   These functions are a just _very_ thin layer over "clutil.library"
+   and quite efficient.
+
+   BUGS
+
+   SEE ALSO
+   cl.lib/cl_alloc, cl.lib/cl_strdup, cl.lib/cl_allochook
+
+cl.lib/cl_popdir                                             cl.lib/cl_popdir
+
+   NAME    
+   cl_popdir -- pop directory saved with cl_pushdir() (V8)
+
+   SYNOPSIS
+   cl_popdir()
+
+   void cl_popdir( void );
+
+   FUNCTION
+   Pop directory from directory stack.
+
+   INPUTS
+   None.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+   cl.lib/cl_pushdir()
+
+cl.lib/cl_pushdir                                           cl.lib/cl_pushdir
+
+   NAME    
+   cl_pushdir -- change current directory and keep previous
+                 on directory stack (V8)
+
+   SYNOPSIS
+   success = cl_pushdir( dirname )
+
+   BOOL cl_pushdir( STRPTR );
+
+   FUNCTION
+   Change current directory and keep the previous
+   current dir on a special directory stack to
+   allow popping via cl_popdir().
+
+   INPUTS
+   dirname -- name of directory to change to.
+
+   RESULT
+   success -- TRUE or FALSE
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+   cl.lib/cl_popdir()
+
+cl.lib/cl_setpri                                             cl.lib/cl_setpri
+
+   NAME    
+   cl_setpri -- set task priority (V5)
+
+   SYNOPSIS
+   cl_setpri( taskpri )
+
+   void cl_setpri( int );
+
+   FUNCTION
+   Set your own process' priority.
+
+   INPUTS
+   taskpri -- new task priority
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+   Calling this function will result in linking in a constructor/
+   destructor pair that saves the original task priority and
+   restores it upon exit.
+
+   This function may be called multiple times within a
+   program.
+
+   BUGS
+
+   SEE ALSO
+
+cl.lib/cl_setprwindowptr                             cl.lib/cl_setprwindowptr
+
+   NAME    
+   cl_setprwindowptr -- set process' pr_WindowPtr (V5)
+
+   SYNOPSIS
+   cl_setprwindowptr( window )
+
+   void cl_setprwindowptr( struct Window * );
+
+   FUNCTION
+   Set your own process' pr_WindowPtr.
+
+   INPUTS
+   window -- new pr_WindowPtr or PRWINDOWPTR_QUIET (-1)
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+   Calling this function will result in linking in a constructor/
+   destructor pair that saves the original pr_WindowPtr and
+   restores it upon exit.
+
+   This function may be called multiple times within a
+   program.
+
+   BUGS
+
+   SEE ALSO
+
+cl.lib/cl_strdup                                             cl.lib/cl_strdup
+
+   NAME    
+   cl_strdup -- duplicate string via cl_alloc (V2)
+
+   SYNOPSIS
+   newstring = cl_strdup( string )
+
+   STRPTR cl_alloc( StRPTR );
+
+   FUNCTION
+   Allocates memory of size strlen( string ) + 1 and copies
+   the string contents.
+
+   INPUTS
+   string -- string to duplicate
+
+   RESULT
+   newstring -- duplicated string or NULL upon error
+
+   EXAMPLE
+
+   NOTES
+   The cl.lib memory support functions consist of a constructor/destructor
+   pair which initializes and destroy an exec memory pool via clutil.library.
+   cl_alloc(), cl_free() and cl_strdup() work as their standard counterparts,
+   just via the pool. Every and all memory left ist automagically freed
+   upon program termination.
+
+   You can modify the pool attributes with three longwords. Default defines
+   are also contained within "cl.lib", but may be overriden on your behalf.
+
+   long __clpoolmemflags       Default: MEMF_CLEAR
+   long __clpoolpuddlesize    Default: 8192
+   long __clpooltresholdsize  Default: 4096
+
+   These functions are not reentrant (unless linked with "cres.o")
+
+   These functions are a just _very_ thin layer over "clutil.library"
+   and quite efficient.
+
+   BUGS
+
+   SEE ALSO
+   cl.lib/cl_free, cl.lib/cl_alloc, cl.lib/cl_allochook
+
+

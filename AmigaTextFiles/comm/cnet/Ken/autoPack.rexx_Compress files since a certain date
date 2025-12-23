@@ -1,0 +1,85 @@
+
+/*
+
+AutoPack.rexx by
+ Bill Beogelein
+ Box 530441
+ Livonia, MI 48153 USA
+ BBS 313-473-2020
+
+$VER: AutoPack.rexx v1.0 01-Nov-92 04:23:12
+
+Usage: rx AutoPack.rexx {drive:path}
+(ie: Usage: rx AutoPack.rexx Cnet:)
+
+A small Arexx script that will add to an archive all files that have
+been modified since last run of AutoPack.
+
+Doesn't look like LHARC's "-o (since date)" option has been activated
+as of LHARC v1.40.  Thus this script works around it (as well as
+saving the 'last-packed' date to the HD automatically.)
+
+AutoPack does 4 things:
+1)  Reads a preivously stored 'last-date packed'.
+2)  Packs all files that have been changed since that date.
+3)  Resaves current date for next usage in #1 above.
+4)  Automatically creates 'Update.ReadMe' telling users 
+    'this date' and 'last date' for this update, as well as 
+    listing all the files.
+
+Does several things we can't do with DMS:
+1)  View inside the archive online.
+2)  Save 300 D/Lers about 600,000 bytes each.  (Why tie up the system
+    D/Ling 18,000,000 bytes THAT YOU ALREADY HAVE SITTING ON YOUR HD?)
+    (Why pay the phone company if you are calling here from BFE?)
+3)  Want to know exactly which files have/haven't been updated in
+    this release?  Easy.  Every file in the LHA.
+4)  Unpack directly to any sized partition on your HD.          
+5)  Selectively unpack only any 1 (or more) files that you need.
+
+*/
+
+parse arg pathname                    /* Get CLI arg of full path */
+
+LF='0a'x                              /* Line-feed char */
+readme  = "t:UpDate.Readme"           /* LHA these files + include this list */
+output  = "CnetNew"                   /* Resulting .LHA file */
+pointer = "Env:" || output || ".date" /* Store date of last LHA here */
+
+date2=translate(delstr(date('NORMAL'), 8, 2), "-", " ")  /* Today's date */
+
+if(~exists(pointer)) then
+   call WriteDate          /* If it's the 1st time AutoPack is run */
+
+call ReadDate              /* Get last-pack date */
+
+ADDRESS COMMAND "c:List >" || readme pathname "LFORMAT ""%f%s"" SINCE " date2
+ADDRESS COMMAND "LZ -e -r -i" || readme "u" output   /* Compress */
+
+call open(fp, readme, APPEND)       /* Add info to readme file */
+writeCH(fp, LF "Today is" date2 || "." LF)
+writeCH(fp, LF "All of the above files have been updated since the")
+writeCH(fp, LF "last LHA release on" date1 || "." LF)
+call close(fp)
+
+ADDRESS COMMAND "LZ u" output readme  /* Add modified read-me & filelist */
+
+call WriteDate    /* Update last-time-packed pointer */
+exit
+
+WriteDate:        /* Update last-time-packed pointer */
+   call open(fp, pointer, WRITE)
+   writeLN(fp, date2)     /* Date of this LHA as 01-Jan-92 */
+   call close(fp)
+   say LF "Storing" date2 "in" pointer LF
+return
+
+ReadDate:
+   call open(fp, pointer, READ)
+   date1=readLN(fp)               /* Date of last release as 01-Jan-92 */
+   call close(fp)
+   say LF "Getting last-pack date of" date1 "from" pointer LF
+return
+
+/* EOF AutoPack.rexx by Bill Beogelein 313-473-2020 */
+

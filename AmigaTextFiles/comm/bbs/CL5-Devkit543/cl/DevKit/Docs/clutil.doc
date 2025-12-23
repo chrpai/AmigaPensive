@@ -1,0 +1,1350 @@
+TABLE OF CONTENTS
+
+clutil.library/--background--
+clutil.library/CLU_Alert
+clutil.library/CLU_AllocVMem
+clutil.library/CLU_clnl
+clutil.library/CLU_CloseTempFile
+clutil.library/CLU_CreateProc
+clutil.library/CLU_ELSwapNodes
+clutil.library/CLU_FreeFilelist
+clutil.library/CLU_FreeVMem
+clutil.library/CLU_MakeFilelist
+clutil.library/CLU_MUI_InsertSingleStringA
+clutil.library/CLU_MUI_RunCommandA
+clutil.library/CLU_MUI_SetTextA
+clutil.library/CLU_NOL_AddEntry
+clutil.library/CLU_NOL_ChangeCounter
+clutil.library/CLU_NOL_Clone
+clutil.library/CLU_NOL_Delete
+clutil.library/CLU_NOL_DeleteEntry
+clutil.library/CLU_NOL_FindEntry
+clutil.library/CLU_NOL_GetEntry
+clutil.library/CLU_NOL_GetEntryData
+clutil.library/CLU_NOL_GetEntryName
+clutil.library/CLU_NOL_GetFirstEntry
+clutil.library/CLU_NOL_GetLastEntry
+clutil.library/CLU_NOL_GetNextEntry
+clutil.library/CLU_NOL_GetNumEntries
+clutil.library/CLU_NOL_GetPrevEntry
+clutil.library/CLU_NOL_Info
+clutil.library/CLU_NOL_Lock
+clutil.library/CLU_NOL_NewA
+clutil.library/CLU_NOL_SetEntryName
+clutil.library/CLU_NOL_SwapEntries
+clutil.library/CLU_NOL_UnLock
+clutil.library/CLU_OpenLibraryCode
+clutil.library/CLU_OpenTempFile
+clutil.library/CLU_ScanDir
+clutil.library/CLU_SkipDot
+clutil.library/--background--                   clutil.library/--background--
+
+ OVERVIEW
+
+ The "clutil.library" provides all kinds of low level functions for
+ the Connectline system. The Library itself does not depend on any other
+ Connectline module. Besides functions to overcome several 2.x quirks
+ it provides a extended version of the well known AsyncIO routines,
+ several general utility functions dealing with AmigaDOS, support
+ for private named semaphores and a general data storage abstraction
+ called "Named Object Lists" or NOLs. The NOL facility is used by
+ the "cl_prefs.library" to store complex data structures.
+
+ All "clutil.library" calls are implemented with respect for maximum
+ efficiency. You should *never* use your own routines if something
+ similiar is already provided in "clutil.library".
+
+ There is a SAS/C link library called "cl.lib" which provides the
+ link interface to several parts of the clutil.library functionality.
+
+clutil.library/CLU_Alert                             clutil.library/CLU_Alert
+
+   NAME
+   CLU_Alert -- Connectline specific Alert() with logging (V35)
+
+   SYNOPSIS
+   CLU_Alert( subsysid, specific )
+              D0        D1
+                     
+
+   void CLU_Alert( UBYTE, UWORD );
+
+   FUNCTION
+   Output connectline specific alert code with exec.library/Alert()
+   and store log entry in "CONNECTLINE:Alert.Log".
+
+   INPUTS
+   subsysid
+   specific -- see include file cl/clalerts.h for definitions.
+
+   RESULT
+   None. 
+
+   EXAMPLE
+
+   NOTES
+   If opening of the Alert.Log succeeds, this function will delay
+   the Alert() about 1 second to allow the filesystem to settle
+   down. 
+   
+   BUGS
+   None known.
+
+   SEE ALSO
+
+clutil.library/CLU_AllocVMem                     clutil.library/CLU_AllocVMem
+
+   NAME
+   CLU_AllocVMem -- allocate (possibly virtual) memory (V31)
+
+   SYNOPSIS
+   memblock = CLU_AllocVMem( size, flags )
+   D0                        D0    D1
+                     
+
+   APTR CLU_AllocVMem( ULONG, ULONG );
+
+   FUNCTION
+   Allocate memory, possibly virtual.
+
+   INPUTS
+   size -- size of memory block to allocate.
+   flags -- allowed flags are:
+
+            MEMF_CLEAR
+            MEMF_PROTECT
+
+
+   RESULT
+   memblock -- pointer to memory block or NULL.
+
+   EXAMPLE
+
+   NOTES
+   You can also use MEMF_CLEAR and MEMF_PROTECT in conjunction
+   with CLU_CreatePool().
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   clutil.library/CLU_FreeVMem, clutil.library/CLU_CreatePool
+
+clutil.library/CLU_clnl                               clutil.library/CLU_clnl
+
+   NAME
+   CLU_clnl -- clear CR/LF at end of line.
+
+   SYNOPSIS
+   CLU_clnl( string )
+             A0
+
+   FUNCTION
+   Clears any CR or LF characters at the end of the string.
+
+   INPUTS
+   string -- pointer to string (contents will be modified!)
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+
+clutil.library/CLU_CloseTempFile             clutil.library/CLU_CloseTempFile
+
+   NAME
+   CLU_CloseTempFile -- close and delete a temporary file (V27)
+
+   SYNOPSIS
+   CLU_CloseTempFile( tempfile, delete )
+                      A0        d0
+
+   void CLU_CloseTempFile( BPTR, BOOL );
+
+   FUNCTION
+   Closes and optionally deletes a temporary file
+   created by CLU_OpenTempFile().
+
+   INPUTS
+   tempfile -- AmigaDOS filehandle as returned by CLU_OpenTempFile().
+
+   delete -- flag; TRUE deletes file after closing.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLU_OpenTempFile()
+
+clutil.library/CLU_CreateProc                   clutil.library/CLU_CreateProc
+
+   NAME
+   CLU_CreateProc -- create process with register setup (V50)
+   CLU_CreateProcTags -- varargs version
+
+   SYNOPSIS
+   process = CLU_CreateProc( entry, registerinfo, tags )
+   D0                         A0       A1          A2
+
+   struct Process * CLU_CreateProc( FUNCPTR entry, 
+                     struct CLU_RegisterInfo *reginfo,
+                     struct TagItem *tags );
+   struct Process * CLU_CreateProcTags( FUNCPTR entry, 
+                     struct CLU_RegisterInfo *reginfo,
+                     ... );
+
+   FUNCTION
+   Calls dos.library/CreateNewProc() to create a new process
+   as specified by "tags". Before entering the given entrypoint,
+   registers are set up according to registerinfo. This allows
+   specifying arguments and/or base pointers.
+
+   INPUTS
+   entry -- entry point to call.
+   registerinfo -- pointer to struct CLU_RegisterInfo
+   tags -- tags passed to CreateNewProcTags()
+
+   RESULT
+   process -- pointer to process or NULL upon failure.
+
+   EXAMPLE
+
+   NOTES
+   Note that you may not setup registers A2 and A3 because
+   they are required for setting up the new process.
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   dos.library/CreateNewProc()
+
+clutil.library/CLU_ELSwapNodes                 clutil.library/CLU_ELSwapNodes
+
+   NAME
+   CLU_ELSwapNodes -- swap to exec list nodes
+
+   SYNOPSIS
+   CLU_ELSwapNodes( node1, node2 )
+                    A0     A1
+
+   void CLU_ELSwapNodes( struct Node *, struct Node * );
+
+   FUNCTION
+   Exchanges the two nodes on the exec list.
+
+   INPUTS
+   node1
+   node2 -- pointer standard exec MinNodes or extensions.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+   Make sure both node pointer are valid and on the same
+   list, otherwise this function will cause unpredictable
+   results.
+
+   This function does not require A6 to be set up.
+
+   BUGS
+
+   SEE ALSO
+
+clutil.library/CLU_FreeFilelist               clutil.library/CLU_FreeFilelist
+
+   NAME
+   CLU_FreeFileList -- free file list (V29)
+
+   SYNOPSIS
+   CLU_FreeFileList( filelist )
+                     A0         
+
+   void CLU_FreeFileList( struct clu_filelist * );
+
+   FUNCTION
+   Free a file list obtained via CLU_MakeFileList().
+
+   INPUTS
+   filelist -- pointer to clu_filelist as returned by CLU_MakeFileList().
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLU_MakeFilelist(), CLU_ScanDir()
+
+clutil.library/CLU_FreeVMem                       clutil.library/CLU_FreeVMem
+
+   NAME
+   CLU_FreeVMem -- free memory allocated by CLU_AllocVMem (V31)
+
+   SYNOPSIS
+   CLU_FreeVMem( memblock )
+                 A0
+                     
+
+   void CLU_FreeVMem( APTR );
+
+   FUNCTION
+   Free memory allocated via CLU_AllocVMem()
+
+   INPUTS
+   memblock -- pointer to memory block as returnd by CLU_AllocVMem().
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+   Unlike other OS memory function, this call silently accepts
+   a NULL pointer.
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   clutil.library/CLU_AllocVMem, clutil.library/CLU_CreatePool
+
+clutil.library/CLU_MakeFilelist               clutil.library/CLU_MakeFilelist
+
+   NAME
+   CLU_MakeFileList -- scan a directory and return link list of FIBs (V29)
+
+   SYNOPSIS
+   filelist = CLU_MakeFileList( dirlock, pattern, flags )
+   D0                           A0       A1       D0
+
+   struct clu_filelist * CLU_MakeFileList( BPTR, STRPTR, ULONG );
+
+   FUNCTION
+   Scans the given directory and returns a link list of
+   file info blocks.
+
+   INPUTS
+   dirlock -- AmigaDOS lock on directory to examine.
+
+   pattern -- optional match pattern or NULL.
+
+   flags -- possible flags:
+
+              CLUMFLF_NODIRS    filter directories
+              CLUMFLF_NOFILES   filter files
+              CLUMFLF_NOINFOS   filter icon files
+              CLUMFLF_SORT         sort entries (V46)
+
+   RESULT
+   filelist -- pointer to a struct clu_filelist. You *MUST*
+               free this via CLU_FreeFileList(). NULL upon
+               error, see IoErr() for more information.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLU_FreeFilelist(), CLU_ScanDir()
+
+clutil.library/CLU_MUI_InsertSingleStringAlibrary/CLU_MUI_InsertSingleStringA
+
+   NAME
+   CLU_MUI_InsertSingleStringA -- perform MUIM_List_InsertSingle with
+                                  printf()-like formating (V31)
+   CLU_MUI_InsertSingleString -- varargs version
+
+   SYNOPSIS
+   CLU_MUI_InsertSingleStringA( listobj, pos, fmt, data )
+                                A0       D0   A1   A2 
+
+   void CLU_MUI_InsertSingleStringA( APTR, STRPTR, APTR );
+   void CLU_MUI_InsertSingleString( APTR, STRPTR, ... );
+
+   FUNCTION
+   Perform MUIM_List_InsertSingle on a standard MUI string
+   list with formating.
+
+   INPUTS
+   listobj -- MUI list object.
+   pos -- position to add string.
+   fmt -- standard printf()-like formating string
+   data -- optional arguments (denoted by fmt)
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   exec.library/RawDoFmt()
+
+clutil.library/CLU_MUI_RunCommandA         clutil.library/CLU_MUI_RunCommandA
+
+   NAME
+   CLU_MUI_RunCommandA -- execute shell program while performing
+                          MUIM_Application_InputBuffered (V32)
+                          
+   CLU_MUI_RunCommand -- varargs version
+
+   SYNOPSIS
+   rc = CLU_MUI_RunCommandA( appobj, cmd, tags )
+   D0                        A0      A1   A3
+
+   void CLU_MUI_RunCommandA( APTR, STRPTR, APTR );
+   void CLU_MUI_RunCommand( APTR, STRPTR, ... );
+
+   FUNCTION
+   Execute the given shell program while performing
+   MUIM_Application_InputBuffered. This allows for application
+   windows to be still operatable while the application is
+   executing a shell command.
+
+   INPUTS
+   appobj -- MUI application object to perform 
+             MUIM_Application_InputBuffered on.
+   path   -- full commandline of program to execute.
+   tags -- optional Tags passed down to CreateNewProc().
+
+   RESULT
+   rc -- return code from command or -1 upon error.
+         Use dos.library/IoErr() to obtain the secondary
+         result code.
+
+   EXAMPLE
+
+   NOTES
+   This function actually creates a secondary process
+   via CreateNewProc()  and has this process run the
+   requested command via SystemTagList(). Your tags
+   affect the initial CreateNewProc(), not the
+   SystemTagList(), which inherits it's parameters
+   from the parent process as stated in dos.doc.
+
+   Several tags are filtered by this function before
+   they are passed down to CreateNewProc(). As of
+   V33, this filtering includes:
+        NP_ExitCode
+        NP_ExitData
+        NP_Entry
+        NP_Seglist
+        NP_FreeSeglist
+        NP_Arguments
+        NP_Cli
+        NP_CommandName
+
+   BUGS
+   Not functional until V33.
+
+   SEE ALSO
+   dos.library/CreateNewProc(), dos.library/SystemTagList()
+
+clutil.library/CLU_MUI_SetTextA               clutil.library/CLU_MUI_SetTextA
+
+   NAME
+   CLU_MUI_SetTextA -- set MUI text gadget with %-formatting (V30)
+   CLU_MUI_SetText -- varargs version
+
+   SYNOPSIS
+   CLU_MUI_SetTextA( textobj, fmt, data )
+                     A0       A1   A2 
+
+   void CLU_MUI_SetTextA( APTR, STRPTR, APTR );
+   void CLU_MUI_SetText( APTR, STRPTR, ... );
+
+   FUNCTION
+   Sets the contents of a MUI text gadget via RawDoFmt().
+
+   INPUTS
+   textobj -- MUI text object
+   fmt -- standard printf()-like formating string
+   data -- optional arguments (denoted by fmt)
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   exec.library/RawDoFmt()
+
+clutil.library/CLU_NOL_AddEntry               clutil.library/CLU_NOL_AddEntry
+
+   NAME
+   CLU_NOL_AddEntry -- Add an entry to a NOL.
+
+   SYNOPSIS
+   nobjhandle =
+    CLU_NOL_AddEntry( nolhandle, objname, objdata, insertmode [, refobj ] )
+   D0                 A0         A1       A2       D0            A3
+
+   NOBJ CLU_NOL_AddEntry( NOL, STRPTR, APTR, ULONG, NOBJ );
+
+   FUNCTION
+   Add an entry to the specified NOL. The data is copied
+   to the private NOL memory and can be freed after this call.
+   If an object with the same name already exists, this
+   function will return NULL and set IoErr() to
+   ERROR_OBJECT_EXISTS, unless the NOLIMF_OVERWRITE is set.
+
+   INPUTS
+   nolhandle -- as returned by by CLU_NOL_New() et al.
+   objname -- name of object to add.
+   objdata -- data ob object, only necessary if NOLT_ENTRYSIZE
+              was used on CLU_NOL_New()
+   insertmode -- one of:
+          NOLIM_ADDHEAD -- add to head of list
+          NOLIM_ADDTAIL -- add to tail of list
+          NOLIM_INSERT_BEFORE -- insert before refobj
+          NOLIM_INSERT_AFTER  -- insert after refobj
+          NOLIM_INSERT_SORTED -- insert sorted (NYI)
+
+          Also, NOLIMF_OVERWRITE may be set to force
+          overwrite of an existing object.
+
+   refobj -- reference NOBJ for NOLIM_INSERT_BEFORE or
+             NOLIM_INSERT_AFTER.
+
+
+   RESULT
+   nobjhandle -- private pointer to the new object or NULL upon failure.
+                 IoErr() will hold ERROR_OBJECT_EXISTS or 
+                 ERROR_NO_FREE_STORE to show what's going on.
+
+   EXAMPLE
+       APTR nolhandle;
+       APTR nobjhandle;
+       struct mydata mydata;
+       nobjhandle = CLU_NOL_AddEntry( nolhandle, "Guest", &mydata,
+           NOLIM_HEAD );
+
+   NOTES
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_ChangeCounter     clutil.library/CLU_NOL_ChangeCounter
+
+   NAME
+   CLU_NOL_ChangeCounter -- Get change counter of a NOL (V35).
+
+   SYNOPSIS
+   count = CLU_NOL_ChangeCounter( nol, reset )
+   D0                             A0   D0
+
+   ULONG CLU_NOL_ChangeCounter( NOL, BOOL );
+
+   FUNCTION
+   Returns the change counter of the NOL. If reset is TRUE, also
+   resets this to Zero.
+
+   INPUTS
+   nolhandle -- standard nol handle.
+   reset -- flag, resets counter to Zero if TRUE
+
+   RESULT
+   count -- current change counter.
+
+   EXAMPLE
+
+   NOTES
+   Passing a NULL pointer will be penalted by a NULL return.
+
+   BUGS
+   None known.
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_Clone                     clutil.library/CLU_NOL_Clone
+
+   NAME
+   CLU_NOL_Clone -- Clone a NOL and all it's entries.
+
+   SYNOPSIS
+   newnol = CLU_NOL_Clone( nolhandle )
+   D0                      A0
+
+   void * CLU_NOL_Clone( void * );
+
+   FUNCTION
+   Clones the specified NOL and returns a nolhandle to the
+   new list. All entries in the source NOL are duplicated. 
+
+   INPUTS
+   nolhandle -- as returned by by CLU_NOL_New() et al.
+
+   RESULT
+   newnol -- nolhandle to cloned NOL.
+
+   EXAMPLE
+
+   NOTES
+   Passing a NULL pointer will be penalted by a NULL return.
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_Delete                   clutil.library/CLU_NOL_Delete
+
+   NAME
+   CLU_NOL_Delete -- Delete a Named Object List. (V24)
+
+   SYNOPSIS
+   CLU_NOL_Delete( nolhandle )
+                   A0
+
+   void CLU_NOL_Delete( void * );
+
+   FUNCTION
+   Delete the specified NOL and all it's entries.
+
+   INPUTS
+   nolhandle -- as returned by by CLU_NOL_New() et al.
+
+   RESULT
+   none
+
+   EXAMPLE
+       APTR nolhandle;
+       CLU_NOL_Delete( nolhandle );
+
+   NOTES
+   A NULL pointer is silently accepted for easy cleanup
+   procedures.
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_DeleteEntry         clutil.library/CLU_NOL_DeleteEntry
+
+   NAME
+   CLU_NOL_DeleteEntry -- Delete a NOL entry. (V24)
+
+   SYNOPSIS
+   CLU_NOL_DeleteEntry( nobjhandle )
+                        A0
+
+   void CLU_NOL_DeleteEntry( void * );
+
+   FUNCTION
+   Delete the specified NOL entry.
+
+   INPUTS
+   nobjhandle -- a named object handle.
+
+   RESULT
+   none
+
+   EXAMPLE
+       APTR nobjhandle;
+       CLU_NOL_DeleteEntry( nobjhandle );
+
+   NOTES
+   A NULL pointer is silently accepted for easy cleanup
+   procedures.
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_FindEntry             clutil.library/CLU_NOL_FindEntry
+
+   NAME
+   CLU_NOL_FindEntry -- Find an entry in a NOL by name.
+
+   SYNOPSIS
+   nobjhandle = CLU_NOL_FindEntry( nolhandle, objname )
+   D0                              A0         A1
+
+   void CLU_NOL_FindEntry( void *, STRPTR );
+
+   FUNCTION
+   Search the specified NOL for object "objname" and return
+   a private pointer to it (nobjhandle).
+
+   INPUTS
+   nolhandle -- as returned by by CLU_NOL_New() et al.
+   objname -- name of object to look for
+
+   RESULT
+   nobjhandle -- private pointer to object or NULL upon failure.
+
+   EXAMPLE
+       APTR nolhandle;
+       APTR nobjhandle;
+       nobjhandle = CLU_NOL_FindEntry( nolhandle, "Guest" );
+
+   NOTES
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_GetEntry               clutil.library/CLU_NOL_GetEntry
+
+   NAME
+   CLU_NOL_GetEntry -- Get NOL entry by index (V41)
+
+   SYNOPSIS
+   NOBJ = CLU_NOL_GetEntry( nolhandle, index )
+   D0                           A0       D0
+
+   void * CLU_NOL_GetEntry( void *, ULONG index );
+
+   FUNCTION
+   
+
+   INPUTS
+   nolhandle -- named object list.
+   index -- integral index into list.
+
+   RESULT
+   nobj -- nobjhandle to indexed object or NULL
+
+   EXAMPLE
+
+   NOTES
+   Passing a NULL pointer will be penalted by a NULL return.
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_GetEntryData       clutil.library/CLU_NOL_GetEntryData
+
+   NAME
+   CLU_NOL_GetEntryData -- Get pointer to data of a nobjhandle
+
+   SYNOPSIS
+   data = CLU_NOL_GetEntryData( nobjhandle )
+   D0                           A0
+
+   void * CLU_NOL_GetEntryData( void * );
+
+   FUNCTION
+   Returns the name of the specified named object.
+
+   INPUTS
+   nobjhandle -- as returned by by CLU_NOL_FindEntry() et al.
+
+   RESULT
+   name -- APTR to entry data. DON'T TOUCH THIS!
+
+   EXAMPLE
+       APTR nobjhandle;
+       struct mydata * mydata;
+       mydata = CLU_NOL_GetEntryData( nobjhandle );
+       Printf( "mydata->taler = %ld\n", mydata->taler );
+
+   NOTES
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_GetEntryName       clutil.library/CLU_NOL_GetEntryName
+
+   NAME
+   CLU_NOL_GetEntryName -- Get name of a nobjhandle
+
+   SYNOPSIS
+   name = CLU_NOL_GetEntryName( nobjhandle )
+   D0                           A0
+
+   STRPTR CLU_NOL_GetEntryName( void * );
+
+   FUNCTION
+   Returns the name of the specified named object.
+
+   INPUTS
+   nobjhandle -- as returned by by CLU_NOL_FindEntry() et al.
+
+   RESULT
+   name -- STRPTR to entry name. DON'T CHANGE THIS!
+
+   EXAMPLE
+       APTR nobjhandle;
+       STRPTR name;
+       name = CLU_NOL_GetEntryName( nobjhandle );
+       Printf( "name = %s\n", name );
+
+   NOTES
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_GetFirstEntry     clutil.library/CLU_NOL_GetFirstEntry
+
+   NAME
+   CLU_NOL_GetFirstEntry -- Get first entry of a NOL (V35).
+
+   SYNOPSIS
+   nobj = CLU_NOL_GetFirstEntry( nol )
+   D0                            A0
+
+   NOBJ CLU_NOL_GetFirstEntry( NOL );
+
+   FUNCTION
+   Returns the first entry in the NOL or NULL if the NOL is
+   empty.
+
+   INPUTS
+   nolhandle -- standard nol handle.
+
+   RESULT
+   nextnobj -- nobjhandle to first object or NULL.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLU_NOL_GetLastEntry()
+
+clutil.library/CLU_NOL_GetLastEntry       clutil.library/CLU_NOL_GetLastEntry
+
+   NAME
+   CLU_NOL_GetLastEntry -- Get last entry of a NOL (V35).
+
+   SYNOPSIS
+   nobj = CLU_NOL_GetLastEntry( nol )
+   D0                           A0
+
+   NOBJ CLU_NOL_GetLastEntry( NOL );
+
+   FUNCTION
+   Returns the last entry in the NOL or NULL if the NOL is
+   empty.
+
+   INPUTS
+   nolhandle -- standard nol handle.
+
+   RESULT
+   nextnobj -- nobjhandle to last object or NULL.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLU_NOL_GetFirstEntry()
+
+clutil.library/CLU_NOL_GetNextEntry       clutil.library/CLU_NOL_GetNextEntry
+
+   NAME
+   CLU_NOL_GetNextEntry -- Get next entry in NOL.
+
+   SYNOPSIS
+   nextnobj = CLU_NOL_GetNextEntry( nobjhandle )
+   D0                               A0
+
+   void * CLU_NOL_GetNextEntry( void * );
+
+   FUNCTION
+   Returns the next entry in the NOL following the specified
+   entry or NULL if end of list.
+
+   INPUTS
+   nobjhandle -- as returned by by CLU_NOL_FindEntry() et al.
+
+   RESULT
+   nextnobj -- nobjhandle to next object or NULL
+
+   EXAMPLE
+
+   NOTES
+   Passing a NULL pointer will be penalted by a NULL return.
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_GetNumEntries     clutil.library/CLU_NOL_GetNumEntries
+
+   NAME
+   CLU_NOL_GetNumEntries -- Get number of entries in a NOL.
+
+   SYNOPSIS
+   num = CLU_NOL_GetNumEntries( nolhandle )
+   D0                           A0
+
+   LONG CLU_NOL_GetNumEntries( void * );
+
+   FUNCTION
+   Returns the number of entries in the specified NOL.
+
+   INPUTS
+   nolhandle -- as returned by by CLU_NOL_New() et al.
+
+   RESULT
+   num -- number of entries.
+
+   EXAMPLE
+
+   NOTES
+   Passing a NULL pointer will yield a result of -1. 
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_GetPrevEntry       clutil.library/CLU_NOL_GetPrevEntry
+
+   NAME
+   CLU_NOL_GetPrevEntry -- Get previous entry in NOL.
+
+   SYNOPSIS
+   prevnobj = CLU_NOL_GetPrevEntry( nobjhandle )
+   D0                               A0
+
+   void * CLU_NOL_GetPrevEntry( void * );
+
+   FUNCTION
+   Returns the previous entry in the NOL before the specified
+   entry or NULL if end of list.
+
+   INPUTS
+   nobjhandle -- as returned by by CLU_NOL_FindEntry() et al.
+
+   RESULT
+   prevnobj -- nobjhandle to previous object or NULL
+
+   EXAMPLE
+
+   NOTES
+   Passing a NULL pointer will be penalted by a NULL return.
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_Info                       clutil.library/CLU_NOL_Info
+
+   NAME
+   CLU_NOL_Info -- Return information about a NOL. (V24)
+
+   SYNOPSIS
+   infoversion = CLU_NOL_Info( nolhandle, nolinfo )
+   D0                          A0         A1
+
+   ULONG CLU_NOL_Info( APTR, struct NOL_Info * );
+
+   FUNCTION
+   Return information about the specified NOL.
+
+   The NOL_Info structure is defined as:
+
+     struct NOL_Info {
+       ULONG nol_info_version;    /* set to NOL_INFO_VERSION */
+       ULONG nol_entrysize;    /* per entry size */
+       ULONG nol_num_entries;    /* number of entries */
+     };
+
+
+   INPUTS
+   nolhandle -- private NOL handle.
+   nolinfo -- Pointer to a structure of type NOL_Info.
+
+   RESULT
+   infoversion -- equal to NOL_INFO_VERSION or 0 if an
+                  error occured.
+
+   EXAMPLE
+       APTR nolhandle;
+       struct NOL_Info nolinfo;
+       CLU_NOL_INFO( nolhandle, &nolinfo );
+
+   NOTES
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_Lock                       clutil.library/CLU_NOL_Lock
+
+   NAME
+   CLU_NOL_Lock -- Obtain a NOL semaphore (V35)
+
+   SYNOPSIS
+   CLU_NOL_Lock( nol, exclusive )
+                 A0   D0
+
+   void CLU_NOL_Lock( NOL, BOOL );
+
+   FUNCTION
+   Obtains a NOL semaphore.
+
+   INPUTS
+   nolhandle -- standard nol handle.
+   exclusive -- flags for exclusive access.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLU_NOL_UnLock(), exec.library/ObtainSemaphore(),
+       exec.library/ObtainSemaphoreShared()
+
+clutil.library/CLU_NOL_NewA                       clutil.library/CLU_NOL_NewA
+
+   NAME
+   CLU_NOL_NewA -- Create new Named Object List. (V24)
+   CLU_NOL_New -- Tagcall variant of CLU_NOL_NewA (V24)
+
+   SYNOPSIS
+   nolhandle = CLU_NOL_NewA( taglist )
+      D0                     A0
+
+   void * CLU_NOL_NewA( struct TagItem * );
+   void * CLU_NOL_New( tag1, tag2, ... );
+
+   FUNCTION
+   Create a new, empty NOL handle.
+
+   Possible Tags:
+
+   NOLT_ENTRYSIZE, ULONG -- define size of list entries. Defaults
+                            to 0, meaning that the list only contains
+                            labels.
+   NOLT_IGNORECASE, BOOL -- ignore case of labels upon search. Defaults
+                            to FALSE.
+
+   INPUTS
+   taglist -- Pointer to a TagItem array. See definitions above.
+
+   RESULT
+   nolhandle -- NULL upon error, otherwise a pointer to a private
+                data structure used for referencing the NOL.
+
+   EXAMPLE
+       APTR nolhandle;
+       nolhandle = CLU_NOL_New( NOLT_ENTRYSIZE, sizeof( struct mydata ),
+                                TAG_DONE );
+
+   NOTES
+
+   BUGS
+   none known
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_SetEntryName       clutil.library/CLU_NOL_SetEntryName
+
+   NAME
+   CLU_NOL_SetEntryName -- Set name of a nobjhandle
+
+   SYNOPSIS
+   success = CLU_NOL_SetEntryName( nobjhandle, name )
+   D0                              A0          A1
+
+   BOOL CLU_NOL_SetEntryName( NOBJ, STRPTR );
+
+   FUNCTION
+   Sets the name of the given NOBJ. If a object with the same
+   name already exists on the NOL, this function will return
+   FALSE and set IoErr() to ERROR_OBJECT_EXISTS.
+
+   INPUTS
+   nobjhandle -- as returned by by CLU_NOL_FindEntry() et al.
+   name -- new name of NOBJ. This is copied to a private
+           memory pool and can be reused afterwards.
+
+   RESULT
+   success -- TRUE or FALSE. See IoErr() for more error information.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   none known
+
+   SEE ALSO
+   CLU_NOL_GetEntryName()
+
+clutil.library/CLU_NOL_SwapEntries         clutil.library/CLU_NOL_SwapEntries
+
+   NAME
+   CLU_NOL_SwapEntries -- Swap two NOL entries (V35)
+
+   SYNOPSIS
+   CLU_NOL_SwapEntries( nobjhandle1, nobjhandle2 )
+                        A0           A1
+
+   void CLU_NOL_SwapEntries( NOBJ, NOBJ );
+
+   FUNCTION
+   Swaps the position of the two NOBJs on the NOL.
+
+   INPUTS
+   nobjhandle1 -- a named object handle.
+   nobjhandle2 -- a named object handle.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+   This function will produce an CLU_Alert() if the two
+   NOBJs are not on the same NOL.
+
+   BUGS
+   None known.
+
+   SEE ALSO
+
+clutil.library/CLU_NOL_UnLock                   clutil.library/CLU_NOL_UnLock
+
+   NAME
+   CLU_NOL_UnLock -- Release a NOL semaphore (V35)
+
+   SYNOPSIS
+   CLU_NOL_UnLock( nol )
+                   A0
+
+   void CLU_NOL_UnLock( NOL );
+
+   FUNCTION
+   Releases a NOL semaphore.
+
+   INPUTS
+   nolhandle -- standard nol handle.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLU_NOL_Lock(), exec.library/ReleaseSemaphore()
+
+clutil.library/CLU_OpenLibraryCode         clutil.library/CLU_OpenLibraryCode
+
+   NAME
+   CLU_OpenLibraryCode -- open Connectline specific libraries.
+
+   SYNOPSIS
+   libbase = CLU_OpenLibraryCode( libcode )
+   D0                             D0
+
+   struct Library * CLU_OpenLibraryCode( int );
+
+   FUNCTION
+   Opens Connectline specific libraries given by a shorthand
+   integer code. This function knows about library locations
+   and versions, and will put up a requester if a correct
+   library version can't be opened.
+
+   INPUTS
+   libcode -- library code, see "cl/clutil.h"
+
+   RESULT
+   libbase -- Library base.
+
+   EXAMPLE
+       CLBase = CLU_OpenLibraryCode( CLULC_CLBOARD );
+
+   NOTES
+   You normally don't need to call this function on your own,
+   since the constructors/destructors in "cl.lib" will do
+   this for you.
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLU_OpenLibrary()
+
+clutil.library/CLU_OpenTempFile               clutil.library/CLU_OpenTempFile
+
+   NAME
+   CLU_OpenTempFile -- open temporary file (V27)
+
+   SYNOPSIS
+   fh = CLU_OpenTempFile( size, namearray )
+   D0                     A0    A1
+
+   BPTR CLU_OpenTempFile( ULONG, STRPTR );
+
+   FUNCTION
+   Opens a temporary file and (optionally) returns
+   the name of the file created.
+
+   INPUTS
+   size -- expected size of the temporary file.
+           May be 0, stating "I don't know".
+
+   namearray -- pointer to a char array of at least 256
+                bytes to receive the full path name
+                of the file opened. May be NULL,
+                in which case no name is returned.
+   
+   dirlock -- a valid Lock on the directory to examine.
+
+   RESULT
+   fh -- AmigaDOS filehandle or NULL upon error.
+
+   EXAMPLE
+       BPTR fh;
+       fh = CLU_OpenTempFile( 8192, NULL );
+       /*...*/
+       CLU_CloseTempFile( fh, TRUE );
+
+   NOTES
+   The file location depends on the expected size given.
+   Small files might go to the Ram Disk,
+   whereas large files will go to a hard drive location.
+   Setting size to 0 will always cause the "largest"
+   possible location to be selected.
+
+   BUGS
+   This function is obsolete. Use the appropriate function
+   in cl_prefs.library!
+
+   SEE ALSO
+   CLU_CloseTempFile()
+
+clutil.library/CLU_ScanDir                         clutil.library/CLU_ScanDir
+
+   NAME
+   CLU_ScanDir -- scan a directory and call hook for every entry (V26)
+
+   SYNOPSIS
+   count = CLU_ScanDir( dirlock, pattern, hookfunc, userdata )
+   D0                   A0       A1       A2        A3
+
+   int CLU_ScanDir( BPTR, STRPTR, HOOKFUNC, APTR );
+
+   FUNCTION
+   Scan a directory and call the hook function for every
+   entry found. Optional pattern match.
+
+   INPUTS
+   dirlock -- a valid Lock on the directory to examine.
+
+   pattern -- optional match pattern or NULL.
+
+   hookfunc -- function pointer to your hook function. The
+               hook function is called with a pointer to
+               a FileInfoBlock in A1 and with your userdata
+               pointer in A3. The hookfunc must return
+               an boolean value in D0 meaning FALSE for aborting
+               scan and TRUE to continue.
+
+   userdata -- optional user data pointer passed to your
+               hook function in A3.
+
+   RESULT
+   count -- number of matching entries or -1 if an error
+            occured (see IoErr() for more information)
+
+   EXAMPLE
+
+
+   NOTES
+
+   BUGS
+   none known
+
+   SEE ALSO
+   CLU_MakeFileList()
+
+clutil.library/CLU_SkipDot                         clutil.library/CLU_SkipDot
+
+   NAME
+   CLU_SkipDot -- skip first char if "." (V39)
+
+   SYNOPSIS
+   newptr = CLU_SkipDot( string )
+     D0                    A0
+
+   STRPTR CLU_SkipDot( STRPTR );
+
+   FUNCTION
+   Skips first char if '.'
+
+   INPUTS
+   string -- Input string pointer.
+
+   RESULT
+   newptr -- possibly updated string pointer.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+
+

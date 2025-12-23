@@ -1,0 +1,198 @@
+@DataBase CFG_Commands_System
+
+@Index HBBS:Docs/Misc/Index.guide/MAIN
+
+@Node Main "HBBS:Commands/System"
+
+  Description:
+
+  The "HBBS:Commands/System" file, and other ".../Commands/System" files
+  like the ones that go in "HBBS:Nodes/NodeXX/Commands/System" and
+  "HBBS:Conferences/<ConfName>/Commands/System", are used to define
+  the system commands.
+
+  A system command/system door as a program that is started by either
+  the node program or via another door.
+
+  In contrast to a user command/user door's that are started by the user
+  from the BBS's command prompt.
+
+  For example, FR is a user command that starts the filelister,
+  whereas CmdPrompt is a system command started by node that starts the
+  command prompt.
+
+  A system door and a user door are programmed in the same way, and
+  some doors are in fact system doors and user doors, for example
+  the JoinCon and the J door can use the same executable and are
+  defined in both the Commands/System file and a Commands/#?Level#? file.
+
+  The files are normal config files, and the options are thus:
+
+  <SystemDoorName>_Type_XX=<string>    @{" More... " link SystemDoorName_Type_XX}
+  <SystemDoorName>_Door_XX=<string>    @{" More... " link SystemDoorName_Door_XX}
+  <SystemDoorName>_Param_XX=<string>   @{" More... " link SystemDoorName_Param_XX}
+  <SystemDoorName>_Debug_XX=<boolean>  @{" More... " link SystemDoorName_Debug_XX}
+
+  in the future the following options may be implemented:
+
+  <SystemDoorName>_Priority_XX=<boolean>
+  <SystemDoorName>_Access_XX=<number>
+
+  <SystemDoorName>_Type_XX and <SystemDoorName>_Door_XX must ALWAYS
+  be specified, but the other options are optional.
+
+  Here's an example
+
+  JoinConf_Type_1=HBBS
+  JoinConf_Door_1=HBBS:Doors/User/JoinConference/JoinConference.HBBS {N} {O}
+  JoinConf_Param_1=SYSTEM
+
+  You may run two doors where one would normally be run like this:
+
+  Extract_DIZ_Type_1=HBBS
+  Extract_DIZ_Door_1=HBBS:Doors/System/ExtractDIZ/ExtractDIZ.HBBS {N} {O}
+  Extract_DIZ_Param_1=EXTRACT
+  Extract_DIZ_Type_2=HBBS
+  Extract_DIZ_Door_2=HBBS:Doors/System/FileHistory/FileHistory.HBBS {N} {O}
+
+  Note however, that the first door may set a flag that can prevent the
+  second door from starting, this is down to each individual door.
+
+  For a list of all the default door's provided with HBBS see
+  @{"HBBS:Docs/Doors/DoorIndex.guide" link HBBS:Docs/Doors/DoorIndex.guide}
+
+  If a door is replaced, it may allow you to start other system doors
+  with different names other than the ones in the list above.  This is
+  down to the door coder.
+
+  Don't forget the order of precedence that system doors are looked for:
+
+  HBBS:Conferences/<ConferenceName>/Commands/System
+  HBBS:Nodes/Node<NodeNum>/Commands/System
+  HBBS:Commands/System
+
+  This allows you to only define things like the account editor on the local
+  node!  Or you could set up one node that requires a user to have a specific
+  access level, then you could define some command in that node's
+  Commands/System file which then wouldn't be available to any other node
+  or any user without that access level. Or to users with that access level
+  on a different node..  Gosh, just think of those security prospects!
+
+
+  System doors are defined in these ".../Commands/System" files like you
+  define doors for /X's system doors in it's SYSCMD directory
+
+@EndNode
+
+@Node SystemDoorName_Type_XX "<SystemDoorName>_Type_XX"
+
+  <SystemDoorName>_Type_XX=<string>
+
+    E.G.
+
+    Await_Type_1=HBBS
+
+    This defines the type of door and how HBBS starts it.
+
+    The supported types are:
+
+    HBBS     - Denotes an HBBS door
+    CLI      - Denotes a CLI program, set <SystemDoorName>_Door_XX the the
+               name of a cli program.
+    CLS      - Clears the screen, set <SystemDoorName>_Door_XX to CLS as well!
+    ECHO     - Echo's the <SystemDoorName>_Door_XX setting to the screen.
+    SSCREEN  - Display a special screen as defined by <SystemDoorName>_Door_XX
+    PAUSE    - Displays the pause prompt as defined by <SystemDoorName>_Door_XX
+    SCREEN   - Display a screen as defined by <SystemDoorName>_Door_XX
+    BULLETIN - Display a bulletin as defined by <SystemDoorName>_Door_XX
+
+    Note:
+
+    Using the ECHO command to replace a system command in a particular
+    conference or node is a good way of showing custom messages to users who
+    are not allowed to access this door.
+
+@EndNode
+
+@Node SystemDoorName_Door_XX "<SystemDoorName>_Door_XX"
+
+  <SystemDoorName>_Door_XX=<string>
+
+    E.G.
+
+    Await_Door_1=HBBS:Doors/System/AwaitConnect/AwaitConnect.HBBS {N} {O}
+
+    This defines the door program or cli command and it's paramaters to use
+    when this door is started.
+
+    When <SystemDoorName>_Type_XX is set to HBBS the following
+    string replacements are made to the command line before the command
+    is executed:
+
+    {N} - Replaced by the node number, this option is required
+          for all HBBS doors so that the door can talk to the
+          right instance of the Node program.
+    {O} - This is replaced by any options the door is started with.
+          For instance, one System or User door by call another System
+          door with some paramaters.
+
+    An interesting and usefull side affect of this string replacement is
+    that you can do this:
+
+    MyDoor_Door_1=HBBS:Doors/System/MyDoor/MyDoor_{N}.HBBS {N} {O}
+
+    or
+
+    MyDoor_Door_1=HBBS:Doors/System/MyDoorForNode{N}/MyDoor.HBBS {N} {O}
+
+    So you can run seperate system door executables for a node, KEWL!
+    great for door coders who can't be arsed to re-config the file
+    HBBS:NodesX/Node/Commands/System!
+    Most of the time though, you should use the HBBS:Nodes/NodeX/Commands/System
+    file to do this, just though you'd like to see how kewl HBBS really is!
+
+    Told you HBBS was great :-)
+
+@EndNode
+
+@Node SystemDoorName_Param_XX "<SystemDoorName>_Param_XX"
+
+  <SystemDoorName>_Param_XX=<string>
+
+    E.G.
+
+    CheckTags_Param_1=LOGIN_CHECK
+
+    This lets you specify the system options for a door.
+
+    These options are in addition to any other options the door might
+    have been called with.  This lets door codes write one door that
+    can function as more than one door, for instance check out the
+    configs for the Extract_DIZ and Update_DIZ system doors.
+
+@EndNode
+
+@Node SystemDoorName_Debug_XX "<SystemDoorName>_Debug_XX"
+
+  <SystemDoorName>_Debug_XX=<boolean>
+
+    E.G.
+
+    MyNewDoorThatImCodingMysef_Debug_1=YES
+
+    Default: NO
+
+    When this option is specified HBBS will NOT run the door, instead
+    it will display a message to the sysop via a CLI window and
+    will prompt them to start the door.
+
+    At this point the sysop can then in fact start ANY HBBS door program
+    for that node.  Not just the one it is prompting for.
+
+    This gives door coders the ability to run a debugger and step through
+    each line of their code!
+
+    See also @{"HBBS:BBSGlobal/Door_Timeout" link HBBS:Docs/Configuration/BBSGlobal.Guide/Door_Timeout}
+
+@EndNode
+

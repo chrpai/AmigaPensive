@@ -1,0 +1,224 @@
+;
+; ZAPP USER Installation Script
+;
+; (c)1996 Zeus Developments - Written by Alex May
+; (c)1996-9 Zeus Developments - Modifications by Neil Williams
+;
+
+(complete 0)
+
+;
+; Set the directory to install into
+;
+
+(set @default-dest
+   (askdir
+      (prompt "Please select the directory to install ZAPP into.\nA directory called ZAPP will be created.")
+      (help "   All ZAPP related files will be stored into one directory called ZAPP.  "
+            "Should you ever want to uninstall ZAPP or move it to another location "
+            "on your system then just delete/move this directory and adjust the ZAPP "
+            "additions in your s:user-startup.\n\n")
+      (disk)
+      (default "Work:")
+   )
+)
+
+(set @default-dest (tackon @default-dest "ZAPP"))
+
+;
+; Give the user a chance to abort...
+;
+
+(message ("\n\nZAPP will be installed in \"%s\"" @default-dest))
+
+;
+; Get the default serial device and unit
+;
+
+(complete 1)
+
+(set serial-device
+   (fileonly
+      (askfile
+         (prompt "Please select the serial device you wish to use (further information in Help)")
+         (help "   To use ZAPP you must tell your terminal program to use zapp.device "
+               "instead of your normal serial device.  Because of this, zapp.device "
+               "has to be told which device to use to actually access your serial port.\n\n"
+               "   In the file requester just select the serial device you normally use "
+               "with your terminal program.")
+         (default "devs:serial.device")
+      )
+   )
+)
+
+(complete 2)
+
+(set serial-unit
+   (asknumber
+      (prompt ("Which unit of %s would you like to use" serial-device))
+      (help "   Each serial device can have multiple units for accessing different "
+            "hardware ports.  Unless you have a multi-port serial card the unit "
+            "number is usually zero.")
+      (default "0")
+   )
+)
+
+;
+; Get 7 Wire Mode
+;
+
+(complete 3)
+
+;
+; Make the directory tree
+;
+
+(complete 10)
+
+(set bin-dir    (tackon @default-dest "Bin"))
+(set client-dir (tackon @default-dest "Clients"))
+(set docs-dir   (tackon @default-dest "Docs"))
+(set devs-dir   (tackon @default-dest "Devs"))
+
+(makedir @default-dest (infos))
+(makedir bin-dir)
+(makedir client-dir)
+(makedir docs-dir (infos))
+(makedir devs-dir)
+
+;
+; Copy devices
+;
+
+(complete 20)
+
+(copylib
+   (source "Devs/zapp.device")
+   (dest devs-dir)
+)
+
+(copylib
+   (source "Devs/zappmaster.device")
+   (dest devs-dir)
+)
+
+;
+; Copy binaries
+;
+
+(complete 30)
+
+(copyfiles
+   (source "Bin/")
+   (dest bin-dir)
+   (files)
+   (infos)
+   (all)
+)
+
+;
+; Copy clients
+;
+
+(complete 40)
+
+(copyfiles
+   (source "Clients/")
+   (dest client-dir)
+   (files)
+   (infos)
+   (all)
+)
+
+;
+; Copy docs
+;
+
+(complete 50)
+
+(copyfiles
+   (source "Docs/")
+   (dest docs-dir)
+   (files)
+   (infos)
+   (all)
+)
+
+(if (= 1 (exists "SYS:Utilities/MultiView" (noreq)))
+   (set viewer "MultiView")
+   (set viewer "AmigaGuide")
+)
+
+(tooltype
+   (dest (tackon docs-dir "zapp.guide"))
+   (setdefaulttool viewer)
+   (noposition)
+)
+
+;
+; Copy prefs program
+;
+
+(complete 60)
+
+(copyfiles
+   (source "Prefs/ZappPrefs")
+   (dest @default-dest)
+   (infos)
+)
+
+(tooltype
+   (dest (tackon @default-dest "ZappPrefs"))
+   (noposition)
+)
+
+;
+; Make ENV/ENVARC directories and store default configuration
+;
+
+(complete 70)
+
+(makedir "ENV:ZAPP")
+(makedir "ENVARC:ZAPP")
+
+(set config-data ("DEVICE=%s UNIT=%lu 7WIRE SCRTYPE=ACTIVE CX_POPUP DIR=\"%s\"\n" serial-device serial-unit @default-dest))
+
+(complete 80)
+
+(textfile
+   (dest "ENV:ZAPP/ZappDevice.0")
+   (append config-data)
+)
+
+(textfile
+   (dest "ENVARC:ZAPP/ZappDevice.0")
+   (append config-data)
+)
+
+;
+; Whack some stuff into S:User-Startup
+;
+
+(set startup-add
+   (cat
+      ("Assign DEVS: \"%s\" ADD\n" devs-dir)
+      ("Path \"%s\" ADD" bin-dir)
+   )
+)
+
+(startup "ZAPP"
+   (prompt ("\n\nAppending the following commands to s:user-startup\n\n%s" startup-add))
+   (help "   These commands need to be appended to your s:user-startup in order for "
+         "the system to find the ZAPP devices and clients.")
+   (command startup-add)
+)
+
+;
+; Actually run the Assign and Path commands
+;
+
+(execute ("Assign DEVS: \"%s\" ADD" devs-dir))
+(execute ("Path \"%s\" ADD" bin-dir))
+
+(complete 100)
+

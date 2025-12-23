@@ -1,0 +1,204 @@
+@Database Changes_To_V1.06.guide
+
+@Node Main "Changes to HydraBBS between V1.05 and V1.06"
+
+  Changes to HydraBBS between V1.05 and V1.06
+  ===========================================
+
+  Please read *ALL* of this file, or you won't know about some of the great
+  new features of this release.
+
+  Go on, it'll only take you a couple of minutes.
+
+  This document is stored as HBBS:Docs/Misc/Upgrades/Changes_To_V1.06.Guide
+
+  Details
+  =======
+
+  Sysop Information     - @{"More..." link SysopInformation}
+
+  Developer Information - N/A
+
+  Files Changed         - @{"More..." link FilesChanged}
+
+@EndNode
+
+@Node SysopInformation "Sysop Information"
+
+  Sysop Information
+  =================
+
+  * FileID
+
+    *IMPORTANT*
+
+    DO NOT USE TXTExtract!
+
+    Please use this included tool instead:
+
+    HBBS:System/Amiga/CLI/Textract
+
+    And change your HBBS:System/FileID config accordingly, please see
+    HBBS:Storage/Example_Configs/System/FileID
+
+    TXTExtract incorrectly truncates files (i.e. you lose information!)
+
+  * @{"DupeCheck" link HBBS:Docs/Doors/DupeCheck.Guide/MAIN}
+
+    Implemented "CHECKALLCONFS" @{"system option" link HBBS:Docs/Doors/DupeCheck.Guide/SystemOptions}, so that the dupe checker
+    can optionally check all other conference upload paths.
+
+  * ModifyDIZ, FileHistory
+
+    Updated ANSI.
+
+  * AccountEdit
+
+    Fixed browsing/searching/editing of users past the 128th user in
+    the user data file.  I passed a BYTE instead of a ULONG to HBBS_LoadUser().
+
+  * XPR
+
+    When a file is resumed, a message is written to the callerslog.
+
+  * XPR,Hydra
+
+    Updated the canceling part of these two doors.
+
+    Oops, I broke the file-resuming when I implemented HBBS_OkToUpload()
+    (which checks if another use has just is is still uploading a file of
+    the same name) --> FIXED!
+
+  * Control
+
+    Fixed a memory leak.
+
+    Set internal stack size to 4096 bytes
+
+    Used the compiler options smallcode and smalldata to reduce executable
+    size.
+
+    Added lots of debugging routines to the source code (no effect on the
+    executable that is released to you!
+
+    If there is no screen-mode preferences file, (hbbs:system/data/ctrlscrprefs.cfg)
+    Control now prompts for a screenode to use, I don't know why I didn't to this
+    for V1.0... :-)  You can still use the Select_Mode utility if you want..
+
+    Optimized the creation of ENV:HBBSScreenName
+
+    Removed some unneeded init code.
+
+    Great, just great,  I've had reports of people not being able to
+    use particular screenmode, so I've been checking it out, only
+    to find problems with the backfill stuff (again!, I thought it was
+    sorted).  HBBS Works 100% without the backfill, so I've added
+    an option to HBBS:System/data/CtrlScrnPrefs.CFG, UseBackfill=YES|NO
+    which you should use if you get problems.  Please report back to
+    me with details if you get this problem.
+
+    Please see @{"HBBS:Docs/Configuration/CtrlScrPrefs.Guide" link HBBS:Docs/Configuration/CtrlScrPrefs.Guide/MAIN}
+
+    In trying to fix this problem I have done quite a bit of optimisation
+    and found a few potential bugs, which have been fixed.
+
+    What a total pain in the ass that was to fix, anyway, I found the cause
+    of the screenmode problems!
+
+    I was RecFill()'ing one column and one row too many, causing memory after
+    each plane in the screen's bitmap to be overwritten.  This had the rather
+    nasty effect of currupting memory of some very important structures on
+    my machine!  It was difficult to trace because the area of memory
+    overwritten was different each time, argh..
+
+    Still, armed with CyberGuard, Mungwall and Sushi I managed to pin it
+    down,  Am I good or what ? :-)
+
+    The RectFill() that was causing the problem is the one that I had to use
+    directly after opening a screen, because for some reason, when you use
+    an SA_Backfill tag with OpenScreen() it DOES NOT call the backfill
+    function.  And it *should*.  So I have to manually rectfill() the screen
+    with the right background colour myself, and I passed it
+    0,0,Scr->Height,Scr->Width instead of 0,0,Scr->Height-1,Scr->Width-1
+    i.e. for a 640 width screen, pixels 0-640 were recfilled, instead of
+    0-639 (640!) pixels.
+
+    This seemed more critical when using Picasso 96 in high resolutions
+    and when using PAL: High Res.  I am using a Cybergraphics 64/3D in my
+    A4000T/060/PPC and a CyberGraphics64 in my A3000/040 myself and this
+    problem never showed up at all.  *weird!*
+
+    Blimey...
+
+    I tell you, I nearly gave up on this one, it was doing my head in..
+
+    Now I can get back to making HBBS better...  rather than fixing bugs..
+
+  * XPR, Hydra, SysopListViewer, Node, UserViewer
+
+    Updated to use BBSGlobal->ScreenInfo->UsingBackfill
+
+  * HBBSCommon.library
+
+    Changed the returned values for HBBS_OkToUpload()
+
+  * Updated docs
+
+    I've updated the docs a bit, check out @{"HBBS:Docs/Misc/Upgrades/UpgradeIndex.guide" link HBBS:Docs/Misc/Upgrades/UpgradeIndex.guide/MAIN}
+
+@EndNode
+
+@Node FilesChanged "Files Changed"
+
+  Files Changed for V1.06
+  =======================
+
+  Core Files
+  ----------
+  HBBS:Control
+  HBBS:Doors/System/Node
+  HBBS:System/Amiga/Libs/HBBSCommon.library
+  HBBS:System/Amiga/Libs/HBBSNode.library
+  HBBS:Doors/User/AccountEdit/AccountEdit.HBBS
+  HBBS:Doors/System/FileHistory/FileHistory.HBBS
+  HBBS:Doors/System/ModifyDIZ/ModifyDIZ.HBBS
+  HBBS:Doors/System/DupeCheck/DupeCheck.HBBS
+  HBBS:Doors/System/Hydra/Hydra.HBBS
+  HBBS:Doors/System/XPR/XPR.HBBS
+  HBBS:System/Amiga/CLI/Textract
+  HBBS:Utils/SysopListViewer
+  HBBS:Utils/UserViewer
+
+  Misc Files
+  ----------
+  HBBS:Storage/Example_Configs/System/FileID
+  HBBS:Docs/Misc/Upgrades/UpgradeIndex.guide
+  HBBS:Docs/Misc/Upgrades/UpgradeIndex.guide.info
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.01.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.02.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.03.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.04.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.05.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.06.guide
+  HBBS:Docs/Misc/Upgrades/Changes_To_V1.06.guide.info
+  HBBS:Docs/Misc/FileListFormat.TXT
+  HBBS:Docs/Configuration/ConfigMain.guide
+  HBBS:Docs/Configuration/CtrlScrPrefs.Guide
+  HBBS:Docs/Configuration/CtrlScrPrefs.Guide.info
+  HBBS:Docs/Reference/Directories.guide
+  HBBS:Docs/Doors/Door_Index.guide
+  HBBS:Docs/Doors/DupeCheck.guide
+  HBBS:HBBS.Guide
+
+  Developer Files
+  ---------------
+  HBBS:Developer/Include/HBBS/release.h
+  HBBS:Developer/Include/HBBS/structures.h
+  HBBS:Developer/Include/HBBS/Defines.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_protos.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas.h
+  HBBS:Developer/Include/HBBS/HBBSCommon_pragmas_sas.h
+  HBBS:Developer/FD/HBBSCommon_lib.fd
+  HBBS:Developer/Docs/hbbscommon.library.doc
+
+@EndNode

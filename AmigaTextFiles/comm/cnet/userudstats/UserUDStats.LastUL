@@ -1,0 +1,33 @@
+/* Reads the LAST TWO UPLOADS from the "uloads" log in SysData:Log/      */
+options results
+pt='pfiles:UserUDStats.Data'
+blank='0|No File Yet|0|No File Yet|0|No File Yet|0|No File Yet'
+if ~exists(pt) then do ; dt=0 ; signal UP ; end
+call open(f1,pt,'r')
+    do dt=1 until eof(f1) ; data.dt=readln(f1) ; end dt ; dt=dt-1
+call close(f1)
+UP:
+    if ~exists('sysdata:log/uloads') then signal LEAVE
+    call open(f1,'sysdata:Log/uloads','r')
+        do i=1 until eof(f1) ; line.i=readln(f1) ; end i ; total=i-1
+    call close(f1)
+    do i=1 to total
+        handle=strip(substr(line.i,20,20)) ; findaccount handle
+        id=result ; if id>dt then dt=id
+        if data.id='DATA.'id then data.id=blank
+        file.i=strip(substr(line.i,54,16))
+        size.i=strip(substr(line.i,71,3))
+        parse var data.id d.1'|'d.2'|'d.3'|'d.4'|'d.5'|'d.6'|'d.7'|'d.8
+        d.5=d.7 ; d.6=d.8 ; d.7=size.i ; d.8=file.i ; data.id=''
+        data.id=d.1'|'d.2'|'d.3'|'d.4'|'d.5'|'d.6'|'d.7'|'d.8
+    end i
+BYE:
+    call open(f1,pt,'w')
+        do i=1 to dt ; if data.i='DATA.'i then data.i=blank
+            call writeln(f1,data.i) ; end i
+    call close(f1)
+LEAVE:
+    bufferflush
+  exit
+
+/*                        < END OF FILE MARKER >                         */

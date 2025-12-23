@@ -1,0 +1,156 @@
+/*
+**  $VER: CL-DeleteGroup.clrexx 0.2 (05 Feb 1996)  **
+**
+**        © 1995 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-DeleteGroup.clrexx
+**
+**  FUNCTION:
+**      Wenn man eine Gruppe löschen oder ändern will, ist dies
+**      normalerweise mit Arbeit verbunden. Die neue Verwendung
+**      einer ehemals benutzten Gruppe kann unangenehme Seiten-
+**      effekte aufweisen.
+**      Dieses Skript verhindert Seiteneffekte, indem es die
+**      Datenbanken der Bretter, Systeme und User auf Vorkom-
+**      men der zu löschenden Gruppe durchsucht und sie jeweils
+**      aus dieser Gruppe austrägt. Vergessen Sie nicht, die
+**      Bretter, Systeme und User gegebenenfalls neuen Gruppen
+**      zuzuweisen.
+**
+**  $HISTORY:
+**
+**   27 Dec 1995 : 0.01 : initial release
+**   05 Feb 1996 : 0.2  : kleinere Fixes
+*/
+
+param=upper(arg(1))
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then exit 10
+    end
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit
+    end
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*50
+windowheight=Fontsize*15
+windowY=Fontsize+1
+WindowX=Fontsize
+
+
+
+/* Standard-IO umleiten */
+
+screen=CLGET_FrontScreenName()
+
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-DeleteGroup/SCREEN'screen,'W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+
+
+if param='' then do
+    options prompt 'Gruppenname : '
+    pull param
+    param=upper(param)
+    end
+
+if param='' then do
+    say 'Aufruf: rx CL-DeleteGroup.clrexx <Gruppe>'
+    exit 20
+    end
+
+grnum=0
+brettctr=0
+sysctr=0
+userctr=0
+
+do i=1 to 96
+    if upper(CLGET_GroupName(i))=param then do
+        grnum=i
+        say 'Gruppennummer : 'i
+        end
+    end
+
+if grnum=0 then do
+    say 'Die angegebene Gruppe existiert nicht!'
+    call ende
+    end
+
+/* Bretter */
+
+anzahl=CLGET_BoardList(brett)
+if anzahl>0 then do
+    do i=1 to anzahl-1
+        test=CLIS_BoardGroup(brett.i,grnum)
+        if test='1' then do
+            call CLSET_BoardGroup(brett.i,grnum,0)
+            brettctr=brettctr+1
+            say 'Brett gefunden: 'brett.i
+            end
+        end
+    end
+call CL_SaveBoardList()
+
+
+/* Systeme */
+
+anzahl=CLGET_SystemNumberOf()
+if anzahl>0 then do
+    do i=1 to anzahl
+        system=CLGET_SystemName(i)
+        if CLIS_SystemGroup(system,grnum) then do
+            call CLSET_SystemGroup(system,grnum,0)
+            sysctr=sysctr+1
+            say 'System gefunden: 'system
+            end
+        end
+    end
+
+/* User */
+
+anzahl=CLGET_UserNumberOf()
+if anzahl>0 then do
+    do i=1 to anzahl
+        user=CLGET_UserName(i)
+        if CLIS_UserGroup(user,grnum) then do
+            call CLSET_UserGroup(user,grnum,0)
+            userctr=userctr+1
+            say 'User gefunden: 'user
+            end
+        end
+    end
+
+
+say 'Insgesamt wurden verändert:'
+say '---------------------------'
+say 'Bretter    : 'brettctr
+say 'Systeme    : 'sysctr
+say 'User       : 'userctr
+
+ende:
+
+options prompt 'Bitte drücken Sie <RETURN>'
+pull dummy
+
+call close STDOUT
+call close STDIN
+exit

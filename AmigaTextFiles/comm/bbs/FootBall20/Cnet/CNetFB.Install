@@ -1,0 +1,120 @@
+/* Online FootBall 2.0 installation for Cnet
+   Online FootBall by Matt English
+   Installation script by Trebor
+
+   This file will BOTH install or Update OLFB ver 1.55 and greater.
+
+   This file assumes that the Football20.lha archive is
+   uncompressed into RAM:
+
+   Online_Football is copied to Pfiles:
+   This file creates the following directories:
+     Pfiles:OLFB
+     Pfiles:OLFB/Plays
+   And needed files are copied to the Plays directory.
+
+   If your system is not set to run rexxplus files, you will
+   get the option to install the "rexxplslib.library".
+   For further info read the OLFB.guide file
+
+   Run this from your cli/shell by typing rx CNetFB.Install
+   Then, Adopt Online FootBall as a SINGLE USER Pfile.
+
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */
+
+address command "copy ram:online_football Pfiles:"
+say "Online_Football is now in your Pfiles Directory!"
+address command "delete ram:online_football"
+say "RAM:Online_Football deleted"
+if ~exists('pfiles:OLFB') then do
+ address command "makedir pfiles:OLFB"
+ say "Pfiles:OLFB created"
+ end
+if ~exists('pfiles:OLFB/Plays') then do
+ address command "makedir pfiles:OLFB/Plays"
+ say "Pfiles:OLFB/Plays created"
+ end
+address command "copy ram:OLFB/Plays/#? Pfiles:OLFB/Plays"
+say "files copied to Pfiles:OLFB/Plays"
+address command'C:copy ram:OLFB/OLFB.announce PFiles:OLFB/OLFB.announce'
+say' The file "OLFB.announce" has been copied to your OLFB directory'
+address command'C:copy ram:OLFB/Chal.sound PFiles:OLFB/Chal.Sound'
+address command'C:copy ram:C/sound C:Sound'
+address command "delete ram:OLFB/Plays/#?"
+address command "delete ram:OLFB/Plays"
+address command "delete ram:OLFB/OLFB.announce"
+address command "delete ram:OLFB/Chal.sound"
+address command "delete ram:C/Sound"
+address command "delete ram:OLFB"
+say "RAM:OLFB directory & Plays subdirectory deleted!"
+say " "
+say "All done installing..."
+say " "
+if ~exists('LIBS:rexxplslib.library') then do
+ say' I didn''t find "rexxplslib.library" in your LIBS: dir'
+ say' The "rexxplslib.library" must be in your LIBS: dir in order'
+ say' to use Online FootBall.'
+ say ''
+ options prompt' Do you want me to install the "rexxplslib.library"? (Y,n) > '
+ pull answer
+ answer = upper(answer)
+ if answer ~= 'N' then do
+  address command'C:copy RAM:libs/rexxplslib.library LIBS:rexxplslib.library'
+  say ''
+  say' OK "rexxplslib.library" installed..'
+  say' For faster execution, you may wish to run RPStart in your startup-sequence'
+  say' Read "Cnet.setup" file for more info.'
+  address command "delete ram:libs/rexxplslib.library"
+  end
+ else do
+  say ''
+  say 'OK, but Online FootBall won''t run without that library..'
+  end
+ end
+say ''
+if ~show('P','RPREXX') then do                   /* If RexxPlus environment not active */
+ say' I don''t find RexxPlus running on your System'
+ say' You should be running RPStart in your Startup-sequence or'
+ say' WBStartup.'
+ say
+ say' Do you want me to install RPStart and add it to your Startup?'
+ options prompt' (Y,n) > '
+ pull answer
+ answer = strip(upper(answer))
+ if answer = 'N' then do
+  say
+  say' OK, the game MAY still run without RPStart installed,'
+  say' but for best results, it should be running at Startup.'
+  exit
+  end
+ say' OK, installation under way...'
+ address command'C:copy RAM:RPStart C:RPStart'   /* then add it to startup and run rpstart */
+ if exists('S:User-Startup') then do
+  call open(SU,'S:User-Startup','A')
+  call writeln(SU,';added by OLFB')
+  call writeln(SU,'C:RPStart')
+  call close(SU)
+  end
+ else do
+  i = 0
+  call open(SS,'S:Startup-sequence','R')
+  do until eof(SS)
+   i = i + 1
+   Sline.i = readln(SS)
+   if upper(Sline.i) = 'LOADWB' then insertpoint = i
+   end
+  call close(SS)
+  address command'C:rename S:Startup-sequence S:Startup-sequence.old'
+  call open(NSS,'S:Startup-sequence','W')
+  do x = 1 to i
+   if x = insertpoint then call writeln(NSS,'C:RPStart')
+   call writeln(NSS,Sline.x)
+   end
+  call close(NSS)
+  end
+ address command'C:RPStart'
+ end
+
+say "All NEEDED files are in place. Please read OLFB.guide for more info."
+
+exit

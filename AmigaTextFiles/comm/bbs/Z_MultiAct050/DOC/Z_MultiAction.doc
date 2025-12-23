@@ -1,0 +1,364 @@
+----------------------------------------------------------------------------
+        _____  __  __       _ _   _      _        _   _             
+       |__  / |  \/  |_   _| | |_(_)    / \   ___| |_(_) ___  _ __  
+         / /  | |\/| | | | | | __| |   / _ \ / __| __| |/ _ \| '_ \ 
+        / /_  | |  | | |_| | | |_| |  / ___ \ (__| |_| | (_) | | | |
+       /____| |_|  |_|\__,_|_|\__|_| /_/   \_\___|\__|_|\___/|_| |_|
+
+----------------------------------------------------------------------------
+                      (C) 1994-96 By Paolo Carotenuto
+
+
+Z_MultiAction  answer the  need  for automated  and  intelligent file
+moving, allowing you to specify matching files and their disposition.
+
+-------------
+Installation
+-------------
+
+1) Copy Z_MultiAction.cfg into ZEUS:Config/
+
+2) Copy Z_MultiAction.rexx into Zeus:Rexx/
+
+3) Execute Z_MultiAction.rexx First of your Import Session.
+
+4) Edit Z_MultiAction.cfg and config this :)
+
+
+A section in the config file is denoted by the very first line,
+called the FOUND line, in which you specify the PATH and FILENAME
+of the files you wish to process.
+
+This section continues until the keyword END is detected.
+
+
+Command Keyword
+---------------
+
+FOUND <arg>
+              Specifies the file(s) to search for AmigaDos wildcard 
+              characters may be used, thougn the pattern matching
+              functions are limited.
+
+
+Example:      FOUND In:Region33.ZIP
+              FOUND FILE:KilledFiles/#?
+
+
+
+
+IFSIZE <arg>
+              Cancels further operations within a section if the file
+              size of the file being acted on is less than specifed.
+
+
+Example:      IFSIZE 500000
+             
+
+
+
+CHECKDATE <OldDays>
+
+              It checks if the file is older than "OLDDAYS" and if yes
+              continues the scripts
+
+Example:      FOUND LOGS:TpTCron.log
+              CHECKDATE 40
+              DELETE
+              END
+
+
+
+
+COMMENT <arg>
+              Places a comment into the filenote field of the file.
+              Accepts Z_MultiAction text Switches.
+              The comment should be surrounded by quotes.
+
+
+Example:      COMMENT [%NAME] in data: %DTTM
+
+
+
+
+DELETE        Deletes the file.
+
+
+Example:      DELETE
+
+
+
+
+RENAME <arg>  
+              Renames the file. Keep in mind that you may have been
+              searching for names with wildcards, and if this search
+              found 3 files, attempt to rename them amy fail if not
+              done carefully. Accpets Z_MultiAction text switches.
+
+Example:      RENAME NodeDiff.zip
+
+
+
+
+
+COPY <arg>    
+              Copies the file(s) to specified path and filename.
+              Accepts Z_MultiAction text switches.
+              If destination file already exists, rather the
+              destination filename will be renamed by adding a
+              comma and counter to the end of the name.
+
+
+Example:      COPY ODD:
+              COPY FH0:NodeDiff.zip
+
+
+
+
+MOVE <arg>
+              Move the file(s) to specified path and filename.
+              If destination file already exists, rather the
+              destination filename will be renamed by adding a
+              comma and counter to the end of the name.
+
+Example:      MOVE DH1:TKilled/
+
+
+
+
+
+SCRIPT <ScriptCommand> ["Switchs"]
+
+              This command executes <ScriptName> and, optionally,
+              you may pass additional arguments simply by specifying
+              them. Accpets Z_MultiAction text switches.
+              ** REMEMBER To include any switch bet when quotes.
+
+Example:      SCRIPT FIDO:Batch/ProcessDiff.Batch "%NAME"
+
+
+
+
+
+CLICMD <CliCommand> [Switchs]
+
+              This command executes a CLI Command <CliCommand> and,
+              optionally, you may pass additional arguments simply
+              by specifying them. Accpets Z_MultiAction text switches.
+
+Example:      CLICMD Delete %PATH
+Example:      CLICMD TrapList
+
+
+
+
+
+HATCH <TagName> <"Desc"> [<Replace>]
+              This command Hatches the file into <TagName> with the
+              <"Description">. Use the <Replace> function to replace
+              old file name. Accpets Z_MultiAction text switches
+
+
+Example:      HATCH REGION "FidoNet Nodelist" REGION33.ZIP
+
+
+
+
+
+DAY [day [day]...]
+              Unlike other command keywords, this on doesn't
+              belog inside a section of commands. Also, this
+              keyword's arguments alters the operation of all
+              other sections below it, until it is changed again.
+              DAY allows you to specify on which days the following
+              sections are to run.
+
+              SUNDAY     = 0
+              MONDAY     = 1
+              TUESDAY    = 2
+              WEDNESDAY  = 3
+              THURSDAY   = 4
+              FRIDAY     = 5
+              SATURDAY   = 6
+
+Example:      DAY 0           Sunday Only
+              DAY 0 2 4       Sunday, Tuesday, Thursday
+
+
+
+
+END           End of sequence.
+
+
+
+
+
+NOTIFY <AreaNumber> <User_Name> <"Message">
+          
+            This command send a message to <user> in area <TagName>
+            and say <"Message"> about the file.
+            <User> is any valid UserName while <"Message"> is a text
+            which may contain Z_MultiAction text switches.
+   
+Example:    NOTIFY 1 Paolo_Carotenuto "The file %NAME was found in BAD_DIR"
+Example:    NOTIFY 100  ALL  "Last Version of %NAME"
+
+
+
+
+
+EVENTLOG <who> <"what"> (Only for ZEUS Users)
+
+              This command works  identically to the NOTIFY above, except
+              that instead of sending a message, a notation is made to the            
+              users's eventlog.
+
+Example:      EVENTLOG Salvatore_Viglietti "The file %NAME is present on BBs"
+
+
+
+
+-----------------------------
+Z_MultiAction text switches
+-----------------------------
+
+The following switches are recognized by Z_MultiAction:
+--------------------------------------------------------
+
+%NAME   -    Filename Only
+%PATH   -    Path and FileName
+%SIZE   -    Size of file
+%DATE   -    Date
+%TIME   -    Time
+%DTTM   -    Date and Time
+
+
+
+
+-------------------------
+Some Practical Examples.
+-------------------------
+
+Finding Damaged Mail Packets.
+-----------------------------
+You might like to be notified whenever ZMP detects a damaged
+mail packet. This works nicely for that purpose:
+
+FOUND INBOUND:#?.bad
+EVENTLOG Paolo_Carotenuto "The file %NAME is present on Indound:"
+COMMENT File Found %DTTM
+END
+
+
+Processing The Nodediff.
+------------------------
+With the ability to detect the nodelist and run a script file, it's
+no loger necessary to set up a CronTab entry to process the nodelist.
+
+FOUND IN:NODEDIFF.???
+EVENTLOG Paolo_Carotenuto "%NAME found and Processed..."
+COPY Nodelist:
+SCRIPT FIDO:Batch/ProcessDiff.Batch "%NAME"
+END
+
+FOUND IN:AMYDIFF.???
+EVENTLOG Paolo_Carotenuto "%NAME found and Processed..."
+COPY Nodelist:
+SCRIPT FIDO:Batch/ProcessDiff.Batch "%NAME"
+END
+
+
+ProcessDiff.Batch
+--------------------------------
+.Key File/A
+.Bra {
+.Ket }
+
+Echo {file}
+
+failat 200
+
+CD Nodelist:                    
+RX FIDO:REXX/UNARX.REXX {File}  
+Traplist                        
+Delete {File}                   
+---------------------------------
+
+
+
+Tidying Up FILE:KilledFiles.
+----------------------------
+Here's a way to keep the accumulation of killed files down to a much
+smaller number. Utilizing the DAY feature, on Monday through Saturday
+any files found in FILE:KilledFiles are moved to Another Directory.
+You are notified, and can take steps to examine them if you wish.
+On Sunday, all the files in this other directory are deleted.
+
+DAY 1 2 3 4 5 6 
+FOUND FILE:KilledFiles/#?
+EVENTLOG  Paolo_Carotenuto "Moving %NAME (%SIZE Butes) to TKilled"
+MOVE DH1:TKilled/
+END
+
+DAY 0
+FOUND DH1:TKilled/#?
+EVENTLOG  Paolo_Carotenuto "Deleting %NAME (%SIZE Butes) from TKilled"
+DELETE
+END
+
+
+Watching from accumulated Outbound Mail Bundle.
+-----------------------------------------------
+I like to know when mail piles up for other nodes, and be informed.
+Since this routine can be executed over and over again, and report
+the same things over and over again, limit its use to a single day.
+Expect to be informed  many times, as well....
+
+You will be informed of any files in your OutBound: which are about
+a megabyte.
+
+DAY 0
+FOUND OUTBOUND:#?
+IFSIZE 1000000
+EVENTLOG  Paolo_Carotenuto "OUTBOUND:%NAME excedes 1 megabytes"
+END
+
+Hatching Files.
+---------------
+Good for HUB, to send files on to other systems in Fidonet.
+
+FOUND IN:PList#?
+NOTIFY 1 Paolo_Carotenuto "%NAME Trovata ed Hatchata..."
+HATCH PLIST "AutoHatch of PointList" 
+DELETE
+END
+
+
+Cli Command.
+------------
+Use this command for every use you want. :-))
+
+FOUND Nodelist:region.033
+CLICMD FIDO:Trap/TrapList
+CLICMD Delete %PATH
+END
+
+
+
+* HOW TO CONTACT THE AUTHOR
+---------------------------
+
+You can contact Me at one of the following addresses.
+
+ Paolo Carotenuto - E-Mail: apunet@mbox.vol.it
+
+ FidoNet 2:335/202.0   - 2:335/228.0
+ AmigaNet 39:102/101.0 - 39:102/107.0
+
+ ** This Programm is CardWare,  Please send your postcard to:
+
+    Paolo Carotenuto
+    IV Trav. Perrone Capano 53/a
+    80126 - Pianura
+    Napoli ( Italy )
+

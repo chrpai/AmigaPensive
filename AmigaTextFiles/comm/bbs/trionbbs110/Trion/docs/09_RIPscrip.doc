@@ -1,0 +1,190 @@
+
+
+  Introduction
+  ------------
+
+   This chapter describes what RIPscrip is and gives a little
+   information on how to use it in your menus.
+
+
+   What is RIPscrip
+   ----------------
+
+    RIPscrip (Remote Imaging Protocol Script Language) is a
+    Graphical Script Language with wich you can produce all kind
+    of graphical effects in your menus and even use Mouse Buttons
+    or Mouse Areas to controll your BBS.
+
+    RIPscrip is a set of codes .. a bit like the ANSI codes in
+    normall BBS screens .. but with RIPscrip you can do a lot
+    more then only drawing screens.
+    You can draw pixels, lines, circles, arcs bezier curves.
+    You can floodfill parts of the screen.
+    You can use 16 colors from a palette of 64 (more in newer RIP versions).
+    You can change and define line and fill styles.
+    Use different fonts in a lot of sizes (not suported
+    locally at this moment).
+    You can copy pieces of the screen and put them somewhere else
+    or load and save pieces from the screen to disk.
+    Or load pictures from disk to the screen.
+    You can use mouse buttons or mouse fields to make a screen
+    clickable.
+
+    RIPscrip is a lot more complicated then ANSI, it is almost impossible
+    to make screens by hand. You need a special editor to "draw"
+    your screens.
+
+    The Trion BBS system can display RIPscrip codes locally
+    (up to version 1.54 of RIPscrip).
+
+    Note that some one who logs in over a serial port needs a
+    terminal program with RIPscrip capabilities or else his display
+    will be filled with unreadable codes.
+
+
+   How to use in menus
+   -------------------
+
+
+      Note that you have to enable RIPscrip processing with an ANSI-code
+      or the RIP commands will be shown as normal text.
+
+
+      ESC[1!    Disables all RIPscrip processing.  Any RIPscrip sequences
+                are interpreted as raw text.
+
+      ESC[2!    Enabled RIPscrip processing.  Any RIPscrip sequences will
+                be parsed and processed.
+
+
+      Folowing is an menu example to show a single RIP screen:
+
+      Cmd "1" , 0-255
+         Print "esc[2!|"
+         PrintFile   "trion:text/tower.rip"
+         More
+         Print "esc[1!|"
+      EndCmd
+
+      (Replace 'esc' with the ANSI escape code)
+
+      If you want to control a part of your BBS with RIPscrip screens you
+      only switch back to ANSI after the last screen because after the
+      last code the mouse clicks on RIP icons don't work, and the colors
+      are switched back to ANSI colors.
+      (RIPscrip uses the EGA color system with 16 colors from a palette
+       from 64 colors, which differ from the ANSI colors)
+
+      Also note that RIPscrip on PC's use a screen of 640 x 350 pixels
+      (80 x 43) characters. So if you want to use the entire RIPscreen
+      you have to use the Interlaced mode, if you don't need the bottom
+      94 pixels you can use the non-Interlaced mode.
+      
+
+
+
+
+
+
+      Added a menu flag "NOSCREEN" , if you put this after flags
+      in the first part of the menu (where hotkeyable is) then
+      the menu screen will not be printed.
+      This is usefull if there is no menu screen file, because
+      with this flag you don't get a warning that there is no
+      screen.
+      This flag is meant for use with FX (effects) doors that
+      can build a screen on there own.
+
+      Flags should be separated with a comma !!
+
+      For instance:     flags  hotkeyable, noscreen
+      Or:               FLAGS  NOSCREEN
+
+
+
+      Included a RIPscrip BBS graphics test door.
+      I used this to debug RIP code, and to write a functions
+      to use RIP codes in doors.
+      This door is a good example of some things that are
+      possible with RIPscrip, for the people who want
+      to experiment with it, the source is included.
+      With this in your menu you can view it.
+
+      Cmd "T" , 0-255
+         CliDoor  "trion:utils/riptest"
+      EndCmd
+
+
+      RIP menus..
+
+      It is now possible to make a menu set the is for a great
+      part controlled with a mouse.
+      This is basically a demo to demonstrate just that.
+
+      The problem with RIP is that you have to give an ANSI code
+      to switch it on and off, because if you have it on the ANSI
+      colors don't work, and if you turn it off the mouse button
+      definitions are gone.
+
+      You can make a normal menu set with RIP screens instead of
+      the ANSI screens but you have to place print menu commands
+      to switch on/off the RIP mode all over the place.
+      (see BBS.doc for info about this.
+
+      So what you basically want is an FX type of door that switches
+      RIP on when the screen is build and switch RIP off after the
+      input of a user.
+      That is what I have done .. I made an FX door that can
+      produce a screen with icons for every menu.
+      And because it is an FX door, it has a little graphicall
+      effect in it when it waits for input.
+
+      On my BBS I made a copy of the menuset especially for
+      RIP so it can be viewed with ANSI or RIP.
+      When you arrive in the start menu you can go to the
+      "normal" menu with return but with R you end up in
+      the RIP menu set.
+
+      (RIP menuset, Door and source of door is included)
+
+      The new menuset is named like this:
+
+      xxxxxxxxxx.src       ->      xxxxxxxx_rip.src
+
+      In all RIP menus I added the "NOSCREEN" flag, because
+      it doesn't needs an ANSI file just the RipDoor FX door.
+      But when you've made a screen yourself you can remove
+      the NOSCREEN flag and use a normal file for a screen.
+      Or when you know a little C you can change the
+      door yourself.
+
+      Added this to every RIP menu:
+
+
+      BuildScreen
+         CliDoor  "trion:utils/ripdoor ~50 0"
+      EndCmd
+
+
+      You have to replace the Zero with a different number
+      for each menu like this:
+
+
+      main menu      0
+      file menu      1
+      Mail menu      2
+      Bulletin menu  3
+      Door menu      4
+      Logout menu    5
+      Sysop menu     6
+      User edit menu 7
+      test menu      8
+      Browse menu    10
+      List menu      11
+      Download menu  12
+      Read msgs menu 13
+      Scan msgs menu 14
+      Editor menu    15
+
+
+

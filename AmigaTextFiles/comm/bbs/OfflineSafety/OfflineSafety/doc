@@ -1,0 +1,75 @@
+Offline Safety via DoHighReadMagic
+----------------------------------
+
+Introduction:
+
+Offline message reading is handy, but problems occur. Making a message
+bundle may fail, or you may lose it before you have a chance to read
+any of the messages. When this happens, it would be a great thing if
+you could just push a switch and get the messages back. DoHighReadMagic
+does this magic for you!
+
+You run DoHighReadMagic each time a bundling is about to take place, and
+make a backup of the user's message pointers. If a problem would occur,
+all the user would have to do, is issue a command that would then run
+DoHighReadMagic again, this time restoring the backup! Now, the user
+can try to bundle again.
+
+Purpose:          To make a backup of a user's message pointers (also known
+                  as highread values), or restore it.
+
+Template:         PATH/A,BKUP,LOAD/S,SAVE/S,VIEW/S
+
+Format:           <User Path> [<Backup File>] LOAD|SAVE|VIEW
+
+Operation:
+
+DoHighReadMagic is passed the full path to the user's directory, and one of
+the options LOAD, SAVE and VIEW to determine the nature of the operation:
+
+         LOAD     Restore the backup
+         SAVE     Make a backup
+         VIEW     List the user's highread values (for testing purposes)
+
+By default, the backup will be made in a file called HighRead.backup, which
+will be placed in the user's directory. You may specify another name though.
+
+Examples:
+
+DoHighReadMagic BBS:User/20 VIEW
+
+Will list you the highread values of user number 20.
+
+DoHighReadMagic BBS:User/20 SAVE
+
+Will save the highread values of user 20 into BBS:User/20/HighRead.backup.
+
+DoHighReadMagic BBS:User/20 hr LOAD
+
+Will load the highread values of user 20 from BBS:User/20/fr. The user path
+argument may be followed by a file name to be used. It will always be placed
+in the user's directory. Do *NOT* specify a full path name.
+
+Technical details:
+
+DoHighReadMagic opens and loads the User.dat file in the given directory,
+and prints the information (VIEW), opens a new backup file and writes the
+data (SAVE), or opens an old backup file and reads the data plus saves the
+user file (LOAD). The magic identification sequence "HRBK" (HighRead BacKup)
+will be written to the beginning of the backup file followed by the number
+of highread values stored in the backup file. If the number of areas in your
+message base changes, DoHighReadMagic will notify the user (if the output
+is redirected to TECHIO:, see Magic.dat) that there are a different amount
+of highread values in the backup than there are in the user file. This will
+not cause a problem though. If there are less highread values in the backup,
+they will all be restored, and the highread values of the (new) higher
+numbered areas will remain the same. If there are more, only as many will
+be restored as there are areas in the user file.
+
+See also:
+
+Magic.dat for TechnoBBS menu code to run DoHighReadMagic.
+
+
+The contents of this distribution are copyright 1995 by Sami Klemola.
+

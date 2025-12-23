@@ -1,0 +1,39 @@
+#
+# CINS Shared Library
+# Last updated: Sun Dec 07 23:33:19 1997
+#
+
+LIBVER = 4
+LIBREV = 16
+
+OBJS = CINSReserved1.o CINS_InitList.o \
+       CINS_FreeList.o CINS_AddArchieName.o CINS_AddDirEntryName.o \
+       CINS_AddFTPDataName.o CINS_AddFTPName.o CINS_AddIRCName.o \
+       CINS_AddTelnetDataName.o CINS_AddTelnetName.o CINS_RemoveNode.o \
+       CINS_FindOrdinal.o CINS_InsertArchieName.o CINS_InsertFTPDataName.o \
+       CINS_InsertFTPName.o CINS_InsertIRCName.o CINS_InsertTelnetDataName.o \
+       CINS_InsertTelnetName.o
+
+.c.o: /include/cins/config.h
+   SC LIBCODE $*
+
+all:
+   SMake /include/pragmas/cins_pragmas.h
+   SMake cins.library
+   Copy cins.library /.Dist/CNet/Doors/CINS/Libs
+
+/include/pragmas/cins_pragmas.h: /include/fd/cins.fd
+   fd2pragma $< $@
+
+cins.library: $(OBJS) /include/pragmas/cins_pragmas.h
+   SLink <WITH <
+    FROM LIB:libent.o LIB:libinitr.o $(OBJS) TO $@ 
+    LIBFD /include/fd/cins.fd
+    LIBVERSION  $(LIBVER)
+    LIBREVISION $(LIBREV)
+    LIB LIB:amiga.lib LIB:sc.lib
+    NOICONS
+<
+
+clean:
+   @delete cins.library $(OBJS)

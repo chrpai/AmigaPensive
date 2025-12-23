@@ -1,0 +1,993 @@
+@database MicroBBS.guide
+@$VER 1.1
+@author "Peter Stegemann"
+-------------------------------------------------------------------------------
+@node "main" "MicroBBS"
+
+                                 MicroBBS V1.1
+
+                              BBS-System fuer Amiga
+
+                                @{" Beschreibung " link "main.description" 0}
+                                @{"  Kopierrecht " link "main.copyright" 0}
+                                @{"  Erklaerung  " link "main.disclaimer" 0}
+                                @{" Installation " link "main.installation" 0}
+                                @{" Konfiguration" link "main.config" 0}
+                                @{" Registrierung" link "main.registration" 0}
+                                @{"  Danke an... " link "main.thanx" 0}
+                                @{"  Geschichte  " link "main.history" 0}
+                                @{"    Fehler    " link "main.bugs" 0}
+                                @{"    Kontact   " link "main.contact" 0}
+@endnode
+-------------------------------------------------------------------------------
+@node "main.description" "Beschreibung"
+@prev "main.contact"
+@next "main.copyright"
+
+        Die MicroBBS ist eine neue, voll konfigurierbare BBS.
+
+        Sie ist extrem klein, aber dennoch sehr maechtig. Die meisten
+        Funktionen sind aus dem Nichts mit externen Skripten und internen
+        Konfigurationsmoeglichkeiten geschaffen. Die BBS einzurichten
+        erscheint mehr als eine einfache Art der Programmierung denn als
+        als gewoehnliche Konfiguration. Dies gibt dem Sysop ein Maximum
+        an Konfiguration.
+
+        Darueber hinais gibt es keine Moeglichkeiten von User-Leveln und
+        File-Ratios - diese Dinge sind heutzutage sinnlos, wo es mehr BBSe
+        als User gibt. Aber es sollte auch nicht allzu schwer sein, auch
+        dies mit ein paar Skripts hinzuzufuegen, wenn es wirklich jemand
+        benoetigt.
+
+        Mit der MicroBBS kann man auf einfache Weise alles implementieren:
+        Vom einfach Frontend fuer den Mailer bis zur voll funktionsfaehigen
+        BBS.
+@endnode
+-------------------------------------------------------------------------------
+@node "main.copyright" "Kopierrecht"
+@prev "main.description"
+@next "main.disclaimer"
+
+           MicroBBS ist Shareware © Copyright 1996 von @{"Peter Stegemann" link "main.contact" 0}.
+
+          Wenn du diese Programm magst und benutztmusst du es @{"registrieren" link "main.registration" 0}!
+
+ UND VERGISS NIE: Public Domain zu unterstuetzen bedeutet, sich selbst zu
+                  untersteutzen. Die Autoren von PD investieren viel Zeit in
+                  ihre Arbeit, also honoriere das indem du sie unterstuetzt.
+
+                              Alle Rechte vorbehalten.
+
+            Kickstart 2.04 und Workbench 2.0 sind Copyright 1985-1992
+                            von Commodore-Amiga, Inc.
+
+             metaXPR.library ist Copyright 1991-92 von @{"Olaf Barthel" link "main.thanx" 0}.
+@endnode
+-------------------------------------------------------------------------------
+@node "main.disclaimer" "Erklaerung"
+@prev "main.copyright"
+@next "main.installation"
+
+      Dieses Softwarepacket ist frei Vertreibbar, so lange wie keine Files
+     veraendert oder aus dem Archiv entfernt werden. Es ist nicht erlaubt,
+         Geld fuer das verbreiten oder kopieren zu verlangen, jegliche
+                    Vertreibung ueber Firmen ist untersagt!
+
+      Die Verbreitung ueber Aminet-, Meeting Pearls- und die FredFish-CD's
+        und ueber ueber BBS-Systeme ( solange kein Geld fuer den Zugriff
+                          verlangt wird) ist erlaubt.
+
+    Diese Software ist "wie sie ist". Es werden keine Garantien vergeben in
+      Bezug auf die Nuetzlichkeit, Leistung und Sicherheit dieser Software
+   und jede Benutzung geschieht auf dein eigenes Risiko. Der Autor ist nicht
+     verantwortlich fuer jeglichen Schaden, der durch deine Nutzung dieser
+                               Software entsteht.
+
+@endnode
+-------------------------------------------------------------------------------
+@node "main.installation" "Installation"
+@prev "main.disclaimer"
+@next "main.config"
+
+    Die Installation sollte nicht allzu schwer sein.
+
+    1) Entpacke das gesammte Archiv whoin du magst.
+    2) Schiebe die Files von den folgenden Verzeichnissen dahin, wo sie
+       gehoeren oder benutze Assign ADD um die Verzeichnisse zu den passenden
+       Systemverzeichnissen hinzuzufuegen:
+
+            MicroBBS/L          L:
+            MicroBBS/Libs       LIBS:
+            MicroBBS/C          C:
+            MicroBBS/Devs       DEVS:
+            MicroBBS/Locale     LOCALE:
+
+    3) Assigne BBS: zum "MicroBBS"-Verzeichniss.
+    4) Fuege das Skript "BBS:Commands/Maintenance" zu dem Skript fuer das
+       taegliche Aufraeumen hinzu.
+
+       Editiere & starte BBS:Commands/MakeCD0Index um einen CD-Index zu
+       erstellen.
+
+    5) Konfiguriere deinen Mailer so, dass die MicroBBS entweder direkt oder
+       ueber das "StartBBS"-Skript gestartet wird:
+
+       CLI-Args: StartBBS DEVICE,UNIT,BAUD,NODE,CONNECT,DUMMY
+           oder: MicroBBS D=DEVICE,U=UNIT/N,B=BAUD/N,N=NODE/N,L=LOCAL/S,
+                          C=CONNECT,O=CONFIG:
+
+       Die NODE-Option benoetigt das @{"Keyfile" link "main.registration" 0}, was bedeutet, dass du die
+       MicroBBS nur einmal starten kannst, wenn sie nicht registriert ist.
+
+       Beispiel fuer GMS: BBSCommand="Mail:Scripts/StartBBS %s %u %b %m %C"
+
+    6) Aendere die the BBS-@{"Konfiguration" link "main.config"}.
+
+@endnode
+-------------------------------------------------------------------------------
+@node "main.config" "Konfiguration"
+@prev "main.installation"
+@next "main.registration"
+
+ Die MicroBBS zu konfigurieren ist ein bisschen wie zu programmieren, aber auf
+ eine sehr verinfachte Art und Weise. Die Syntax ist sehr streng und einfach
+ zu verstehen, schau dir einfach mal die @{"Beispiel Konfiguration" link "config.example" 0} an, um herauszufinden,
+ wie die Syntax aussieht.
+
+ Es gibt zwei Haupttypen von Konfig-Eintraegen. Der erste beinhaltet schlicht
+ die Optionen die den Screen, die Konsole und aehnliche Dinge beschreiben:
+
+        @{"Allgemeine Optionen" link "config.options" 0}
+
+        @{"Chatter" link "config.chatter" 0}
+        @{"Configs" link "config.configs" 0}
+        @{"Console" link "config.console" 0}
+        @{"Screen " link "config.screen" 0}
+
+ Nur einige dieser Optionen erlauben es, spezielle @{"%-Kommands" link "config.percent" 0} zu benutzen. Schlage
+ bei deren Dokumentation nach.
+
+ Der andere Typ ist komplizierter. Generell gesagt, definieren sie alle
+ verschiedene Typen von Kommandos. Diese Kommandos koennen wieder andere
+ Kommandos nutzen, entweder interne oder von der Konfig definierte. Achte
+ stets darauf, keine Schlaufen zu produzieren!
+ Wenn ein benutztes Kommando nicht intern oder in der Konfig definiert ist,
+ interpretiert die BBS dieses als Textfile und versucht selbiges auszugeben.
+
+        @{"Interne Kommandos" link "config.internal" 0}
+
+        @{"Batches  " link "config.batches" 0}  - Liste von Kommands.
+        @{"Externals" link "config.externals" 0}  - Externe Shell-Kommands.
+        @{"Spawn    " link "config.spawn" 0}  - Externe Shell-Kommands mit Umleitung der Ein-/Ausgabe.
+        @{"Menus    " link "config.menus" 0}  - Menu-Definitionen.
+        @{"Texts    " link "config.texts" 0}  - Text-Files fuer die Ausgabe.
+
+ Alle diese Options erlauben die Benutzung spezieller @{"%-Kommandos" link "config.percent" 0}.
+
+ Alle Optionen koennen mehrfach definiert werden, wenn eine Option einzeilig ist
+ ( z.B. @{"Log" link "config.internal" 0} oder ein benutzerdefiniertes Kommando wie: xyz.txt "Foo-Bar" ) wird das
+ zuerst definierte einfach ersetzt, wenn die Option mehrzeilig ist ( z.B. @{"Menus" link "config.menus" 0} oder
+ @{"Screen" link "config.screen" 0}) werden die neuen Definitionen angehaengt.
+
+ Es ist kein Problem mehrere Bloecke von z.B. @{"Menus" link "config.menu" 0} oder @{"Texten" link "config.texts" 0} zu bilden. Sie werden
+ automagisch zusammengelinkt.
+
+@endnode
+-------------------------------------------------------------------------------
+@node "main.registration" "Registrierung"
+@prev "main.config"
+@next "main.thanx"
+
+    Um MicroBBS zu registerieren, musst du einfach 30.- DM an mich senden, das
+    folgende Formular ausfuellen und an mich schicken (entweder per email oder
+    per Schneckenpost), dann sende ich dir ein Keyfile zurueck. Fuer Versendung
+    per Schneckenpost oder Crashmail kommen nochmal 5.- Transportkosten hinzu.
+
+
+    Name:       ........................................
+    Strasse:    ........................................
+    Land:       ........................................
+    Staat:      ........................................
+
+    Telefon:    ........................................
+    Modem:      ........................................
+
+    EMail:      ........................................
+
+    Versendung als     Crash []    Snail []     EMail []
+
+@endnode
+-------------------------------------------------------------------------------
+@node "main.thanx" "Danke an..."
+@prev "main.registration"
+@next "main.history"
+
+    Ich moechte Ingo Juergensmann dafuer danken, dass er mich dazu getrieben
+    hat, diese BBS zu etwas stabilem zu entwickeln, fuer seine spaet-
+    naechtlichenhis Fehlerberichte und fuer tausend andere Dinge, die hier
+    unerwaehnt bleiben...
+
+    Weiterer Dank geht an:
+
+    Olaf Barthel    -   fuer seine @{"metaxpr.library" link "main.copyright" 0}.
+    Martin Neumann  -   fuer Beta-Testen...
+
+@endnode
+-------------------------------------------------------------------------------
+@node "main.history" "Geschichte"
+@prev "main.thanx"
+@next "main.bugs"
+
+-------------------------------------------------------------------------------
+                                    MicroBBS
+-------------------------------------------------------------------------------
+
+    Write good code. Test it. Then make it great.
+
+                                        - RKRM Libraries p. 922
+
+Several private releases...
+
+-------------------------------------------------------------------------------
+V 1.1 - private
+-------------------------------------------------------------------------------
+- removed options:
+
+    - SysopColor
+    - UserColor
+    - Watch ( Config & Commandline!)
+
+- added options:
+
+    -   ( Console
+            ( Left <Number> )
+            ( Top <Number> )
+            ( Width <Number> )
+            ( Height <Number> )
+            ( PubScreen <Name> ) (with auto-fallback)
+            ( Font <Name> )
+            ( FontSize <Number> )
+        )
+
+        only with key!
+
+    -   ( Screen
+            ( Width <Number> )
+            ( Height <Number> )
+            ( Depth <Number> )
+            ( Name <Name> )
+            ( DisplayID <Number> ) (no hex value!)
+        )
+
+        only with key!
+
+
+    -   ( Chatter
+            ( SerialColor <Number> )
+            ( ConsoleColor <Number> )
+        )
+
+        only with key!
+
+    -   ( Prompt <String> )
+
+        set's the BBS-prompt
+
+        default: "[1A[1E%H:%M:%S> "
+
+        only with key!
+
+- added command:
+
+    -   ( Echo <String> )
+
+        Hint:  ( Echo "[0;0H[J" ) == ClearScreen...
+
+
+- changed command:
+
+    - WaitReturn will NOT type WaitReturn.txt anymore!
+      Use a batch like this from now on:
+
+        ( WaitReturn.bat
+            ( WaitReturn.txt )
+            ( WaitReturn )
+        )
+
+        or better:
+
+        ( WaitReturn.bat
+            ( Echo "[1E[35C[1;33m< [35mReturn [33m>[0m" )
+            ( WaitReturn )
+        )
+
+    - the Text-function tries to execute WaitReturn.bat when typing texts which are longer than the users maxlines.
+
+- using console.device instead of CON:
+
+    - no waste of cpu-time anymore
+    - should loose less or no chars anymore
+
+- done major rework on the spawnmode:
+
+    - should be faster now
+    - supports RAW & CON
+
+- removed this stupid "make the config lowercase" behaviour
+
+- added LOADS of percent commands, all time related:
+
+    - %a short name of the weekday
+    - %A full
+    - %b short name of the month
+    - %B full
+    - %c local displaymethod of date and time
+    - %d day of the month (01-31)
+    - %H hour (00-23)
+    - %I hour (01-12)
+    - %j day of the year (001-366)
+    - %m month (01-12)
+    - %M minute (00-59)
+    - %p local equivalent of AM or PM
+    - %S second (00-61)
+    - %U week of the year (sunday is first weekday) (00-53)
+    - %w weekday (0-6)
+    - %W week of the year (monday is first weekday) (00-53)
+    - %x local displaymethod of the date
+    - %X local displaymethod of the time
+    - %y year without century (00-99)
+    - %Y year including century
+    - %Z name of the time-zone
+
+- problems left:
+
+    - cursorkeys don't work correct
+    - no PASTE to console window
+
+- soon:
+    - correct ansi-colors
+    - PASTE
+    - cursorkeys
+
+-------------------------------------------------------------------------------
+V 1.11 - private
+-------------------------------------------------------------------------------
+
+- fixed a really stupid BUG which gurued the download
+
+- fixed ansi-colors
+
+- replaced option
+
+    -   ( Screen
+            ( DisplayID <Number> ) (no hex value!)
+        )
+
+    with
+
+    -   ( Screen
+            ( Mode <ModeName> ) (e.g. PICASSO:800x600x256 )
+        )
+
+-------------------------------------------------------------------------------
+V 1.12 - private
+-------------------------------------------------------------------------------
+
+- crippeled some functions
+
+    Function name       functionality without key
+
+    - Upload            none
+    - GetLines          single line only
+    - Configs           none
+    - Console           uses default settings
+    - Screen            none
+    - Chatter           uses default settings
+
+    - Node (CLI-Arg)    defaults to 0
+
+- changed option:
+
+    ( Menu
+        ( Before
+            <Command>
+            <Command>
+            <Command>
+        )
+    )
+
+    The Before-option will no more be executed after performing a menu-option.
+    Use the after-option instead. To get the same functinality as before, add
+    an After-option with the same command as the Before-option to every menu.
+
+- added option:
+
+    ( Menu
+        ( After
+            <Command>
+            <Command>
+            <Command>
+        )
+    )
+
+- moved location of FLG to BBS:Commands/FLG/
+
+-------------------------------------------------------------------------------
+V 1.13 - private
+-------------------------------------------------------------------------------
+- fixed:
+    some zero-page trashing during startup.
+    enforcer-hit in config-building and config-scanning.
+
+-------------------------------------------------------------------------------
+V 1.14 - private
+-------------------------------------------------------------------------------
+- fixed:
+    trouble with upload-function.
+
+-------------------------------------------------------------------------------
+V 1.15 - public
+-------------------------------------------------------------------------------
+- fixed:
+    improved handler. Remote-Shell works now.
+
+- removed:
+    WriteMessage
+
+@endnode
+-------------------------------------------------------------------------------
+@node "main.bugs" "Fehler"
+@prev "main.history"
+@next "main.contact"
+
+    - es scheint Probleme zu geben mit dem duart.device...
+    - der Spawn-mode ist noch lange nicht perfekt...
+
+@endnode
+-------------------------------------------------------------------------------
+@node "main.contact" "Kontakt"
+@prev "main.bugs"
+@next "main.description"
+
+    Fuer Vorschlaege, Fehlerberichte, Registrierung bin ich erreichbar unter:
+
+                     SnailMail: Peter Stegemann
+                                 Unter Stad 56
+                                79353 Bahlingen
+
+                         Money: 3260 59-759
+                                Postbank Karlsruhe
+                                660 100 75
+
+                       Fidonet: 2:2476/775.0@fidonet.org
+                        Usenet: pst@cocoon.infra.de
+                         Voice: +49(0)7723-91023
+                          Data: +49(0)7723-91025  (ZyX16k8 & X.75/V.110)
+@endnode
+-------------------------------------------------------------------------------
+@node "config.options" "Allgemeine Optionen"
+@prev "config.example"
+@next "config.chatter"
+
+ Log:
+
+    Dies ist der Name des Logfiles wo Anrufer, Fehler usw. notiert werden.
+
+        ( Log           "BBS:MicroBBS_%Node.log" )
+
+     Diese Option erlaubt die Benutzung der speziellen @{"%-Kommandos" link "config.percent" 0}.
+
+ StartCommand:
+
+    Dies ist das erste Kommando, welches beim Start der BBS ausgefuehrt wird.
+    Wenn dieses nicht angegeben wird, versucht die MicroBBS mit "main.menu" zu
+    starten.
+
+        ( StartCommand  "Logon.bat" )
+
+ Prompt:
+
+    Dies ist ein String, der als Prompt fuer die Eingabeaufforderung benutzt
+    wird.
+
+        ( Prompt        "[1A[1E%H:%M:%S> " )
+
+    Diese Option erlaubt die Verwendung der @{"%-Kommandos" link "config.percent" 0}.
+    Diese Option benoetigt das @{"Keyfile" link "main.registration" 0}.
+@endnode
+-------------------------------------------------------------------------------
+@node "config.chatter" "Chatter Konfiguration"
+@prev "config.options"
+@next "config.configs"
+
+    Hier kann angegeben werden, welche Farbender Chatter benutzen soll.
+
+        ( Chatter
+            ( SerialColor   33 )
+            ( ConsoleColor  32 )
+        )
+
+    Diese Option benoetigt das @{"Keyfile" link "main.registration" 0}.
+@endnode
+-------------------------------------------------------------------------------
+@node "config.configs" "Configs Konfiguration"
+@prev "config.chatter"
+@next "config.console"
+
+    Mit dieser Option koennen weitere Konfigfiles angegeben werden, die beim
+    Start nachgeladen werden. Diese Option funktioniert nur im Hauptkonfigu-
+    rationsfile.
+
+        ( Configs
+            ( BBS:MicroBBS.cfg.lager )
+        )
+
+    Diese Option erlaubt die Verwendung der @{"%-Kommandos" link "config.percent" 0}.
+    Diese Option benoetigt das @{"Keyfile" link "main.registration" 0}.
+@endnode
+-------------------------------------------------------------------------------
+@node "config.console" "Console Konfiguration"
+@prev "config.configs"
+@next "config.screen"
+
+    Diese Option regelt die Groesse der Konsole, den benutzten Font und den
+    PublicScreen auf dem sich die Konsole oeffnen soll.
+
+        ( Console
+            ( Font       "IBM.font" )
+            ( FontSize   8 )
+
+            ( PubScreen "MicroBBS" )
+            ( Left   440 )
+            ( Top    500 )
+            ( Width  800 )
+            ( Height 500 )
+        )
+
+    Die Option "PubScreen" erlaubt die Verwendung der @{"%-Kommandos" link "config.percent" 0}.
+
+    Diese Optionen benoetigen das @{"Keyfile" link "main.registration" 0}.
+@endnode
+-------------------------------------------------------------------------------
+@node "config.screen" "Screen Konfiguration"
+@prev "config.console"
+@next "config.internal"
+
+    Diese Option regelt die groesse des Screens, den verwendeten Displaymode
+    und den Namen, den der PublicScreen haben soll. Wenn der Screen bereits
+    existiert, wird er nicht erneut geoeffnet.
+
+    Hinweiss: Die Konsole wird nur dann diesen Screen benutzen, wenn der
+              angegebene Name dem Namen entspricht, der unter @{"Console" link "config.console" 0}
+              angegeben ist.
+
+        ( Screen
+            ( Width  800 )
+            ( Height 600 )
+            ( Depth  8 )
+            ( Mode   "PICASSO:  8Bit  800 *  600" )
+
+            ( Name "MicroBBS" )
+        )
+
+    Die Option "Name" erlaubt die Verwendung der @{"%-Kommandos" link "config.percent" 0}.
+
+    Diese Optionen benoetigen das @{"Keyfile" link "main.registration" 0}.
+@endnode
+-------------------------------------------------------------------------------
+@node "config.internal" "Interne Funktionen"
+@prev "config.screen"
+@next "config.batches"
+
+    Dies sind die internen, vordefinierten Kommandos.
+
+    BatchDownload   - Sendet mehrere Files auf einmal, die im angegebenen File
+                      aufgelistet sind.
+
+        ( BatchDownload "T:FullFileList.%Node" )
+
+    Upload          - Empfaengt ein File per zmodem-Download und schiebt es nach
+                      BBS:T/.
+
+    ChangeMaxlines  - Fragt den Benutzer nach der maximalen Anzahl von Zeilen,
+                      die angezeigt werden sollen.
+
+    ChangePassword  - Fragt den Benutzer nach einem neuen Passwort.
+
+    GetLine         - List eine Zeile vom Benutzer ein und schreibt sie ind das
+                      angegebene File.
+
+        ( GetLine "ENV:MSGTO%Node" )
+
+    GetLines        - List mehrere Zeilen vom Benutzer ein bis dieser <Return>
+                      in einer leeren Zeile eingibt und schreibt die Zeilen in
+                      das angegebene File.
+
+                      Ohne @{"Keyfile" link "main.registration" 0} liest diese Funktion nur eine Zeile!
+
+        ( GetLines "T:FileList.%Node" )
+
+    LogOn           - Startet die Login-Sequence mit der Passwort-Ueberpruefung.
+    LogOff          - Beendet die gesammte BBS.
+
+    Chat            - Startet das interne Chat-Modul.
+    Echo            - Gibt einfach die angegebene Zeile aus.
+
+        ( Echo "[1;1H[J" )
+
+    WaitReturn      - Wartet darauf, dass der Benutzer <Return> drueckt.
+
+@endnode
+-------------------------------------------------------------------------------
+@node "config.batches" "Batch Konfiguration"
+@prev "config.internal"
+@next "config.externals"
+
+    Mit Batches kann man eine Liste von Kommandos angeben (interne oder
+    definierte, was wiederum Batches selbst einschliesst), die hintereinander
+    ausgefuehrt werden. Vorsicht: Es ist kein Problem, eine Endlosschleife zu
+    generieren.
+
+        ( Batches
+            ( Logoff.bat
+                ( Logoff.Goodbye.txt )
+                ( AfterSession.ext )
+                ( Logoff )
+            )
+        )
+@endnode
+-------------------------------------------------------------------------------
+@node "config.externals" "Externals Konfiguration"
+@prev "config.batches"
+@next "config.menus"
+
+    Hier koennen verschiedenste externe Kommandos angegeben werden. Sie werden
+    synchron ausgefuehrt, aber die Ein-/Ausgabe wird nicht umgelenkt, so dass
+    der Benutzer nichts davon sieht. Benutze "C:Run" um die Kommandos asynchron
+    auszufuehren.
+
+        ( Externals
+            ( SetWho.ext                "C:Echo "   %Node    %User ist online." TO T:Who.%Node" )
+        )
+@endnode
+-------------------------------------------------------------------------------
+@node "config.spawn" "Spawn Konfiguration"
+@prev "config.menus"
+@next "config.texts"
+
+    Hier koennen verschiedenste gespawnte externe Kommandos angegeben werden.
+    Sie werden synchron ausgefuehrt, die ein-/Ausgabe wird umgelenkt, der
+    Benutzer sieht also die Ausgabe der Progamme und kann selbst Eingaben
+    vornehmen. "C:Run" darf auf keinen Fall benutzt werden, um das Kommando
+    asynchron ablaufen zu lassen! Asynchrone Ausfuehrung von Spawns ist nicht
+    moeglich!
+
+        ( Spawns
+            ( SearchFullNames.spw       "BBS:Commands/SearchFullNames %Node "%User"" )
+        )
+@endnode
+-------------------------------------------------------------------------------
+@node "config.menus" "Menu Konfiguration"
+@prev "config.externals"
+@next "config.spawn"
+
+    Dies ist das wichtigste Feature der MicroBBS.
+
+    "Password" fragt nach einem Passwort vor dem Wechsel in das Menu. Wenn das
+               Passwort falsch ist, wird der Zugriff darauf verweigert.
+    "Before"   wird ausgefuehrt bevor in das Menu gewechselt wird.
+    "After"    wird ausgefuehrt nach jeder erfolgreichen Auswahl im Menu.
+    "Options"  definiert Hotkeys und die zugehoerigen Aktionen. Es koennen auch
+               mehrere Aktionen wie in der @{"Batch Konfiguration" link "config.batches" 0} angegeben werden.
+
+               Der "-" wird automatisch definiert als Hotkey um das Menu zu
+               verlassen. Um die Benutzung des "-" dafuer in z.B. dem Hauptmenu
+               ( welches kein Vormenu hat) zu verhindern gibt man einfach den
+               "-" als Option ohne Aktion an.
+
+        ( Menus
+            ( Statistiken.menu
+                ( Password "xyz" )
+                ( Before Menu.Stats.txt )
+                ( After Menu.Stats.txt )
+                ( Options
+                    ( I
+                        ( Stats.SystemInfo.txt )
+                        ( WaitReturn.bat )
+                    )
+                    ( U Stats.Userlist.bat )
+                    ( L Stats.LastUsers.bat )
+                    ( R Stats.ReBoots.bat )
+                    ( W Stats.Who.bat )
+                    ( - )
+                )
+            )
+        )
+@endnode
+-------------------------------------------------------------------------------
+@node "config.texts" "Text Konfiguration"
+@prev "config.spawn"
+@next "config.percent"
+
+    Hier koennen Textfiles fuer die Ausgabe als Befehl definiert werden.
+
+        ( Texts
+            ( Transfer.Upload.txt       "BBS:Texte/Transfer.Upload.txt" )
+        )
+@endnode
+-------------------------------------------------------------------------------
+@node "config.percent" "% Kommandos"
+@prev "config.text"
+@next "config.example"
+
+    Dies sind die Prozent-Kommandos die in vielen Funktionen verwendet werden
+    koennen:
+
+    - %%            %
+    - %Node         Line-Nummer der BBS.
+    - %Baud         Baudrate
+    - %User         Username
+    - %Connect      Connect-String
+    - %Calls        Anzahl der Anrufe des Users
+    - %Files        Anzahl der gezogenenen Files des Users
+    - %AllCalls     Anzahl der gesammten Anrufe in der BBS
+    - %AllFiles     Anzahl der gesammten gezogenen Files in der BBS
+    -
+    - %a kurzer Name des Wochentages
+    - %A voller
+    - %b kuerzer Name des Monats
+    - %B voller
+    - %c lokale Anzeigeart von Datum und Zeit
+    - %d Tag im Monat (01-31)
+    - %H Stunde (00-23)
+    - %I Stunde (01-12)
+    - %j Tag im Jahr (001-366)
+    - %m Monat (01-12)
+    - %M Minute (00-59)
+    - %p lokales Equivalent von AM oder PM
+    - %S Sekunde (00-61)
+    - %U Woche im Jahr ( Sonntag ist erster Wochentag) (00-53)
+    - %w Wochentag (0-6)
+    - %W Woche im Jahr ( Montag ist erster Wochentag) (00-53)
+    - %x lokale Anzeigemethode des Datums
+    - %X lokale Anzeigemethode der Zeit
+    - %y Jahr ohne Jahrhundert (00-99)
+    - %Y Jahr mit Jahrhundert
+    - %Z Name der Zeit-Zone
+@endnode
+-------------------------------------------------------------------------------
+@node "config.example" "Example configuration"
+@prev "config.percent"
+@next "config.options"
+
+( @{"Log" link "config.options" 0}           "BBS:MicroBBS_%Node.log" )
+( @{"StartCommand" link "config.options" 0}  "Logon.bat" )
+( @{"Prompt" link "config.options" 0}        "[1A[1E%H:%M:%S> " )
+
+( @{"Console" link "config.console" 0}
+    ( Font       "IBM.font" )
+    ( FontSize   8 )
+
+    ( PubScreen "MicroBBS" )
+    ( Left   440 )
+    ( Top    500 )
+    ( Width  800 )
+    ( Height 500 )
+)
+( @{"Screen" link "config.screen" 0}
+    ( Width  800 )
+    ( Height 600 )
+    ( Depth  8 )
+    ( Mode   "PICASSO:  8Bit  800 *  600" )
+
+    ( Name "MicroBBS" )
+)
+
+( @{"Chatter" link "config.chatter" 0}
+    ( SerialColor   33 )
+    ( ConsoleColor  32 )
+)
+
+( @{"Texts" link "config.texts" 0}
+    ( Chatter.End.txt           "BBS:Texte/Chatter.End.txt" )
+    ( Chatter.Start.txt         "BBS:Texte/Chatter.Start.txt" )
+
+    ( SecurityViolation.txt     "BBS:Texte/SecurityViolation.txt" )
+    ( SystemError.txt           "BBS:Texte/SystemError.txt" )
+    ( NewUser.txt               "BBS:Texte/NewUser.txt" )
+
+    ( Logon.Rules.txt           "BBS:Texte/Rules.txt" )
+    ( Logon.Intro.txt           "BBS:Texte/Intro.txt" )
+    ( Logon.Logon.txt           "BBS:Texte/Login.txt" )
+    ( Logon.News.txt            "BBS:Texte/News.txt" )
+    ( Logoff.GoodBye.txt        "BBS:Texte/GoodBye.txt" )
+    ( Menu.Transfer.txt         "BBS:Texte/Menu.Files.txt" )
+    ( Menu.Games.txt            "BBS:Texte/Menu.Games.txt" )
+    ( Menu.Main.txt             "BBS:Texte/Menu.Main.txt" )
+    ( Menu.Message.txt          "BBS:Texte/Menu.Message.txt" )
+    ( Menu.Prefs.txt            "BBS:Texte/Menu.Prefs.txt" )
+    ( Menu.Stats.txt            "BBS:Texte/Menu.Stats.txt" )
+    ( Message.End.txt           "BBS:Texte/Message.End.txt" )
+    ( Message.Start.txt         "BBS:Texte/Message.Start.txt" )
+    ( Message.SendTo.txt        "BBS:Texte/Message.SendTo.txt" )
+    ( Message.User.txt          "BBS:Messages/%User" )
+    ( Prefs.Lines.txt           "BBS:Texte/Prefs.Lines.txt" )
+    ( Stats.History.txt         "BBS:Texte/Stats.History.txt" )
+    ( Stats.LastUsers.txt       "BBS:Texte/Stats.LastUsers.txt" )
+    ( Stats.SystemInfo.txt      "BBS:Texte/Stats.SystemInfo.txt" )
+    ( Stats.Userlist.txt        "BBS:Texte/Stats.Userlist.txt" )
+    ( Transfer.SearchFiles.txt  "BBS:Texte/SearchFiles.txt" )
+    ( Transfer.Download.txt     "BBS:Texte/Transfer.Download.txt" )
+    ( Transfer.Upload.txt       "BBS:Texte/Transfer.Upload.txt" )
+)
+( @{"Configs" link "config.configs" 0}
+    ( BBS:MicroBBS.cfg.lager )
+    ( BBS:MicroBBS.cfg.cd0 )
+)
+( @{"Externals" link "config.externals" 0}
+    ( AfterSession.ext          "BBS:Commands/Aftersession" )
+    ( AddLastUser.ext           "BBS:Commands/AddLastUser "%User" %Node %Connect" )
+    ( GenUserList.ext           "BBS:Commands/GenUserList" )
+    ( SayLogon.ext              "C:Run RexxC:RX 'Address PLAY SAY "-v28 Logon: %User !"" )
+    ( SetWho.ext                "C:Echo "   %Node    %User ist online." TO T:Who.%Node" )
+)
+( @{"Spawns" link "config.spawns" 0}
+    ( ShowLogonStats.spw        "BBS:Commands/ShowLoginStats %Calls %Files %AllCalls %AllFiles" )
+
+    ( NuclearWar.spw            "BBS:Doors/StartNuclearWar "%User"" )
+    ( SpaceEmpire.spw           "BBS:Doors/StartSpaceEmpire "%User"" )
+
+    ( CheckMessages.spw         "BBS:Commands/CheckMessages "%User"" )
+    ( ReadMessages.spw          "BBS:Commands/ReadMessages "%User"" )
+    ( WriteMessage.spw          "BBS:Commands/WriteMessage %Node "%User"" )
+    ( SearchFiles.spw           "BBS:Commands/SearchFiles %Node" )
+    ( SearchFullNames.spw       "BBS:Commands/SearchFullNames %Node "%User"" )
+)
+( @{"Batches" link "config.batches" 0}
+    ( Logon.bat
+        ( Logon.Intro.txt )
+        ( WaitReturn.bat )
+        ( Logon.Rules.txt )
+        ( WaitReturn.bat )
+        ( Logon.Logon.txt )
+        ( @{"Logon" link "config.internals" 0} )
+        ( SayLogon.ext )
+        ( SetWho.ext )
+        ( ShowLogonStats.spw )
+        ( CheckMessages.spw )
+        ( AddLastUser.ext )
+        ( WaitReturn.bat )
+        ( Logon.News.txt )
+        ( WaitReturn.bat )
+        ( Stats.LastUsers.bat )
+        ( Stats.Who.bat )
+        ( Main.menu )
+    )
+    ( Logoff.bat
+        ( Logoff.Goodbye.txt )
+        ( AfterSession.ext )
+        ( @{"Logoff" link "config.internals" 0} )
+    )
+    ( Stats.LastUsers.bat
+        ( Stats.LastUsers.txt )
+        ( WaitReturn.bat )
+    )
+    ( Message.Write.bat
+        ( Message.SendTo.txt )
+        ( GetLine "ENV:MSGTO%Node" )
+        ( Message.Start.txt )
+        ( WriteMessage.spw )
+        ( Message.End.txt )
+        ( WaitReturn.bat )
+    )
+    ( Message.Read.bat
+        ( Echo "[1;1H[J" )
+        ( Message.User.txt )
+        ( ReadMessages.spw )
+        ( WaitReturn.bat )
+    )
+    ( Stats.Who.bat
+        ( BBS:Texte/Stats.Who.txt )
+        ( T:Who.0 )
+        ( T:Who.1 )
+        ( T:Who.2 )
+        ( T:Who.3 )
+        ( WaitReturn.bat )
+    )
+    ( Stats.Userlist.bat
+        ( GenUserList.ext )
+        ( Stats.Userlist.txt )
+        ( WaitReturn.bat )
+    )
+    ( Transfer.Download.bat
+        ( Transfer.Download.txt )
+        ( @{"GetLines" link "config.internals" 0} "T:FileList.%Node" )
+        ( SearchFullNames.spw )
+        ( @{"BatchDownload" link "config.internals" 0} "T:FullFileList.%Node" )
+    )
+    ( Transfer.Upload.bat
+        ( Transfer.Upload.txt )
+        ( @{"Upload" link "config.internals" 0} )
+    )
+    ( Transfer.Searchfiles.bat
+        ( Transfer.SearchFiles.txt )
+        ( @{"GetLines" link "config.internals" 0} "T:FileList.%Node" )
+        ( SearchFiles.spw )
+        ( WaitReturn.bat )
+    )
+    ( WaitReturn.bat
+        ( @{"Echo" link "config.internals" 0} "[1E[35C[1;33m< [35mReturn [33m>[0m" )
+        ( @{"WaitReturn" link "config.internals" 0} )
+    )
+)
+( @{"Menus" link "config.menus" 0}
+    ( Main.menu
+        ( Before Menu.Main.txt )
+        ( After Menu.Main.txt )
+        ( Options
+            ( C @{"Chat" link "config.internals" 0} )
+            ( F Transfer.menu )
+            ( G Games.menu )
+            ( N Message.menu )
+            ( P Prefs.menu )
+            ( S Statistiken.menu )
+            ( ! Logoff.bat )
+            ( R Logon.bat )
+            ( - )
+        )
+    )
+    ( Transfer.menu
+        ( Before Menu.Transfer.txt )
+        ( After Menu.Transfer.txt )
+        ( Options
+            ( D Transfer.Download.bat )
+            ( U Transfer.Upload.bat )
+            ( S Transfer.SearchFiles.bat )
+            ( 0 Lager:.menu )
+            ( 1 CD0:Aminet/.menu )
+        )
+    )
+    ( Games.menu
+        ( Before Menu.Games.txt )
+        ( After Menu.Games.txt )
+        ( Options
+            ( N NuclearWar.spw )
+            ( E SpaceEmpire.spw )
+        )
+    )
+    ( Message.menu
+        ( Before Menu.Message.txt )
+        ( After Menu.Message.txt )
+        ( Options
+            ( S Message.Write.bat )
+            ( L Message.Read.bat )
+            ( U Stats.Userlist.bat )
+        )
+    )
+    ( Prefs.menu
+        ( Before Menu.Prefs.txt )
+        ( After Menu.Prefs.txt )
+        ( Options
+            ( Z
+                ( Prefs.Lines.txt )
+                ( @{"ChangeMaxLines" link "config.internals" 0} )
+            )
+            ( P @{"ChangePassword" link "config.internals" 0} )
+        )
+    )
+    ( Statistiken.menu
+        ( Before Menu.Stats.txt )
+        ( After Menu.Stats.txt )
+        ( Options
+            ( I
+                ( Stats.SystemInfo.txt )
+                ( WaitReturn.bat )
+            )
+            ( U Stats.Userlist.bat )
+            ( L Stats.LastUsers.bat )
+            ( W Stats.Who.bat )
+        )
+    )
+)
+@endnode
+-------------------------------------------------------------------------------

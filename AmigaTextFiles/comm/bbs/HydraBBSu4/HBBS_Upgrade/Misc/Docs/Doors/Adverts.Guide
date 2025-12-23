@@ -1,0 +1,276 @@
+@Database DOOR_Adverts
+
+@Node Main "Adverts"
+
+  Adverts V1.04
+
+  @{" Description          " link Description}
+  @{" Installation         " link Installation}
+  @{" System Options       " link SystemOptions}
+  @{" Command Line Options " link CmdLineOptions}
+  @{" Screens Displayed    " link ScreensDisplayed}
+  @{" Doors Called         " link DoorsCalled}
+  @{" Returns              " link Returns}
+  @{" Config Files         " link ConfigFiles}
+  @{" ToDo                 " link ToDo}
+  @{" History              " link History}
+
+  Note: Docs last updated for V1.04
+
+@EndNode
+
+@Node Description "Description"
+
+  Description
+  ===========
+
+    This door is used to add adverts using external CLI programs to uploaded
+    files.
+
+    It uses a config file to decide what adder program to use depending on
+    the uploaded file's extension.
+
+@EndNode
+
+@Node Installation "Installation"
+
+  Installation
+  ============
+
+    The doors is stored as HBBS:Doors/System/Adverts/Adverts.HBBS
+
+    This is included and enabled with a fresh installation of HydraBBS
+    since V1.04.  Users of prior version should do this:
+
+    Add the following lines to the appropriate "commands/system" file:
+
+    Adverts_Type_1=HBBS
+    Adverts_Door_1=HBBS:Doors/System/Adverts/Adverts.HBBS {N} {O}
+
+    See HBBS:Storage/Example_Configs/Commands/System for an example
+
+    It has an example config, which will have been installed as
+
+    HBBS:Storage/Example_Configs/Doors/System/Adverts/Adverts.CFG
+
+    Please edit this config file accordingly and save it as
+
+    HBBS:Doors/System/Adverts/Adverts.CFG
+
+
+    You will need to find suitable addvert adder/stripper programs,
+    these are available from Aminet.  Mapus V1.16 is included
+    and stored in HBBS:System/Amiga/CLI for DMS files. LHA, ZIP and
+    LZX work fine too (for adding adverts, but not for stipping them)
+
+    Example screens are included, but are NOT installed as part of the
+    upgrade procedure, see HBBS:Storage/Example_Screens/Special.
+
+    Adverts are normally just plain text files, try and keep your adverts
+    as small as possible to avoid bloating archive file sizes.
+
+    Make a directory called HBBS:Storage/Adverts and store your adverts
+    in there, this will keep them with your HBBS setup.
+
+@EndNode
+
+@Node SystemOptions "SystemOptions"
+
+  System Options
+  ==============
+
+    None
+
+@EndNode
+
+@Node CmdLineOptions "CmdLineOptions"
+
+  Command Line Options
+  ====================
+
+    Full File Name (no path)
+    File Name (with no .extension)
+    File Extension (with no leading .)
+    [NOUSER] (to enable quiet mode!)
+
+@EndNode
+
+@Node ScreensDisplayed "Screens Displayed"
+
+  Screens Displayed
+  =================
+
+    Special Screens
+    ---------------
+    Adverts_TOP - Displayed when the door starts
+    Adverts_BOT - Displayed when the door has finished
+
+@EndNode
+
+@Node DoorsCalled "Doors Called"
+
+  Doors Called
+  ============
+
+    None
+
+@EndNode
+
+@Node Returns "Returns"
+
+  Returned Values (in N_ND->DoorReturn)
+  =====================================
+
+    None
+
+@EndNode
+
+@Node ConfigFiles "ConfigFiles"
+
+  Config Files
+  ============
+
+    This program uses "Progdir:Adverts.CFG", i.e:
+
+    HBBS:Doors/System/Adverts/Adverts.CFG
+
+  Options
+  =======
+
+  All options must be specified for each type of file.
+
+  Where <ext> is the extension of a file, e.g. for "test.lha" it would be "LHA"
+
+    FileTypeDesc_<ext>=<String>    @{" More... " link CFG_FileTypeDesc}
+    AdderCMD_<ext>=<String>        @{" More... " link CFG_AdderCMD}
+    AdderParams_<ext>=<String>     @{" More... " link CFG_AdderParams}
+    ShowOutput_<ext>=<Boolean>     @{" More... " link CFG_ShowOutput}
+
+  Example
+  =======
+
+  FileTypeDesc_LHA=LHA Archive
+  AdderCMD_LHA=LHA
+  AdderParams_LHA=a -Qa -M -N -x0 @F@ HBBS:Storage/Adverts/Named/#?
+  ShowOutput_LHA=NO
+
+  Say you were on node 3 an uploaded TEST.LHA using the above settings, the
+  actual command that would be executed would be:
+
+  LHA a -Qa -M -N TEST.LHA HBBS:Storage/Adverts/Named/#?
+
+  Add all the files in HBBS:Storage/Adverts/Named would be added to the
+  archive but the path would be stripped (using -x0)
+
+@EndNode
+
+@Node CFG_FileTypeDesc "FileTypeDesc"
+
+  FileTypeDesc_<ext>=<String>
+
+    E.G.
+
+    FileTypeDesc_LHA=LHA Archive
+
+    No Default, Must Be Set!
+
+    This is a string that is displayed to the users, telling them what
+    kind of file is being checked.
+
+@EndNode
+
+@Node CFG_AdderCMD "AdderCMD"
+
+  AdderCMD_<ext>=<String>
+
+    E.G.
+
+    AdderCMD_LHA=LHA
+
+    No Default, Must Be Set!
+
+    This option specifies the actuall amigados program to run.
+
+    The current directory is set to the node's playpen directory before the
+    command is run.
+
+    The command must be in the path, otherwise you must specify a full path
+    and file name, e.g. AdderCMD_LHA=SYS:Utilities/Archivers/LHA
+
+    The command you use must be able to have all of it's output re-directed
+    to a file using standard redirection.  e.g. For LHA you might try
+    "LHA >ram:test t my_file.lha" to see if it works.
+
+@EndNode
+
+@Node CFG_AdderParams "AdderParams"
+
+  AdderParams_<ext>=<String>
+
+    E.G.
+
+    AdderParams_LHA=t -Qa -M -N -x0 @F@ HBBS:Storage/Adverts/Named/#?
+
+    No Default, Must Be Set!
+
+    This option specifies the paramaters to be passed to the adder,
+    It should include things like the filename and any required options.
+
+    If the adder has switches to make the output as small as possible
+    then use them.  Also, if the adder has options to use simple IO
+    and/or no ANSI then use those options too. (if you want)
+
+    It is a good idea to have the adder program NOT store the path names for
+    the adverts.
+
+    The adder command string is checked for @ codes, the following
+    are recognised:
+
+    @F@ is replaced with the filename of the uploaded file
+    @N@ is replaced with just the filename of the uploaded file
+    @E@ is replaced with the filename's extension
+    @P@ is replaced with the path of the filename (but not including the name
+    itself)
+
+    So, say you were on node 3 and uploaded TEST.LHA the following @ codes
+    above would give you the following results (without the quotes)
+
+    @F@ "TEST.LHA"
+    @N@ "TEST"
+    @E@ "LHA"
+    @P@ "HBBS:Nodes/Node3/Playpen/"
+
+@EndNode
+
+@Node CFG_ShowOutput "ShowOutput"
+
+  ShowOutput_<ext>=<Boolean>
+
+    E.G.
+
+    ShowOutput_LHA=YES
+
+    When this is set to TRUE the output from the adder command will be
+    displayed to the user.
+
+@EndNode
+
+@Node ToDo "ToDo"
+
+  ToDo
+  ====
+
+    Nothing
+
+@EndNode
+
+@Node History "History"
+
+  History
+  =======
+
+    V1.04 - First Version
+
+@EndNode
+
+

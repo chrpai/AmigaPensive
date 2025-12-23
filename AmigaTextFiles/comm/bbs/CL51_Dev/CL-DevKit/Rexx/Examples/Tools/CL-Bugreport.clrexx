@@ -1,0 +1,290 @@
+/*
+**  $VER: CL-Bugreport.clrexx 1.0 (24 Feb 1996)
+**
+**        © 1996 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-Bugreport.clrexx
+**
+**  FUNCTION:
+**      Erstellt Bugreport und verschickt diesen.
+**
+**  $HISTORY:
+**
+**   25 Jan 1996 : 0.1 : initial release
+**   05 Feb 1996 : 0.2 : cl_rexx wird jetzt auch mal
+**                       rechtzeitig geöffnet *schluck*
+**                       Zwecks Testlauf kann bei der
+**                       Angabe des Empfängers des
+**                       Bugreports auch 'Niemand' an-
+**                       gegeben werden.
+**                       Optische Fixes
+**   24 Feb 1996 : 1.0 : STDIN bugfrei
+**                       $VER korrigiert
+*/
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then exit 10
+    end
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*70
+windowheight=Fontsize*15
+windowY=Fontsize+1
+WindowX=Fontsize
+
+
+/* Standard-IO umleiten */
+
+screen=CLGET_FrontScreenName()
+
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-Bugreport/SCREEN'screen,'W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+options failat 50
+signal off failure
+
+say 'Dieses Skript erstellt einen Bugreport zu CL 5.0'
+say 'und ergänzt diesen mit Angaben zu dem bei Ihnen in-'
+say 'stallierten System, welche die Fehlersuche erleich-'
+say 'tern könnten.'
+say ''
+
+
+if ~open('out','T:Bugreport.txt','W') then do
+    say 'Konnte Ausgabedatei nicht öffnen!'
+    call ende
+    end
+
+zeile.1='Connectline Bugreport'
+zeile.2='---------------------'
+zeile.3=''
+zeile.4='Systemname: 'CLGET_OwnSystemAddress()
+zeile.5='------------------------------------------------------------'
+zeile.6=''
+zeile.7='Fehlerbeschreibung:'
+zeile.8='-------------------'
+zeile.9=''
+
+do x=1 to 9
+    call writeln 'out',zeile.x
+    end
+call close 'out'
+
+options prompt "Bitte drücken Sie <RETURN>"
+pull dummy
+
+call CL_Edit('T:Bugreport.txt')
+call writestatus
+
+options prompt 'Ist der Bug reproduzierbar (J/N)?'
+pull taste
+
+call openout
+
+call writeln 'out',''
+if taste='N' then do
+    call writeln 'out','Der Bug ist nicht reproduzierbar.'
+    call close 'out'
+    end
+if taste='J' then do
+    say ''
+    say 'Bitte beschreiben Sie nun die Vorgehensweise.'
+    options prompt "Bitte drücken Sie <RETURN>"
+    pull dummy
+    zeile.1='Der Bug ist folgendermaßen reproduzierbar:'
+    zeile.2='------------------------------------------'
+    zeile.3=''
+    do x=1 to 3
+        call writeln 'out',zeile.x
+        end
+    call close 'out'
+    call CL_Edit('T:Bugreport.txt')
+    call close 'status'
+    call writestatus
+    end
+
+say 'Dokumentiere Systemkonfiguration ...'
+parse version sysstr
+call openout
+call writeboth ''
+call writeboth 'Angaben zum Rechnertyp:'
+call writeboth '-----------------------'
+call writeboth 'Prozessor  : 'word(sysstr,3)
+call writeboth 'Coprozessor: 'word(sysstr,4)
+call writeboth 'Video      : 'word(sysstr,5)
+call writeboth 'Clock      : 'word(sysstr,6)
+call writeboth ''
+address command 'version >t:tmp'
+anz=CL_GetText('t:tmp',zeile)
+call writeboth 'Kickstart  : 'translate(word(zeile.0,2),' ',',')
+call writeboth 'Workbench  : 'word(zeile.0,4)
+call writeboth 'ARexx      : 'word(sysstr,1)' 'word(sysstr,2)
+call writeboth ''
+call writeboth 'Aktuelle Speicherverhältnisse:'
+call writeboth '------------------------------'
+address command 'avail >t:tmp'
+anz=CL_GetText('t:tmp',zeile)-1
+do x=1 to anz
+    call writeboth zeile.x
+    end
+say ''
+say 'Erstelle Liste der laufenden und wartenden Tasks.'
+call writeboth ''
+call writeboth 'Liste der Tasks:'
+call writeboth '----------------'
+tasklist=showlist('W')' 'showlist('T')
+call writeboth tasklist
+call writeboth ''
+
+say ''
+say 'Erstelle Liste der geladenen Libraries.'
+call writeboth 'Liste der im Speicher befindlichen Libraries:'
+call writeboth '---------------------------------------------'
+liblist=showlist('L')
+do x=1 to words(liblist)
+    address command 'version >t:tmp 'word(liblist,x)' full'
+    anz=CL_GetText('t:tmp',zeile)
+    call writeboth zeile.0
+    end
+call writeboth ''
+say ''
+say 'Erstelle Liste der CL-Programmteile und der Libs auf der Platte.'
+call writeboth 'Versionen der Connectline-Programmteile auf der Platte:'
+call writeboth '-------------------------------------------------------'
+dir.1='CONNECTLINE:'
+dir.2='CONNECTLINE:C/'
+dir.3='CONNECTLINE:Classes/'
+dir.4='CONNECTLINE:Commands/'
+dir.5='CONNECTLINE:Libs/'
+dir.6='CONNECTLINE:Modules/'
+dir.7='CONNECTLINE:PrefExe/'
+dir.8='CONNECTLINE:Rexx/'
+dir.9='CONNECTLINE:Rexx/Modules/'
+dir.10='CONNECTLINE:Startup/'
+dir.11='CONNECTLINE:Tools/'
+
+do x=1 to 11
+    call writeboth ' '
+    call writeboth 'Durchsuche Directory: 'dir.x
+    dirlist=showdir(dir.x,'F')
+    if words(dirlist)=0 then call writeboth 'Keine Files enthalten.'
+    else do
+        do i=1 to words(dirlist)
+            if right(word(dirlist,i),5)~='.info' then do
+                address command 'version 'dir.x||word(dirlist,i)' file full >t:tmp'
+                anz=CL_GetText('t:tmp',zeile)
+                call writeboth zeile.0
+                end
+            end
+        end
+    end
+say ''
+say 'Erstelle Dump der Startup-Sequences.'
+anz=CL_GetText('s:startup-sequence',zeile)-1
+call writeboth 'Startup-Sequence:'
+do x=1 to anz
+    call writeboth zeile.x
+    end
+call writeboth ' '
+call writeboth 'User-Startup:'
+anz=CL_GetText('s:user-startup',zeile)-1
+do x=1 to anz
+    call writeboth zeile.x
+    end
+
+call close 'out'
+call close 'status'
+
+say 'Bitte geben Sie den Empfänger des Bugreports an:'
+say '1) /CLC/SYSOPS/BUGS'
+say '2) Mathias Mischler'
+say '3) CL-Team'
+say '4) Alle'
+say '5) Niemand'
+options prompt ""
+pull taste
+select
+    when taste='1' then do
+        emp='/CLC/SYSOPS/BUGS'
+        call sendmail
+        end
+    when taste='2' then do
+        emp='merlin@sixpack.pfalz.de'
+        call sendmail
+        end
+    when taste='3' then do
+        emp='merlin@sixpack.pfalz.de'
+        call sendmail
+        emp='owagner@lsd.wupper.de'
+        call sendmail
+        end
+    when taste='4' then do
+        emp='/CLC/SYSOPS/BUGS'
+        call sendmail
+        emp='merlin@sixpack.pfalz.de'
+        call sendmail
+        emp='owagner@lsd.wupper.de'
+        call sendmail
+        end
+    otherwise nop
+    emp='root'
+    call sendmail
+    end
+
+/*
+address command 'delete >NIL: t:tmp'
+address command 'delete >NIL: t:Bugreport.txt'
+*/
+
+exit
+
+
+openout:
+if ~open('out','T:Bugreport.txt','A') then do
+    say 'Konnte Ausgabedatei nicht öffnen!'
+    exit 10
+    end
+return
+
+writestatus:
+call open('status','CON:'windowX'/'windowY+windowheight+1'/'windowwidth'/'windowheight*4'/CL-Bugreport/SCREEN'screen,'W')
+anz=CL_GetText('T:Bugreport.txt',zeile)-1
+do x=0 to anz
+    call writech 'status',zeile.x'0a'x
+    end
+return
+
+writeboth:
+param=arg(1)
+call writeln 'out',param
+call writech 'status',param'0a'x
+return
+
+sendmail:
+/*
+call CL_SendMailFull('CL-Bugreport',emp,'T:Bugreport.txt',,,'Bugreport','TEXT','A')
+*/
+return
+

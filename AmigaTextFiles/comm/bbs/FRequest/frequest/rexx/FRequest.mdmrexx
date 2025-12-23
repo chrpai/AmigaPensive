@@ -1,0 +1,32 @@
+/* Skript für FRequest in Microdot.
+
+   $VER: V0.2 (24.11.96)
+
+   MicroDot sucht im aktuellen Verzeichnis im Directory "Rexx/" nach
+   Rexx-Skripten mit der Endung *.mdmrexx. Kopieren Sie diese Datei
+   unter dem Namen "FRequest.mdmrexx" dorthin, so erscheint im Menü
+   ARexx-Nachrichten-Makros ein Eintrag FRequest, der dieses Skript
+   startet.
+
+*/
+options results
+
+/* aktuelle Mail extrahieren */
+address 'MICRODOT'
+extractcurrentmail 'T:MicroDot-Point-Info'
+
+if rc!=0 then exit()
+
+SETCURRENTMAILFLAGS NEW 0 READ 1
+
+/* FRequest aufrufen */
+address command
+'FRequest T:MicroDot-Point-Info T:PI-REQUEST'
+
+/* nur wenn auch wirklich was requested wurde */
+
+if (rc=0) then
+    address 'MICRODOT' 'SENDMAIL TO=MAPS BODYFILE=T:PI-REQUEST SUBJECT=REQUEST'
+
+/* Aufräumen */
+address command 'delete >nil: T:MicroDot-Point-Info T:PI-REQUEST quiet'

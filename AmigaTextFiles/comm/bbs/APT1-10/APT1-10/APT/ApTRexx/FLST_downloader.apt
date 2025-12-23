@@ -1,0 +1,709 @@
+/* FLST_Downloader.apt
+**
+** $VER: flst_downloader 0.0.3 (8.4.95)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright � 1993 ApT-Design All Rights Reserved,AG,DM
+**
+** Allows the user to download file-lists pertaining to the areas
+** that he has access to, with or without archiving.
+**
+*/
+
+parse arg lineno basenumber .
+
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+
+ANSI_COL_FLG = 0 	/* Ansi Colour Flag	*/
+ANSI_POS_FLG = 1	/* Ansi Positioning 	*/
+ANSI_FLG_FLG = 2	/* ANSI at all!?		*/
+ANSI_SCR_FLG = 3	/* Ansi Scrolling		*/
+ANSI_CUR_FLG = 4	/* Ansi Cursor			*/
+SCRN_CLR_FLG = 7	/* Screen Clears		*/
+
+banks=0
+
+CR = 'A'x
+
+'INFORM' "User entering filelist generator"
+
+/*
+** Read in the FileData.ascii information
+**/
+if(open('Data_ascii','FLIST:FileData.ascii','R')) then do
+	LastUpdated	= READLN('Data_ascii')
+	RecentDays	= READLN('Data_ascii')
+	call CLOSE('Data_ascii')
+end
+
+
+'SETSIG' "NEWSIG=0" ; old_sig = result
+
+/*
+** Menu:
+**/
+DO FOREVER
+
+
+/* script version of menu - use a template instead */
+
+	'msg' "%CLS."
+	'msg' "\n"
+	'msg' "\b1\c2[\c31\c2] \c7RECENT.LHA   \c6<-- Full "RecentDays" days old list,combining all areas you have access to\n"
+	'msg' "\c2[\c32\c2] \c7SINGLE.LHA   \c6<-- Full File list of *this area*\n"
+	'msg' "\c2[\c33\c2] \c7GLOBAL.LHA   \c6<-- Full File list combining all areas you have access to\n"
+	'msg' "\c3-----------------------------------------------------------------------------\n"
+	'msg' "\c2[\c3Q\c2]  \c7Quit Menu\n"
+	'msg' "\c3-----------------------------------------------------------------------------\n"
+	'msg' "\b0"
+
+/*	'SHOWFILE' "menus/FLST_MENU"	*/
+
+	'HOTKEY' "" ; key=upper(result)
+
+	'ISDROP'		; if(result=1) then LEAVE
+
+	'TEST_GFX_FLAG' ANSI_COL_FLG; ansicol=result
+	'TEST_GFX_FLAG' ANSI_POS_FLG; ansipos=result
+	'TEST_GFX_FLAG' ANSI_FLG_FLG; ansiflg=result
+
+	if(ansicol & ansipos & ansiflg) then DO; ansi=1; SELECT
+		when key="1" then do ; call ___ANSIRECENT ; call ___ANSIDOWNLOAD ; leave ; end
+		when key="2" then do ; call ___ANSISINGLE ; call ___ANSIDOWNLOAD ; leave ; end
+		when key="3" then do ; call ___ANSIGLOBAL ; call ___ANSIDOWNLOAD ; leave ; end
+		when key="Q" then do ; leave ; end
+		otherwise
+	END; END
+	else DO; ansi=0; SELECT
+		when key="1" then do ; call ___RECENT ; call ___DOWNLOAD ; leave ; end
+		when key="2" then do ; call ___SINGLE ; call ___DOWNLOAD ; leave ; end
+		when key="3" then do ; call ___GLOBAL ; call ___DOWNLOAD ; leave ; end
+		when key="Q" then do ; leave ; end
+		otherwise
+	END; END
+END
+
+'SETSIG' "NEWSIG="old_sig
+EXIT
+
+/*
+** ___RECENT
+**
+** Takes care of the 'joining' of all of the RECENT
+** ascii-file-lists that the user has access too.
+**/
+
+___RECENT: procedure expose CR LastUpdated RecentDays lineno
+
+base = -1
+
+DstFile = "ram:FileList."lineno
+
+/*
+** Write out our banner and such ,.
+**/
+if(open('bigfile',DstFile,Write)) then do
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Report for: Chiba City")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Recent uploads to all areas accessable to you, within the last "RecentDays" days.")
+	call WRITELN('bigfile',"; Oldest files displayed first, ..")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Last updated on "LastUpdated".")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"")
+	call WRITELN('bigfile',"")
+	call CLOSE('bigfile')
+end
+
+
+DO FOREVER
+	'NEXTFILEBASE' base	; base=result
+	if(base=-1) then return
+	'msg' "Joining Recent base list #"base"...."
+
+	SrcFile = "FLIST:REC-"base".lst"
+
+	/*
+	** At each new base we write out our
+	** cut-lines and such, .. along with the actual base
+	** number and the area name.
+	**/
+	if(exists(SrcFile)) then do
+		'GETLIST' 'DATA "'SrcFile'"'
+		'GETLIST' "AREA"	; areaname		= result
+		'GETLIST' "TOTAL" ; listedfiles	= result
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+		call WRITELN('bigfile',"Num  File           Size  Description of "areaname" [Area #"base"]")
+		call WRITELN('bigfile',"---- -------------- ----  ----------------------------------------------------")
+		call CLOSE('bigfile')
+		end
+
+	   'JOIN' 'FROM "'SrcFile'" TO "'DstFile'"'
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+			call WRITELN('bigfile',"")
+			call WRITELN('bigfile',"Files within area "listedfiles)
+			call WRITELN('bigfile',"")
+			call CLOSE('bigfile')
+	   end
+   end
+	'msg' "Done..."CR
+END
+return
+
+/*
+** ___ANSIRECENT              ansi version of ___RECENT (procedure)
+**
+** Takes care of the 'joining' of all of the RECENT
+** ascii-file-lists that the user has access too.
+**/
+
+___ANSIRECENT: procedure expose CR LastUpdated RecentDays lineno
+
+base = -1
+
+DstFile = "ram:FileList."lineno
+
+/*
+** Write out our banner and such ,.
+**/
+if(open('bigfile',DstFile,Write)) then do
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Report for: Chiba City")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Recent uploads to all areas accessable to you, within the last "RecentDays" days.")
+	call WRITELN('bigfile',"; Oldest files displayed first, ..")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Last updated on "LastUpdated".")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"")
+	call WRITELN('bigfile',"")
+	call CLOSE('bigfile')
+end
+
+FullPerBase = CountAreas();
+
+call progress(INIT 1 '� File bases')
+
+/*'msg' "%CPOS=8,0.%TC=7.%BC=0.     [FileBase:     ]"*/
+
+i=1
+DO FOREVER
+	'NEXTFILEBASE' base	; base=result
+	if(base=-1) then DO
+		call progress(CLOCK 1 '%100')
+		'msg' "%CPOS=8,0.                       \n\n\n\n"
+		return
+	END
+	/*'msg' "%CPOS=8,17."base*/
+	full = Progress(CLOCK 1 '%'||i*FullPerBase)
+	i=i+1
+	SrcFile = "FLIST:REC-"base".lst"
+
+	/*
+	** At each new base we write out our
+	** cut-lines and such, .. along with the actual base
+	** number and the area name.
+	**/
+	if(exists(SrcFile)) then do
+		'GETLIST' 'DATA "'SrcFile'"'
+		'GETLIST' "AREA"	; areaname		= result
+		'GETLIST' "TOTAL" ; listedfiles	= result
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+		call WRITELN('bigfile',"Num  File           Size  Description of "areaname" [Area #"base"]")
+		call WRITELN('bigfile',"---- -------------- ----  ----------------------------------------------------")
+		call CLOSE('bigfile')
+		end
+
+	   'JOIN' 'FROM "'SrcFile'" TO "'DstFile'"'
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+			call WRITELN('bigfile',"")
+			call WRITELN('bigfile',"Files within area "listedfiles)
+			call WRITELN('bigfile',"")
+			call CLOSE('bigfile')
+	   end
+   end
+END
+return
+
+/*
+** ___SINGLE
+**
+**/
+
+___SINGLE: procedure expose CR LastUpdated RecentDays basenumber lineno
+
+DstFile = "ram:FileList."lineno
+
+/*
+** Write out our banner and such ,.
+**/
+if(open('bigfile',DstFile,Write)) then do
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Report for: Chiba City")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Full filelist of a single area")
+	call WRITELN('bigfile',"; Oldest files displayed first, ..")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Last updated on "LastUpdated".")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"")
+	call WRITELN('bigfile',"")
+	call CLOSE('bigfile')
+end
+
+	SrcFile = "FLIST:BIG-"basenumber".lst"
+
+	/*
+	** At each new base we write out our
+	** cut-lines and such, .. along with the actual base
+	** number and the area name.
+	**/
+	if(exists(SrcFile)) then do
+		'GETLIST' 'DATA "'SrcFile'"'
+		'GETLIST' "AREA"	; areaname		= result
+		'GETLIST' "TOTAL" ; listedfiles	= result
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+		call WRITELN('bigfile',"Num  File           Size  Description of "areaname" [Area #"basenumber"]")
+		call WRITELN('bigfile',"---- -------------- ----  ----------------------------------------------------")
+		call CLOSE('bigfile')
+		end
+
+	   'JOIN' 'FROM "'SrcFile'" TO "'DstFile'"'
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+			call WRITELN('bigfile',"")
+			call WRITELN('bigfile',"Files listed "listedfiles)
+			call WRITELN('bigfile',"")
+			call CLOSE('bigfile')
+	   end
+
+   end
+
+	'msg' "Done..."CR
+return
+
+/*
+** ___ANSISINGLE, ansi version of the SINGLE thang
+**
+**/
+
+___ANSISINGLE: procedure expose CR LastUpdated RecentDays basenumber lineno
+
+DstFile = "ram:FileList."lineno
+
+/*
+** Write out our banner and such ,.
+**/
+'msg' "Doing.."
+if(open('bigfile',DstFile,Write)) then do
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Report for: Chiba City")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Full filelist of a single area")
+	call WRITELN('bigfile',"; Oldest files displayed first, ..")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Last updated on "LastUpdated".")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"")
+	call WRITELN('bigfile',"")
+	call CLOSE('bigfile')
+end
+
+	SrcFile = "FLIST:BIG-"basenumber".lst"
+
+	/*
+	** At each new base we write out our
+	** cut-lines and such, .. along with the actual base
+	** number and the area name.
+	**/
+	if(exists(SrcFile)) then do
+		'GETLIST' 'DATA "'SrcFile'"'
+		'GETLIST' "AREA"	; areaname		= result
+		'GETLIST' "TOTAL" ; listedfiles	= result
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+		call WRITELN('bigfile',"Num  File           Size  Description of "areaname" [Area #"basenumber"]")
+		call WRITELN('bigfile',"---- -------------- ----  ----------------------------------------------------")
+		call CLOSE('bigfile')
+		end
+
+	   'JOIN' 'FROM "'SrcFile'" TO "'DstFile'"'
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+			call WRITELN('bigfile',"")
+			call WRITELN('bigfile',"Files listed "listedfiles)
+			call WRITELN('bigfile',"")
+			call CLOSE('bigfile')
+	   end
+
+   end
+
+	'msg' "Done..."CR
+return
+
+
+/*
+** ___GLOBAL
+**
+** Takes care of the 'joining' of all of the full GLOBAL
+** ascii-file-lists that the user has access too.
+**/
+
+___GLOBAL: procedure expose CR LastUpdated RecentDays lineno
+
+base = -1
+
+DstFile = "ram:FileList."lineno
+
+/*
+** Write out our banner and such ,.
+**/
+if(open('bigfile',DstFile,Write)) then do
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Report for: Chiba City")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Full filelist of all areas accessable to you..")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Last updated on "LastUpdated".")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"")
+	call WRITELN('bigfile',"")
+	call CLOSE('bigfile')
+end
+
+
+DO FOREVER
+	'NEXTFILEBASE' base	; base=result
+	if(base=-1) then return
+	'msg' "Joining Recent base list #"base"...."
+
+   SrcFile = "FLIST:BIG-"base".lst"
+
+	/*
+	** At each new base we write out our
+	** cut-lines and such, .. along with the actual base
+	** number and the area name.
+	**/
+	if(exists(SrcFile)) then do
+		'GETLIST' 'DATA "'SrcFile'"'
+		'GETLIST' "AREA"	; areaname		= result
+		'GETLIST' "TOTAL" ; listedfiles	= result
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+		call WRITELN('bigfile',"Num  File           Size  Description of "areaname" [Area #"base"]")
+		call WRITELN('bigfile',"---- -------------- ----  ----------------------------------------------------")
+		call CLOSE('bigfile')
+		end
+
+	   'JOIN' 'FROM "'SrcFile'" TO "'DstFile'"'
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+			call WRITELN('bigfile',"")
+			call WRITELN('bigfile',"Files within area "listedfiles)
+			call WRITELN('bigfile',"")
+			call CLOSE('bigfile')
+	   end
+
+   end
+
+	'msg' "Done..."CR
+END
+return
+
+/*
+** ___ANSIGLOBAL
+**
+** Takes care of the 'joining' of all of the full GLOBAL
+** ascii-file-lists that the user has access too.
+**/
+
+___ANSIGLOBAL: procedure expose CR LastUpdated RecentDays lineno
+
+base = -1
+
+DstFile = "ram:FileList."lineno
+
+'SETSIG' "NEWSIG=0" ; old_sig = result
+
+/*
+** Write out our banner and such ,.
+**/
+if(open('bigfile',DstFile,Write)) then do
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Report for: Chiba City")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Full filelist of all areas accessable to you..")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"; Last updated on "LastUpdated".")
+	call WRITELN('bigfile',";")
+	call WRITELN('bigfile',"")
+	call WRITELN('bigfile',"")
+	call CLOSE('bigfile')
+end
+
+FullPerBase = CountAreas();
+
+call progress(INIT 1 '� File bases')
+
+/*'msg' "%CPOS=8,0.%TC=7.%BC=0.     [FileBase:     ]"*/
+
+i=1
+DO FOREVER
+	'NEXTFILEBASE' base	; base=result
+	if(base=-1) then DO
+		call progress(CLOCK 1 '%100')
+		'msg' "%CPOS=8,0.                       \n\n\n\n"
+		return
+	END
+
+	/*'msg' "%CPOS=8,17."base*/
+	full = Progress(CLOCK 1 '%'||i*FullPerBase)
+	i=i+1
+   SrcFile = "FLIST:BIG-"base".lst"
+
+	/*
+	** At each new base we write out our
+	** cut-lines and such, .. along with the actual base
+	** number and the area name.
+	**/
+	if(exists(SrcFile)) then do
+		'GETLIST' 'DATA "'SrcFile'"'
+		'GETLIST' "AREA"	; areaname		= result
+		'GETLIST' "TOTAL" ; listedfiles	= result
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+		call WRITELN('bigfile',"Num  File           Size  Description of "areaname" [Area #"base"]")
+		call WRITELN('bigfile',"---- -------------- ----  ----------------------------------------------------")
+		call CLOSE('bigfile')
+		end
+
+	   'JOIN' 'FROM "'SrcFile'" TO "'DstFile'"'
+
+		if(OPEN('bigfile',DstFile,Append)) then do
+			call WRITELN('bigfile',"")
+			call WRITELN('bigfile',"Files within area "listedfiles)
+			call WRITELN('bigfile',"")
+			call CLOSE('bigfile')
+	   end
+
+   end
+END
+'SETSIG' "NEWSIG="old_sig
+return
+
+/*
+** ___DOWNLOAD
+**
+**/
+
+___DOWNLOAD: procedure expose CR LastUpdated RecentDays lineno
+
+SrcFile = "ram:FileList."lineno
+
+if(exists(SrcFile)) then do
+
+archive = "address command 'LHA -x0 -f -u -m -P-1 a ram:flist"lineno".lha ram:FileList."lineno"'"
+
+'msg' "\nArchive File [y/N] => "
+
+'HOTKEY' "" ; ans=upper(result)
+
+'ISDROP' ; if result=1 then break
+
+'msg' "\n\n"
+
+if ans ~= 'Y' then filename=SrcFile
+else DO; 'msg' "Archiving (please wait...)"; interpret archive; filename="ram:flist"lineno".lha"; end
+
+'msg' "\nContinue with Download [y/N]"
+
+'HOTKEY' "" ; ans=upper(result)
+
+'ISDROP' ; if result=1 then break
+
+'msg' "\n\n"
+
+if ans = 'Y' then 'XFEROPTS' 'CLEARLIST TAGFILE "'filename'" SENDFILES'
+
+'REMOVEFILE' filename
+if SrcFile ~= filename then 'REMOVEFILE' SrcFile
+
+return
+
+'SETSIG' "NEWSIG="old_sig
+EXIT
+
+/*
+** ___ANSIDOWNLOAD    - progress indicator, colour, etc..
+**
+**/
+
+___ANSIDOWNLOAD: procedure expose CR LastUpdated RecentDays lineno
+
+SrcFile = "ram:FileList."lineno
+
+if(exists(SrcFile)) then do
+
+archive = "address command 'LHA -x0 -f -u -m -P-1 a ram:flist"lineno".lha ram:FileList."lineno"'"
+
+'msg' "\n%TC=7.Archive File [%TC=2.y%TC=7./%TC=1.N%TC=7.] => "
+
+'HOTKEY' "" ; ans=upper(result)
+
+'ISDROP' ; if result=1 then break
+
+if ans ~= 'Y' then DO; 'msg' "%TC=1.No%TC=7.\n"; filename=SrcFile; end
+else DO; 'msg' "%TC=2.Yes%TC=7.\nArchiving (please wait...)"; interpret archive; filename="ram:flist"lineno".lha"; end
+
+'msg' "\nContinue with Download [%TC=2.y%TC=7./%TC=1.N%TC=7.] => "
+
+'HOTKEY' "" ; ans=upper(result)
+
+'ISDROP' ; if result=1 then break
+
+if ans = 'Y' then DO; 'msg' '%TC=2.Yes%TC=7.\n' ; 'XFEROPTS' 'CLEARLIST TAGFILE "'filename'" SENDFILES'; end
+else 'msg' "%TC=1.No%TC=7.\n"
+
+'REMOVEFILE' filename
+if SrcFile ~= filename then 'REMOVEFILE' SrcFile
+
+return
+'SETSIG' "NEWSIG="old_sig
+EXIT
+
+
+/*
+**
+** CountAreas, a slow method of finding how many areas there are :)
+**
+** Returns, well, pretty obvious aint it .. 
+**
+*/
+
+CountAreas: procedure
+
+TotalBases=0	/* Does this business take up much time I wonder.. */
+base=-1
+DO FOREVER
+	'NEXTFILEBASE' base; base=result
+	TotalBases=TotalBases+1
+	if base = -1 then break
+END
+
+return 100/TotalBases
+
+/* ######################## Progress() related procedures ##################### */
+
+
+/*
+**
+**	Progress(<RESET num | INIT num | CLOCK num>	<num | %num | TEXT>)
+**
+** returns 1 if bar is FULL or BARNUMBER INVALID, else 0.
+**
+*/
+
+Progress: procedure expose info barnum info.1 info.2 info.3 info.4 data
+
+parse arg com barnum data
+
+RetC=0
+
+com=upper(com)
+
+SELECT
+	when com="RESET"	then call Progress_Reset
+	when com="INIT"	then call Progress_Init
+	when com="CLOCK"	then RetC = Progress_Advance(barnum data)
+		otherwise 'msg' "Unknown command: "com"\n"
+
+END
+
+return RetC
+
+
+
+/*
+**
+**	Progress_Init
+**
+** Progress support routine: Initiate new bar associated with bar number
+**
+*/
+
+Progress_Init:	procedure	expose barnum data info.1 info.2 info.3 info.4
+
+data=right(data, length(data)-1)
+DO while(length(data) < 15);	data=data||' ';	END
+bar="%CPOS="||5+barnum||",1."||data||"[                                        ]   [   /]"
+'msg' bar
+call Progress_Reset
+return
+
+
+/*
+**
+**	Progress_Reset
+**
+**	Progress support routine: Fill up the bar with 'unset' characters
+**
+*/
+
+Progress_Reset: procedure	expose barnum info.1 info.2 info.3 info.4
+
+refresh="%CPOS="||5+barnum||",17.%TC=4.%BC=0.같같같같같같같같같같같같같같같같같같같같%TC=7.%BC=0.%CPOS="||5+barnum||",62.%TC=4.000%TC=7."
+info.barnum=0
+'msg' refresh
+return
+
+
+/*
+**
+**	Progress_Advance
+**
+**	Progress support routine: Advance a bar either one notch or to '%' full
+**
+**	NOTE:- If % is lower than present, reset and build back to %-full
+**
+*/
+
+Progress_Advance: procedure	expose info.1 info.2 info.3 info.4
+
+parse upper arg barnum data .
+
+if left(data,1)='%' then do		/* setting to a percentage */
+                          			/* Useful if you are precalculating the progression */
+	per = right(data,length(data)-1)
+	bars = 0.4 * per					/* (bar length / 100% * %) */
+	if bars < info.barnum then call Progress_Reset
+											/* BAGH! going backwards are we?! */
+	data = bars - info.barnum		/* treat it as a normal CLOCK <TICS> command */
+END
+
+update=1
+
+do while update ~> data
+	if info.barnum >= 40 then return 1		/* also returns 1 if info.barnum not available */
+	newpos="%CPOS="5+barnum||","||17+info.barnum||".%CURSOR=0.%TC=1.%BC=4."
+		/* work out position and contents of percentage box */
+		per = 2.5 * (info.barnum+1)
+		if index(per, '.') > 0 then per = left(per, index(per, '.')-1)
+		do while length(per) < 3; per='0'||per; END
+		per="%CPOS="5+barnum",62."per"%TC=7."
+	'msg' newpos||"�%TC=1.%BC=0."per
+	update= update+1
+	info.barnum=info.barnum+1
+end
+
+return 0

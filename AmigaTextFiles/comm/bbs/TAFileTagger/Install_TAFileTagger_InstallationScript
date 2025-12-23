@@ -1,0 +1,547 @@
+;$VER:Script for TAFileTagger
+;;;; Install_TAFileTagger - TAFileTagger disk installation script for Installer
+;;;;
+;;;; Copyright © 1995 TAFileTagger,
+;;;;                  OMASoft, Germany
+;;;;                  All rights reserved.
+;;;;
+;;;; $Id: TAFileTagger, v 1.1 1995/11/08 20:57:34 jAl Exp $
+;;;;
+;;;; This script has been tested with Installer 1.24:
+;;;;
+;;;;     Installer and Installer project icon
+;;;;     (c) Copyright 1991-93 Commodore-Amiga, Inc.  All Rights Reserved.
+;;;;     Reproduced and distributed under license from Commodore.
+;;;;
+;;;;     INSTALLER SOFTWARE IS PROVIDED "AS-IS" AND SUBJECT TO CHANGE;
+;;;;     NO WARRANTIES ARE MADE.  ALL USE IS AT YOUR OWN RISK.  NO LIABILITY
+;;;;     OR RESPONSIBILITY IS ASSUMED.
+;;;;
+;;;; Use following Icon tooltypes / Command line options:
+;;;; APPNAME=TAFileTagger
+;;;; MINUSER=AVERAGE
+;;;;
+(welcome "    Welcome to the " @app-name " 1.1 shareware version installation.\n")
+;;;;
+;;;; What we are?
+;;;;
+(set app-name (cat @app-name " 1.1 shareware version"))
+
+(complete 0) (transcript "On making " app-name ".")
+(set @default-dest "BBS:")
+
+; Texts
+
+(set #Intro-Txt
+ (cat "\n\nWelcome to \n"
+  "TAFileTagger\n"
+  "Hard Disk Install Script\n\n\n\n"
+ )
+)
+(set #Path-Txt
+ (cat "Select the target directory. "
+ )
+)
+(set #Path-Help
+ (cat "\nThis section lets you choose the "
+  "target directory to install TAFileTagger. \n\n"
+  "Default is BBS:\n\n\n"
+  @askdir-help
+ )
+)
+(set #Copy-Doc-Txt
+ (cat "Copy document files\n"
+ )
+)
+(set #Copy-Help-Txt
+ (cat "Copy help files\n"
+ )
+)
+(set #Copy-Working-Txt
+ (cat "Copying data from floppy"
+ )
+)
+
+; Main
+(message #Intro-Txt)
+(set target
+ (askdir (prompt #Path-Txt) (help #Path-Help) (default @default-dest) (newpath)
+ )
+)
+(set @default-dest target)
+(set
+ ;; Configuration
+ conf-dir (tackon target "configs")
+ ;; User binaries
+ bin-dir (tackon target "bin")
+ ;; documentation
+ doc-dir (tackon target "docs")
+ ;; rexx directory
+ rexx-dir (tackon target "rexx")
+ ;; Bulletin directory
+ bull-dir (tackon target "Bulletins")
+ ;; Text directory
+ Text-dir (tackon target "Text")
+ ;;
+ System-dir (tackon target "system")
+ ;;
+ Example-dir (tackon target "Examples")
+ ;;
+ Rx-Example-dir (tackon Example-dir "Rexx")
+ ;;
+ Sys-Example-dir (tackon Example-dir "System")
+ ;;
+ Cfg-Example-dir (tackon Example-dir "Configs")
+ ;;
+ dir-pat (cat "(" "configs" "|" "bin" "|" "rexx" "|"
+	      "bulletins" "|" "Text" "|" "System" ")")
+)
+;
+;
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "bin/TAFileTagger")
+  (dest bin-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "rexx/TAFileTagger.trans")
+  (dest rexx-dir )
+)
+(complete 5)
+;
+; Copy the TAFileTagger tools
+;
+(set prgbitmap
+  (askoptions
+    (prompt "Which parts of the archive do you want to copy?")
+    (help   "Just select the files you want to copy.\n\n"
+            "TAFileIndex       Indexgenerator\n"
+            "TaggerCfgWrite    WB-Configtool to "@app-name"\n"
+            "TaggerConCfg      CLI-Configtool to "@app-name"\n"
+            "TAAreaExclude     External Tool to exclude fileareas\n"
+            "                  by the user.\n"
+            "UpdateExcl        Sysop Tool to update the exclude-\n"
+            "                  setups of your users.\n"
+            "FileCfg2Txt       Nothing special...\n"
+   )
+
+    (choices "TAFileIndex"
+             "TaggerCfgWrite"
+             "TaggerConCfg"
+             "TAAreaExclude"
+             "UpdateExcl"
+             "FileCfg2Txt"
+    )
+
+    (default 7)
+  )
+)
+(if (BITAND prgbitmap 1)
+  (copyfiles
+    (prompt "Copying to " #target)
+    (help @copy-files-help)
+    (source "bin/TAFileIndex")
+    (dest bin-dir )
+  )
+)
+(if (BITAND prgbitmap 2)
+  (copyfiles
+    (prompt "Copying to " #target)
+    (help @copy-files-help)
+    (source "bin/TaggerCfgWrite")
+    (dest bin-dir )
+  )
+  (copyfiles
+    (prompt "Copying to " #target)
+    (help @copy-files-help)
+    (source "bin/TaggerCfgWrite.info")
+    (dest bin-dir )
+  )
+)
+(if (BITAND prgbitmap 4)
+  (copyfiles
+    (prompt "Copying to " #target)
+    (help @copy-files-help)
+    (source "bin/TaggerConCfg")
+    (dest bin-dir )
+  )
+)
+(if (BITAND prgbitmap 8)
+  (copyfiles
+    (prompt "Copying to " #target)
+    (help @copy-files-help)
+    (source "bin/TAAreaExclude")
+    (dest bin-dir )
+  )
+)
+(if (BITAND prgbitmap 16)
+  (copyfiles
+    (prompt "Copying to " #target)
+    (help @copy-files-help)
+    (source "bin/UpdateExcl")
+    (dest bin-dir )
+  )
+)
+(if (BITAND prgbitmap 32)
+  (copyfiles
+    (prompt "Copying to " #target)
+    (help @copy-files-help)
+    (source "bin/FileCfg2Txt")
+    (dest bin-dir )
+  )
+)
+(complete 25)
+;
+;
+(if (askbool
+      (prompt
+       "Install Magic-Rexx Files"
+      )
+      (help
+        "Magic Rexx Files a la Download.trans\n"
+      )
+     )
+     (
+      (copyfiles
+       (prompt "Copying to " #target)
+       (help @copy-files-help)
+       (source "rexx/DownLoad.tagger.0")
+       (dest rexx-dir )
+      )
+      (copyfiles
+       (prompt "Copying to " #target)
+       (help @copy-files-help)
+       (source "rexx/UpLoad.tagger.0")
+       (dest rexx-dir )
+      )
+     )
+)
+(complete 30)
+
+; Copy langfiles
+(set langbitmap 0)
+(while (= langbitmap 0)
+  (set langbitmap
+   (askoptions
+     (prompt "Which Language do you want to copy?")
+     (help   "Just select the files you want to copy.\n\n"
+             "Tagger.lang                Default language (German)\n"
+             "Tagger.DEUTSCH.lang        German language\n"
+             "Tagger.ENGLISH.lang        English language\n"
+     )
+     (choices "Tagger.lang"
+              "Tagger.DEUTSCH.lang"
+              "Tagger.ENGLISH.lang"
+     )
+     (default 1)
+   )
+  )
+)
+
+
+(if (BITAND langbitmap 1)
+   (copyfiles
+      (prompt "Copying to " #target)
+      (help @copy-files-help)
+         (source "Configs/Tagger.lang")
+         (dest Conf-dir )
+         (infos)
+   )
+)
+(if (BITAND langbitmap 2)
+   (copyfiles
+      (prompt "Copying to " #target)
+      (help @copy-files-help)
+         (source "Configs/Tagger.Deutsch.lang")
+         (dest Conf-dir )
+         (infos)
+   )
+)
+(if (BITAND langbitmap 4)
+   (copyfiles
+      (prompt "Copying to " #target)
+      (help @copy-files-help)
+         (source "Configs/Tagger.English.lang")
+         (dest Conf-dir )
+         (infos)
+   )
+)
+; Copy Help-Files
+(message #Copy-Help-Txt)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Text/TaggerMainHelp.ANSI")
+  (dest Text-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Text/TaggerListHelp.ANSI")
+  (dest Text-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Text/TaggerArcHelp.ANSI")
+  (dest Text-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Text/TaggerAreaHelp.ANSI")
+  (dest Text-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Text/TaggerPrivateHelp.ANSI")
+  (dest Text-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Text/TaggerSysopHelp.ANSI")
+  (dest Text-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Text/TaggerFreqHelp.ANSI")
+  (dest Text-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Bulletins/Tagger.hlp")
+  (dest bull-dir )
+)
+(complete 40)
+
+(if (askbool
+      (prompt
+       "Install Magic-Text Files"
+      )
+      (help
+        ""
+      )
+     )
+     (
+      (copyfiles
+        (prompt "Copying to " #target)
+        (help @copy-files-help)
+        (source "Text/PreMarkLimit.ANSI")
+        (dest Text-dir )
+      )
+      (copyfiles
+        (prompt "Copying to " #target)
+        (help @copy-files-help)
+        (source "Text/PreCheckIndex.ANSI")
+        (dest Text-dir )
+      )
+      (copyfiles
+        (prompt "Copying to " #target)
+        (help @copy-files-help)
+        (source "Text/PostUpload.ANSI")
+        (dest Text-dir )
+      )
+      (complete 50)
+      (copyfiles
+        (prompt "Copying to " #target)
+        (help @copy-files-help)
+        (source "Text/PreTimeLimit.ANSI")
+        (dest Text-dir )
+      )
+      (copyfiles
+        (prompt "Copying to " #target)
+        (help @copy-files-help)
+        (source "Text/PreRatio.ANSI")
+        (dest Text-dir )
+      )
+     )
+)
+
+(complete 60)
+(message #Copy-Doc-Txt)
+
+(if (not (exists (doc-dir )))
+    (makedir (doc-dir))
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs.info")
+  (dest target )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs/TAFileTagger.dok")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs/TAFileTagger.dok.info")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs/TAFileTagger.doc")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs/TAFileTagger.doc.info")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs/TAFileTagger_D.dvi")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs/TAFileTagger_D.dvi.info")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs/TAFileTagger_E.dvi")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "docs/TAFileTagger_E.dvi.info")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Lies.Mich")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Lies.Mich.info")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Read.me")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "Read.me.info")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "RegForm_D.txt")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "RegForm_D.txt.info")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "RegForm_E.txt")
+  (dest doc-dir )
+)
+(copyfiles
+  (prompt "Copying to " #target)
+  (help @copy-files-help)
+  (source "RegForm_E.txt.info")
+  (dest doc-dir )
+)
+
+(complete 90)
+(if (askbool
+      (prompt
+       "Install Example Files"
+      )
+      (help
+        ""
+      )
+     )
+     (
+      (if (not (exists (example-dir )))
+        (makedir (example-dir))
+      )
+      (if (not (exists (rx-example-dir )))
+        (makedir (rx-example-dir))
+      )
+      (copyfiles
+       (prompt "Copying to " #target)
+       (help @copy-files-help)
+       (source "rexx/PrivUser.logon")
+       (dest rx-example-dir )
+      )
+      (copyfiles
+       (prompt "Copying to " #target)
+       (help @copy-files-help)
+       (source "examples/logoff.trans")
+       (dest rx-example-dir )
+      )
+      (copyfiles
+       (prompt "Copying to " #target)
+       (help @copy-files-help)
+       (source "examples/logon.trans")
+       (dest rx-example-dir )
+      )
+      (if (not (exists (sys-example-dir )))
+        (makedir (sys-example-dir))
+      )
+      (copyfiles
+       (prompt "Copying to " #target)
+       (help @copy-files-help)
+       (source "system/PrivUser")
+       (dest sys-example-dir )
+      )
+      (if (not (exists (cfg-example-dir )))
+        (makedir (Cfg-example-dir))
+      )
+      (copyfiles
+       (prompt "Copying to " #target)
+       (help @copy-files-help)
+       (source "examples/Main.rx")
+       (dest Cfg-example-dir )
+      )
+      (copyfiles
+       (prompt "Copying to " #target)
+       (help @copy-files-help)
+       (source "examples/File.cfg")
+       (dest Cfg-example-dir )
+      )
+     )
+)
+(complete 100)
+(exit "You should read the manuals before you wants to use "
+      @app-name
+      "\nBefore running "@app-name " you must create a Configfile\n"
+      "using TaggerCfgWrite or TaggerConCfg!!!\n"
+      "\n\n"
+      "Please check this archive with Md5Sum and PGP!"
+      "\n"
+      "Tia Juergen A.Lamers\n"
+      )
+
+; EOF

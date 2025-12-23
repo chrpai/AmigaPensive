@@ -1,0 +1,127 @@
+<html>
+<head>
+  <title></title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="msg.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="getmsgdata.html"><img src="prev.gif" alt="PREV" border=0></a><a href="getmsgpointer.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+<PRE>
+   NAME
+                GetMsgInfo -- Returns information from a message.
+
+   SYNOPSIS
+                GetMsgInfo [Msg] [SECTION|NUMBER|TEXTLENGTH|FROM|TO|SUBJECT|DATE|
+                      ARRIVEDATE|FROMADDRESS|DESTADDRESS|REPLYTO|NEXTREPLY|
+                      PRIVATE|RECEIVEANONYMOUS|SENDERANONYMOUS|DELETEUPONRECEIVE|
+                      CRASH|HOLD|DIRECT|TEXT]
+
+   FUNCTION
+                Returns information about the message passed in 'Msg'.
+
+                If this is an online script, and a successful call to
+                rexxMsgCommands/LoadMsg has been made (RC = 0), the 'Msg'
+                argument can be omitted, and data from the current
+                loaded message will be used instead.
+
+   INPUTS
+                MSG                - Message to return information from.
+
+                SECTION            - Message base message belongs to.
+                NUMBER             - Message reference number in area.
+                TEXTLENGTH         - Length in bytes of the message text.
+                FROM               - The author of the message.
+                TO                 - The addresse of the message.
+                SUBJECT            - The topic of the message.
+                DATE               - The date the message was written in
+                                     Zeus time format.
+                ARRIVEDATE         - The date this message arrived on the
+                                     system in Zeus time format.
+                FROMADDRESS        - FidoNet address this message came from.
+                DESTADDRESS        - FidoNet address this message is destined
+                                     for (netmail bases only).
+                REPLYTO            - Message number this message is a reply
+                                     to, or 0 for an original message.
+                NEXTREPLY          - Next message number which is a reply
+                                     to this message, or 0 for no more
+                                     messages in thread.
+                TEXT               - Return unformatted message text.
+                                     NB: ARexx supports a maximum string length
+                                     of 64k, so check this limit is not
+                                     exceeded with the 'TEXTLENGTH' argument.
+
+                Flags - these return 0 or 1 in RESULT.
+
+                PRIVATE           - Message is private.
+                RECEIVEANONYMOUS  - The receiver should be anonymous to others.
+                SENDERANONYMOUS   - The sender should be anonymous to others.
+                DELETEUPONRECEIVE - This message should be deleted once read.
+                CRASH             - This message should be sent as
+                                    crashmail (netmail bases only).
+                HOLD              - This message should be sent as
+                                    hold mail (netmail bases only).
+                DIRECT            - This message should be sent as
+                                    direct mail (netmail bases only).
+
+
+   RESULT
+                Data requested returned.
+
+   RC
+                 0 -- Data requested returned
+                10 -- Bad arguments
+
+   EXAMPLE
+                /** Simple Scan **/
+
+                Options Results
+                Parse Arg Line 
+
+                fin = 0
+
+                GetPointer 'Low'
+                StartPtr = RESULT
+
+                do until fin = 1
+                        LoadMsg StartPtr 'NoText'
+                        if RC = 0 then do
+                                /** Use GetMsgInfo to return data from message */
+
+                                GetMsgInfo 'FROM'
+                                From = RESULT
+                                From = Left(From,15,' ')
+
+                                GetMsgInfo 'TO'
+                                To = RESULT
+                                To = Left(To,15,' ')
+
+                                GetMsgInfo 'SUBJECT'
+                                Subject = RESULT
+                                Subject = Left(Subject,15,' ')
+
+                                OutLine = '&#027;[0;31m#%2011%-4ld| &#027;[0;36mFr: &#027;[37m'From' &#027;[36mTo: &#027;[37m'To' &#027;[36mSb: &#027;[37m'Subject
+                                SWrite OutLine
+                                Write '&quot;n&quot;' NoMore
+
+                                FreeMsg
+                                end
+                        else if RC ~= 2 then do
+                                FreeMsg
+                                end
+                        else do
+                                fin = 1
+                                end
+
+                        CheckInput
+                        IF RC ~= 0 THEN fin = 1
+                        StartPtr = StartPtr + 1
+                        end
+
+   NOTES
+
+   SEE ALSO
+                rexxMsgCommands/GetMsgData, rexxMsgCommands/LoadMsg
+
+</PRE><br></body>
+</html>

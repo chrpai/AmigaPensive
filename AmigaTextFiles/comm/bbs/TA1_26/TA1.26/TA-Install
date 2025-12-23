@@ -1,0 +1,1996 @@
+; This is the install Script for TransAmiga BBS v1.25
+
+; Init various variables
+
+(set @execute-dir (pathonly @icon)) ; get the path to directory for which
+                                    ; script is started
+(set #vernum (getversion))
+(set #ver (/ #vernum 65536))
+(set #rev (- #vernum (* #ver 65536) ) )
+(set #bbsassign "BBS")
+(set #CPU (database "cpu"))
+(set #bbspath (getassign #bbsassign "a")) ; get the physical path of BBS:
+
+; work-around for the limited capabilities of getassign...
+
+(if (= #bbspath "")
+ (set #bbspath (getassign #bbsassign "v")) ; get the physical path of BBS:
+)
+(if (= #bbspath "")
+ (set #bbspath (getassign #bbsassign "d")) ; get the physical path of BBS:
+)
+
+; check if we can find a previous TA version
+
+(complete 0)
+(if (= (exists "sys:Utilities/MultiView") 1)
+	( ; start of positive part
+	(run "SYS:Utilities/MultiView" "ReadMe.1st"
+		(prompt "Important information file.")
+		(help "Read this file carefully!"))
+	) ; end of positive part
+	( ; Start negative part
+		(if (= (exists "sys:Utilities/AmigaGuide") 1)
+		( ; start positive part
+		(run "SYS:Utilities/AmigaGuide" "ReadMe.1st"
+			(prompt "Important information file.")
+			(help "Read this file carefully!"))
+		) ; end of positive part
+		) ; end of if
+	) ; end of negative part
+) ; end of if
+
+
+
+(if (= #bbspath "") ; check if BBS: exists
+        ( ; start of positive part (does not exist)
+        (set #update
+                (askbool
+                        (prompt "TransAmiga BBS seems not to be installed."
+                                " If you allready have TransAmiga installed"
+                                " then select \"Update\"")
+                        (help "If you do not have TransAmiga installed"
+                              " select \"Install\" otherwise select \"Update\"")
+                        (default 1)
+                        (choices "Update" "Install")))
+        ) ; end of positive part
+        ( ; start of negative part
+        (set #update
+                (askbool
+                        (prompt "TransAmiga BBS seems to be installed "
+                                "allready.\n\n"
+                                "Do you wish to update your installation?")
+                        (help "If you do not have TransAmiga BBS installed "
+                              "allready you should select \"Install\".")
+                        (default 1)
+                        (choices "Update" "Install")
+                ) ; end of askbool
+        ) ; end of set #update
+        (set @default-dest #bbspath)
+        ) ; end of negative part
+) ; end of check
+
+(complete 3)
+
+(if #update
+        ( ; Start of positive part - update installation
+
+; find TransAmiga's main directory
+
+        (if (askbool
+                (prompt "Is TransAmiga BBS installed in \""
+                        #bbspath "\" ?")
+                (help "\"" #bbspath "\" should be the directory"
+                      " where you keep all subdirectories of"
+                      " TransAmiga BBS. If you keep them elsewhere"
+                      " select \"No\".")
+                (default 1)
+            ) ; end of askbool
+        ( ; start of positive part
+          (set #dummy "1") ; empty parts are not allowed
+        ) ; end of positive part
+        ( ; start of negative part
+        (set #bbspath (askdir
+                        (prompt "Please select directory where you keep"
+                                " TransAmiga's directories.")
+                        (help "In a standard TransAmiga installation it is"
+                              " BBS:\n")
+                        (default #bbspath)
+                     )
+        )
+        )) ; end of negative part
+
+        (complete 5)
+
+; start update
+
+        (message "Attention!\n\nThis new version of TransAmiga BBS"
+                 " needs a stack of at least 20000. You should add"
+                 " a command like\nstack 20000\nin front of the"
+                 " TransAmiga command. e.g. in your User-Startup.")
+        (set @default-dest #bbspath)
+        (if (askbool
+                (prompt "We are ready to update your "
+                        "installation. Do you want your old executables backed "
+                        "up in the directory \"" (tackon #bbspath "old_bin") "\" ?")
+                (help "This release has been tested in many ways. It is "
+                      "not necessary to back up your old files, however I "
+                      "recommend it. You can delete the old files later.\n\n"
+                      "Bugs may be left - no software is bugfree."
+                      " If you find any bugs send a mail to me (Sami) "
+                      "This is important to improve the project."
+                      "\n\nIf you want to have a copy of your files"
+                      " then select \"Backup files\" and your files will be"
+                      " stored in \"" (tackon #bbspath "old_bin") "\"."
+                      " You can copy them back to your \"" (tackon #bbspath "bin")
+                      "\" if needed.")
+                (default 0)
+                (choices "Backup files" "Don't backup")
+            ) ; end of askbool
+
+            ((complete 5)
+
+; find the executables
+
+                (if (= (exists (tackon #bbspath "bin")) 2) ; start of positive part of askbool
+                        (set #bindir (tackon #bbspath "bin")) ; positive part
+                        (set #bindir (askdir
+                                (prompt "Where are your executables?")
+                                (help "Choose the directory where the binary files"
+                                      " are located you wish to update. As BBS:bin"
+                                      " does not exist you have to specify the"
+                                      " directory. It is not checked if there"
+                                      " allready exist the binaries so you can"
+                                      " make an other directory. We suggest to"
+                                      " keep the binary files in \"BBS:bin\" so"
+                                      " further updates can be installed easily.")
+                                (default #bbspath)
+                                ) ; end of askdir
+                        ) ; end of negative part
+                  ) ; end of if exists
+
+                  (complete 10)
+
+; backup old binaries
+
+                  (copyfiles
+                        (prompt "Select files to backup")
+                        (help @copyfiles-help)
+                        (source #bindir)
+                        (dest (tackon #bbspath "old_bin"))
+                        (all)
+                        (infos)
+                        (confirm)
+                  ) ; end of copyfiles
+                ) ; end of positive part
+        ) ; end of *if* askbool - backup is done if the user wished
+
+        (complete 15)
+
+; Install the new executables
+
+        (message "The next step will copy the new executables.")
+        (if (exists (tackon #bbspath "bin"))
+                (set #target (tackon #bbspath "bin")) ; positive part
+                (set #target (askdir
+                        (prompt "Please select directory for new binaries")
+                        (help "Choose the directory where the binary files"
+                              " are located you wish to update. As BBS:bin"
+                              " does not exist you have to specify the"
+                              " directory. It is not checked if there"
+                              " allready exist the binaries so you can"
+                              " make an other directory. We suggest to"
+                              " keep the binary files in \"BBS:bin\" so"
+                              " further updates can be installed easily.")
+                        (default #bbspath)
+                        ) ; end of askdir
+                ) ; end of directory choice and negative part
+        )
+        (copyfiles
+                (prompt "Copying binary files...")
+                (help "This section installes the new executables that"
+                      " belong to TransAmiga v1.25.")
+                (source (tackon (pathonly @icon) "bin"))
+                (dest #target)
+                (all)
+                (infos)
+                (confirm)
+        ) ; end of copyfiles
+
+        (complete 20)
+
+; install 68020 versions if system has support for them
+
+        (if (> #CPU "68010")
+                (if (askbool
+                          (prompt "Your Amiga is equiped with MC" #CPU "."
+                                  " Some parts of TransAmiga BBS"
+                                  " are compiled for MC68020. Do you"
+                                  " wish to install these versions?"
+                                  "\n\nAttention! Don't use these files"
+                                  " if you have an EC processor (e.g. 68EC030)")
+                          (help "I suggest to use these optimized versions"
+                                " as they are a bit faster.\n")
+                          (default 1)
+                          (choices "Install" "Skip this part")
+                    )
+                    (copyfiles
+                          (prompt "Copying 68020 binary files...")
+                          (help @copyfiles-help)
+                          (source (tackon (pathonly @icon) "bin_020"))
+                          (dest #target)
+                          (all)
+                          (infos)
+                          (confirm)
+                    ) ; end of positive part
+                )
+        ) ; end of if
+
+        (complete 25)
+
+; delete old hisoftbasic.library
+
+        (if (= (exists "libs:hisoftbasic.library") 1)
+            (delete (prompt "TransAmiga v1.25 comes with the"
+                            " hbasic2.library and does not use"
+                            " hisoftbasic.library anymore. Shall the old"
+                            " library be deleted?")
+                    (help "hisoftbasic.library really should be deleted as"
+                          " it only wastes storage.\n\nAll programs that used"
+                          " this library have been replaced by versions"
+                          " that no longer use it.\n\nHowever, if you wish to"
+                          " be able to run your previous TransAmiga"
+                          " version keep it. You can delete it manually"
+                          " if you find out that you no longer wish to"
+                          " return to earlier TransAmiga versions.")
+                     (confirm)
+                     (optional force askuser)
+            ) ; end of delete
+        ) ; end of if
+
+        (complete 30)
+
+; install transamiga, hbasic2, zmodem and garbagecollector.library
+
+        (copylib (prompt "TransAmiga v1.25 needs the new"
+                         " hbasic2.library or it will not run. It is"
+                         " installed now.")
+                 (help "TransAmiga v1.25 will not work without"
+                       " hbasic2.library.\n\nIt has to be installed or this"
+                       " install script will fail at a later part!")
+                 (source (tackon (pathonly @icon) "Libs/hbasic2.library"))
+                 (dest "Libs:")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 40)
+
+        (copylib (prompt "TransAmiga v1.25 needs the new"
+                         " transamiga.library. It is"
+                         " installed now.")
+                 (help "TransAmiga v1.25 will not work correctly without"
+                       " the new transamiga.library. If you use an older"
+                       " version you may come accross strange problems and"
+                       " you are not able to use new ARexx commands."
+                       "\n\nATTENTION! Don't use this library with older"
+                       " versions of TransAmiga as you will have no local"
+                       " display in that case. Other strange things may"
+                       " happen I am not aware of currently.")
+                 (source (tackon (pathonly @icon) "Libs/transamiga.library"))
+                 (dest "Libs:")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 45)
+
+        (copylib (prompt "garbagecollector.library is needed by some"
+                         " tools that are supplied with this version."
+                         " Should it be installed now?")
+                 (help "I strongly suggest to install the library or you"
+                       " will not be able to use the programs supplied in"
+                       " bin_020 directory or the correspondig versions in"
+                       " bin directory. Those tools are written in Oberon-II"
+                       " and the library manages efficient memory handling."
+                       " You really really should install it.")
+                 (source (tackon (pathonly @icon) "Libs/garbagecollector.library"))
+                 (dest "Libs:")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 50)
+
+; check which arp.library can be installed
+
+        (if (< #ver 36)
+            (set #arpname "arp.library_39.1")
+            (set #arpname "arp.library_40.2")
+        )
+
+; check which zmodem can run on the machine
+
+        (if (> #CPU "68010")
+            (set #libname "xprzmodem.library.020")
+            (set #libname "xprzmodem.library")
+        )
+
+; install arp.library
+
+        (copylib (prompt "TransAmiga and library need arp.library to work."
+                         " There are two versions of the library. If you"
+                         " have AmigaOS 2.x or up the arp.library maps"
+                         " it's functions to system routines. I detect"
+                         " AmigaOS v" #ver "." #rev " and will install the"
+                         " correct version. Shall I install it?")
+                 (help "arp.library is also an essential library as it"
+                       " provides routines that make a programmer's life"
+                       " easier when he is forced to compatibility with"
+                       " AmigaOS 1.3 (34.x).")
+                 (source (tackon (tackon (pathonly @icon) "Libs") #arpname))
+                 (dest "Libs:")
+                 (newname "arp.library")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 52)
+
+        (copylib (prompt "TransAmiga GUI config tool TransCfgGUI needs the"
+                         " wizard.library.")
+                 (help "wizard.library is an essential library as it"
+                       " handles the complete GUI of TransCfgGUI."
+                       " You need to install it if you want to use TransCfgGUI.")
+                 (source (tackon (tackon (pathonly @icon) "Libs") "wizard.library"))
+                 (dest "Libs:")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 55)
+
+; install xprzmodem.library v2.52T
+
+        (copyfiles (prompt "There are several new xprzmodem.library versions"
+                          " floating around, but most of them have bugs or"
+                          " they are extreamely slow and CPU time hungry.")
+                   (help "This xprzmodem.library v2.52t provides a special parameter"
+                         " called T like TransAmiga. If the library is in"
+                         " this mode it accepts upload resumes only if there"
+                         " is no .Desc file.\n\n.Desc files are made by TransAmiga"
+                         " as soon as the file is received completely and"
+                         " written to the filelist. So it's save to say:"
+                         "\n\nIf there is a .Desc file no resume is allowed."
+                         "\n\nThis is the whole secret of the library."
+                         " The library is compiled by Georg 'Gio' Magschok."
+                         "\n\nSeveral SysOps reported problems with v3.x"
+                         " of xprzmodem.library. The library is localized"
+                         " and needs a lot of CPU time. This can lead to"
+                         " transmission errors especially with higher"
+                         " speeds. If you have a really fast CPU you may"
+                         " never come accross this phenomen, but if you"
+                         " do not use a serial board  (e.g. MFC) I strongly"
+                         " suggest to use the supplied version as it works"
+                         " perfectly.")
+                    (source (tackon (tackon (pathonly @icon) "Libs") #libname))
+                    (dest "Libs:")
+                    (newname "xprzmodem.library")
+                    (confirm)
+                    (infos)
+                    (optional force askuser)
+        ) ; end of copyfiles
+
+
+        (copylib   (prompt "A new fifo.library is installed.")
+                   (help "The fifo part is PD by Matt Dillon.\n\nYou really"
+                         " should install it as TrShell will not run without"
+                         " fifo.")
+                    (source (tackon (pathonly @icon) "Libs/fifo.library"))
+                    (dest "Libs:")
+                    (confirm)
+                    (optional force askuser)
+        ) ; end of copyfiles
+
+        (copylib   (prompt "A new fifo-handler is installed.")
+                   (help "The fifo part is PD by Matt Dillon.\n\nYou really"
+                         " should install it as TrShell will not run without"
+                         " fifo.")
+                    (source (tackon (pathonly @icon) "L/fifo-handler"))
+                    (dest "L:")
+                    (confirm)
+                    (optional force askuser)
+        ) ; end of copyfiles
+        (startup "Fifo"
+               (prompt "Adding fifo start entry to user-startup")
+               (help "This has to be done to use fifo.")
+               (command "run <nil: >nil: l:fifo-handler\n")
+        )
+
+        (complete 65)
+
+; Install the docs
+
+        (set #frompath (tackon (pathonly @icon) "docs"))
+        (copyfiles (prompt "Installing new Docs...")
+                   (help "You really should copy them as they are really"
+                         " important.\n\nI strongly suggest to read the"
+                         " docs carefully if you want to avoid"
+                         " problems caused by missing information.")
+                   (source #frompath)
+                   (dest (tackon #bbspath "docs"))
+                   (all)
+                   (confirm)
+                   (infos)
+                   (optional force askuser)
+        ) ; end of copyfiles
+
+        (complete 70)
+
+; Install Rexx stuff
+
+        (if (askbool
+                (prompt "Attention! Your logon.trans can be overwritten"
+                        " while updating!\n"
+                        "Backup your ARexx scripts in \"" (tackon #bbspath "old_rexx") "\" ?")
+                (help "You really should back up your ARexx scripts or you"
+                      " may loose your logon.trans, for example."
+                      "\n\nIf you want to have a copy of your files"
+                      " then select \"Backup files\" and your files will be"
+                      " stored in \"" (tackon #bbspath "old_rexx") "\"."
+                      " You can copy them back to your \"" (tackon #bbspath "rexx")
+                      "\" if needed.")
+                (default 0)
+                (choices "Backup files" "Don't backup")
+            ) ; end of askbool
+        ( ; start of positive part
+                (if (= (exists (tackon #bbspath "rexx")) 2) ; start of positive part of askbool
+                        (set #rexxpath (tackon #bbspath "rexx")) ; positive part
+                        (set #rexxpath (askdir
+                                (prompt "Where are your TransAmiga ARexx files?")
+                                (help "Choose the directory where the rexx files"
+                                      " are located you wish to update. As BBS:rexx"
+                                      " does not exist you have to specify the"
+                                      " directory. It is not checked if there"
+                                      " allready exist the rexx files so you can"
+                                      " make an other directory. We suggest to"
+                                      " keep the binary files in \"BBS:rexx\" so"
+                                      " further updates can be installed easily.")
+                                (default #bbspath)
+                                ) ; end of askdir
+                        ) ; end of negative part
+                  ) ; end of if exists
+
+                  (copyfiles
+                        (prompt "Select files to backup")
+                        (help @copyfiles-help)
+                        (source #rexxpath)
+                        (dest (tackon #bbspath "old_rexx"))
+                        (all)
+                        (infos)
+                        (confirm)
+                  ) ; end of copyfiles
+        )) ; end of if
+
+        (message "The next step will copy some ARexx scripts.")
+        (copyfiles (prompt "Some ARexx scripts are updated or new...")
+                   (help "If you allready installed TransAmiga and"
+                         " have used it for a while you surely have"
+                         " made your own scripts.\n\n"
+                         "No matter of that you should have a look"
+                         " at the supplied files. It is not really"
+                         " necessary to install them, but they are"
+                         " of some interest.\n\nFollowing scripts are"
+                         " supplied:\n\nDeepSpace.trans\nKnight.trans\n"
+                         "Localdisplay.trans\nLogon.trans\nNode.trans\n"
+                         "Relogin.trans\nTrMaint.trans\nTrShell.trans\n\n"
+                         "Be carefull with Logon.trans if you use your"
+                         " own or a custom one you should not copy it."
+                         " Have a look at it and see if you can use parts.")
+                   (source (tackon (pathonly @icon) "rexx"))
+                   (dest (tackon #bbspath "rexx"))
+                   (confirm)
+                   (all)
+                   (infos)
+                   (optional force askuser)
+        ) ; end of copyfiles
+
+       (complete 80)
+
+; update configs - the ugly part.
+
+; find the path to the config files
+
+        (set #cfgpath (askdir (prompt "Select your configs directory:")
+                             (help "If you use an other directory than \""
+                                   (tackon #bbspath "Configs")
+                                   "\" you have to change the path.\n\n"
+                                   "Standard installation uses the path"
+                                   " specified above.")
+                             (default (tackon #bbspath "Configs"))
+                      ) ; end of askdir
+        ) ; end of set
+
+        (complete 81)
+
+; backup existing configs
+
+        (copyfiles (prompt "This part makes a backup of all your configs...")
+                   (help "You really should make a backup as we never know"
+                         " if the update script fails or C= Installer"
+                         " gurus...")
+                   (source #cfgpath)
+                   (dest (tackon #bbspath "old_Configs"))
+                   (confirm)
+                   (all)
+                   (infos)
+                   (optional force askuser)
+        )
+
+        (complete 85)
+
+; which language is in Default.lang?
+
+        (set #lang (askchoice (prompt "Which language do you use for your"
+                             " Default.lang file?")
+                     (help "If you do not use English or German you"
+                           " should select the language you understand"
+                           " and edit your language file when the script"
+                           " finished. Change the lines you find in the"
+                           " other language to that one you use.\n\n"
+                           "Read the help of the next page - it is"
+                           " important!")
+                     (default 0)
+                     (choices "[2pEnglish" "Deutsch" "Dansk")
+             ) ; end of askbool
+        )
+
+        (complete 88)
+        (if (= #lang 0)
+                ((textfile (prompt "Install new language cfg file...")
+                          (help "You only need it if you upgrade from"
+                                " TransAmiga v1.11. If you have v1.12g1"
+                                " running you don't need it. You should"
+                                " manually check if you need some of the"
+                                " .lang files.")
+                          (dest (tackon #cfgpath "Language.cfg"))
+                          (append "3\nEnglish\nDeutsch\nDansk\n")
+                          (confirm)
+                 )
+                 (set #lang "ENGLISH")
+                )
+                (if (= #lang 1)
+                        ((textfile (prompt "Install new language cfg file...")
+                                  (help "You only need it if you upgrade from"
+                                        " TransAmiga v1.11. If you have v1.12g1"
+                                        " running you don't need it. You should"
+                                        " manually check if you need some of the"
+                                        " .lang files.")
+                                  (dest (tackon #cfgpath "Language.cfg"))
+                                  (append "3\nDeutsch\nEnglish\nDansk\n")
+                                  (confirm)
+                         )
+                         (set #lang "DEUTSCH")
+                        )
+                        ((textfile (prompt "Install new language cfg file...")
+                                  (help "You only need it if you upgrade from"
+                                        " TransAmiga v1.11. If you have v1.12g1"
+                                        " running you don't need it. You should"
+                                        " manually check if you need some of the"
+                                        " .lang files.")
+                                  (dest (tackon #cfgpath "Language.cfg"))
+                                  (append "3\nDansk\nEnglish\nDeutsch\n")
+                                  (confirm)
+                         )
+                         (set #lang "DANSK")
+                        )
+                )
+         )
+
+        (copyfiles (prompt "Install correct Default.Lang...")
+                   (help "This is necessary if you want to use"
+                         " the correct language file as default one.")
+                   (source (tackon (pathonly @icon) (tackon "Configs" (cat #lang ".Lang"))))
+                   (dest #cfgpath)
+                   (newname "Default.Lang")
+        ) ; end of copyfiles
+        (copyfiles (prompt "Install correct Default.Lang.ANSI...")
+                   (help "This is necessary if you want to use"
+                         " the correct language file as default one.")
+                   (source (tackon (pathonly @icon) (tackon "Configs" (cat #lang ".Lang.ANSI"))))
+                   (dest #cfgpath)
+                   (newname "Default.Lang.ANSI")
+        ) ; end of copyfiles
+
+        (complete 89)
+
+        (copyfiles (prompt "Install new menu file...")
+                   (help "You only need it if you upgrade from"
+                         " TransAmiga v1.11. If you have v1.12g1"
+                         " running you don't need them. You should"
+                         " manually check if you need some of the"
+                         " .lang files.")
+                   (source (tackon (pathonly @icon) "Configs/custom.menu"))
+                   (dest #cfgpath)
+                   (confirm)
+                   (infos)
+                   (optional force askuser)
+        ) ; end of copyfiles
+
+        (complete 90)
+
+; update configs through external program
+
+        (run (cat "\"" (tackon (pathonly @icon) "cfgupd") "\" \"" #cfgpath "\" " #lang)
+             (prompt "An external command is now started to update"
+                     " your existing config files.\n\nUserfiles are"
+                     " updated when the user loggs on.")
+             (help "To run TransAmiga you really should update your"
+                   " configs or TransAmiga will come up with some"
+                   " error on startup.\n\nSomething important:\n"
+                   "Several new features require some more lines in"
+                   " the main configuration file (e.g. transamiga.cfg)"
+                   " that can't be made by the script in an easy way."
+                   " If you do not want to use the defaults you should"
+                   " run TransCfg and change the values to your needs."
+                   "\n\nIf you currently use v1.11 your File.Cmds and"
+                   " your Settimgs.Cmds will get new lines. Edit these"
+                   " files with your favoutite text editor and change"
+                   " the keys to suit your setup.")
+             (confirm)
+        )
+        (complete 98)
+        (if (askbool 
+                    (prompt "Do you wish to install the MagicWB icon set?")
+                    (help "If you use MagicWB or compatible tools"
+                          " you should really install the icons.\n")
+                    (default 1)
+                    (choices "Install" "Skip this part")
+            )
+            (copyfiles
+                  (prompt "Copying MagicWB icons...")
+                  (help @copyfiles-help)
+                  (source (tackon (pathonly @icon) "MWB_Icons"))
+                  (dest #bbspath)
+                  (all)
+                  (confirm)
+            ) ; end of positive part
+        )
+        (complete 100)
+
+) ; end of positive part
+
+        ( ; start of negative part - Install TA
+
+        (message "You have decided to have a look at TransAmiga BBS.\n"
+                 "TransAmiga BBS is at the end of its development."
+                 " There will be bug fixes, but no new features."
+                 " This is due to the fact that the successor TransComm BBS"
+                 " is in the works.")
+        (message "This script wipes out the need of reading"
+                 " the manual to install TransAmiga BBS. That's dangerous"
+                 " as you really _*should*_ read the manual. If you don't"
+                 " read the manual you surely will not be able to design"
+                 " a well-looking and successfull BBS.")
+        (message "The power of"
+                 " TransAmiga BBS is the ARexx interface. You can do"
+                 " almost everything with ARexx. TransAmiga provides more"
+                 " than 150 ARexx commands. This script does not install ARexx as it is a"
+                 " part of Workbench 2.0 and up.")
+        (message "One last remark:\n"
+                 "Read the help texts of this install script as there"
+                 " is additional information to guide you thorough"
+                 " the installation process.\n")
+        (complete 31)
+        (set #bbspath (askdir
+                        (prompt "Where do you wish to install TransAmiga"
+                                " BBS?")
+                        (help "Attention! This script does not make a"
+                              " new directory by itself allowing you to"
+                              " install in the root directory of a partition.\n\n"
+                              "TransAmiga BBS will be installed in the"
+                              " selected directory. Several subdirectories"
+                              " will be created [without ask] and the"
+                              " needed files are copied to them. The"
+                              " assignment \"BBS:\" will lead to this"
+                              " directory.\n\nTransAmiga itself needs about"
+                              " 1 MByte for the files. On your boot device"
+                              " is also space needed for the font,"
+                              " handlers and libraries. You should at"
+                              " least have 5 MB free on the drive where"
+                              " you want to install TransAmiga BBS."
+                              "\n\nThis space is needed when you customize"
+                              " the BBS and install door games. You"
+                              " can locate your file areas on an other"
+                              " drive or keep them on the same."
+                              "\n\nWARNING: Experience showed that you"
+                              " should at least have a 80 MB hard drive"
+                              " if you wish to have an interesting choice"
+                              " of programs online.\n\nThe assignment"
+                              " will be written to your user-startup"
+                              " later. See that section if you want to"
+                              " know more about the assignment.\n\n"
+                              "You can create a new directory with the"
+                              " \"Create New Drawer...\" option. If you"
+                              " found the directory where you wish to"
+                              " instal TransAmiga BBS then select"
+                              " \"Proceed\".")
+                        (default "Work:bbs")
+                        (disk)
+                     ) ; end of directory choice
+        ) ; end of set #bbspath
+        (set @default-dest #bbspath)
+        (makeassign "BBS" #bbspath)
+
+; copy binaries
+
+        (copyfiles
+                (prompt "Copying executables...")
+                (help "This are the executable files that are needed to"
+                      " run TransAmiga BBS. Copy all of them until you"
+                      " know which you don't need.")
+                (source (tackon (pathonly @icon) "bin"))
+                (dest (tackon #bbspath "bin"))
+                (all)
+                (confirm)
+                (infos)
+                (optional force)
+        )
+
+        (complete 5)
+
+; install 68020 versions if system has support for them
+
+        (if (> #CPU "68010")
+                (if (askbool
+                          (prompt "Your Amiga is equiped with MC" #CPU "."
+                                  " Some parts of TransAmiga BBS"
+                                  " are compiled for MC68020. Do you"
+                                  " wish to install these versions?")
+                          (help "I suggest to use these optimized versions"
+                                " as they are a bit faster.\n")
+                          (default 1)
+                          (choices "Install" "Skip this part")
+                    )
+                    (copyfiles
+                          (prompt "Copying 68020 binary files...")
+                          (help @copyfiles-help)
+                          (source (tackon (pathonly @icon) "bin_020"))
+                          (dest (tackon #bbspath "bin"))
+                          (all)
+                          (infos)
+                          (confirm)
+                    ) ; end of positive part
+                )
+        ) ; end of if
+
+        (complete 7)
+
+; copy the doc files
+
+        (copyfiles
+                (prompt "Copying documentation files...")
+                (help "This are the documentation files you really should"
+                      " read if you want to use the power of TransAmiga BBS.\n\n"
+                      "TransAmiga.dvi is only needed if you use a TeX read/print util.")
+                (source (tackon (pathonly @icon) "Docs"))
+                (dest (tackon #bbspath "Docs"))
+                (all)
+                (confirm)
+                (infos)
+                (optional force)
+        )
+        (complete 10)
+
+; copy programmers docs
+
+        (copyfiles
+                (prompt "Copying documentation files for programmers...")
+                (help "This are the documentation files you need"
+                      " if you want to make programs for TransAmiga BBS.")
+                (source (tackon (pathonly @icon) "Programming"))
+                (dest (tackon #bbspath "Programming"))
+                (all)
+                (confirm)
+                (infos)
+                (optional force)
+        )
+
+        (complete 12)
+
+; copy the .trans files
+
+        (copyfiles
+                (prompt "Copying TransAmiga BBS ARexx macros...")
+                (help "These files have the real power! You can use"
+                      " ARexx macros to do almost everything a BBS should"
+                      " do and more :-]. This type of files is really important"
+                      " if you want to customize the BBS.")
+                (source (tackon (pathonly @icon) "Rexx"))
+                (dest (tackon #bbspath "Rexx"))
+                (all)
+                (confirm)
+                (infos)
+                (optional force)
+        )
+
+        (complete 15)
+
+; copy example text files
+
+        (copyfiles
+                (prompt "Copying text files...")
+                (help "These files are very important. You can"
+                      " customize the look of your BBS by editing them."
+                      " .ANSI files are for callers with ANSI terminal and"
+                      " files without extension are for normal display."
+                      " You should use an ANSI-Editor to customize the"
+                      " .ANSI files. There are some available for Amiga"
+                      " and a lot more for MS-DOS.")
+                (source (tackon (pathonly @icon) "Text"))
+                (dest (tackon #bbspath "Text"))
+                (all)
+                (confirm)
+                (infos)
+                (optional force)
+        )
+        (complete 20)
+
+; copy bulletins
+
+        (copyfiles
+                (prompt "Copying bulletin files...")
+                (help "These files are needed to start the BBS"
+                      " immediately. If you know how to handle"
+                      " bulletins you can skip this.")
+                (source (tackon (pathonly @icon) "Bulletins"))
+                (dest (tackon #bbspath "Bulletins"))
+                (all)
+                (confirm)
+                (infos)
+                (optional force)
+        )
+
+        (complete 21)
+
+; copy system directory
+
+        (copyfiles
+                (prompt "Copying system files...")
+                (help "These files are needed to start the BBS"
+                      " immediately. If you run TransCfg anyway"
+                      " to set up your BBS you can skip this.")
+                (source (tackon (pathonly @icon) "System"))
+                (dest (tackon #bbspath "System"))
+                (all)
+                (confirm)
+                (infos)
+                (optional force)
+        )
+
+        (complete 23)
+
+; install TransAmiga's defaupt font
+
+        (copyfiles
+                (prompt "Copying BBS font...")
+                (help "The font is needed to display IBM ANSI graphics."
+                      " As IBM ANSI graphics are standard in BBS"
+                      " telecommunication it is essential to have"
+                      " the same outfit locally that is remote.")
+                (source (tackon (pathonly @icon) "fonts"))
+                (dest "fonts:")
+                (all)
+                (confirm)
+                (infos)
+                (optional force)
+        )
+        (complete 25)
+
+; install the libraries
+
+; install hbasic2.library
+
+        (copylib (prompt "TransAmiga v1.25 needs the new"
+                         " hbasic2.library or it will not run. It is"
+                         " installed now.")
+                 (help "TransAmiga v1.25 will not work without"
+                       " hbasic2.library.\n\nIt has to be installed or this"
+                       " install script will fail at a later part!")
+                 (source (tackon (pathonly @icon) "Libs/hbasic2.library"))
+                 (dest "Libs:")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 27)
+
+; install transamiga.library
+
+        (copylib (prompt "TransAmiga v1.25 needs the new"
+                         " transamiga.library. It is"
+                         " installed now.")
+                 (help "TransAmiga v1.25 will not work correctly without"
+                       " the new transamiga.library. If you use an older"
+                       " version you may come accross strange problems and"
+                       " you are not able to use the new ARexx commands."
+                       "\n\nATTENTION! Don't use this library with older"
+                       " versions of TransAmiga as you will have no local"
+                       " display in this case. Other strange things may"
+                       " happen I am currently not aware of.")
+                 (source (tackon (pathonly @icon) "Libs/transamiga.library"))
+                 (dest "Libs:")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 30)
+
+; install Oberon's garbagecollector.library
+
+        (copylib (prompt "garbagecollector.library is needed by some new"
+                         " tools that are supplied with this version."
+                         " Should it be installed now?")
+                 (help "I strongly suggest to install the library or you"
+                       " will not be able to use the programs supplied in"
+                       " bin_020 directory or the correspondig versions in"
+                       " bin directory. Those tools are written in Oberon-II/StormC"
+                       " and the library manages efficient memory handling."
+                       " You really really should install it.")
+                 (source (tackon (pathonly @icon) "Libs/garbagecollector.library"))
+                 (dest "Libs:")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 33)
+
+; install StormWizard's wizard.library
+
+        (copylib (prompt "TransAmiga GUI config tool TransCfgGUI needs the"
+                         " wizard.library."
+                         " have AmigaOS 2.x or up the arp.library maps"
+                         " it's functions to system routines. I detect"
+                         " AmigaOS v" #ver "." #rev " and will install the"
+                         " correct version. Shall I install it?")
+                 (help "wizard.library is an essential library as it"
+                       " handles the complete GUI of TransCfgGUI."
+                       " You need to install it if you want to use TransCfgGUI.")
+                 (source (tackon (tackon (pathonly @icon) "Libs") "wizard.library"))
+                 (dest "Libs:")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 34)
+
+; check which arp.library can be installed
+
+        (if (< #ver 36)
+            (set #arpname "arp.library_39.1")
+            (set #arpname "arp.library_40.2")
+        )
+
+        (complete 35)
+
+; check which zmodem can run on the machine
+
+        (if (> #CPU "68010")
+            (set #libname "xprzmodem.library.020")
+            (set #libname "xprzmodem.library")
+        )
+
+        (complete 40)
+
+; install arp.library
+
+        (copylib (prompt "TransAmiga and library need arp.library to work."
+                         " There are two versions of the library. If you"
+                         " have AmigaOS 2.x or up the arp.library maps"
+                         " it's functions to system routines. I detect"
+                         " AmigaOS v" #ver "." #rev " and will install the"
+                         " correct version. Shall I install it?")
+                 (help "arp.library is also an essential library as it"
+                       " provides routines that make a programmer's life"
+                       " easier when he is forced to compatibility with"
+                       " AmigaOS 1.3 (34.x).")
+                 (source (tackon (tackon (pathonly @icon) "Libs") #arpname))
+                 (dest "Libs:")
+                 (newname "arp.library")
+                 (confirm)
+                 (optional force askuser)
+        ) ; end of copylib
+
+        (complete 45)
+
+; install xprzmodem.library v2.52T
+
+        (copyfiles (prompt "There are several new xprzmodem.library versions"
+                          " floating around, but most of them have bugs or"
+                          " they are extreamely slow and CPU time hungry.")
+                   (help "This xprzmodem.library v2.52t provides a special parameter"
+                         " called T like TransAmiga. If the library is in"
+                         " this mode it accepts upload resumes only if there"
+                         " is no .Desc file.\n\n.Desc files are made by TransAmiga"
+                         " as soon as the file is received completely and"
+                         " written to the filelist. So it's save to say:"
+                         "\n\nIf there is a .Desc file no resume is allowed."
+                         "\n\nThis is the whole secret of the library."
+                         "The library is compiled by Georg 'Gio' Magschok."
+                         "\n\nSeveral SysOps reported problems with v3.x"
+                         " of xprzmodem.library. The library is localized"
+                         " and needs a lot of CPU time. This can lead to"
+                         " transmission errors especially with higher"
+                         " speeds. If you have a really fast CPU you may"
+                         " never come accross this phenomen, but if you"
+                         " do not use a serial board  (e.g. MFC) I strongly"
+                         " suggest to use the supplied version as it works"
+                         " perfectly.")
+                    (source (tackon (tackon (pathonly @icon) "Libs") #libname))
+                    (dest "Libs:")
+                    (newname "xprzmodem.library")
+                    (confirm)
+                    (infos)
+                    (optional force askuser)
+        ) ; end of copyfiles
+
+        (complete 50)
+
+; install FIFO for TrShell
+
+        (if (askbool
+                (prompt "Do you wish to install"
+                        " Fifo library and files? [Read help for more"
+                        " information]")
+                (help "The fifo.library and handler are"
+                      " necessary to use TrShell the BBS shell which allows"
+                      " the SysOp and CoSysOps to use \"Amiga's Shell\""
+                      " from the BBS and do some cleanup or other"
+                      " important stuff that can not be done from the"
+                      " BBS itself. The shell can be used remotely. This"
+                      " means the sysop can log into the BBS via"
+                      " modem and use the shell as if he would be at home."
+                      " Some restrictions are there, e.g. cursor keys are"
+                      " not working in the current version. The shell can"
+                      " be used to run door games from several other BBS"
+                      " packages. If you use it in this matter I have to warn"
+                      " you! When the program fails - perhaps by a user"
+                      " pressing CTRL-C - he can get into the shell and"
+                      " format your drives! Use FailAt at the beginning"
+                      " of the shell-script that is executed to run the"
+                      " program. Set it to a high value e.g. FailAt 9999"
+                      " and you should be safe that noone can breack in"
+                      " and kill your system. Netherless you should test"
+                      " it yourself! Test if you can break the program"
+                      " and enter the shell. If this happens you should"
+                      " not give public access to the door. You can use"
+                      " a commandline switch to disable CTRL-C. If you have"
+                      " problems ask me (Sami Radwan) or any"
+                      " other \"Official Support SysOp\" or a TransAmiga"
+                      " SysOp you know well so there will be no"
+                      " \"backdoors\" that allow them entering the shell.")
+                (default 1)
+                (choices "Install Fifo" "Skip this part")
+            ) ; end of askbool
+                ( ; start positive part
+                 (copyfiles
+                        (prompt "Copying fifo handler...")
+                        (help "fifo-handler is the needed handler.")
+                        (source (tackon (pathonly @icon) "l/fifo-handler"))
+                        (dest "l:")
+                        (confirm)
+                        (infos)
+                        (optional force)
+                 )
+                 (copylib
+                        (prompt "Copying fifo library...")
+                        (help "the needed library is to be copied")
+                        (source (tackon (pathonly @icon) "libs/fifo.library"))
+                        (dest "libs:")
+                        (confirm)
+                        (optional force)
+                 )
+                 (startup "Fifo"
+                        (prompt "Adding fifo start entry to user-startup")
+                        (help "This has to be done to use fifo.")
+                        (command "run <nil: >nil: l:fifo-handler\n")
+                 )
+                ) ; end of positice part & fifo installation
+        ) ; end of fifo installation
+
+        (complete 55)
+
+; make the master config file
+
+        (set #sysname (askstring
+                        (prompt "Enter the FULL name of the SysOp [use"
+                                " only 80 characters or you will have"
+                                " trouble to use the BBS.]")
+                        (help "The name of the SysOp is needed. Normally"
+                              " this should be your complete name in"
+                              " normal order. Maximum is 80 characters.")
+                        (default "")
+                       )
+        ) ; sysop name should be entered now
+        (set #bbsname (askstring
+                        (prompt "Enter the name you wish to give your BBS")
+                        (help "The name of your BBS should be something"
+                              " that's not used by everybody. It is the"
+                              " title of the BBS. For example"
+                              " \"Amiga on Phone\" is the name of my BBS.")
+                        (default "BBS")
+                     )
+        )
+        (set #idletime (asknumber
+                        (prompt "Enter the idle time (seconds) after that a user is"
+                                " logged off")
+                        (help "The idle time indicates how long a user can"
+                              " enter nothing and is considered as acive."
+                              " If the time is passed the user is logged"
+                              " off with the comment \"User inactivity"
+                              " logoff...\" and the BBS is free for the"
+                              " next caller.")
+                        (range 60 3600)
+                        (default 180)
+                      )
+        )
+        (set #syspath (tackon #bbspath "System"))
+        (if (not (exists #syspath))
+                (makedir #syspath)
+        )
+        (set #cfgpath (tackon #bbspath "Configs"))
+        (if (not (exists #cfgpath))
+                (makedir #cfgpath)
+        )
+        (if (not (exists (tackon #bbspath "Files")))
+                (makedir (tackon #bbspath "Files"))
+        )
+        (if (not (exists (tackon #bbspath "Files/Uploads")))
+                (makedir (tackon #bbspath "Files/Uploads"))
+        )
+        (textfile
+                (prompt "Generating Files.BBS file...")
+                (help "This file tells TransAmiga which"
+                      " files are in the area.")
+                (dest (tackon #bbspath "Files/Uploads/Files.BBS"))
+                (append "\\Place your uploads here\n\\\n")
+        )
+        (set #userpath (tackon #bbspath "Users"))
+        (if (not (exists #userpath))
+                (makedir #userpath)
+        )
+        (set #textpath (tackon #bbspath "Text"))
+        (if (not (exists #textpath))
+                (makedir #textpath)
+        )
+        (set #rexxpath (tackon #bbspath "Rexx"))
+        (if (not (exists #rexxpath))
+                (makedir #rexxpath)
+        )
+        (set #bulletinpath (tackon #bbspath "Bulletins"))
+        (if (not (exists #bulletinpath))
+                (makedir #bulletinpath)
+        )
+        (set #extrapath (tackon #bbspath "Extras"))
+        (if (not (exists #extrapath))
+                (makedir #extrapath)
+        )
+        (set #maxbaud (asknumber
+                        (prompt "Enter the maximum DTE baud rate your modem"
+                                " supports.")
+                        (help "DTE is the Data Terminal Equipment. DTE baud"
+                              " rate means the locked baud rate if your modem"
+                              " is a 'high speed' modem and the highest connect"
+                              " rate if your modem does not support locking of"
+                              " the baudrate.")
+                        (range 110 115200)
+                        (default 38400)
+                     )
+        )
+        (set #minbaud (asknumber
+                        (prompt "Enter the minimum baudrate you want to"
+                                " allow people to connect to your modem.")
+                        (help "If the user connects with a lower baud rate"
+                              " he will be toled that his connect rate is"
+                              " too slow and logged off. You should set"
+                              " this at least to 1200. I have several users"
+                              " who have a 1200 baud modem so I set it to"
+                              " this. If you don't want people to connect"
+                              " with such a really slow baudrate set this"
+                              " to something higher. e.g. 2400")
+                        (range 110 115200)
+                        (default 1200)
+                     )
+        )
+        (set #mdmanswer (askstring
+                        (prompt "Enter the modem answer string")
+                        (help "If you want TransAmiga to answer the"
+                              " phone itself you should use the default."
+                              " If you want the modem to answer itself"
+                              " delete the default and enter nothing.")
+                        (default "~~ATA|")
+                       ) ; end of askstring
+        )
+        (set #mdminit (askstring
+                        (prompt "Enter the initialisation command for your"
+                                " modem [read the help if you don't know]")
+                        (help "The initialisation command is very"
+                              " essential. It varies on your needs and on"
+                              " the modem you use. There is no real"
+                              " standard. Most modems have \"Hayes\""
+                              " compatible commands. The default string"
+                              " that is given works with several modems."
+                              " The important thing is that you let the"
+                              " modem answer incomming calls itself if you"
+                              " deleted the modem answer string of the last"
+                              " question.\n"
+                              " Normally the modem answers the phone itself"
+                              " if you use ATS0=1. AT is the"
+                              " command introducter and means \"ATTENTION\""
+                              ". S0=1 sets the S-register 0 to the value 1."
+                              " The effect is that the modem answers the"
+                              " line as soon as it detects 1 ring. A complete"
+                              " init string would be ATZ|~~~ATX4M0S0=1|.\nHave a"
+                              " look to your modem manual to have more"
+                              " detailed information about this. The modem"
+                              " also has to return \"verbal\" result codes"
+                              " and not numerical. Read TransAmiga manual"
+                              " to find out a bit more about this and also"
+                              " read your modem manual.")
+; change help text!!!
+                        (default "ATZ|~~~ATX4M0|~")
+                     )
+        )
+        (set #mdmexit (askstring
+                        (prompt "Enter the modem exit string that is used"
+                                " when a user leaves the BBS.")
+                        (help "The exit string is used to reset the modem"
+                              " when the connection is terminated. Again:"
+                              " read TransAmiga manual and check your"
+                              " modem manual. The default string should be"
+                              " ok for most modems.")
+                        (default "ATZ|")
+                     )
+        )
+        (set #mdmaoff (askstring
+                        (prompt "Enter the modem command that should be"
+                                " executed when you log on locally.")
+                        (help "This command is send to the modem when you"
+                              " log on locally. This means you do not need"
+                              " to use a modem to enter the BBS. Instad you"
+                              " can select \"local logon\" from the pull"
+                              " down menu or use the shortcut. The command"
+                              " is used to let the modem go off hook."
+                              " ATTENTION! In some countries the phone"
+                              " companies don't like this, so be carefull"
+                              " and inform yourself. The default string"
+                              " takes the modem off hook. You can also use"
+                              " ATS0=99 and the modem will never answer the"
+                              " phone when it rings.")
+                        (default "ATH1|")
+                     )
+        )
+        (set #mdmaon (askstring
+                        (prompt "Enter the modem command that should be"
+                                " executed when you have finished your"
+                                " local logon.")
+                        (help "This is just the matching command for the"
+                              " one you just entered. If you used ATS0=99|"
+                              " you should now use ATS0=1|. If you used"
+                              " the default string you should use it now"
+                              " again.")
+                        (default "ATH0|")
+                    )
+        )
+        (set #serialdev (askstring
+                        (prompt "Enter the name of the serial device.")
+                        (help "This is the device that is compatible to"
+                              " the original serial.device delivered by"
+                              " Commodore. If you use the internal serial"
+                              " port or the A2232 card you use the default"
+                              " \"serial.device\". If you use a product"
+                              " from a third party [e.g. MultiFaceCard II"
+                              " by bsc] you have to use the device that"
+                              " is delivered with the product"
+                              " [e.g. \"duart.device\" when you use MFC II]")
+                        (default "serial.device")
+                       )
+        )
+        (set #serialunit (asknumber
+                        (prompt "Enter the unit number you want to use.")
+                        (help "The unit number indicates which port you"
+                              " wish to use. When you use the internal"
+                              " port this number is 0. When you use the"
+                              " first port of A2232 the unit is 2. When"
+                              " you use the first port of MFC II the"
+                              " number is 0. Now you should know which"
+                              " number you have to use.")
+                        (range 0 100)
+                        (default 0)
+                        )
+        )
+        (set #defaccess (asknumber
+                        (prompt "Enter the access that is given to new"
+                                " users. Read the help part if you don't"
+                                " know what it is.")
+                        (help "New users are users who have just joind the"
+                              " BBS. Normally that are first time callers"
+                              " who want to use your BBS regularily. The"
+                              " valid range is 1 to 255. I suggest to use"
+                              " something around 5 as you had no chance to"
+                              " check validate the user and check if his"
+                              " input of the join procedure is true. 255"
+                              " is suggested to be SysOp access. You"
+                              " should *never* give it to any user then"
+                              " yourself.")
+                        (range 1 255)
+                        (default 5)
+                       )
+        )
+        (set #deflimit (asknumber
+                        (prompt "Enter the time limit that is given to new"
+                                " users.")
+                        (help "Again: the user is not validated and has"
+                              " just filled in the user application. This"
+                              " is the time the user gets every day untill"
+                              " you validate him/her. Valid range is 1 to"
+                              " 255. You never should set the time to a"
+                              " value lower than 10 I suggest at least 30.")
+                        (range 1 255)
+                        (default 25)
+                      )
+        )
+        (set #defratio (asknumber
+                        (prompt "Enter the file ratio that is given to new"
+                                " users.")
+                        (help "file ratio: This defines how many files a"
+                              " user can download before he is forced to"
+                              " upload a file. As soon as a file has been"
+                              " uploaded the user can download again the"
+                              " number of files you specify here. 255"
+                              " disables the ratio completely.")
+                        (range 1 255)
+                        (default 20)
+                      )
+        )
+        (set #newbyte (asknumber
+                        (prompt "Enter the byteratio for new users.")
+                        (help "This is similar to file ratio but is based"
+                              " on the byte counting. 0 disables this type"
+                              " of ratio. The maximum is 2147483647.")
+                        (range 0 2147483647)
+                        (default 0)
+                 )
+        )
+        (set #defflags (asknumber
+                        (prompt "This is a bit complicated. You can use"
+                                " flags in the BBS for the commands. You"
+                                " can use them to group users in"
+                                " conjunction with user level. Flags are"
+                                " independant from userlevel. If a user"
+                                " should have access to a command or"
+                                " file/message area both, accesslevel and"
+                                " flags must allow it. Here you enter flags"
+                                " in numerical form. TransAmiga displays"
+                                " them if an other form: --X----X. Read the"
+                                " help to get more information.")
+                        (help "The flags are a bit complicated as I have no"
+                              " time to write a conversion routine for the"
+                              " Installer. TransAmiga allowas 8 flags. The"
+                              " display in the BBS is the following:"
+                              " -------- A X represents an active flag a"
+                              " dash '-' represents an unset flag. 8 - are"
+                              " the equivalent of 8 unset flags. The"
+                              " corresponding number is 0. The flags are"
+                              " stored internally in a byte so each flag"
+                              " has a corresponding number. The number is"
+                              " calculated inverse. Normally the decimal"
+                              " number of bytes is calculated from the"
+                              " right to left but we calculate it from"
+                              " left to right. Read the tech.doc for more"
+                              " detailed information. If you don't know"
+                              " how the flags work you should use 0 for"
+                              " now. You can alter this when you are more"
+                              " familar with the BBS.")
+                        (range 0 255)
+                        (default 0)
+                      )
+        )
+        (set #privacc (asknumber
+                        (prompt "Enter the access level for privileged"
+                                " access.")
+                        (help "This is the access level that gives you"
+                              " power. If you have this access you can"
+                              " read privileged mail. This means you can"
+                              " read ALL mail that is written in the BBS."
+                              " This access is for CoSysOps and SysOp"
+                              " only. Use it carefully. You should give"
+                              " this access only very few people. A user"
+                              " has this access when his access level is"
+                              " equivalent or higher.")
+                        (range 1 255)
+                        (default 250)
+                     )
+        )
+        (set #gtime (asknumber
+                        (prompt "Enter the time for guest callers.")
+                        (help "The guest time is the time a user gets when"
+                              " he loggs on the first time. There should"
+                              " be enouh time to play a bit around so the"
+                              " guest can decide if he want to join the"
+                              " BBS. I suggest 20 minutes.")
+                        (range 1 255)
+                        (default 20)
+                   )
+        )
+        (set #gratio (asknumber
+                        (prompt "Enter the file ratio for guest callers")
+                        (help "File ratio has been explained earlier. If"
+                              " you did not read it then I strongly"
+                              " suggest to read the manual. Remember the"
+                              " user calls for the first time. At least he"
+                              " should be able to download your filelist."
+                              " I suggest 5 and it's default.")
+                        (range 1 255)
+                        (default 5)
+                    )
+        )
+        (set #gbyte (asknumber
+                        (prompt "Enter the byteratio you wish for"
+                                " guest users.")
+                        (help "This is similar to file ratio but is based"
+                              " on the byte counting. 0 disables this type"
+                              " of ratio. The maximum is 2147483647.")
+                        (range 0 2147483647)
+                        (default 0)
+                 )
+        )
+        (if (askbool
+                (prompt "You you want TransAmiga on a custom screen?")
+                (help "When TransAmiga starts up it needs a screen for"
+                      " it's windows. A custom screen is just a screen"
+                      " that is opened by TransAmiga itself. If you don't"
+                      " like TransAmiga to run at an own screen select"
+                      " \"Workbench Screen\" and TransAmiga will open the"
+                      " windows on the Workbench or any other screen that"
+                      " is the default screen in the system.\n\nThe colours"
+                      " of that screen are used. This meens you will not"
+                      " have the proper colours on your TransAmiga"
+                      " windows in most cases. If TransAmiga opens it's"
+                      " own screen the colours are set to ANSI colors so"
+                      " you will have the")
+                        (default 0)
+                        (choices "Workbench screen" "Custom screen")
+                    ) ; end of askbool
+                        (set #scrntype 0)
+                         ; choose interlace or not
+                         ((if (askbool
+                             (prompt "Do you wish an interlaced screen?")
+                             (help
+                              " for TransAmiga loaced screen\".\n\nInterlace"
+                              " doubles the horizontal number of lines."
+                              " This is done by displaying just every"
+                              " second line in one display period. If you"
+                              " use interlace without a flicker fixer the"
+                              " monitor shows an ugly flickering that is"
+                              " in no way good for the eyes.")
+                        (default 0)
+                        (choices "interlaced screen" "noninterlaced screen")
+                    ) ; end of askbool
+                        (set #scrntype 4)
+                        (set #scrntype 2)
+                 ) ; end of if
+                 (set #scrnplanes (asknumber
+                                        (prompt "Enter the number of"
+                                                " bitplanes for the"
+                                                " screen.")
+                                        (help "The bitplane number defines"
+                                              " the number of colours. For"
+                                              " two colours specify 1, for"
+                                              " 4 colours specify 2, 8"
+                                              " colour value is 3 and for 16"
+                                              " colours use 4.")
+                                        (range 1 4)
+                                        (default 3)
+                                 )
+                 )
+                 (set #scrnw (asknumber
+                                (prompt "Enter the width of the screen. [0"
+                                        " tells TransAmiga to use the same"
+                                        " width as the default screen -"
+                                        " Workbench normally.]")
+                                (help "The width of the screen is the"
+                                      " maximim x coordinate. It indicates"
+                                      " how many pixel are used"
+                                      " horizontally for the screen. I"
+                                      " suggest to use a slight overscan"
+                                      " so you have full 80 characters on"
+                                      " the screen. If you use normal"
+                                      " screen width (640) you get 80"
+                                      " characters in a line normally, but"
+                                      " as we use windows with borders you"
+                                      " need more pixel to display 80"
+                                      " characters a line instide the"
+                                      " border.")
+                                (range 0 6000)
+                                (default 650)
+                            )
+                 ) ; screen width is set now
+                 (set #scrnh (asknumber
+                                (prompt "Enter the hight of the screen. [0"
+                                        " tells TransAmiga again to  use"
+                                        " the same as the default screen.]")
+                                (help "the standard screen width in NTSC"
+                                      " is 200. If interlace is used it is"
+                                      " 400. If you have a pal system the"
+                                      " standard display has 256 pixel and"
+                                      " when you use interlace it is 512."
+                                      " I suggest to use the same hight you"
+                                      " use on your default screen. You can"
+                                      " do this by entering 0 and"
+                                      " TransAmiga always catches the"
+                                      " information from the default"
+                                      " screen.\n\nYou may change the size of"
+                                      " the default screen and TransAmiga"
+                                      " will use it at startup. Naturally"
+                                      " TransAmiga does not change the"
+                                      " screen size if it is allready"
+                                      " running and you change the size of"
+                                      " the default screen.")
+                                (range 0 6000)
+                                (default 0)
+                            )
+                 ) ; screen hight is set now
+                 (if (askbool
+                        (prompt "Do you wish to open a blue backdrop window?")
+                        (help "This makes a blue background if you"
+                              " use TransAmiga on a custom screen.")
+                        (default 1)
+                        (choices "use backdrop" "don't use backdrop")
+                     )
+                        (set #backdrop 1)
+                        (set #backdrop 0)
+                 ) ; end of if
+                ) ; end of positive part - Custom screen choosen
+                ((set #scrntype 0)
+                 (set #scrnw 640)
+                 (set #scrnh 0)
+                )) ; end of negative part & if - WB screen choosen
+                (set #termx (asknumber
+                                (prompt "Enter the x-coordinate of the top"
+                                        " left corner of the terminal"
+                                        " window.")
+                                (help "The terminal window is the window"
+                                      " where everything is displayed what"
+                                      " the user sees. I suggest to use 0"
+                                      " so that the window's left border"
+                                      " is as left as possible.")
+                                (range 0 6000)
+                                (default 0)
+                           )
+                )
+                (set #termy (asknumber
+                                (prompt "Enter the y-coordinate of the top"
+                                        " left corner of the terminal"
+                                        " window.")
+                                (help "If you want to see the screen title"
+                                      " you should place the window"
+                                      " directly under it. If you don't"
+                                      " need to see the screen title at"
+                                      " any time you should use 0.")
+                                (range 0 6000)
+                                (default 11)
+                           )
+                )
+                (set #termw (asknumber
+                                (prompt "Enter the width of the terminal"
+                                        "window. [0 tells TransAmiga to"
+                                        " use the highest possible value]")
+                                (help "This should be the same as the"
+                                      " screen width. If you set this to a"
+                                      " lower value you don't need such a"
+                                      " big screen. That would be waste of"
+                                      " chip memory.")
+                                (range 0 6000)
+                                (default 0)
+                            )
+                ) ; terminal window width is set now
+                (set #termh (asknumber
+                                (prompt "Enter the hight of the terminal"
+                                        " window. [0 tells TransAmiga"
+                                        " again to use the highest possible"
+                                        " value.]")
+                                (help "This should be the screen length"
+                                      " minus the y coordinate you entered"
+                                      " before. If you enter a too high"
+                                      " value it will be adjusted to a"
+                                      " valid number internally.")
+                                (range 0 6000)
+                                (default 0)
+                            )
+                ) ; terminal window hight is set now
+                (if (askbool
+                        (prompt "Dou you want a sizing gadget on your"
+                                " terminal window?")
+                        (help "Normally this should not be necessary"
+                              " It's just waste of space in your window."
+                              " I personally prefer to have none but if"
+                              " you need to adjust the size of the window"
+                              " use it.")
+                        (default 0)
+                        (choices "sizing gadget" "no sizing gadget")
+                     )
+                        (set #sizegad 1)
+                        (set #sizegad 0)
+                ) ; sizing gadget choose finished
+                (set #fontname (askstring
+                                (prompt "Which font do you want to use in"
+                                        " the terminal window?")
+                                (help "I strongly suggest to use the"
+                                      " delivered font or any other IBM"
+                                      " compatible font.")
+                                (default "TransIBM.font")
+                               ) ; end of askstring
+                ) ; font name is choosen
+                (set #fontsize (asknumber
+                                (prompt "Enter the font size you want to"
+                                        " use.")
+                                (help "The TransIBM.font comes just in one"
+                                      " size: 8. I suggest not to use"
+                                      " higher values unless you have a"
+                                      " bigger overscan. The AmigaOS can"
+                                      " adjust the font to any size you"
+                                      " wish. I don't know when this"
+                                      " feature was added but AmigaOS 3.0"
+                                      " is surely able to do this. If you"
+                                      " want to know if your system can"
+                                      " do it just start the prefs program"
+                                      " for fonts, choose TransIBM and"
+                                      " enter 11 for the size. If the"
+                                      " display of the font changes your"
+                                      " system is able to adust fontsize.")
+                                (range 3 100)
+                                (default 8)
+                               )
+                ) ; font size choosen
+                (set #cli (asknumber
+                                (prompt "Enter the ANSI colour number you"
+                                        " wish the BBS to use for input.")
+                                (help "There exist 8 ANSI colours that"
+                                      " are numbered from 0 to 7. If you"
+                                      " want to know more about ANSI"
+                                      " colours then read the"
+                                      " corresponding part of the Docs.")
+                                (range 0 7)
+                                (default 7)
+                         )
+                ) ; input colour choosen
+                (set #clp (asknumber
+                                (prompt "Enter the ANSI colour number you"
+                                        " wish the BBS to use for prompts.")
+                                (help "There exist 8 ANSI colours that"
+                                      " are numbered from 0 to 7. If you"
+                                      " want to know more about ANSI"
+                                      " colours then read the"
+                                      " corresponding part of the Docs.")
+                                (range 0 7)
+                                (default 3)
+                         )
+                ) ; prompt colour choosen
+                (set #clt (asknumber
+                                (prompt "Enter the ANSI colour number you"
+                                        " wish the BBS to use for text trim.")
+                                (help "There exist 8 ANSI colours that"
+                                      " are numbered from 0 to 7. If you"
+                                      " want to know more about ANSI"
+                                      " colours then read the"
+                                      " corresponding part of the Docs.")
+                                (range 0 7)
+                                (default 4)
+                         )
+                ) ; text trim colour choosen
+                (if (askbool
+                        (prompt "Do you want to use an input field for"
+                                " ANSI callers?")
+                        (help "The input filed shows the user how many"
+                              " letters he can enter at a prompt.")
+                        (default 1)
+                        (choices "use input field" "no input field")
+                    )
+                        (set #promptfield 1)
+                        (set #promptfield 0)
+                ) ; input field choosen
+                (set #loglevel (asknumber
+                                (prompt "Enter the loglevel for the ammount of"
+                                        " output to the logfile.")
+                                (help "The higher the loglevel the more"
+                                      " TransAmiga writes to the logfile."
+                                      " Experience showed that 6 is a good"
+                                      " value as all important info is stored."
+                                      "\n\n11 is only for debugging and makes"
+                                      " really large logfiles and slows"
+                                      " execution down a lot. There should"
+                                      " never be the need for you to use such a"
+                                      " high loglevel.")
+                                (range 0 11)
+                                (default 6)
+                         )
+                )
+                (set #taskpri (asknumber
+                                (prompt "Enter the priority of TransAmiga's main"
+                                        " task.")
+                                (help "The tast priority tells the operating"
+                                      " system (AmigaOS) how many CPU-time this"
+                                      " program will get. The higher the priority"
+                                      " the more time it will get and the slower"
+                                      " the other tasks are.\n\nNormally most"
+                                      " programs start with priority 0. That is"
+                                      " a good value and should make no problems."
+                                      " Change the value only if you know what"
+                                      " you do!")
+                                (range -3 3)
+                                (default 0)
+                         )
+                )
+                (if (askbool
+                        (prompt "Do you want that the users online time is"
+                                " decreased while chat?")
+                        (help "If the users time is decreased while chat it"
+                              " may happen that he is logged off as soon"
+                              " as he leaves the chat due to no left"
+                              " onlinetime.")
+                        (default 1)
+                        (choices "decrease time" "stop time")
+                    )
+                    (set #chatdec 0)
+                    (set #chatdec 1)
+                )
+                (set #mainconfig (cat #syspath "\n" #cfgpath "\n" #userpath
+                                     "\n" #textpath "\n" #bulletinpath "\n"
+                                     #extrapath "\n" #rexxpath "\n" #maxbaud
+                                     "\n" #mdminit "\n" #mdmexit "\n" #mdmaoff
+                                     "\n" #mdmaon "\n" #serialdev "\n"
+                                     #serialunit "\n" #deflimit "\n" #defratio
+                                     "\n" #defacc "\n" #defflags "\n" #privacc
+                                     "\n" #idletime "\n" #bbsname "\n"
+                                     #sysname "\n" #scrntype "\n" #scrnplanes
+                                     "\n" #backdrop "\n" #scrnw "\n" #scrnh
+                                     "\n" #termx "\n" #termy "\n" #termw "\n"
+                                     #termh "\n" #fontname "\n" #fontsize "\n"
+                                     #cli "\n" #clp "\n" clt "\n" #minbaud "\n"
+                                     #sizegad "\n" #promptfield "\n" #gtime
+                                     "\n" #gratio "\n" #mdmanswer "\n" #loglevel
+                                     "\n" #newbyte "\n" #gbyte "\n" #taskpri
+                                     "\n" #chatdec "\n\n\n\n\n\n\n")
+                )
+                (textfile
+                        (prompt "Generating master configuration file...")
+                        (help "The data you have entered is used to"
+                              " generate the main configuration file.")
+                        (dest (tackon #cfgpath "TransAmiga.cfg"))
+                        (append #mainconfig)
+                        (confirm)
+                ) ; master configuration file is written
+
+        (complete 70)
+
+; make a Message.cfg file
+
+                (set #msgconfig (cat "1\n\n\n\n\n\n\n\n\n\n" #sysname "\n1\n"
+                                    "BBS:Bin/TAEd  %f -n%n -q%q\n"
+                                    "BBS:Bin/TAEd  %f -n%n -q%q\n"
+                                    "0\n1\n\n\n1\nPrivate mail\n"
+                                    "BBS:Mail/Private/\n1\n0\n"
+                                    "0\n0\n0\n0\n\n"
+                                    "In a message of %d, %n wrote to %a:\n"
+                                    "0\n\n")
+                )
+                (textfile
+                        (prompt "Generating message configuration file...")
+                        (help "The data you have entered is used to"
+                              " generate the message configuration file."
+                              "\n\nAs this is a really basic setup only one"
+                              " message conference will be created.")
+                        (dest (tackon #cfgpath "Message.cfg"))
+                        (append #msgconfig)
+                        (confirm)
+                ) ; message configuration file is written
+                (if (not (exists (tackon #bbspath "Mail")))
+                        (makedir (tackon #bbspath "Mail"))
+                )
+                (if (not (exists (tackon #bbspath "Mail/Private")))
+                        (makedir (tackon #bbspath "Mail/Private"))
+                )
+                (textfile
+                        (prompt "Generating Message.BBS file...")
+                        (help "This file tells TransAmiga how many"
+                              "messages are in the conference")
+                        (dest (tackon #bbspath "Mail/Private/Message.BBS"))
+                        (append "200\n0\n0\n")
+                )
+                (textfile
+                        (prompt "Generating LastRead.BBS file...")
+                        (help "This file tells TransAmiga which"
+                              "message was the last the user read")
+                        (dest (tackon #bbspath "Mail/Private/LastRead.BBS"))
+                        (append "\0\0")
+                )
+
+        (complete 75)
+
+; make a userfile for the sysop
+
+                (message "The next set of questions is necessary to generate"
+                         " a userfile for the sysop. Please answer all"
+                         " questions to your best knowledge.")
+                (set #street (askstring
+                                (prompt "Enter the street you live in.")
+                                (help "This is your street addess. Should"
+                                      " be easy to answer.")
+                                (default "")
+                               ) ; end of askstring
+                )
+                (set #city (askstring
+                                (prompt "Enter the name of the city you live in.")
+                                (help "This is the name only. Postal code is"
+                                      " asked later so don't include it here.")
+                                (default "")
+                               ) ; end of askstring
+                )
+                (set #province (askstring
+                                (prompt "Enter the province you live in.")
+                                (help "This is NOT the country! Enter your"
+                                      " state, territory or whatever.")
+                                (default "")
+                               ) ; end of askstring
+                )
+                (set #phone (askstring
+                                (prompt "Enter your phone number.")
+                                (help "This is your voice phone number. Should"
+                                      " be easy to answer.")
+                                (default "")
+                               ) ; end of askstring
+                )
+                (set #computer (askstring
+                                (prompt "Enter the type of your computer.")
+                                (help "This really should"
+                                      " be easy to answer.")
+                                (default "")
+                               ) ; end of askstring
+                )
+                (set #birth (askstring
+                                (prompt "Enter your birth date. ATTENTION!"
+                                        " the format is YYMMDD")
+                                (help "This is your birth date. A special"
+                                      " format is used: YYMMDD.\nYY means"
+                                      " that you enter the year in two digits."
+                                      "\nMM is the month in two digits.\nDD is"
+                                      " the day in two digits.\n\nExample: Your"
+                                      " birth date is 2nd january 1960 so you"
+                                      " would enter 600102. Easy, isn't it?")
+                                (default "")
+                               ) ; end of askstring
+                )
+                (set #pcode (askstring
+                                (prompt "Enter your postal code.")
+                                (help "This is your postal code. Should"
+                                      " be easy to answer.")
+                                (default "")
+                               ) ; end of askstring
+                )
+                (set #pswd (askstring
+                                (prompt "Enter the password for logon. (10 chars max.)")
+                                (help "You need the password every time you log"
+                                      " onto the BBS yourself. The maximum is 10"
+                                      " characters. Use something you remember"
+                                      " but noone can guess easily.")
+                                (default "")
+                               ) ; end of askstring
+                )
+
+                (set #userfile (cat #street "\n" #city "\n" #province "\n" #phone
+                               "\n" #computer "\n" #birth "\n" #pcode "\n\n"
+                               "940801\n" #pswd "\n0\n0\n0\n0\n0\n0\n24\n"
+                               "0\n255\n255\n0\n1\n1\n255\n65000\n255\n"
+                               "1\n1\nDEFAULT\n1\n1\n0\n\n0\n\n\n\n\n\n")
+                )
+
+                (if (not (exists (tackon #bbspath "Users")))
+                        (makedir (tackon #bbspath "Users"))
+                )
+
+                (textfile
+                        (prompt "Generating userfile...")
+                        (help "The data you have entered is used to"
+                              " generate the sysop userfile.")
+                        (dest (tackon (tackon #bbspath "Users") #sysname))
+                        (append #userfile)
+                        (confirm)
+                ) ; userfile is written
+
+                (textfile
+                        (prompt "Generating Users.BBS...")
+                        (help "This file is needed for making"
+                              " new userfiles.")
+                        (dest (tackon (tackon #bbspath "Users") "Users.BBS"))
+                        (append "0\n")
+                ) ; Users.BBS is written
+
+        (complete 80)
+
+; *** the following copies ready to use config files ***
+
+                (message "The further setup is too complex to make it with"
+                         " C= Installer. A working setup will be installed"
+                         " so you can have a look at the BBS.\n\nIf you want"
+                         " to customize edit the config files with a text"
+                         " editor or run TransCfgGUI, TransAmiga's config"
+                         " program.")
+
+; copy the config files
+
+                (copyfiles
+                        (prompt "Copying config files...")
+                        (help "This are the config files that indicate what"
+                              " commandes are displayed in the menus. DO NOT"
+                              " ALTER THESE FILES UNLESS YOU KNOW WHAT YOU DO!"
+                              " Read the manual carefully about the customisation"
+                              " of the BBS if you want to change anything."
+                              " The .Rx files are the files that tell the BBS"
+                              " which ARexx macros should be included as commands"
+                              " in the menu.")
+                        (source (tackon (pathonly @icon) "Configs"))
+                        (dest (tackon #bbspath "Configs"))
+                        (all)
+                        (confirm)
+                        (infos)
+                        (optional force)
+                ) ; end of copyfiles (configs)
+
+        (complete 85)
+
+        (if (askbool 
+                    (prompt "Do you wish to install the MagicWB icon set?")
+                    (help "If you use MagicWB or compatible tools"
+                          " you should really install the icons.\n")
+                    (default 1)
+                    (choices "Install" "Skip this part")
+            )
+            (copyfiles
+                  (prompt "Copying MagicWB icons...")
+                  (help @copyfiles-help)
+                  (source (tackon (pathonly @icon) "MWB_Icons"))
+                  (dest #bbspath)
+                  (all)
+                  (confirm)
+            ) ; end of positive part
+        )
+
+        (complete 90)
+
+; add BBS: assign to user-startup
+
+          (if (askbool
+                (prompt "Do you wish to start TransAmiga from your "
+                        "\"User-Startup\"?")
+                (help "If you start TransAmiga from your User-Startup"
+                      " it is started at every boot.")
+                (default 1)
+                (choices "Yes" "No")
+                ) ; end of askbool
+                (set #startit (cat "Stack 30000\nRun >NIL: " (tackon (tackon #bbspath "bin") "TransAmiga\n") ))
+                (set #startit "")
+          ) ; end of if
+
+          (startup "TransAmiga BBS"
+                (prompt "Add BBS: assign to your User-Startup?")
+                (help "You really should add this assign to your"
+                      " User-Startup or the standard setup will fail.")
+                (command (cat "Assign BBS: " #bbspath "\n" #startit))
+          )
+
+          (complete 100)
+        ) ; end of negative part
+
+
+) ; end of update/script

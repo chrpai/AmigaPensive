@@ -1,0 +1,716 @@
+
+                          +------------------+
+                          |     PlutDoor     |
+                          +------------------+
+
+
+                   Written by Peter Deane (3:622/401)
+
+                              In GFA-BASIC
+
+                             (c) 22-Aug-95
+
+                             Version 1.00 
+
+             Manual $VER: PlutDoor_Manual 1.00 (22-Aug-95)
+
+
+
+                              ------------
+                              Description:
+                              ------------
+
+PlutDoor is a BBS door for Sysops who use TrapDoor or GMS as a frontend.
+
+It will enable any points and nodes who get mail from you, or indeed
+have mail to send to you, to do so while they are logged into the BBS
+rather than via TrapDoor or GMS.
+
+You will need to have enabled 4D Outbound naming before you will be able
+to use this door.
+
+The door will run on a wide variety of BBS programs.  It is a native
+OzMetro Door and can be setup off OzMetro with no special precautions.
+It can also be run from other systems as a command.
+
+
+                            ----------------
+                            Users Viewpoint:
+                            ----------------
+
+Running a point gives you real POWER in BBS messages. You can operate
+just like a mini-BBS in itself for mail, using FidoNet Mailer software
+which is at a peak for file transfer efficiency. It's a very
+cost-effective way for anyone who is long-distance to BBSs to
+communicate.
+
+Up to recently, the only way you could do this was to call your BBS with
+a fidoNet mailer. If you wanted to actually call the BBS to play games
+or maybe chat with other users, a second phone call would have been
+necessary.
+
+Now you can pickup your mail, while logged into the BBS, giving you the
+best of both worlds. The POWER of a point, and the FLEXIBILITY of
+logging into the BBS. We can even take your replies from you, while
+you're at it.
+
+Some points may not use this service often - but it's nice to have for a
+change in case they decide to log in to the host BBS occasionally.
+Other users will take offline message reading just that small step
+further, and become points, using PlutDoor to pickup and deliver their
+mail, and a point package (such as Spot for Amiga users) to read and
+write it.
+
+                              ------------
+                              Requirements
+                              ------------
+
+The program should work under both AmigaDOS 1.3 and 2.0.  It needs
+access to arp.library and traplist.library.  The file transfer program
+Xprd by Oliver Wagner will also require xpr libraries for the (batch)
+protocols you wish to setup.  Ymodem, Zmodem and SZmodem have been
+implemented.  Xmodem is not suitable, not being a batch protocol.
+
+You also need a copy of the delete and copy commands in your search
+path.  The delete command must be able to understand the amiga wildcard
+'#?' to indicate all files in the directory.  Arp, and AmigaDOS delete
+commands would do fine, for example.
+
+
+                             -------------
+                             Command Line:
+                             -------------
+
+OzMetro sysops need not worry about this section at all.  If the door is
+run with no command line, a Metro ram:userdata file is searched for.  If
+found the door will run with no further action on the sysop's part.
+
+This door ALSO runs with a command line, as well as a Metro door.  This
+would be used for running it off, say a single line TransAmiga, or DLG
+system.  Note that since the door handles all the serial code, you will
+need to stop your BBS doing serial reads/writes while running the door.
+If you configure it as an old-fashioned TransAmiga door it will work.
+DLG sysops would need to run the program to stop serial input/output
+before running the door (and then run the opposite program at the
+conclusion).  I forget what the DLG program is called that does this,
+however one DOES exist.  Perhaps a DLG sysop can help me here.
+
+You should be able to get this running under most Amiga BBS software, I
+have in mind Falcon and Excelsior here as well.  Netmail me if you have
+any enquiries.
+
+The usage details:
+
+PlutDoor -u<User Name> -b<Baud> -t<Time> -p<Path> -s<0|1>
+
+
+ALL -x commands must be filled in, you're not allowed to leave blanks.
+
+eg:
+
+PlutDoor -uPeter Deane -b2400 -t50 -pGFA:pd -s1
+PlutDoor -u John Doe  -b9600 -t20 -pDOORS:plutDoor/ -s0
+
+-u<User Name> 
+
+This should NOT be in inverted commas. It can contain as many spaces as
+you like (leading and trailing are trimmed). It is parsed through a
+filter to ensure correct capitalisation regardless of input.
+
+
+-b<Baud>      
+
+This is the rate you want PlutDoor to open the modem at.  If you are
+using a locked modem, give PlutDoor the DTE speed here (eg usually 19200
+or 38400).
+
+If you are not running with a locked terminal speed, you MUST provide
+the actual baud rate of the connection.  Hopefully your BBS program will
+give you an embedded percent command for this.
+
+
+-t<Time>
+
+This is the time remaining for the user.  It's not very stringently
+checked at the moment.  (It's not checked AT ALL, in fact, so you might
+as well give a dummy value of 60 or something....)
+
+
+-p<Path>
+
+This is the pathname for all configs, etc. You must create this door a
+directory. Where this directory is is entirely up to you. This directory
+will be searched for the config file (meaning you can setup multiple
+config files if you like). Other data files default to directories under
+this door directory (but you may change their location in the config).
+
+IT IS IMPORTANT TO ENSURE THIS DIRECTORY EXISTS BEFORE RUNNING THE
+PROGRAM!
+
+
+-s<0|1>
+
+Serial type. Two options are allowed: -s0 for local login (and no serial
+routines enabled - not very useful) and -s1 for remote.
+
+-u, -b, -t, -p, -s are all case-sensitive, but spaces are fine.
+
+
+                                -------
+                                Config:
+                                -------
+
+PlutDoor has a config file, to allow you to have it setup the way YOU
+want. The config file is called 'PlutDoor.CFG' and will be looked for in
+the path you specify in the command line (for Metro users this means the
+DOORxxx/ directory where you have this door setup).
+
+The config has a growing number of keywords.  They are not
+case-sensitive.
+
+Plutonic will use internal defaults in all cases where a keyword is
+incorrectly specified in the config file.  Unknown keywords are ignored.
+
+
+Here are the keywords allowed:
+
+
+----
+HERE
+----
+
+The node number of this BBS.
+
+Eg:
+
+  HERE 3:622/401.0
+
+Default:
+
+  0:0/0.0
+
+
+-------
+BBSNAME
+-------
+
+The name of this BBS.
+
+Eg:
+
+  BBSNAME The Inquestor BBS
+
+Default:
+
+  This BBS
+
+
+-----
+SYSOP
+-----
+
+Name of the sysop
+
+Eg:
+
+  SYSOP Peter Deane
+
+Default:
+
+  Sysop
+
+
+
+-------
+LOGFILE
+-------
+
+The name of the logfile to write to. Most disk and file transfer
+activity is noted, as well as items of security and function.
+
+The logfile is in TrapDoor format. An example appears:
+
+% 21 Aug 95 18:26:28  PlutDoor V1.00 opened
+% 21 Aug 95 18:26:28  Online user: Garry Simmonds
+% 21 Aug 95 18:26:35  User has an account
+% 21 Aug 95 18:26:39  User entered correct password
+% 21 Aug 95 18:26:45  User has 75480 bytes in 2 files here
+% 21 Aug 95 18:26:45  This will take 1 batch send
+% 21 Aug 95 18:26:51  Copy "MAIL:Outbound/3.622.401.5.SU1" to 
+                        .."MAIL:PlutDoor/22D137A1.SU1"
+% 21 Aug 95 18:26:53  Copy "MAIL:Outbound/54.6101.15.0.MO0" to 
+                        .."MAIL:PlutDoor/22D139C9.MO0"
+% 21 Aug 95 18:28:06  Download 1 returned 0
+% 21 Aug 95 18:28:16  Purging Mail:Outbound/ directory
+% 21 Aug 95 18:28:16  Truncating MAIL:Outbound/3.622.401.5.SU1 to zero bytes
+% 21 Aug 95 18:28:16  Truncating MAIL:Outbound/54.6101.15.0.MO0 to zero bytes
+% 21 Aug 95 18:28:17  Deleting Mail:Outbound/3.622.401.5.FLO
+% 21 Aug 95 18:28:17  Deleting Mail:Outbound/54.6101.15.0.FLO
+% 21 Aug 95 18:28:20  Delete MAIL:PlutDoor/#?
+% 21 Aug 95 18:28:21  Deleting .RLO file
+% 21 Aug 95 18:28:22  User says there is mail for us!
+% 21 Aug 95 18:28:38  Upload returned 0
+% 21 Aug 95 18:28:38  Received file: 3.622.401.0.MO0
+% 21 Aug 95 18:28:39  Renamed 3.622.401.0.MO0 as 22D18BF7.MO0
+% 21 Aug 95 18:28:41  delete MAIL:PlutDoor/#?
+% 21 Aug 95 18:28:42  delete T:#?.PKT
+% 21 Aug 95 18:28:42  PlutDoor V1.00 closed
+
+Eg:
+
+  LOGFILE MAIL:Logs/TrapDoor.log
+  LOGFILE LOGS:BBS.Log
+
+Default:
+
+  <path given in command line>PlutDoor.log
+
+
+------
+DEVICE
+------
+
+The name of the serial device to use. This is case-sensitive, so
+watchit!
+
+Eg:
+
+  DEVICE modem0.device
+
+Default:
+
+  serial.device
+
+
+----
+UNIT
+----
+
+If your serial driver is other than unit zero, please specify.
+
+Eg:
+
+  UNIT 1
+
+Default:
+
+  0
+
+
+------
+SWIDTH
+------
+
+The width of the screen to open. Usually 640 for WB 1.3.
+
+Eg:
+
+  SWIDTH 640
+
+Default:
+
+  640
+
+
+-------
+SHEIGHT
+-------
+
+The height of the screen. PAL = 256; NTSC = 200.
+
+Eg:
+
+  SHEIGHT 256
+
+Default:
+
+  200
+
+
+-----
+Note:
+-----
+
+For the following directory specifications, a trailing slash is
+optional.
+
+If the last character is not a : or /, then a / will be added. It
+follows if your directory is an assignment (eg IN:) then you will HAVE
+to add the trailing colon. A trailing slash is optional for other
+directories, however.
+
+You MUST create these directories before running the door. If you
+unarced the archive with full pathnames, the default directories will be
+setup for you.
+
+
+--------
+OUTBOUND
+--------
+
+Your Outbound mail directory.
+
+
+Eg:
+
+  OUTBOUND FH2:Mail/Out
+
+Default:
+
+  Mail:Outbound/
+
+
+-------
+INBOUND
+-------
+
+Your Inbound mail directory.
+
+
+Eg:
+
+  INBOUND DF0:    (just joking)
+  INBOUND NIL:    (ditto)
+
+
+Default:
+
+  MAIL:Inbound/
+
+
+---------
+TEXTFILES
+---------
+
+The directory where several textfiles the door needs to access will be
+kept. New_User.TXT and New_User.LHA, to give info about the door to new
+users should be stored here. Feel free to alter the archive contents
+(but please ensure the files exist!).
+
+
+Eg:
+
+  TEXTFILES BBS:Doorfiles1/Door227/Texts
+
+Default:
+
+  <path given in command line>Texts/
+
+
+-----
+USERS
+-----
+
+The directory where the users' accounts are kept (more later on the
+format of these).  For each person you want to be able to use this door,
+a file <user name> must exist in this directory.  (See next section
+("Users Directory") where the individual user files are explained).
+
+
+Eg:
+
+  USERS BBS:Doorfiles1/Door227/Users
+
+Default:
+
+  <path given in command line>Users/
+
+
+-----
+XFERS
+-----
+
+The default directory where incoming, and renamed outbound files are
+kept. It helps if this is on a partition with a fair bit of room to
+spare. Do NOT keep any files in this directory, it is purged each time
+the door is run! Files will later be copied into their correct
+directories (ie the Inbound).
+
+Make this directory on a partition where you have a lot of room, it has
+to hold a copy of all the arcmail bundles and packets (although not file
+attaches) a system has to receive while the transfer takes place.
+
+Eg:
+
+  XFERS MAIL:PlutDoor
+
+Default:
+
+  <path given in command line>Xfers/
+
+
+----------
+FREQCONFIG
+----------
+
+This command line allows you to specify the name of your FreqServer's
+config.  It can be used in both the main PlutDoor.cfg file, AS WELL AS
+over-ridden in the USER file itself.  This is to enable you to either
+limit, or increase the number of directories a certain user can freq
+from, or maybe give higher or lower time/byte/file limits to certain
+users.
+
+Normally, all users will use the config file you specify in the
+PlutDoor.cfg itself.  However, if you wish to treat one of your users
+specially (either more or less access than normal), you would specify to
+use a different FREQCONFIG in the user's file (see later).
+
+To actually use this setup, you need to use the %C embedded percent
+command to represent your Freqserver's filename in your FREQCONFIG line.
+But see the section immediately following ("FREQHANDLER") for more info
+on that.
+
+
+Eg:
+
+  FREQCONFIG BBS:SkyFreq.cfg
+
+Default:
+
+  FREQCONFIG MAIL:FFRS.cfg
+
+
+-----------
+FREQHANDLER
+-----------
+
+This is where you specify the Freq-server command to run when PlutDoor
+receives a .REQ file from the user.  I have implemented the same
+embedded percent commands as in TrapDoor, so you should be able to use a
+very similar line here, as in your TrapDoor.cfg.
+
+The embedded percent commands implemented are as follows.  Note that
+they are CASE-SENSITIVE.
+
+        %% = a single % sign
+        %A = a string of all the system's AKAs, space separated
+        %b = the DTE (locked) baud rate
+        %B = the baud rate of connection, if available, otherwise DTE
+        %l = the name of PlutDoor's logfile
+        %Z = zone of the online system's primary adrress
+        %N = net of the online system's primary adrress
+        %F = node of the online system's primary adrress
+        %P = point of the online system's primary adrress
+        %n = full 4d address of the online system's primary address
+        %S = remote sysop name in ALL UPPERCASE  (**See Note Below**)
+        %s = remote sysop name in Mixed Case     (**See Note Below**)
+        %I = name of inbound directory
+        %O = name of outbound directory
+        %i = name of the (input) .REQ file  (surrounded by double-quotes)
+        %o = name of the (output) .RLO file (surrounded by double-quotes)
+        %C = config name of FreqServer (from config or user file)
+
+If anyone is user a FreqServer that WON'T run because it needs another
+embedded percent command not provided here, let me know.  However, I've
+implemented about 75% of those available in TrapDoor, so I think ALL
+freqservers will be catered for.  That's the intention anyway!
+
+**NOTE**:  the %S and %s keywords differ from TrapDoor's implementation.
+For PlutDoor, you'd generally want to use %s (lowercase) instead.  If
+you use TrapDoor's %S, you'll get the username in ALL UPPERCASE.
+
+Notice in the example, below, the config file is specified directly.
+This will over-ride ALL OTHER file request server configs.  If, however,
+you want to use the default, a %C is used to take the place of the
+config file.  In this way, it can be specified from the PlutDoor.cfg,
+and then even further customised in the USER file, should you wish to
+use a different config for certain users only.
+
+Eg:
+
+  FREQHANDLER FFRS Mail:FFRS.cfg %i %o %B %n %s
+
+Default:
+
+  FREQHANDLER FFRS %C %i %o %B %n %s
+
+
+                            ---------------
+                            Users Directory
+                            ---------------
+
+In the directory specified for the USERS directory (defaults to a
+directory called Users/ in the path given in the command line), you need
+to have stored files for ANYONE who you think will use the door.  All
+your points, and even any nodes you exchange mail with, if they ever
+login to your BBS.
+
+Set them up so the usernames match those on the BBS. The files you
+create will have spaces in them most of the time. Show caution.
+
+EG say I want 'PETER DEANE' to get his mail from the door.
+
+I setup a file called "Peter Deane" (without the ""'s and not case
+sensitive because it's an amiga filename, okay).  I then edit it with a
+text editor to make it look like:
+
+;
+PASSWORD SECRET
+;
+AKA0 3:622/401
+AKA1 9:200/104.0
+AKA2 16:439/200
+AKA3 41:220/401.0
+AKA4 54:6101/401
+;
+FREQCONFIG BBS:PeterDeaneFreq.cfg
+
+(I was going to write a little User-file editor, but it's pointless
+because they are so easy to do in a text-ed).
+
+You can have up to 10 AKA's.  AKA0 should be specified, however, if an
+AKA0 isn't specified, subsequent AKAs are moved down until AKA0 does
+actually hold an address.  EG if you only specify an AKA1, and no AKA0,
+AKA1 will roll down and become used as AKA0.  This is all handled
+internally by the program, so don't concern yourself with it too much.
+
+AKA0 - AKA9 can be any node number you want to specify for that user.
+
+The PASSWORD line (not case sensitive when compared) might be the user's
+mail session password.  But it can be changed to anything up to 10
+characters long.  Just get the user to leave you a message.  Be warned,
+the users can only enter 10 characters for the password, so DO NOT make
+it longer than 10 characters!
+
+(Be warned, many nodelist program only have an 8-character field for
+passwords, so I advise you to keep them short for the benefit of the
+OTHER users)
+
+The FREQCONFIG line is optional.  If not specified in the individual
+user's file, the one from the PlutDoor.cfg will be used instead.
+(Generally what you want).  See above, under the config command
+explanations for "FREQCONFIG" for more info on this keyword.
+
+I don't think you'll have much trouble maintaining the Users directory.
+See the example files if you are having trouble.
+
+
+                               ----------
+                               Operation:
+                               ----------
+
+You should set the program up as a door off your BBS program.
+TransAmiga provides easily enough keywords to fill in the command line
+correctly.  (See above under "Command Line")
+
+OzMetro users can just set the door up as a normal metro door in a
+BBS:DoorfilesX/DoorXXX directory.
+
+Once the user chooses the BBS option to load the door, his username is
+checked against those in the USERS directory.
+
+If an entry doesn't exist, he is asked (a) if he wants more info and (b)
+if he'd like to DOWNLOAD more info.  Then the door exits.  Rather
+unexciting!  See TEXTFILES above in the config for more information on
+these files sent and offered to the user for download.
+
+If a user does have an account setup, he is asked for the session
+password. If the password is not entered within three attempts, the user
+is locked out of the door. Furthermore, to prevent further attempts, the
+User-File will be renamed to <User Name>.BadPwd in the Users/ directory.
+
+THIS WILL DISABLE ALL FURTHER ACCESS TO THE ACCOUNT UNTIL YOU COME AND
+RENAME IT BACK LATER ON, AND PERHAPS EDIT THE PASSWORD!
+
+Now, assuming the password is valid, the Outbound directory will be
+scanned for all mail (crash, direct, hold and normal) for all AKAs setup
+in the User-File for this user.
+
+Because we have to issue a command line to Xprd, (255 characters
+maximum) it may take several batch sends for the files to be
+transferred.  Often there will only be one file send required, but it
+just depends on the number of files waiting for the user.
+
+The files will eventually be transferred via Ymodem, Zmodem or SZmodem,
+and the user is asked whether to update the outbound directory.  This is
+a final confidence check in case XPRD returns the wrong return code.
+The user will know if he got the files okay or not, and can abort
+directory cleaning should he deem it necessary.
+
+If Yes is answered, then the outbound directory is pruned. Netmail will
+be deleted, arcmail packets truncated, .TIC files deleted, etc, etc in
+strict accordance with all TrapDoor conventions.
+
+Otherwise, the Outbound directory will be left in exactly the same state
+as it was before the user entered the door.
+
+Then we ask the user if there is mail HE wants to send us. He proceeds
+with a batch upload, (these files going into the XFERS directory, as
+specified in the config), and then the files are transferred to the
+BBS's Inbound directory.
+
+If the files sent should happen to be named in the 4D TrapDoor scheme,
+they will be appropriately renamed on the way over to Inbound. This is
+of ultimate convenience for your TrapDoor/Foozle points.
+
+Sometimes, files moved over to InBound get renamed a little wierdly.
+Just ensure you tell your users only to transfer normal mail files.  If
+they have other types of files to send, then UPLOAD them.  If only mail
+is sent to the door, I guarantee its safety into Inbound.  Other files,
+will be fine, except if they already exist in the inbound directory, in
+which case they'll be renamed as a Timestamp.
+
+Sometimes PlutDoor is fooled by the filenames a user uploads.  Once,
+someone sent me a file called "APPLICATION.FRM" through PlutDoor.
+PlutDoor saw it ended in .FR..  and renamed it to a mail bundle name on
+the way over to the inbound.  This is the only quirk the door will present you
+with, however all renaming is logged, so you can check the log if you
+need to find a file that seems to have disappeared.
+
+Thus concludes the session. Your point is now free to play Space Empire
+and Global War.
+
+
+                             -------------
+                             XPRD's Screen
+                             -------------
+
+When a file is sent or received, Oliver Wagner's XPRD is used to do the
+work.  This is a standalone program for file transfers. One warning!
+XprD opens its window on the Current Active Screen. You have to be
+VERY careful that this screen never closes down while XPRGate is doing
+its stuff.
+
+So, to cater for this, when a user is about to start a file transfer,
+the Door's screen itself is pushed to the front.  This will interrupt
+what you are doing, but ensure that XprD opens on a safe screen that
+will be existant throughout the user's visit to the door.
+
+
+                              -----------
+                              Copyrights:
+                              -----------
+
+
+Many thanks to Oliver Wagner, and the xpr authors for the file transfer
+side of things.
+
+This door is still copyright, but freeware.  The full GFA source is
+included in the archive, but you may NOT distribute modified copies, if
+you modify the source, then you should use it on your system alone.  If
+you have any great suggestions, tell ME, I'll implement them, and
+release a later version myself.
+
+If you have ANY questions, need ANY help or simply want to give me the
+buzz of knowing this software is being used please send me mail to any
+of these addresses:
+
+
+        Peter Deane
+
+        FidoNet:   3:622/401        Postal: PO Box 228
+        GlobalNet: 54:6101/401              Swansea  NSW  2281
+        AmigaNet:  41:220/401               AUSTRALIA
+
+        Internet: peter.deane@p0.f401.n622.z3.fido.zeta.org.au
+                  (okay, I cheated, but the gate works really well)
+
+        Internet: c8345041@cc.newcastle.edu.au
+
+        This last address is my uni account, however it will only apply
+        for 1995, and I only login at most, once a week.  Fido is
+        definitely the best way to contact me.
+
+        Or call the BBS:   from O/S   +61-49-72-1647
+        (24 hrs)           from Aust  (049) 72-1647
+

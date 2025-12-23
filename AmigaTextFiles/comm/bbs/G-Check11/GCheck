@@ -1,0 +1,136 @@
+/*****************************************************************************
+  Gfile Checker     By Silent One  Copyright (C) 1991                         
+  Version 1.1                                                                 
+ *****************************************************************************
+ See included documentation for additional program information.
+
+ To contact me call at the Amiga Artist's BBS (310) 590-9949.
+ or write to me at the following address:
+ 
+ Amiga Artists
+ Post Box 22045
+ Long Beach, CA  90813
+ ****************************************************************************/
+
+/* Editable Text */
+
+text.1="\n1\c3(\c7Nothing new in GFiles\c3)\q1"
+text.2="\n1\c3(\c7There are \c1NEW\c7 Gfiles!\c3)\q1"
+text.3="\n1\c3(\c7There are NO Gfiles availiable\c3)\q1"
+
+/* Directories to check */
+
+dirs=1					/* Set to total number of directories */
+dir.1="gfiles:"				/* Normally set to GFILES:            */
+					/* Make sure to use full path and     */
+					/* put a "/" at then end.             */
+
+
+/*****************************<Main Program>***************************/
+options results
+signal on ERROR
+signal on IOERR
+signal on SYNTAX
+
+DEBUG="N"
+
+/*Variables*/
+
+listfile="t:listtmp"
+checkfile="_items2"
+GETUSER 1500422;  cdate=right(result,18)
+pfiled=0000000000
+/* Check for Any Gfiles */
+
+if ~exists(dir.1||checkfile) then do
+  TRANSMIT text.3
+  exit
+end
+
+/* Loop for latest Gfile */
+
+l=0
+do until l>=dirs
+l=l+1
+if ~exists(dir.l||checkfile) then do
+ transmit 'Gfile Directory file ('dir.l||checkfile') not there!'
+ exit
+end
+address command 'c:list >'listfile' DATES "'dir.l||checkfile'"'
+
+/*Read*/
+
+call open(file,listfile,'R')
+i=0
+do until eof(file)=1
+ i=i+1
+ list.i=readln(file)
+end
+call close(file)
+
+GETCARRIER;if result="FALSE" then exit
+
+/*Parse Dates to YYMMDD format */
+
+list.1=right(list.1,18)
+month=substr(list.1,4,3)
+call setmonth
+fmonth=month
+ftime=substr(list.1,11,2)||substr(list.1,14,2)
+filed=substr(list.1,8,2)||fmonth||left(list.1,2)||ftime
+if debug="Y" then transmit 'Dir#'l'='filed
+if filed<pfiled then filed=pfiled
+pfiled=filed
+end
+
+/* Parse Call Date */
+
+month=substr(cdate,4,3)
+call setmonth
+cmonth=month/*Display Results */
+ctime=substr(cdate,13,2)||substr(cdate,16,2)
+if right(cdate,1)="p" then ctime=ctime+1200
+calld=substr(cdate,10,2)||cmonth||left(cdate,2)||ctime
+
+/*Display Results*/
+
+if debug="Y" then do
+transmit '\n1  Last Call Date='cdate
+transmit '  Last Call Time='ctime
+transmit 'Latest File Date='list.1
+transmit 'Latest File Time='ftime
+transmit '\n1Is 'calld' >= 'filed' ?   If so it should be new!'
+end
+
+if calld >= filed then transmit text.1 
+ else transmit text.2
+ 
+address command 'C:DELETE 'listfile
+
+exit
+
+SETMONTH:
+/* Set up the months table - from names to numbers, */
+
+
+if month="Jan" then month = 01
+if month="Feb" then month = 02
+if month="Mar" then month = 03
+if month="Apr" then month = 04
+if month="May" then month = 05
+if month="Jun" then month = 06
+if month="Jul" then month = 07
+if month="Aug" then month = 08
+if month="Sep" then month = 09
+if month="Oct" then month = 10
+if month="Nov" then month = 11
+if month="Dec" then month = 12
+
+return
+
+ERROR:
+IOERR:
+SYNTAX:
+  Transmit "\c7GFILE ERROR:" errortext(RC) "in line" SIGL
+  Logentry "\c7GFILE ERROR:" errortext(RC) "in line" SIGL
+

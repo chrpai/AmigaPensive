@@ -1,0 +1,126 @@
+/* File Menu */
+
+MenuName "Files"
+
+MenuText "Text/FileMenu"
+
+Prompt "(\(GetTimeLeft())) \(27)[36m\(GetFileArea()): \(27)[0m"
+
+Unknown "\(27)[36mInvalid command: \(27)[0m'%s'"
+
+Command "desc" {
+    $opt = arg(1);
+    if($opt == "") $opt = AskInput("Enter filename to change description of: ", "", 40);
+    if($opt != "") {
+        rexx("ChgDesc \($opt)");
+        rexx("SaveExt");
+    }
+};
+
+Command "?" {
+    rexx("SendASCII Text/FileMenu.txt");
+};
+
+Command "sel" {
+    $opt = "";
+    $an = 1;
+    while(arg($an) != "") {
+        $opt = "\($opt) \(arg($an))";
+        $an = $an + 1;
+    }
+    rexx("SelectFiles\($opt)");
+};
+
+Command "download" (N:1) {
+    rexx("LogEntry Downloading files");
+    if(arg(1) != "") {
+        $an = 1;
+        while(arg($an) != "") {
+            rexx("MarkFile !\(arg($an))");
+            $an = $an + 1;
+        }
+    }
+    rexx("SendASCII Text/Download.txt");
+    rexx("Download");
+};
+
+Command "upload" (N:1) {
+    rexx("LogEntry Uploading files");
+    rexx("SendASCII Text/Upload.txt");
+    rexx("Upload");
+};
+
+Command "mark" (N:1) {
+    if(arg(1) != "") {
+        $an = 1;
+        while(arg($an) != "") {
+            rexx("MarkFile \(arg($an))");
+            $an = $an + 1;
+        }
+    } else rexx("MarkFile");
+};
+
+Command "list" (N:1) {
+    $opt = "-M -L";
+    if(arg(1) != "") {
+        $an = 1;
+        while(arg($an) != "") {
+            if(str(arg($an), 1, 1) == "-") {
+                $id = str(arg($an), 2, 1);
+                if($id == "d") $opt = "\($opt) -d\(GetDateVal() - str(arg($an), 3, len(arg($an)) - 2))";
+                else if($id == "n") $opt = "\($opt) -d\(GetUserMisc("LASTFSCAN"))";
+                else if($id == "a") $opt = "\($opt) -E";
+                else if($id == "!") $opt = "\($opt) -\(str(arg($an), 3, 1))";
+                else $opt = "\($opt) \(arg($an))";
+            } else $opt = "\($opt) -P\(arg($an))";
+            $an = $an + 1;
+        }
+    }
+    rexx("ListFiles \($opt)");
+};
+
+Command "area" (N:1) {
+    if(arg(1) != "") {
+        $an = 1;
+        while(arg($an) != "") {
+            rexx("SelectFileArea \(arg($an))");
+            $an = $an + 1;
+        }
+    } else rexx("SelectFileArea");
+};
+
+Command "find" (N:1) {
+    if(arg(1) != "") $sstr = arg(1);
+    else $sstr = AskInput("\(27)[32mEnter search string: \(27)[0m", "", 60);
+    if($sstr != "") {
+        rexx("SendModem \(27)[33mSearching for: \(27)[0m'\($sstr)'\(13)\(10)\(13)\(10)");
+        rexx("ListFiles -A -M -L -B -N -U -F'\($sstr)'");
+    } else rexx("SendModem \(27)[31mOperation canceled\(27)[0m\(13)\(10)");
+};
+
+Command "view" (N:1) {
+    if(arg(1) != "") $aname = arg(1);
+    else $aname = AskInput("\(27)[32mEnter archive name: \(27)[0m", "", 60);
+    $aname = GetFilePath($aname);
+    if($aname == "") rexx("SendModem \(13)\(10)\(27)[31mCouldn't find the file\(13)\(10)\(27)[0m");
+    else {
+        rexx("SendModem \(13)\(10)Viewing file\(13)\(10)\(13)\(10)");
+        dos("BBS:Rexx/ViewArc.rexx >t:varctmp.txt\(node()) \($aname)");
+        rexx("SendASCII t:varctmp.txt\(node())");
+        dos("delete t:varctmp.txt\(node())");
+        GetHotkey("Press any key to continue...");
+        rexx("SendModem \(13)\(10)");
+    }
+};
+
+Command ":" {
+    rexx("FileRoot");
+};
+
+Command "/" {
+    rexx("ParentFileArea");
+};
+
+Command "quit" (N:1) {
+    menu("MainMenu.menu");
+};

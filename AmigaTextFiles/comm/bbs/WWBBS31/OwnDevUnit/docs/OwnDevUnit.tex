@@ -1,0 +1,302 @@
+\magnification=\magstephalf
+\input autodocs.tex
+
+%\DVItext
+
+\def\ODU{OwnDevUnit.li\-brary}
+\def\NULL{{\TT NULL}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\Header{\ODU}{AttemptDevUnit}
+\Section{NAME}
+AttemptDevUnit --- Attempt to lock a device/unit
+
+\Section{SYNOPSIS}
+\Synopsis Failure d0 = AttemptDevUnit Device a0 Unit d0 OwnerName a1
+NotifyBit d1.b;
+
+\BeginCode!
+UBYTE   *Failure;
+UBYTE   *Device;
+ULONG    Unit;
+UBYTE   *OwnerName;
+UBYTE    NotifyBit;
+!EndCode
+
+\Section{FUNCTION}
+This function will attempt to lock the specified device/unit.  It will wait
+a maximum of five seconds for the device/unit to become free.  This delay
+is to allow an owner that has requested notification to get off the device
+when the attempt is made.  This function is intended for interactive use
+where blocking indefinitely is undesirable.
+
+\Section{INPUTS}
+\SUBsection{Device}
+A pointer to the name of the device you wish to lock.
+\EndSub
+
+\SUBsection{Unit}
+The unit number of the device you wish to lock.
+\EndSub
+
+\SUBsection{OwnerName}
+A pointer to a name returned to the caller of {\TT AttemptDevUnit()} when
+you refuse to give up the lock to someone else.
+\EndSub
+
+\SUBsection{NotifyBit}
+Some programs, such as {\sl Getty,} sit on a device waiting for a call to
+come in.  It is to their advantage to know when someone else wants the device
+so that they can release the lock.  This would allow someone to use a term
+program, for instance, and not have to specifically shut down the program
+sitting on the device.
+
+If you wish to be notified when someone tries to lock the device/unit you
+own, pass a signal bit number, as returned by {\TT AllocSignal()}, in this
+argument.  When someone tries to lock the device/unit, your task will be
+signaled.  Passing a zero in this argument indicates that you do not wish
+to be notified when someone requests the device.
+\EndSub
+
+\Section{RETURNS}
+If the device/unit is successfully locked, \NULL\ is returned.  If someone
+else owns the device, a pointer to their {\TT OwnerName} is returned.  If
+an internal error occurred, a pointer to an error message is returned.
+
+All error messages begin with {\TT ODUERR\_LEADCHAR}.  This allows one to
+quickly check if the returned value is an error message or owner name.  The
+possible errors are:
+
+\Item ODUERR\_NOMEM
+An out of memory condition occurred while attempting to lock the device.
+
+\Item ODUERR\_NOTIMER
+The timer.device could not be opened while attempting to lock the device.
+
+\Item ODUERR\_BADNAME
+An invalid device name was supplied.  This occurs only when {\TT Device} is
+\NULL.
+
+\Item ODUERR\_BADBIT
+An invalid notify bit was supplied.  This occurs only when {\TT NotifyBit}
+equals -1.
+
+\Item ODUERR\_UNKNOWN
+Not strictly an error.  This occurs when the lock could not be granted, but
+the name of the current owner is \NULL.
+
+\Section{BUGS}
+None know.
+
+\Section{SEE ALSO}
+{\TT LockDevUnit()},
+{\TT exec.library/AllocSignal()}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\Header{\ODU}{AvailDevUnit}
+\Section{NAME}
+AvailDevUnit --- Quickly check the availability of a device/unit
+
+\Section{SYNOPSIS}
+\Synopsis Truth d0 = AvailDevUnit Device a0 Unit d0;
+
+\BeginCode!
+BOOL     Truth;
+UBYTE   *Device;
+ULONG    Unit;
+!EndCode
+
+\Section{FUNCTION}
+This function will quickly determine if a device/unit is currently
+available (i.e., not locked).  It does not perform a lock.  It is intended
+for cases where one must wait for a device/unit to become free, but because
+of the nature of the code, waiting the five seconds {\TT AttempDevUnit()}
+takes to return is undesirable.
+
+\Section{INPUTS}
+\SUBsection{Device}
+A pointer to the name of the device you wish to check.
+\EndSub
+
+\SUBsection{Unit}
+The unit number of the device you wish to check.
+
+\Section{RETURNS}
+If the device/unit is currently available, {\TT TRUE} is returned.  If it
+is currently locked, {\TT FALSE} is returned.
+
+\Section{BUGS}
+None known.
+
+\Section{SEE ALSO}
+{\TT AttemptDevUnit()}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\Header{\ODU}{FreeDevUnit}
+\Section{NAME}
+FreeDevUnit --- Release a lock on a device/unit
+
+\Section {SYNOPSIS}
+\Synopsis = FreeDevUnit Device a0 Unit d0;
+
+\BeginCode!
+UBYTE   *Device;
+ULONG    Unit;
+!EndCode
+
+\Section{FUNCTION}
+Releases a lock on a device/unit previously attained by a call to {\TT
+AttemptDevUnit()} or {\TT LockDevUnit()}.  This function must be called
+from the same task context that the lock was attained under or the
+device/unit will not be freed!
+
+\Section{INPUTS}
+\SUBsection{Device}
+A pointer to the name of the device you wish to release.
+\EndSub
+
+\SUBsection{Unit}
+The unit number of the device you wish to release.
+
+\Section{RETURNS}
+None.
+
+\Section{BUGS}
+None known.
+
+\Section{SEE ALSO}
+{\TT AttemptDevUnit()},
+{\TT FreeDevUnit()}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\Header{\ODU}{LockDevUnit}
+\Section{NAME}
+LockDevUnit --- Block until a lock on a device/unit is granted
+
+\Section{SYNOPSIS}
+\Synopsis Failure d0 = LockDevUnit Device a0 Unit d0 OwnerName a1
+NotifyBit d1.b;
+
+\BeginCode!
+UBYTE   *Failure;
+UBYTE   *Device;
+ULONG    Unit;
+UBYTE   *OwnerName;
+UBYTE    NotifyBit;
+!EndCode
+
+\Section{FUNCTION}
+This function will block until a lock on the specified device/unit is
+granted.  It is intended for non-interactive use.
+
+\Section{INPUTS}
+\SUBsection{Device}
+A pointer to the name of the device you wish to lock.
+\EndSub
+
+\SUBsection{Unit}
+The unit number of the device you wish to lock.
+\EndSub
+
+\SUBsection{OwnerName}
+A pointer to a name returned to the caller of {\TT AttemptDevUnit()} when
+you refuse to give up the lock to someone else.
+\EndSub
+
+\SUBsection{NotifyBit}
+Some programs, such as {\sl Getty,} sit on a device waiting for a call to
+come in.  It is to their advantage to know when someone else wants the device
+so that they can release the lock.  This would allow someone to use a term
+program, for instance, and not have to specifically shut down the program
+sitting on the device.
+
+If you wish to be notified when someone tries to lock the device/unit you
+own, pass a signal bit number, as returned by {\TT AllocSignal()}, in this
+argument.  When someone tries to lock the device/unit, your task will be
+signaled.  Passing a zero in this argument indicates that you do not wish
+to be notified when someone requests the device.
+\EndSub
+
+\Section{RETURNS}
+If the device/unit is successfully locked, \NULL\ is returned.  If an
+internal error occurred, a pointer to an error message is returned.
+
+All error messages begin with {\TT ODUERR\_LEADCHAR}.  This allows one to
+quickly check if the returned value is an error message or owner name.  The
+possible errors are:
+
+\Item ODUERR\_NOMEM
+An out of memory condition occurred while attempting to lock the device.
+
+\Item ODUERR\_NOTIMER
+The timer.device could not be opened while attempting to lock the device.
+
+\Item ODUERR\_BADNAME
+An invalid device name was supplied.  This occurs only when {\TT Device} is
+\NULL.
+
+\Item ODUERR\_BADBIT
+An invalid notify bit was supplied.  This occurs only when {\TT NotifyBit}
+equals -1.
+
+\Section{BUGS}
+None know.
+
+\Section{SEE ALSO}
+{\TT AttemptDevUnit()},
+{\TT exec.library/AllocSignal()}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\Header{\ODU}{NameDevUnit}
+\Section{NAME}
+NameDevUnit --- Change the owner name value of a locked device/unit
+
+\Section{SYNOPSIS}
+\Synopsis = NameDevUnit Device a0 Unit d0 OwnerName a1;
+
+\BeginCode!
+UBYTE   *Device;
+ULONG    Unit;
+UBYTE   *OwnerName;
+!EndCode
+
+\Section{FUNCTION}
+This allows one to change the owner name returned by {\TT
+AttemptDevUnit()}.  You must own the lock on the specified device/unit or
+this function will do nothing.
+
+This function is intended for programs such as {\sl Getty,} which sit on
+a device and launch other programs as calls are detected.
+
+\Section{INPUTS}
+\SUBsection{Device}
+A pointer to the name of the device you wish to alter.
+\EndSub
+
+\SUBsection{Unit}
+The unit number of the device you wish to alter.
+\EndSub
+
+\SUBsection{OwnerName}
+A pointer to a name returned to the caller of {\TT AttemptDevUnit()} when
+you refuse to give up the lock to someone else.
+\EndSub
+
+\Section{RETURNS}
+None.
+
+\Section{BUGS}
+None known.
+
+\Section{SEE ALSO}
+{\TT AttemptDevUnit()}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\TableOfContents
+\bye

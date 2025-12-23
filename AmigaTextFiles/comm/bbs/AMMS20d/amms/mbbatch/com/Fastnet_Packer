@@ -1,0 +1,117 @@
+;
+;       *********************************************************
+;       *                                                       *
+;       *             NETCALL PACK-BATCHDATEI                   *
+;       *                                                       *
+;       *********************************************************
+;
+;	Autor: Michael Scheler
+;	$VER: 2.02				Datum : 16.08.1995
+;
+;	Beschreibung :
+;	Diese Batch erzeugt fuer die Befehle FASTNET SERVER und
+;	FASTNET CLIENT eine Fastnet-Sendedatei <USERNAME>@FA.LHA und
+;	ein Verwaltungsfile <USERNAME>@FA.MSGNR im Directory
+;	MBNET:EXPORT/ .
+;	Existieren dort schon diese Dateien, so werden die Alten geloescht
+;	und Neue erzeugt.
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Level und
+;	Flags auf die folgende Befehle zugreifen kann :
+;
+;	BREAK OFF
+;	CHECK FILE
+;	EXTERN
+;	FASTNET MAKEFILE
+;	GOTO
+;	IF
+;	LOGOUT			<- Option /FAST muss unterstuetzt werden !
+;	ON ERROR
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	DELETE
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) :
+;	USERNAME : Name der anzurufenen Node
+;	STRASSE  : @NETCALL
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) des Hauptnetztes,
+;	die aber nicht der eigentliche Server im Hauptnetz ist, sondern nur
+;	fuer das Importieren eines weiteres Unternetzes dient.
+;	USERNAME : Name der anzurufenen Node
+;	STRASSE  : @LOCALNET
+;
+;	Einrichtung eines LocalGates fuer die Einbindung eines anderen
+;	lokalen Netzwerks :
+;	USERNAME : Name der anzurufenen Node
+;	VORNAME  : Gatename im Fastnet
+;	STRASSE  : @LOCALGATE
+;
+;	Einrichtung eines Gates fuer die Einbindung eines anderen 
+;	globalen Netzwerks :
+;	USERNAME : Name der anzurufenen Node
+;	VORNAME  : Gatename im Fastnet
+;	NACHNAME : Gatename im Fremd-Netz
+;	STRASSE  : @GATE
+;
+;	Konstanten :
+;
+TMPDIR   = "mbmsg:point/'{port}'/"		; TMP-Directory
+NETDIR   = "mbnet:Export/"			; Export-Directory
+MAXKBYT  = 2000					; Max. Laenge des Msg-Files
+COPYFILE = "'{NAME}'@FA.lha"			; Vorgabefile (Pack-Event)
+COPYNR   = "'{NAME}'@FA.msgnr"			; File fuer Msg-Nummern
+MSGFILE  = "msgs"				; File fuer Msgs
+PACKER   = "lha -IP-1 m ""'NETDIR''COPYFILE'"" ""'TMPDIR''MSGFILE'"""
+						; Packen
+;
+;	Abbruch sperren / Fehler umleiten
+;
+
+_break off					; Kein Break erlauben
+_on error END_FAIL				; Label fuer Fehler
+
+;
+;	Optionen fuer Zusatz-Funktionen erzeugen
+;
+
+ MAKOPT=""
+_if {STREET} != "@NETCALL" then _goto NONETCALL
+ MAKOPT=""
+_goto ENDOFOPT
+NONETCALL:
+_if {STREET} != "@LOCALGATE" then _goto NOLOCALGATE
+ MAKOPT="/Filter=%0111100000000/Type=2"
+_goto ENDOFOPT
+NOLOCALGATE:
+_if {STREET} != "@GATE" then _goto NOGATE
+ MAKOPT="/Filter=%0111100000000/Type=1"
+_goto ENDOFOPT
+NOGATE:
+_if {STREET} != "@LOCALNET" then _goto NOLOCALNET
+ MAKOPT="/Filter=%0111100000000"
+_goto ENDOFOPT
+NOLOCALNET:
+ENDOFOPT:
+
+;
+;	Alles aus TMP-Directory loeschen
+;
+
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" ; TMP-Dir loeschen
+
+;
+;	Neue Nachrichten fuer andere Box sammeln & packen
+;
+
+_extern/q delete "'NETDIR''COPYFILE'" "'NETDIR''COPYNR'" ; Alte Files loeschen
+_fastnet makefile'MAKOPT' "'TMPDIR''MSGFILE'" 'MAXKBYT' "'NETDIR''COPYNR'"
+_extern/q 'PACKER'
+
+;
+;	Ende
+;
+
+END_FAIL:
+_logout/f					; Ausloggen

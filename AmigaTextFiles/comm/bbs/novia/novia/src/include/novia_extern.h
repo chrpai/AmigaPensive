@@ -1,0 +1,5 @@
+#ifndef NOVIA_EXTERN_H
+#define NOVIA_EXTERN_H
+#define NOVIA_EXTERN_H_VERSION "$VER: 0.01 (08.05.1998)"
+
+#endif

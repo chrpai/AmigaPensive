@@ -1,0 +1,155 @@
+@Database CFG_FCheck
+
+@Index HBBS:Docs/Misc/Index.guide/MAIN
+
+@Node Main "HBBS:System/FCheck - Config File"
+
+  Description
+  ===========
+
+  The "HBBS:System/FCheck" file defines the options and commands that
+  are used to check uploaded files for corruption.
+
+  If a corrupt file is found, the file is moved to the BADFiles directory
+  for the current conference, as specified by the @{"ConfConfig/BadFiles_XX" link HBBS:Docs/Configuration/ConfConfig.Guide/BadFiles_XX} option
+  in the conferences "ConfConfig" file.
+
+  Messages will also be loggedin the callers log and the main error log file.
+
+  Options
+  =======
+
+  All options must be specified for each type of file.
+
+  Where <ext> is the extension of a file, e.g. for "test.lha" it would be "LHA"
+
+    FileTypeDesc_<ext>=<String>    @{" More... " link FileTypeDesc}
+    CheckerCMD_<ext>=<String>      @{" More... " link CheckerCMD}
+    CheckerParams_<ext>=<String>   @{" More... " link CheckerParams}
+    Error_<ext>=<String>           @{" More... " link Error}
+
+  Example
+  =======
+
+  FileTypeDesc_LHA=LHA Archive
+  CheckerCMD_LHA=LHA
+  CheckerParams_LHA=t -Qa -M -N @F@
+  Error_LHA_1=Error on file
+  Error_LHA_2=WARNING:
+  Error_LHA_3=skipping corrupt
+  Error_LHA_4=Operation not entirely successful
+
+  Say you were on node 3 an uploaded TEST.LHA using the above settings, the
+  actual command that would be executed would be:
+
+  LHA t -Qa -M -N TEST.LHA
+
+@EndNode
+
+@Node FileTypeDesc "FileTypeDesc"
+
+  FileTypeDesc_<ext>=<String>
+
+    E.G.
+
+    FileTypeDesc_LHA=LHA Archive
+
+    No Default, Must Be Set!
+
+    This is a string that is displayed to the users, telling them what
+    kind of file is being checked.
+
+@EndNode
+
+@Node CheckerCMD "CheckerCMD"
+
+  CheckerCMD_<ext>=<String>
+
+    E.G.
+
+    CheckerCMD_LHA=LHA
+
+    No Default, Must Be Set!
+
+    This option specifies the actuall amigados program to run.
+
+    The current directory is set to the node's playpen directory before the
+    command is run.
+
+    The command must be in the path, otherwise you must specify a full path
+    and file name, e.g. CheckerCMD_LHA=SYS:Utilities/Archivers/LHA
+
+    The command you use must be able to have all of it's output re-directed
+    to a file using standard redirection.  e.g. For LHA you might try
+    "LHA >ram:test t my_file.lha" to see if it works.
+
+@EndNode
+
+@Node CheckerParams "CheckerParams"
+
+  CheckerParams_<ext>=<String>
+
+    E.G.
+
+    CheckerParams_LHA=t -Qa -M -N @F@
+
+    No Default, Must Be Set!
+
+    This option specifies the paramaters to be passed to the checker.
+    It should include things like the filename and any switches to put the
+    program into TEST mode.
+
+    If the checker has switches to make the output as small as possible
+    then use them.  Also, if the checker has options to use simple IO
+    and/or no ANSI then use those options too.
+
+    The checker command string is checked for @ codes, the following
+    are recognised:
+
+    @F@ is replaced with the filename of the uploaded file
+    @N@ is replaced with just the filename of the uploaded file
+    @E@ is replaced with the filename's extension
+    @P@ is replaced with the path of the filename (but not including the name itself)
+
+    So, say you were on node 3 and uploaded TEST.LHA the following @ codes
+    above would give you the following results (without the quotes)
+
+    @F@ "TEST.LHA"
+    @N@ "TEST"
+    @E@ "LHA"
+    @P@ "HBBS:Nodes/Node3/Playpen/"
+
+@EndNode
+
+@Node Error "Error"
+
+  Error_<ext>_XX=<String>
+
+    E.G.
+
+    Error_LHA_1=Error on file
+    Error_LHA_2=Operation not entirely sucessful
+
+    No Default, Must Be Set!
+
+    This option tells the checker door what to look for in the output
+    from the checker command.  If it finds one of the strings you
+    specify the file will be marked as corrupt.
+
+    If possible, use the correct output order of messages, e.g. for
+    LHA the message "Error on file" will always appear before
+    "Operation not entirely sucessful", so they should be specified in
+    that order to speed up detection of corrupt files.
+
+    To find out what error messages your test program will display
+    you have two options:
+
+    1) open the executable of the checker and search it for legible
+       error messages (be aware of programs that use catalogs!)
+
+    2) create a file and randomly change and remove bytes from the
+       file in several locations (front, middle and end) and run
+       the checker program on it a few times to see what comes up.
+
+@EndNode
+

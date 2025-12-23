@@ -1,0 +1,654 @@
+                             IceTERM...
+
+           The custom terminal package for use with IceBBS
+
+              Copyright 1990-1994 By Stephen Vermeulen
+
+                       VOICE:   (403) 282-7990
+
+       VBBS line 1:    (403) 284-2048  (USR Dual Standard V32bis/HST)
+       VBBS line 2:    (403) 284-5625  (USR Dual Standard V32bis/HST)
+
+                          45 Butler Cr. N.W.
+                          Calgary, Alta.,
+                          CANADA, T2L 1K4
+
+    PLEASE NOTE THAT IceTERM VERSION NUMBERS ARE REALLY WHOLE NUMBERS,
+    THAT IS TO SAY v117 IS REALLY VERSION ONE HUNDRED AND SEVENTEEN,
+    NOT 1.17 or 11.7 or 0.117 AS SOME THINK.
+
+This file contains notes on recent changes to IceTERM.  For complete
+information you should consult the IceTERM.guide document (which is an
+AmigaGuide format manual for IceTERM) or the printed IceTERM document,
+which weighs in at about 125 pages.
+
+If you are making corrections to one of my AmigaGuide documents please
+mark each place you correct or add something with a note enclosed
+by the AmigaGuide @REMARK command.  Make the notes like this:
+
+@REMARK this is something I changed...
+
+and then send me the AmigaGuide document as you have edited it and I can
+merge the changes into the master document.
+
+
+----------------------------   CHANGES  --------------------------------
+
+121  Changed a couple of windows from SIMPLE_REFRESH to SMART_REFRESH.
+     Added the DOS Doors button, this allows you to play any regular
+     CLI or DOS style doors the sysop has installed.  The shell window
+     that opens to play the door in is 640x200, you might have to widen
+     it a bit for some doors.  Also, some doors want to use the graphics
+     characters that are found in the IBM font set.  To play these
+     doors you might need to set your font for the IceTERM screen to
+     be the ibm.font.
+
+     Note that the location of the Shell tool has been moved to the
+     menu to make space for the DOS Doors button.
+
+120  Added support for the Screen Mode requester found in AmigaDOS 2.1
+     and higher.  This requester will open as soon as IceTERM starts
+     (but before it opens any other windows), but ONLY IF you have
+     included the tool type:
+
+       SELECTSCREEN
+
+     in your IceTERM icon.  Typically you will only want to select
+     a special screen type on rare occasions.  When you select a
+     screen and display type IceTERM will update the values of the
+     following tool types:
+
+       SWIDTH=
+       SHEIGHT=
+       SDEPTH=
+       SDISPLAYID=
+
+     then when you remove (or comment out) the SELECTSCREEN tool type
+     IceTERM will use the values of these four tool types (above) to
+     determine the size and type of display to use.  This should address
+     the problem that prevented you using 31kHz modes with more than
+     400 lines without flicker.  As well it allows owners of Picasso
+     boards to open high resolution IceTERM screens.
+
+
+119  Added a new button to the Find Files tool.  This is the "Wild Find"
+     button.  With this you can enter a valid AmigaDOS wildcard search
+     pattern and the tool will search the file databases for any files
+     whos' names match the pattern.  For example if you enter:
+
+       ice#?
+
+     you will see iceolr and iceterm but not muiicecream.
+     If you enter:
+
+       #?ice#?
+
+     you will see muiicecream as well.  You can use the full set of
+     pattern matches too, including the ~()| type operators.
+
+     Enhanced the monitor tool, it now opens another window which displays
+     information on the activity of the various BBS lines.  There are
+     five columns, from left to right they are:
+
+       1. the identifier for the bbs line
+       2. the activity percentage of the line (ie. the total amount
+          of connect time divided by the total time the line has
+          been running since the last reboot).
+       3. the time of the last login
+       4. the time of the last logout (if this is 00:00:00 then there
+          is a user on the line currently)
+       5. the name of the most recent user of the line.
+
+     Plus, revised the name of the public screen that IceTERM opens
+     to be ICEBBS-TERM (used to be VBBS-TERM).
+
+118  Fixed a bug in SIGS where the allsigs file was not getting loaded,
+     this meant that the GotoSIG and Subscribe buttons might not have
+     functioned correctly.  Fixed a bug in BatchSIG that was preventing the
+     CloseWindow button from working.  Fixed a bug in BatchSIG that
+     was preventing the on-the-fly subscription changing (while you
+     have interrupted a download) from working -- the list of all
+     sigs was blank.
+
+     This version is about 9K larger than the previous one because
+     I have turned off the SAS6.51 optimizer, I was getting some
+     strange crashes in the BBS which went away when I turned off
+     the optimizer, so I decided its probably a good thing to do to
+     IceTERM too.  Let me know if odd crashes stop happening to you.
+
+117  Fixed a bug in the monitor that was causing an extra blank line
+     to appear in the display.  Fixed the bug introduced in 116 that
+     kept the BatchSigs interrupt button ghosted.
+
+116  Revised the monitor client to be compatible with the new version
+     of the monitor server on the BBS, this change will allow additional
+     types of information to be added to the monitor in the future.
+     Added some extra code to the Sigs and BatchSigs function that
+     will prevent the AllSigs file from being retransmitted each time
+     these tools are used if the AllSigs file is up to date.
+     Added write buffering to file downloading.  Older versions of
+     TERM used to write the received data to disk in 200 byte chunks,
+     by default the new TERM will write it in 1024 byte (1K) chunks.
+     This speeds fast downloads (especially to floppies) on unaccelerated
+     machines.  There is a new tooltype (BUFFERS=) which you can use
+     to customize the buffer size.  To get the buffer size of the
+     old TERM you include the tooltype:
+
+         BUFFERS=0
+
+     To get a 4096 byte buffer (4K) you use:
+
+         BUFFERS=3840
+
+     as 3840+256 = 4096.  On my machine (A2000 equipped with a 33MHz 68040)
+     I can download to FLOPPY disk at 4142 bytes per second with a 4K
+     buffer size using a ComSpec serial port set to 57600 baud.
+     Downloading to RAM: runs at about 4418 bytes per second.  On a
+     non-accelerated Amiga the improvement in floppy speeds (or even
+     downloading to hard drive) at high serial port rates (especially
+     on the internal serial port) should be more dramatic.
+
+115  Added the upgrade coupon button to the email window.  Eventually
+     the email window will be renamed to "Account" or "Misc" or "Config".
+     This button will allow the user to enter the serial number of
+     an IceBBS upgrade coupon that the user has, this will then cause
+     an automatic upgrade of his account, and when the coupon expires
+     the account will automatically downgrade too.
+
+114  Fixed the bug in the keepfile requester which would cause it to
+     corrupt the keepfile name you selected.  It was forgetting to
+     add the trailing "/" on the last subdirectory name, so a filename
+     that should have been:
+
+        dh1:stuff/junk/tt/keepfile
+
+     ended up being:
+
+        dh1:stuff/junk/ttkeepfile
+
+113  Added some new buttons to the EMail window (in preparation for it
+     becoming the configuration window).  The long awaited "Change Password"
+     button and two others labeled: "CC: Fido" and "CC: Usenet".  The
+     CC: buttons will allow you to enable (button pushed in) or disable
+     (button sticking out) the IceBBS feature that copies messages addressed
+     to you that are found in USENET and FidoNet SIGs into your email.
+
+     One other feature was added for the use of IceTERM in a "family
+     setting", this is a password prompt.  If you do not put a password
+     tool type in the IceTERM icon then IceTERM will prompt you to enter
+     a password for the BBS before it starts dialing.  This actually was
+     already there, except it would save the pasword into your icon
+     tool types for future use, it no longer saves the password.
+     A feature like this deserves a name in the manual, but since that
+     name might live in infamy I will be gallant about it and keep
+     silent...
+
+112  Added support for the VERSION command.  Support for the destination
+     line in Sigs, this is used when a reply address is too long to
+     fit the author field.  Add support for use with the new EMail SIG.
+     The EMail SIG will supercede the email tool (which will be phased
+     out soon).
+
+111  Enhanced the BatchSIG function a bit, now it will fetch the
+     current list of sigs for the BBS each time it is used, this
+     way one no longer need use the Sigs button occasionally to
+     update the list of sigs.
+
+110  Added the Find Files button to the Get Files window.
+
+     Changed the email IDs so that any users with a '-' at the start
+     of their ID (like -12345) now have an ID with an 'N' at the
+     start (like N12345), also a lower case 'n' will work.  If someone
+     still sends you email to the '-12345' name it will still get through.
+
+     Note: if you are using EXPERT mode in email to send internet
+     messages you must capitalize the first letter of the header
+     lines.  That is you should use: "To:", "Subject:" etc. not "to:"
+     and "subject:".  This is a problem in UUCP's sendmail command.
+
+     Added the ability to do directory downloads on root directories,
+     for this to work the IceBBS version must be at least 53C.
+
+     Added the Keep Desc button to Get Files.  If you are an IceBBS Sysop
+     then when you download files with this button pressed in the
+     complete file (including IceBBS header information) will be
+     sent to you.  If you are not an IceBBS sysop and you try to do
+     this you will find that the first part of the file will appear
+     corrupt so you don't want to use this mode.  This requires the
+     BBS be running v53C or higher.
+
+     Fixed the problem with resumed downloads not pausing -- its actually
+     a problem in the BBS end, so v53C of the bbs software is needed.
+
+     The user interface to the file finding system is provided by a
+     single button in the Get Files tool of IceTERM.  This is the File
+     File button, when pressed it will summon a string requester where
+     the user types in the string he wants to search for.  These
+     strings can contain the same logical operators as the sysop's FIND
+     utility uses.
+
+      The search string will be parsed by the finder and each word
+      within the string will be searched for in the database(s).  This
+      produces a table of files for each word.  The finder can apply
+      several operators to combine these tables and hence allow you to
+      search for files which must or may or cannot contain several
+      words.  The operators are:
+
+        A & B  The & (and) operator takes the lists of words contained
+              in the two files and produces a new list containing only
+              the words in both files. (intersection)
+
+        A | B  The | (or) operator takes the lists of words contained
+              in the two files and produces a new list containing
+              all the words in both files.  (union)
+
+        A - B  The - (minus) operator takes the lists of words contained
+              in file A and removes from that list any words which are
+              also contained in file B.  (difference)
+
+      As well parentheses are available to allow you to group several
+      operations:
+
+        A & (B - C | (D & F))
+
+      will evaluate D & F first to produce X
+
+        A & (B - C | X)
+
+      it will then evaluate B - C to produce Y
+
+        A & (Y | X)
+
+      it will then evaluate Y | X to produce Z
+
+        A & Z
+
+      and will finally evaluate A & Z
+
+      If there are no parentheses then evaluation proceeds from left
+      to right as was the case when it evaluated B - C | X above.
+
+
+
+109A Note the name change for TERM to IceTERM.  The whole package is
+     "ice" integrated communications environment.  In Calgary most will
+     know what you mean by TERM but when discussing the product out of
+     our fair land please use the full IceTERM name so there is less
+     confusion with that "other German TERM"...
+
+     Changed from Manx 5.2 to SAS 6.5, opon recompiling the code size
+     dropped from 192724 bytes to 151612 bytes (when full optimization
+     is enabled this drops to about 135K), plus the compiler found
+     a few more hidden bugs!
+
+     Re-added snapshotting of the hail/tail strings in the conference
+     tool, they had got lost at some point in time!  Now when Phil
+     Duby tries to exit SIGs too fast TERM will warn him that this
+     might happen.  The chat/talk/feedback/shell/initial terminal
+     window at some point in time were changed to simple refresh,
+     these have been changed back to smart refresh.  Added some saftey
+     interlocking in the delete files mode of the get files tool, it
+     seems that if you were fast with the clicking and running a slow
+     modem (or downloading at the same time) you could delete the
+     same file twice, the second time being fatal to TERM (this was
+     the ACE GamesMaster's bug---he's probably got a 1200 baud modem:-) ).
+
+     Kevin Huculak wrote some code to fix the child/parent linkages
+     in the sigs (so that old messages were updated to connect with
+     the new messages).  I have modified and expanded this to take into
+     account the prev/next linkages.  This code runs as a clean up pass
+     at the end of the processing of each SIG that BatchSIGs scans,
+     you might notice a slight extra pause before the next sig starts.
+
+109  test version, not released to general public.
+
+108  The way the BBS and TERM handle Internet email messages has been
+     revised in this version.  At the user interface there is no
+     visable difference so for the casual user there is nothing to
+     worry about.  The changes bring handling of internet mail into
+     much tighter agreement with the rfc-822 specification.  The new
+     additions include:
+
+     - now supports header line folding
+     - now supports the reply-to header, if a reply-to line is present
+       then that's where the replies go, if one is not present then
+       replies go to the from header line.
+     - email to a user list is possible, comma separate the addresses
+       (this would have worked before but was not documented)
+     - it allows the header keywords to be any mixture of upper and lower
+       case
+     - the email processor on the BBS that converts inbound internet
+       messages into VBBS format email now supports human readable
+       names, this means that someone out there can send a message to
+       you by quoting your username, for example:
+
+         To: "stephen vermeulen"@amuc.mtroyal.ab.ca
+
+       will now stand a good chance of reaching my account on the AMUC
+       Express BBS.  I say "a good chance" because I suspect that some
+       mail processors may not like user names longer than 8
+       characters and may not like imbedded spaces, so the email
+       processor will also map the following names to the "stephen
+       vermeulen" account
+
+         stephen_vermeulen@amuc.mtroyal.ab.ca
+         stephen.vermeulen@amuc.mtroyal.ab.ca
+
+       the cryptic account number based system is still supported and
+       will be added as the From: line to any email you create. The
+       sysop can add additional account name aliasing via UUCP's
+       UULIB:aliases file if it is needed.  For example if the current
+       AMUC Chairman is Ian Sinclair then the following aliases:
+
+         amuc: ian_sinclair
+         UsersGroup: ian_sinclair
+         chairman: ian_sinclair
+         president: ian_sinclair
+
+       would redirect any mail addressed to "amuc", "usersgroup",
+       "chairman" or "president" to the account named "ian_sinclair"
+       and if there is no "ian_sinclair" account then the "ian
+       sinclair" account would receive the mail.
+
+     and now for the new feature: internet expert mode.  This is
+     intentionally hidden away since in order to use it you need to
+     understand how to write internet compatible mail headers.  To
+     enter expert mode either when sending a new internet message or
+     replying to one you have received all you need do is put a "~" as
+     the first and only character in the subject string.  When you do
+     this TERM will not add any "To:" or "Subject:" lines to your
+     message, the only thing it will add is the "From:" line so you
+     MUST supply the message in correct internet format.  This means
+     that you supply the entire internet header, a blank line and then
+     the text of your message.  The only part of the header that is
+     mandatory is the "To:" line, you can add CC:, BCC:, REPLY-TO: and
+     other optional headers as suits your purpose.  All headers can
+     span multiple lines using header folding (break the line at an
+     appropriate point and then indent the continuation lines by at
+     least one space). For more information refer to RFC-822 (and
+     don't blame me if your head explodes).
+
+     One of the interesting uses of all this is that it is now
+     possible to do bulk junk mailings, for example to send mail to 5
+     people on AMUC Express and one person on another internet site,
+     from your account on AMUC Express you send a message like:
+
+     To:  "stephen vermeulen"@amuc,
+         "jeff rose"@amuc, wuth@castrov.cuc.ab.ca,
+       "bryan ewert"@amuc,
+               "ian sinclair"@amuc, AMUCChairman@amuc
+     Subject: Some wild ramblings...
+
+     Here is a test message, it goes out to six people.
+
+     Regards, the tester.
+
+     notice the To: line has been folded onto four lines in the
+     message (keeping each line to under about 80 characters) and the
+     continuation lines each start with at least one character of
+     white space.  The five users who are also on "amuc" can have the
+     addresses abbreviated to just "@amuc", the one user who is on a
+     separate internet site needs a full address specification. The
+     following is the same message, but with one one person as the
+     addressee, two others get the message as a carbon copy (CC:) and
+     the other three get it as a blind carbon copy (BCC:):
+
+     To:  "stephen vermeulen"@amuc,
+     CC:  "jeff rose"@amuc, wuth@castrov.cuc.ab.ca
+     BCC:  "bryan ewert"@amuc,
+        "ian sinclair"@amuc, AMUCChairman@amuc
+     Subject: Some wild ramblings...
+
+     Here is a test message, it goes out to six people.
+
+     Regards, the tester.
+
+     The blind carbon copy (BCC) gets its name from the fact that the
+     primary and secondary recepients (To: and CC: addresses) do not
+     get the BCC: lines included in their copies of the mail.  So in
+     the above example "stephen vermeulen", "jeff rose" and "wuth"
+     have no idea that the message was also sent to "bryan ewert",
+     "ian sinclair", and "AMUCChairman".
+
+     In the next version of the message we add a reply-to: line so
+     that if any of the recepients replies to the message both "the
+     tester" and "AMUCNewsLetterEditor" get copies of the reply:
+
+     To:  "stephen vermeulen"@amuc,
+     CC:  "jeff rose"@amuc, wuth@castrov.cuc.ab.ca
+     BCC:  "bryan ewert"@amuc,
+           "ian sinclair"@amuc, AMUCChairman@amuc
+     Reply-To: "the tester"@amuc, AMUCNewsLetterEditor@amuc
+     Subject: Some wild ramblings...
+
+     Here is a test message, it goes out to six people.
+
+     Regards, the tester.
+
+     Note that by (mis)using the reply-to line you can send a message
+     to several people and get the replies to go to several other
+     people (and if you wish, NOT include yourself among the reply
+     recepients)...
+
+107  Reworked the time out code that was added to the Yes/no requesters
+     in 104, now it will wait for 20 seconds on those special requesters
+     and the rest it waits for 30 minutes, this way if you walk away
+     from a long download or something and a requester pops up TERM will
+     still shutdown completely 30 minutes after serial activity stops.
+     Looked for Blair Wickstrand's enforcer hit while opening Doors when
+     there are non-doors files in the DOORDIR but could not get it to
+     happen.
+
+106  Improved the CHK generation code, fixed a bug that was generating
+     CHK packets too soon, and added link baud rate tuning (provided by
+     the BBS end) to the protocol setup phase.
+
+105  Added some code that had been missing from the protocol for a long
+     time.  If you have a serial port that occasionally looses characters
+     due to poor handshaking this could lead to lost packets, the missing
+     code detects those packets earlier and hence prevents the protocol
+     from stalling.  With out this fix the downloads could sometimes go
+     very slowly (perhaps taking a few seconds between bursts of data).
+     The same omission existed in the BBS protocol and this was causing
+     the slow uploads on AMUC Express.
+
+     Added the link diagnostics display mode.  If you are installing a
+     new modem or serial port and want to see what's happening on the
+     serial link you can add the tooltype "LINK" to the term icon.  This
+     will add an extra two lines of information to the main control pannel.
+     The top line tells you about the data you are sending to the BBS
+     and the bottom line tells you about the data being received from
+     the BBS.  For example you might see:
+
+         SENT P      67 N   3 C   2
+         RCVD P     332 N   5 C   6 O   1
+
+     which means that you have sent the BBS 67 packets of data and TERM
+     has received 332 packets from the BBS.  The BBS encountered problems
+     with some of the packets you sent it, in fact 3 did not make it
+     through intact (and were NAKed), the BBS sent 6 check packets
+     to find out what the status on some packets it sent you was, while
+     TERM sent the BBS 2 check packets because the BBS did not acknowledge
+     receipt of two data packets fast enough.  In the packets TERM
+     received from the BBS there were 5 that TERM had to ask for a
+     retransmission on (because they were damaged), one of these TERM
+     suspects was damaged by a serial port overrun (when the handshaking
+     between the serial port and computer (at either end) does not work
+     fast enough and a byte or two gets lost.  If you have everything
+     set up properly you should get a display like:
+
+         SENT P      67 N   0 C   0
+         RCVD P     332 N   0 C   0 O   0
+
+     note that things like the data cache being enabled on some '040s
+     and the serial port being used at too high a speed or too many
+     ports being used at once or the handshaking in TERM or your modem
+     not being set correctly can all lead to problems...
+
+     Added the "deadbeat" timer to the TERM scripting facility.  If you
+     include a command like:
+
+        deadbeat 300
+
+     then if the script is still executing (or TERM is waiting for the
+     BBS to wake up still) 30 seconds later then TERM will shut down.
+     The parameter is the number of 1/10ths of a second (like the delay
+     command) to wait before leaving term.  If you issue a second deadbeat
+     time out at a later point in the script then it will reinitialize
+     the count down to the new time out value.
+
+104  Added a 20 second timeout to the "you have been inactive do something"
+     requesters.  TERM can now open the serial port in shared mode for
+     those who really want to.  To get this to happen either include
+     the tool type "SHARED" or else include the "-s" CLI switch.
+     Added support for the OwnDevUnit.library, this is for UUCPoids
+     who run Getty all the time.  If you don't have OwnDevUnit.library
+     then nothing new will happen.  If you do have it then TERM will
+     request access to the serial port via ODU and if it fails you will
+     get a requester telling you that ODU has the port locked.
+
+103  TERM should now flush the '040 data cache properly when it spawns
+     sub-processes.  What this means is that it is now safe for you
+     to leave the COPYBACK mode on when running TERM on an '040 equipped
+     Amiga.  Fixed the division by zero error that could sometimes
+     result when displaying a non-existant long file description
+     when you are using a larger font.  The button window in Get files
+     now remembers the new snapshot position immediatly (ie. without
+     you having to restart TERM).  Get files now remembers how you
+     had scrolled a directory or file window when you return to it.
+     TERM should no longer look for your boot disk when you open email.
+     When you add a new sig to your subscription and then download it
+     with BatchSIGS you will, by default, only get the last two days
+     not the entire sig.  If you want older messages use the interrupt
+     button to set the start date back.
+
+102  Fixed a small problem with FidoNet email replies, the message to
+     be edited was including some extra binary headers, the reply should
+     still have worked but it looked bad.  Added an additional function
+     to the "Show" profile command, now, as you click on user names the
+     VBBS ID (used in Internet mail) for that user will be placed into
+     the title bar.
+
+101  Changed the tooltype snapshotting code so that it no longer enters
+     duplicate tooltypes within the TERM icon.  Added the capability to
+     download, redownload and even RESUME email file downloads.  This is
+     done by giving each user a private directory for holding emailed
+     files.  This directory is accessed through Get Files via a magic
+     directory name (Email Files...).  When you receive a file via email
+     it goes into that directory and stays there while you download it,
+     redownload it, resume it, ignore it, login, logout, ... in fact
+     it stays there until you delete it.  To delete it you use the
+     new Delete File mode in Get Files.  A third button row has been
+     added to the Get Files control pannel.  This contains the Delete
+     File button, when this is pressed in TERM will tell the BBS to
+     delete any file you select with Get Files.  Note however that you
+     can ONLY delete files in your email directory.  The sysop has a
+     tool that can age out undeleted email, so if you leave too much
+     sitting about the BBS he is likely to start expiring email faster...
+     Note: the email file directory only exists on systems running
+     VBBS 52 or higher.
+
+     Added some more buttons to the EMail window.  The one marked
+     "Send Internet" allows you to send a message to another person who
+     has an email account on a computer that is in some way connected
+     with the Internet.  This means a LOT of users.  Note that this
+     feature may not be supported on all VBBS systems, they need to
+     have a UUCP feed to make their machine "connected".  Assuming that
+     they are connected then to send and receive mail all you have to
+     do is to find the name and address of the person you want to
+     send mail to.  Look for an address like:
+
+         svermeulen@ragnarok.mtroyal.ab.ca
+
+     (which is my address), usually in the signature area of their
+     messages (some magazines like Wired and Mondo also publish the
+     internet address of their authors...).  When you hit the button
+     TERM will prompt you to enter the person's address.  You need to
+     type it in EXACTLY.  Normally these things are case insensitive
+     but its best to preserve the case.  After entering the address
+     TERM will ask for the subject of your message and then will open
+     your editor to allow you to compose your message.  When you save
+     the message and exit from the editor TERM will ask if you really
+     want to send the message, say no to abort the process, otherwise
+     the message will start its twisty journey through the internet.
+
+     What happens is this:  TERM will append the necessary From:, To:,
+     and Subject: lines to your message along with a blank line that
+     in the internet world separates the header from the message.  It
+     then sends the message over to VBBS which, upon receiving it
+     invokes the SENDMAIL program (that is part of the UUCP package
+     that the BBS machine is running).  If the BBS does not have UUCP
+     available then it will send back an error message to you
+     explaining this unfortunate fact.  Every so often a script file
+     on the BBS machine will do a bit of internet processing, in
+     particular the programs UUxqt and UUcico will get run and the
+     message will take another step in its journey, in all probability
+     the message will leave the BBS machine at this point and disappear
+     into an evil smelling puff of smoke.  Although there is a chance
+     that someone (or something) lurking on the internet will reply to
+     it in some way and send a reply to you.
+
+     When a reply does come back from the internet it will appear like
+     any other EMail, the full message (including header) will be displayed
+     for you to edit as you choose if you want to reply to the message.
+     Note that you don't need to worry about the contents of the header
+     in most cases as VBBS and TERM have already extracted all the
+     information they need to address the reply correctly, so you can
+     even delete all the header information.  The upper limit on the
+     size of these messages is about 50K bytes.
+
+     Added the Edit and Show gadgets to the EMail window.  The Show
+     button will bring up the list of users, from which you can pick
+     users who's profile descriptions you want to read.  The Edit button
+     is used to allow you to edit your own profile.  So what is in a
+     profile?  Well, the profile is intended to be a little informative
+     blurb about yourself so that other users can figure out if they
+     want to be sending you email.  One of the more interesting uses of
+     the profile is to provide a place for you to post your "public
+     encryption key" so that other people can send you encrypted email.
+     (This is referring to the PGP package, in which case you want to
+     put an armoured ascii version of your public key here, to generate
+     a key in this form use a command like:
+
+        pgp -kxa "your name" file.dat
+
+     then you just insert the contents of file.dat into your user profile.)
+
+     The user list button has been renamed.  TERM keeps a copy (stored on
+     your disk drive) of the list of users for each BBS you use EMail
+     on.  It does this so that you can more quickly browse the user list
+     when sending email and files.  However, some BBS's have such large
+     user bases that the full name list was taking too long to download
+     at 2400 baud.  As a result the handling of the list has been
+     restructured some what.  What happens now is that your local user
+     list will stay empty until you hit the "Find users" button, this
+     will pop up a string requester where you can type the first part
+     of the name of the user you are looking for (even just the first
+     character will do -- and its not case sensitive).  TERM will then
+     request that the BBS send the names of all the users which start with
+     the sequence of letters you entered.  This is usually a short list
+     and will not take too long to send.  TERM will save this list, adding
+     it to any other name searches that you do, in that way it gradually
+     allows you to build up as much of that BBS's user list as you need.
+
+     If you have a faster modem (or don't mind the wait) you can get the
+     whole user list by just hitting return in the search string requester
+     without typing any text in.
+
+     Also, this name downloading is an "updating" process, if any users
+     that already appear in your list get removed from the BBS, then
+     when you update their section of the user list their names will be
+     removed from your local copy too.
+
+100  Removed the remaining calls to strncpy(), it was causing problems
+     elsewhere so this might help solve some mysterious problems...
+     Fixed a couple of bugs in the ARexx door support.  Do not try
+     to use TERM 99 with ARexx doors!
+
+
+-------------------------------------------------------------------------
+
+See the files: TermVers1-50.lzh and TermVers51-99.LZH for the rest of
+the older changes.
+
+

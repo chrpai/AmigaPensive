@@ -1,0 +1,1013 @@
+@DATABASE ZSort.guide
+
+@node MAIN "ANUBIS ZSort"
+                              T.O.M. Software
+
+               #####  ###    ## ###   ### ######  ####  ######
+              ##:::##: ###   ##: ##:  ##:: ##::##  ##::##::::#:
+              ##:  ##: ####  ##: ##:  ##:  ##: ##: ##: ##:
+              #######: ##:## ##: ##:  ##:  #####:: ##:  #####
+              ##:::##: ##: ####: ##:  ##:  ##: ##  ##:   :::##:
+              ##:  ##: ##:  ###: ##:  ##:  ##: ##: ##: #    ##:
+             ###:  ### ##:   ##:  #####:: ######::#### ######::
+              :::   ::: ::    ::   :::::   ::::::  :::: :::::: 
+
+        Allgemeines Nachrichten - und Binär - Informations - System
+
+-----------------------------------------------------------------------------
+                        ANUBIS Z-Netz Sorter V 1.42
+                  ©1992-95; Oliver Graf - T.O.M. Software
+-----------------------------------------------------------------------------
+
+   @{" Einleitung            " link EINLEITUNG}	was tut ZSort ?
+   @{" Aufruf und Optionen   " link AUFRUF}	die Parameter für's Sortieren
+   @{" Der Sortiervorgang    " link SORT}	Ablauf des Sortierens
+   @{" DupeCheck und MsgIDs  " link DUPE}	Behandlung von doppelten Nachrichten
+   @{" MsgIDs crunchen       " link CRMID}	Löschen alter MsgIDs
+   @{" Empfangsbestätigungen " link BEST}	der Absender bekommt eine Rückmeldung
+   @{" Route-Test            " link ROUTETEST}	Zum Verbindungstest für andere Sysops
+   @{" Auslagern von Texten  " link EXPORT}	Brettnachrichten direkt in ein eigenes Dir
+   @{" Sortierstatistik      " link SYSSTAT}	Informationen für den Sysop zum Sortieren
+   @{" Bretter einrichten    " link BCREATE}	automatisches Einrichten von Brettern
+   @{" Brettumbenennung      " link ALIAS}	Umbenennung von Brettern in der Box
+   @{" Nachrichten packen    " link XPK}	automatische Datenkomprimierung
+   @{" Fehlermeldungen       " link FEHLERM}	was liefert ZSort wann ?
+   @{" Erweiterungen         " link TODO}	geplante Erweiterungen am ZSort
+   @{" Versionsübersicht     " link VERSIONEN}	die bisherigen Versionen
+
+-----------------------------------------------------------------------------
+                        30.05.95 * 09:47:56 * Olli
+-----------------------------------------------------------------------------
+@endnode
+
+@node EINLEITUNG "Einleitung"
+Der ANUBIS Z-Netz Sorter dient dazu, Zerberus(tm) kompatible Netzpuffer
+in ein ANUBIS System einzusortieren und diese Nachrichten an die ange-
+schlossenen Points und Boxen weiterzurouten.
+
+ZSort benötigt die anubisroute.library ab Version 1.06.
+@endnode
+
+@node AUFRUF "Aufruf und Optionen"
+Die Aufruf Syntax des Sorters ist "zsort <optionen>". 
+
+Mögliche Optionen :
+
+ -c<config>	- lädt die MailerConfig <config> nach. Defaultmäßig wird
+		  von ZSort die Config "ZNetz" verwendet. Der Configname
+		  darf keine Pfadangabe enthalten und muß ohne Space
+		  dem -c folgen.
+
+ -l		- LogFile Ausgabe einschalten. Wird diese Option angegeben,
+		  werden alle Meldungen nach "Anubis:Statistik/ZSort.log"
+		  gespeichert, wo sie später abgerufen werden können.
+
+ -p<name>	- gibt den Namen der Pufferdatei an (Default : "Puffer")
+
+ -stat		- schreibt an den Sysop (bzw. an den im SystemEd gesetzten
+		  User) eine PM mit dem Sortierprotokoll.
+
+ -sys<name>	- Setzt den Namen des Systems, daß den einzusortierenden
+		  Puffer abgeliefert hat. Ist die LastCaller Datei im
+		  Tempverzeichnis vorhanden, wird der Eintrag durch
+		  diese Angabe überschrieben, anderfalls muß diese Option
+		  auf jeden Fall gesetzt sein !
+
+ -xpk<size>	- Hiermit wird der Wert für die Untergrenze von Nachrichten,
+		  die mittels XPK gepackt werden sollen, auf den Wert
+		  von <size> gesetzt. 0 bedeutet, daß alle Nachrichten
+		  gepackt werden, ein Wert höher als das Routelimit
+		  packt keine Nachrichten. Fehlt diese Option, wird
+		  der Wert aus den SystemDaten benutzt.
+
+ -prearc<n>	- Setzt die Anzahl der Puffer, nach denen PreArc automatisch
+		  durch ZSort aufgerufen werden soll. Defaultwert ist 1
+		  (nach jedem Puffer packen). Ein Wert von 0 schaltet das
+		  automatische PreArc Starten komplett ab.
+
+ -maxxpost<n>	- Setzt die maximal zulässige Anzahl für EMP: Header in einer
+		  öffentlichen Nachricht. Dies dient vor allem dazu, wildge-
+		  wordene Init-Mails oder Netzdestruktoren daran zu hindern,
+		  daß gesamte Netz zu verunstalten. Alle Nachrichten, die
+		  mehr als <n> Empfänger haben, werden von ZSort mit einer
+		  Fehlermeldung im Logfile gedroped.
+		  Voreingestellt ist der Wert 20.
+
+ -novia		- Ist dieses Flag gesetzt, wird kein VIA: Header für eine
+		  Nachricht gehängt.
+
+ -nounz		- Ist dieses Flag gesetzt, werden fehlerhafte Nachrichten
+		  nicht in das Unzustellbar Brett des Systems geschrieben.
+
+ -nodel		- Verhindert, daß nach dem Sortiervorgang der Puffer ge-
+		  löscht wird. Achtung : Nur für Tests, nicht für den
+		  normalen Sortierbetrieb geeignet !
+
+ -maxdupemem<kb>- Setzt die Größe des maximal durch den DupeCheck belegbaren
+		  Speichers. Voreingestellt ist hier -1 für unbegrenzt.
+		  Die Größe des Speichers wird in kByte angegeben und wird
+		  von ZSort auf mind. 100 kByte gesetzt, wenn ein zu nie-
+		  driger Wert angegeben ist.
+
+ -notrace	- Ist dieses Flag gesetzt, werden keine Trace-Informationen
+		  verschickt, wenn ein TRACE: Header vorhanden ist.
+
+Wenn die Option -p nicht angegeben ist, muß eine Pufferdatei in dem beim Auf-
+ruf des Sorters aktuellen Directory stehen oder eine Spool-Datei für ZSort
+vorhanden sein.
+@endnode
+
+@node SORT "Der Sortiervorgang"
+ZSort arbeitet eine Liste der momentan vorhandenen Puffer der Reihe nach ab.
+Diese Liste wird im File "Anubis:Spool/ZSort.spool" abgelegt und während
+der Arbeitsphase nach "Anubis:Spool/ZSort.work" umbenannt. Ist ZSort.work
+komplett bearbeitet, wird es gelöscht und sofort nach einer neuen Datei
+"ZSort.spool" Ausschau gehalten. Existiert diese nicht, beendet sich
+ZSort, asonsten wird wieder von vorne begonnen.
+
+Während des Sortiervorgangs wird die aktuell bearbeitete Msg in einem @{"Window" link WINDOW}
+ausgeben. Sollte ANUBIS aktiv sein, erscheint dieses Window auf dem ANUBIS
+PublicScreen.
+Der Puffer muß bereits entpackt sein und den Namen "Puffer" tragen. Der
+Sorter scannt die Datei der Reihe nach und ermittelt, ob das Brett oder
+der User, an das/den sich die Nachricht richtet, im System eingetragen
+ist. Wenn nicht, wird die Nachricht übersprungen. Im anderen Fall wird
+ein neuer Eintrag für den Index des Brettes oder der PM erzeugt und
+angehängt, die Nachricht selber wird in das jeweilige Directory gestellt.
+Alle IBM Umlaute und LineFeeds werden dabei konvertiert.
+Ist ein XPK Packer eingetragen, wird die Nachricht beim Schreiben auf
+die Platte @{"komprimiert" link XPK}.
+
+Für Bretter gilt, daß der Name in der Box und der Name im Netz bis auf füh-
+rende Slashes (/) übereinstimmen müssen. Das Brett
+
+                      /Z-NETZ/RECHNER/AMIGA/ALLGEMEIN
+
+muß in der Box mit dem Namen
+
+                                 ALLGEMEIN
+
+und dem Brettpfad
+
+                           Z-NETZ/RECHNER/AMIGA
+
+eingetragen sein. Logischerweise müssen auch die übergeordneten Verzeich-
+nisse existieren, die Bretter selber brauchen für den Sorter nicht Netz-
+Brett Kennung haben. Sollte zu einer öffentlichen Nachricht das Brett nicht
+gefunden werden, wird versucht, die Nachricht in ein Brett "Unzustellbar"
+zu schreiben, von wo aus der Sysop sie evtl. weiterleiten kann. Um diese
+Funktion abzuschalten, brauchen Sie lediglich kein Brett diesen Namens
+einzurichten.
+Bei Net-PMs wird ein evtl. angegebener Vertreter des Users beachtet und
+die PM in diesem Fall an diesen geschickt.
+Nach dem Einsortieren einer Nachricht in die System-Bretter wird die Liste
+der Points und Boxen durchgegangen. Alle Points, die das Brett bestellt
+haben, bekommen jetzt diese Nachricht an ihrem Netzpuffer angehängt. Aus-
+nahme sind die Systeme, deren Namen bereits im RouteString stehen oder
+die als Absender System im Header stehen, da es sonst zu Dupes kommen
+würde.
+PMs für angeschlossene Systeme werden natürlich direkt an den Puffer ge-
+hängt, ebenso Mails, die an Netz-Vertreter gehen.
+@endnode
+
+@node WINDOW "Das Ausgabe-Fenster"
+In diesem Window werden die Header Informationen der aktuell bearbeiteten
+Nachricht (Absender, Betreff, Empfänger, Länge usw.) ausgegeben. Die ent-
+sprechenden Daten werden jeweils in das dazu gehörige Gadget geschrieben.
+
+In der Statuszeile wird der jeweilige Status der Nachrichtbearbeitung
+ausgegeben. Auch Fehlermeldungen erscheinen hier.
+
+Der Progressbalken ganz unten im Window zeigt den relativen Fortschritt
+an, den ZSort bei der Sortierung macht. Je weiter sich der Balken füllt,
+desto weiter ist der Puffer einsortiert. Links vom Balken wird die
+Prozentzahl des abgearbeiteten Puffers ausgegeben, gemessen an der
+Bytezahl der Abarbeitung.
+@endnode
+
+@node DUPE "DupeCheck und MsgIDs"
+Um doppelte Nachrichten auszusortieren, wird vom gesamten ANUBIS System
+Listen der MsgIDs geführt, die bereits über das eigene System gelaufen sind.
+Sollte eine Nachricht, die zum Einsortieren anliegt, eine MsgID besitzen,
+die sich bereits in einer der Listen befindet, wird die Nachricht wegge-
+lassen. Sie wird in diesem Fall weder in die Box einsortiert, noch wird sie
+an andere Points/Boxen weitergeroutet.
+
+Die MsgID Listen werden im Directory "Anubis:Config/MIDs" verwaltet. Um
+auch bei Systemen mit wenig Speicher einen sinnvollen DupeCheck zu ermög-
+lichen, werden die MIDs in 100 verschiedenen Listen verwaltet. Bei Bedarf
+wird eine entsprechende Teilliste nachgeladen und im RAM gehalten.
+
+Ist über die Option "-maxdupemem" eine Maximalgrenze für das DupeCheck-
+Modul angegeben, so werden bei Speichermangel Listen aus dem RAM ent-
+fernt, so daß wieder genug Speicher für eine neue Liste frei wird.
+Achtung : Wenn Sie den Speicherbereich zu klein einstellen, kann das
+Sortieren länger dauern, da ständig Listen entfernt und wieder nach-
+geladen werden müssen.
+
+Um alte MsgIDs aus den Listen zu entfernen, rufen Sie das Programm @{"CrMID" link CRMID}
+auf. Dieses kann per CronJob oder DailyBatch gestartet werden.
+
+Wenn eine Nachricht nicht einsortiert werden konnte, wird ihre MsgID nicht
+in die Datei gespeichert. Dadurch kann die Nachricht später, wenn der
+Einsortierfehler behoben wurde, die Nachricht nochmals einsortieren
+lassen (Batchfile "SortUnz").
+@endnode
+
+@node BEST "Empfangsbestätigungen"
+Ab der Version 1.30 ist ZSort in der Lage, an den Absender einer persönlichen
+Nachricht eine Empfangsbestätigung zu verschicken.
+Wenn der Betreff der entsprechenden PM mit einem '#' beginnt, wird eine PM
+an den Absender zurückgeschickt, die als Beispiel folgenden Inhalt hat :
+
+-sot-------------------------------------------------------------------------
+<<<ANUBIS ZSort V 1.39 automatische Empfangsbestätigung
+
+Der Eingang Ihrer persönlichen Nachricht an OLIVER@TOM
+mit dem Betreff 'Testnachricht'
+hat den Empfänger erreicht (MsgID : 08.107.0@TOM).
+
+Dies gilt nicht als Bestätigung, das die PM durch den User gelesen
+wurde ! Diese Benachrichtigung wurde automatisch erstellt und trägt
+daher den Namen des Empfängers als Absender.
+-eot------------------------------------------------------------------------
+
+Der Absender ist dann davon informiert, daß seine PM bis zum Empfänger
+durchgekommen ist.
+
+Unter ZConnect sehen die Empfangbestätigungen etwas anders aus.
+Hier wird folgender Text verschickt :
+
+-sot-------------------------------------------------------------------------
+<<<ANUBIS ZSort V 1.40a automatische Empfangsbestätigung
+
+
+Der Eingang Ihrer persönlichen Nachricht an oliver@tom.anubis.sub.de
+mit dem Betreff 'Testmail'
+hat den Empfänger erreicht (MsgID : 38.358965.0@tom.bergisch-land.sub.de).
+
+
+Die Nachricht durchlief dabei folgende Route :
+tom.bergisch-land.sub.de
+
+Dies gilt nicht als Bestätigung, das die PM durch den User gelesen
+wurde ! Diese Benachrichtigung wurde automatisch erstellt und trägt
+daher den Namen des Empfängers als Absender.
+-eot------------------------------------------------------------------------
+
+Dieser Text wird unter ZConnect an alle User versand, für die eine Empfangs-
+bestätigung angefordert wurde (dies kann nur der Absender der Originalnach-
+richt sein oder mehrere verschiedene User in verschiedenenen Boxsystemen).
+Diese Empfangsbestätigung wird nur dann verschickt, wenn die Nachricht
+in die Online-PM des Users sortiert wurde, nicht, wenn sie an einen
+Point weitergeleitet wurde.
+@endnode
+
+@node ROUTETEST "Route-Test"
+Wenn ein Sysop des Netzes an das eigene System eine PM an ROUTTEST@<box>
+schickt, wird diese PM von ZSort automatisch bestätigt und mit dem
+RouteString zurückgeschickt. Sie erhalten keine Meldung darüber. Der
+Text sieht folgendermaßen aus (Beispiel) :
+
+-sot------------------------------------------------------------------------
+<<<ANUBIS ZSort V 1.32 automatischer RoutingTest
+
+Ihre Nachricht MsgID 4522@TTB wurde hier am 20.03.93 14:57:24 mit folgender
+Route empfangen :
+
+TTB!AWORLD!TOM
+
+Diese Nachricht wurde automatisch erzeugt und trägt daher keine
+Unterschrift. Bei Problemen wenden Sie sich bitte an den Sysop
+des Empfängersystems.
+-eot------------------------------------------------------------------------
+@endnode
+
+@node EXPORT "Auslagern von Texten"
+Seit der Version 1.2 besteht die Möglichkeit, Nachrichten aus Brettern
+in Directories auf Platte auszulagern. Dies ist im Z-Netz vor allem für
+die Maps nötig, damit PathAlias daraus die Routing-Tabelle berechnen
+kann.
+
+In der Datei 'Anubis:Config/ZExport' werden alle Bretter, deren Texte
+ausgelagert werden sollen, eingetragen. Das ganze sieht dann so aus :
+
+/PM-NETZ/ZMAP=Anubis:zmaps
+
+Für den Sorter heißt das, das alle Nachrichten, die in das angegebenen
+Brett einsortiert werden, in das Directory Anubis:ZMaps gespeichert werden.
+Als Filename wird der Betreff der Nachricht ohne ':', '/' und ' ' ge-
+nommen. Die Files sind im Amiga-Format (ohne LF und Amiga-Umlaute) ge-
+speichert. Der Betreff wird beim ersten auftretenden Space abgeschnitten.
+@endnode
+
+@node SYSSTAT "Das Sortierprotokoll"
+Wurde die Option "-stat" beim Aufruf an ZSort übergeben, wird während des
+Sortierens ein Protokoll über alle wichtigen Daten geführt. Dieses Protokoll
+wird nach dem Sortieren in das Brett "<protokollpfad>/ZSort" geschickt. ZSort
+erstellt für jeden Puffer der Spool-Liste ein eigenes Protokoll, daß unter
+dem Systemnamen, aus dem der Puffer stammt, abgelegt wird.
+
+Dieses Protokoll kann folgendermaßen aussehen :
+
+-sot------------------------------------------------------------------------
+<<< ANUBIS ZSort V1.35 Ergebnisprotokoll
+
+16.08.93 07:59:11 : Msg I+hwT47NRZ@TTB - unbekanntes Brett /SERVER/TTB
+16.08.93 08:55:27 : sortiert : 2277 Nachrichten von 3512581 Bytes Gesamtlänge.
+
+1 Nachricht(en) nach /Unzustellbar.
+
+ZSort Start.......: 16.08.93 07:56:16
+ZSort Ende........: 16.08.93 08:55:27
+Geschwindigkeit...:   58543 Bytes/Min
+                        988 Bytes/Sek
+Länge MsgID Datei.: 856535 Bytes
+-eot------------------------------------------------------------------------
+
+Wie man sieht, werden zunächst alle Ausgaben, die ins ZSort.log geschrieben
+werden, auch hier festgehalten (allerdings nur dann, wenn die Option -l
+eingeschaltet ist !). Sollten dabei Nachrichten ins Brett "Unzustellbar"
+geschrieben werden, wird ausgegeben, wieviele dies waren.
+Zum Schluß folgen einige Statistikangaben über Geschwindigkeiten und ver-
+schiedene andere Dinge.
+
+Ist für das System, von dem der Puffer stammt, das Flag "Statistik senden"
+im PointEd gesetzt, wird die Statistik zusätzlich an den Betreiber des
+Systems verschickt. Dies sollten Sie aber nur dann machen, wenn der Be-
+treiber dies wünscht, um Fehler entdecken zu können.
+@endnode
+
+@node BCREATE "Einrichten von Brettern"
+ZSort ist in der Lage, fehlende Bretter in Brettgruppen selbst einzurichten,
+sofern die Box, von der der Puffer kam, dazu berechtigt ist. Grundlage
+dafür ist die Datei "Anubis:Config/AutoEintrag". Die Datei hat folgendes
+Format :
+
+#gruppe:<brettgruppe>
+#create:<servername>
+#route:<routename>
+#abs:<absender>
+###
+
+Der gesamte Block kann sich in der Datei beliebig oft wiederholen.
+Beschreibung :
+
+#gruppe:<brettgruppe>
+
+ Hier wird der Name der Brettgruppe angegeben, für die dieser Eintrag
+ gilt. Dieser Eintrag muß genau einmal pro Block als erstes angegeben
+ werden.
+ Der Eintrag der Brettgruppe muß mit einem abschließenden "/*" versehen
+ werden. Ein korrekter Eintrag sieht also so aus :
+
+ #gruppe:Z-NETZ/*
+
+#create:<servername>
+
+ Hier steht der Name eines Servers, der in der Brettgruppe Bretter ein-
+ richten kann. Dieses Feld kann pro Block mehrmals vorkommen.
+
+#route:<routename>
+
+ Hier wird ein System eingetragen, an das neue Bretter sofort weiterge-
+ routet werden. Das Feld kann pro Block mehrmals vorkommen.
+ Dieses Feld gibt für den BrettEd an, an welche Systeme er neu einge-
+ tragene Bretter sofort weiterrouten soll. Ist ein System bereits
+ unter "#create:" eingetragen, braucht es hier nicht erneut aufge-
+ führt werden.
+
+#abs:<absender>
+
+ Ist dieses Feld vorhanden, werden für die entsprechende Brettgruppe nur
+ dann Bretter eingerichtet, wenn die Nachricht über einen Server unter
+ "#create:" kam und zusätzlich der Absender der Nachricht mit dem
+ String <absender> übereinstimmt.
+
+###
+
+ Endemarkierung eines Blocks.
+
+Beispiel : Folgender Block sollte in allen ANUBIS Support Boxen einge-
+tragen sein :
+
+#gruppe:ANUBIS/*
+#create:TOM
+#abs:oliver@tom.aworld.de
+###
+
+Alle Bretter, die direkt von der TOM kommen und nicht existieren, werden
+dann eingerichtet, sofern die jeweilige Nachricht vom User "oliver@tom..."
+geschrieben wurde.
+
+Wenn ein Brett in einer Brettgruppe eingerichtet wird, meldet ZSort dies
+im Logfile (und damit auch in der Statistik Mail). Die Werte des neuen
+Bretts sind wie folgt :
+
+Diskpfad     : Pfad des übergeordneten Verzeichnisses + Name des Bretts
+Leselevel    : 42
+Schreiblevel : 42
+Brett-Typ    : Netz
+
+Alle anderen Werte werden von dem übergeordneten Brettverzeichnis übernommen.
+Desweiteren wird ein spezielles Flag gesetzt, so daß der BrettEd (ab Version
+1.01) in der Lage ist, diese Bretter zu erkennen und Ihnen beim Start
+sofort eine Meldung über neu eingerichtete Bretter gibt.
+
+Alle Nachrichten, die für dieses Brett im Puffer stehen, werden danach ganz
+normal einsortiert.
+
+@endnode
+
+@node FEHLERM "Fehlermeldungen von ZSort"
+Leider passieren aus den verschiedenen Gründen immer wieder Fehler im
+Netz, sei es aus Unachtsamkeit eines Users, weil er die falsche Adresse
+benutzt oder durch Fehler, die aus dem Routing entstehen. ZSort bemüht
+sich, alle Fehler so genau wie möglich zu melden, damit der Sysop helfend
+eingreifen kann.
+
+   @{" Laufzeitfehler              " link FEHLER.1}	welche Fehler gibt ZSort direkt aus ?
+   @{" Rückmeldungen an Points     " link FEHLER.2}	Fehlermeldungen an Points
+   @{" MailBouncing unter ZConnect " link FEHLER.3}	Fehlerbehandlung bei ZC Puffern
+
+@endnode
+
+@node FEHLER.3 "MailBouncing"
+Unter MailBouncing versteht man das Verfahren, daß dem Absender einer Mail
+einen Fehlertext zurückschickt und die Originalmail zur Kontrolle direkt
+mitliefert.
+ZSort erzeugt ab Version 1.40a für folgende Fälle eine Fehlermeldung und
+schickt die fehlerhafte Mail sofort an den Absender zurück :
+
+ User unbekannt
+
+ Der adressierte User ist im System nicht bekannt, daher kann die Nachricht
+ nicht zugestellt werden.
+ Momentan erzeugt ZSort für jeden adressierten User eine solche Nachricht.
+
+ kein Schreibzugriff
+
+ Ein Point versuchte auf ein Brett zuzugreifen, auf das er keinen
+ Schreibzugriff hat. Diese Mail geht wirklich nur an Points und nicht
+ an andere Boxsysteme zurück.
+ Momentan erzeugt ZSort auch dann eine Fehlermeldung, wenn ein Brett
+ innerhalb eines Crosspostings angesprochen wurde, bei denen denen
+ aber Bretter sind, für die der Point Schreibzugriff hat.
+
+ kein Routeweg
+
+ ZSort kann bei einer Route-PM kein System feststellen, an das diese
+ Mail weitergeleitet werden kann.
+ Dieser Fehler kann nur dann auftreten, wenn das System für eine
+ Domain Domainserver ist. In allen anderen Fällen wird die Mail
+ bei unbekannten Systemen an den Domainserver bzw. den SmartServer
+ weitergeleitet.
+
+ Fehler im Header
+
+ Es wurde ein Header entdeckt, der fehlerhaft war. ZSort kann bei
+ dieser Fehlermeldung die Nachricht nicht weitertransportieren und
+ schickt sie deshalb zurück. Dies geschieht aber nur dann, wenn
+ ein Absender gefunden werden konnte. Ein Hinweis auf den fehler-
+ haften Header wird mitgeliefert und auch im Logfile vermerkt.
+
+ Ping Pong
+
+ Dieser Fehler tritt dann auf, wenn eine PM mehr als dreimal über
+ das eigene System gelaufen ist. Dies z.B. der Fall, wenn eine
+ Box mit anderen Routinginformationen als die andere arbeitet.
+
+ kein Brett gefunden
+
+ Es wurde ein EMP: Header verschickt, in dem ein Brett steht, daß
+ die eigene Box nicht führt. Die Meldung geht nur an Points zurück.
+ Da aber mehrer EMP Header enthalten sein konnten, von denen einer
+ korrekt war, wird die Nachricht dann aber trotzdem ins Netz gespielt.
+ Diese geschieht aber nur dann, wenn die Nachricht keine Antwort auf
+ eine andere öffentliche Nachricht war (kein BEZ: Header vorhanden).
+
+ Nachricht zu lang
+
+ Auch eine Fehlermeldung nur für Points. Sie tritt dann auf, wenn der
+ Point eine Nachricht verschickt, die länger als das eingestellte
+ Limit in den Brettern ist.
+
+ unzustellbare Adresse
+
+ In einer Adresse wurden schwere syntaktische Mängel in der Schreibweise
+ entdeckt, die dazu führen, daß die Nachricht niemals zugestellt werden
+ kann. Der Absender erhält eine entsprechende Rückmeldung. Sind
+ in der Nachricht mehrere Empfänger-Adressen angegeben, werden die
+ Adressen, die korrekt sind, trotz allem zugestellt.
+
+Alle Fehlermeldungen tragen als Absender "mailerdaemon@<systemname>". Es
+wird aber korrekterweise der ZConnect Header "ANTWORT-AN:" mit der Adresse
+des Sysops gesetzt, so daß Rückfragen durch den Originalabsender dorthin
+laufen.
+
+Zusätzlich zu dem Bounce wird immer ein Eintrag im Logfile (und damit in der
+Sortier Statistik) erzeugt und die Nachricht ins Unzustellbar Brett des
+jeweiligen Points geschrieben, damit der Sysop informiert ist.
+@endnode
+
+@node FEHLER.1 "Laufzeitfehler"
+Folgende Fehler werden von ZSort direkt während des Sortiervorgangs oder bei
+der Vorbereitung in der Status Zeile ausgegeben :
+
+  "kann MailerConfig <config> nicht laden !!"
+
+  Sie haben für das Netz, daß Sie Einsortieren wollen, keine Konfigurations-
+  datei erstellt. Starten Sie das Programm 'MailerConfig' und legen Sie
+  diese an.
+
+  "Msg <msgid> - unbekannter User : <empfaenger>"
+
+  Beim Einsortieren einer PM, die an das eigene System gerichtet war, wurde
+  festgestellt, daß dieser User in der Userliste nicht existiert. Die
+  fehlerhafte Nachricht wird ins Brett "Unzustellbar" unter dem Betreff
+  "User unbekannt" zur weiteren Bearbeitung gespeichert.
+
+  "Msg <msgid> - unbekanntes Brett <brettname>"
+
+  Es wurde an Ihr System eine Nachricht in ein Brett geschickt, daß nicht
+  in der Brettliste eingetragen ist. Prüfen Sie, ob Sie dieses Brett wirk-
+  lich beziehen und richten Sie es ggf. mit dem BrettEd ein. Ansonsten
+  nehmen Sie mit dem System Kontakt auf, von dem Sie die Mail bezogen
+  haben. Die fehlerhafte Nachricht wird im Brett "Unzustellbar" unter
+  dem Betreff "Brett unbekannt" gespeichert.
+
+  Diese Meldung wird nur dann erzeugt, wenn die Nachricht von einem
+  Point kam und es sich nicht um eine Antwort auf eine andere Nachricht
+  handelt.
+
+
+  "<absender> : kein Schreibzugriff auf <brettname>"
+
+  Ein Point hat versucht, Nachrichten in ein Brett zu schreiben, auf das
+  er keinen Zugriff hat. Prüfen Sie, ob der Pointeintrag den richtigen
+  Level hat. Diese Fehlermeldung tritt nur bei NetCall Puffern auf, die
+  von Points kommen. Der Pointsysop erhält von ZSort automatisch eine
+  Meldung, daß die Nachricht nicht weitergeroutet werden konnte.
+
+  "Msg <msgid> : Nachricht zu lang (<msgsize> - max. <routesize>) !"
+
+  Es wurde in ein Brett eine Nachricht geschrieben, die größer als das
+  für das Brett angegebene Routelimit ist. Sollte die Nachricht von
+  einem Point kommen, wird der Pointsysop von diesem Vorfall infor-
+  miert, sollte sie von einer angeschlossenen Box kommen, prüfen Sie
+  im BrettEd das RouteLimit für dieses Brett auf seinen korrekten
+  Wert.
+
+  "MsgToPuffer(): kann Datei '<puffername>' nicht öffnen !"
+
+  Dieser Fehler tritt dann auf, wenn zu einem Point der dazugehörige
+  Puffer nicht geöffnet werden kann. Die Ausgabe sollte bei normal
+  installierten Systemen nicht auftreten, sollte es trotzdem passieren,
+  nehmen Sie bitte Kontakt zum Programmierer auf !
+
+  "kein Routeweg für : <systemname>"
+
+  Es wurde über Ihr System eine PM an ein anderes System verschickt. Für
+  dieses System wurde aber in der Datei "Anubis:Config/ZRoute" kein
+  Eintrag entdeckt, so daß ZSort nicht weiß, wohin die PM gestellt
+  werden soll. Prüfen Sie in diesem Fall unbedingt, ob in Ihrer eigenen
+  ZMap alle Systeme, die an Sie angeschlossen sind, eingetragen sind.
+  Nachrichten dieser Art werden auch in das Brett "Unzustellbar" ge-
+  schrieben.
+
+  "MsgID : <msgid> - Schreibzugriff auf Brettverzeichnis"
+  
+  Es wurde versucht, in eine Nachricht in ein Brettverzeichnis zu stellen,
+  dies ist bei ANUBIS nicht erlaubt.
+
+  "WritePuffer(): Kann Datei '<puffername>' nicht öffnen !"
+  
+  Auch diese Fehlermeldung sollte in normal installierten Systemen nicht
+  auftreten. Sollte dies doch passieren, nehmen Sie bitte Kontakt mit
+  dem Programmierer auf.
+
+  "Msg <msgid> übersprungen, zu wenig Speicher !"
+
+  Die Nachricht, die gelesen werden soll, ist zu lang, um in den verfüg-
+  baren RAM Speicher zu passen. Diese Fehlermeldung ist inzwischen mehr
+  ein Relikt, da ZSort eine dynamische Speicherverwaltung besitzt, die
+  auch Nachrichten, die größer als der verfügbare Speicher sind, ver-
+  arbeiten kann.
+
+  "Defekter Header (OffSet <dateizeiger>, suche nächsten Header."
+
+  Beim Lesen eines Nachrichten Headers wurden bestimmte Fehler aufgedeckt,
+  die in einem korrekten Header niemals auftreten können. Die Nachricht
+  wird daher übersprungen und nach dem nächsten Header gesucht. Sollte
+  diese Meldung bei einem System regelmäßig auftreten, nehmen Sie Ver-
+  bindung mit dem Sysop des Systems auf und erkundigen Sie sich, ob es
+  dort irgendwelche neuen Software Installationen gibt, die evtl.
+  fehlerhaft arbeiten (ein Backup des Puffers wäre dann für diese
+  Leute sehr hilfreich bei der Analyse !).
+
+  "<msgid> - zuviele EMP: Header (<n>)"
+
+  Diese Meldung wird im Logfile erzeugt, wenn bei einer öffentlichen Nach-
+  richt mehr als die zulässigen EMP: Header aufgetreten sind. Die
+  Nachricht wird in diesem Fall von ZSort entsorgt, da die Nachricht
+  meist nur bei fehlerhaften oder böswilligen Aktionen ins Netz ge-
+  langt ist.
+
+  "nicht zustellbare RoutePM <adresse> !"
+
+  Eine persönliche Nachricht konnte nicht weitergeleitet werden, da
+  schwere Fehler in der Adressierung vorgefunden wurden. Der Absender
+  wird in diesem Fall informiert.
+
+Sollte beim Start von ZSort die @{"Option" link AUFRUF} -l angegeben
+worden sein, werden alle diese Fehlermeldungen zusätzlich ins File
+"ZSort.log" in "Anubis:Statistik" geschrieben.
+@endnode
+
+@node FEHLER.2 "Fehlermeldungen an Points"
+Folgende Fehlermeldungen werden an den Point, von dem die fehlerhafte Nach-
+richt kam, zurückgeliefert. Für angeschlossene Boxen gilt eine besondere
+Fehlerliste !
+
+  "Sie haben auf dieses Brett keinen Schreibzugriff."
+
+  Der Pointuser hat versucht, auf ein Brett zuzugreifen, auf das er keinen
+  Schreibzugriff hat.
+
+  "Die o.a. Nachricht wurde wegen Überlänge nicht an Ihren Point weiter-
+   geleitet."
+
+  In einem Brett, in dem das Routelimit für Points kleiner ist, als die
+  Länge der eingegangenen Nachricht, wird diese Nachricht nicht an den
+  Point geleitet, sondern diese Meldung erzeugt. Der Pointuser kann
+  dann das File per MAPS requesten oder online saugen.
+
+  "Die Adressangabe hat falsches Format..."
+
+  Eine PM, die an einen User außerhalb des Systems gehen soll, konnte nicht
+  zugestellt werden, da ein anderes Format als das übliche "<user>@<box>.ZER"
+  verwendet wurde.
+
+  "...Empfängersystem unbekannt..."
+
+  Es wurde versucht, eine Nachricht an einen User außerhalb des eigenen
+  Systems zu verschicken, allerdings konnte für das Empfängersystem kein
+  Eintrag in der Routingtabelle gefunden werden.
+
+Allen diesen Fehlermeldungen ist gemeinsam, daß immer die MsgID der Nachricht
+angegeben wird, so daß der PointSysop eindeutig die Nachricht feststellen
+kann, die den Fehler verursacht hat.
+@endnode
+
+@node ALIAS "Bretter umbenennen"
+Häufig kommt es vor, daß man Bretter in der Box anders benennen muß als im
+Netz. Dies kann daran liegen, daß die Brettnamen zu lang sind oder daß
+Nachrichtenbretter weitere Bretter enthalten, was ANUBIS derzeit technisch
+nicht unterstützt.
+Zu diesem Zweck kann man ZSamm und ZSort eine Tabelle übergeben, in der
+die Namen der Bretter im Netz und in der Box eingetragen sind. Die Tabelle
+wird unter dem Namen "Anubis:Config/ZAlias" mit einem normalen Texteditor
+gespeichert. Der Syntax ist wie folgt :
+
+#rein:<brettname>		- Name des Brettes in der Box. ZSort ersetzt
+				  den Originalnamen durch diesen String.
+#raus:<brettname>		- Name des Brettes im Netz. ZSort benutzt
+				  diesen String zur Identifikation.
+###				- Schließt einen Eintrag ab.
+
+<brettname> kann in beiden Fällen einen führenden Slash '/' enthalten oder
+nicht, die Laderoutine erkennt dies automatisch und paßt den Name ent-
+sprechend an.
+
+Stößt ZSort bei der Arbeit auf ein Brett, das mit einem "#raus:" Eintrag in
+der Liste steht, wird die Nachricht in das Brett einsortiert, das im gleichen
+Eintrag unter "#raus:" steht. Wird das Brett an andere Systeme weiter-
+geroutet, wird der Originalname in die Puffer geschrieben, da kein Daten-
+verlust im Header auftreten darf.
+
+Beispiel :
+
+#rein:T-NETZ/SUPPORT/MICRODOT-BETA
+#raus:T-NETZ/SUPPORT/MICRODOT/BETA
+###
+
+Das Brett /T-NETZ/SUPPORT/MICRODOT/BETA kann von ANUBIS aus technischen
+Gründen nicht benutzt werden, das /T-NETZ/SUPPORT/MICRODOT ein Netz-
+Brett mit Nachrichten ist. Deshalb wurde ersatzweise ein Brett unter
+dem Namen .../MICRODOT-BETA eingerichtet.
+ZSort sortiert alle Nachrichten, die nach .../BETA gehen sollten, nach
+.../MICRODOT-BETA. An die angeschlossenen Points und Boxen, die das
+Brett gemapsed haben, wird der Originalname weitergegeben.
+@endnode
+
+@node XPK "Komprimierung von Nachrichten"
+Ab Version 1.38 bietet ZSort die Möglichkeit, eingegangene Nachrichten
+aus dem Netz in komprimierter Form auf die Platte zu schreiben. Dazu
+ist eine installierte XPK-Version nötig (siehe dazu Anubis.guide).
+
+Das Komprimieren geschieht automatisch, wenn im SystemEd ein Packer
+festgelegt wurde, ist aber auf öffentliche Brettmails beschränkt.
+PMs werden aus technischen Gründen nicht gepackt.
+
+Da das Packen der Nachricht Zeit kostet, die die Sortiergeschwindigkeit
+senkt, wurde die @{"Option" link AUFRUF} "-xpk" implementiert. Dadurch können Sie für
+ZSort eine andere Grenze festlegen, ab der eine Nachricht gepackt werden
+soll. Je weniger Nachricht komprimiert werden, desto schneller ist der
+Sortiervorgang.
+Ein Beispiel dazu : Für das Jahr 1993 wurde im Z-Netz eine durchschnittliche
+Nachrichtenlänge von ca. 1400 Bytes errechnet. Setzen Sie nun die Option
+"-xpk1500", werden alle Nachrichten, die unter 1500 Bytes liegen, nicht mehr
+gepackt. Dadurch werden statisch die Hälfte aller Nachrichten nicht mehr
+komprimiert, was ZSort doppelt so schnell macht, als wenn alle Nachrichten
+gepackt werden sollen.
+Den Wert von "-xpk" sollten Sie nach Ihrer Rechnerausstattung und Geduld
+selber festlegen.
+@endnode
+
+@node CRMID "MsgIDs crunchen"
+Um alte MsgIDs aus den Datenbankfiles zu entfernen, starten Sie einfach
+das Programm "CrMID". Dieses läuft nach dem Start über alle MsgID Listen
+und entfernt die IDs, die älter als x Tage sind. Der Wert x kann mittels
+der Kommandozeilenoption TIMEOUT übergeben werden.
+
+Beispiel :
+
+ CrMID TIMEOUT 30
+
+löscht alle MsgIDs, die älter als 30 Tage sind. Der Parameter kann auch ent-
+fallen, dann wird eine Haltezeit von 28 Tagen vorgegeben.
+
+CrMID wurde für den parallelen Einsatz konzipiert, so daß er in einem Cron-
+Job oder im Daily-Batch aufgerufen werden kann.
+@endnode
+
+@node VERSIONEN "Versionsübersicht"
+
+Version Datum		Anmerkung
+1.0	29.04.92	erste Version mit Brett- und PM-Sortierung
+1.1	23.07.92	Version für Points und Routing an andere Boxen
+1.2	25.09.92	@{"Auslagern" link EXPORT} von Nachrichten in Directories
+1.21	23.11.92	Umbau der Commandline @{"Optionen" link AUFRUF}
+1.22	25.11.92	Pointname wird jetzt von ANUBIS übernommen
+1.23	07.12.92	Es werden nur noch Points mit Pollformat "ZNetz"
+			bearbeitet
+	08.12.92	Diskpfade zu Brettern werden jetzt automatisch
+			angelegt.
+			Bei Pointnachrichten wurde der Routestring falsch
+			erstellt.
+	09.12.92	Fehler im PM-Routing behoben.
+1.24	12.01.93	Komplettumbau des Sorters, dadurch wird eine
+			höherere Sortiergeschwindigkeit erreicht.
+			Commandlineoption "-p" eingeführt.
+1.25	15.01.93	öffentliche Nachrichten, für die kein Brett gefunden
+			werden konnte, werden jetzt in ein Brett Unzustell-
+			bar überstellt.
+1.26	17.01.93	Vertreter PMs werden wieder korrekt behandelt.
+1.27	18.01.93	Die Routelänge von Points kann jetzt unterschiedlich
+			zu der Länge von Boxen sein. Points bekommen eine
+			Meldung, daß das File per Hand besorgt werden muß.
+1.28	29.01.93	Bei automatischen Fehlermeldungen wurde der Absender
+			falsch erzeugt.
+			Bei Nachrichten von Points wird jetzt immer der User-
+			name aus der Pointstruktur übernommen.
+			Fehler beim Weiterrouting von PMs gefunden.
+	30.01.93	bei unbekannten Usernamen wurde die PM trotzdem an den
+			Index gehangen.
+			Fehler bei der Absenderbearbeitung behoben.
+1.29	01.02.93	Bei fehlerhaften Endungen von Pointnachrichten wurde
+			die Msg wieder an den Point geleitet.
+	05.02.93	falsche MsgHeader werden jetzt gefunden und korrekt
+			behandelt.
+	07.02.93	Wenn kein CLI Window da ist, wird eins zur Ausgabe
+			aufgemacht.
+1.30	22.02.93	Probleme bei Bretter mit gleichen Namen behoben
+	24.02.93	Es wird beim Header Check jetzt nicht mehr auf die
+			MsgID geprüft, da es scheinbar Programme gibt, die
+			keine ID erzeugen.
+	27.02.93	Für Nachrichten, die nicht einsortiert werden konn-
+			ten, wird keine MsgID mehr gespeichert.
+	06.03.93	Neue Routinen für das Suchen in der MsgID Liste. Da-
+			durch wurde der Sorter um ein vielfaches schneller.
+	08.03.93	ZSort erzeugt jetzt automatische @{"Empfangsbestätigungen" link BEST}.
+1.31	19.03.93	Bugfix : Bei der Empfangsbestätigung wurde der
+			Absender falsch generiert (nach dem Sammeln stand
+			die Box zweimal im Absender).
+1.32	20.03.93	Bugfix : Bei einem empfangenen PointCall stürzte der
+			Sorter ab
+			PMs an Systeme, die direkt an die Box angeschlossen	
+			sind, wird kein Längencheck mehr durchgeführt.
+			Automatischer @{"RouteTest" link ROUTETEST} eingebaut.
+1.33	02.04.93	Schnittstelle für Brettliste umgeändert.
+			Empfangsbestätigungen trugen immer das Datum 01.01.70
+			Fehler in der Vertreter Bearbeitung behoben
+			War der Absender einer Netznachricht identisch mit
+			einem Pointuser, wurde der Header gewandelt.
+	15.04.93	Einsortieren in Brettverzeichnisse nicht mehr möglich.
+			Fehlermeldungen, das eine Brettnachricht zu lang war,
+			werden nicht mehr an Boxen verschickt.
+	26.04.93	Kleine RunTime Optimierungen.
+			Bei Auslagerungen wird nur bis zum ersten Space aus-
+			gelagert.
+1.34	05.05.93	Bugfix : Wenn bei einer RoutePM die Domainangabe
+			fehlt, stürzte ZSort ab.
+	08.05.93	Bugfix : Bei unzustellbaren Bin-Files wurde kein
+			Header vor die Nachricht geschrieben.
+	10.05.93	Bugfix : Wenn ZSort parallel zu ANUBIS gestartet
+			wurde und kein Puffer vorhanden war, wurden User-,
+			Brett- und Pointliste freigegeben.
+			neue Commandline Option : -stat schreibt an den
+			Sysop ein Ergebnisprotokoll.
+	21.05.93	ZSort verarbeitet jetzt auch Nachrichten, die
+			größer als der zur Verfügung stehenden Speicher
+			sind.
+	25.05.93	Bugfix : Bei PMs an Systeme, die direkt hinter dem
+			eigenen liegen, wurde der Empfängerstring nicht
+			korrekt bearbeitet.
+	27.05.93	Das Rückleiten von Fehlermeldungen an die Points
+			wurde komplett umgeschrieben und erweitert.
+	26.06.93	Neuer Commandline Parameter : -fast schaltet ein
+			beschleunigtes System für das Speichern der MsgIDs
+			ein.
+	15.07.93	Der Status Report wird jetzt an SYSOP oder an den
+			in den SystemDaten festgelegten User geschickt.
+1.35	18.07.93	Anfügen des Header Arrays beschleunigt.
+	20.07.93	Ausgabe der aktuellen Nachricht geschieht jetzt in
+			ein eigenes @{"Window" link WINDOW}.
+			ZSort läuft ab sofort nicht mehr unter 1.3 !
+	21.07.93	ZSort gibt genau aus, in welchem Programmteil es
+			gerade steckt (Lesen, Schreiben, Routen...).
+	22.07.93	Die MAPSListe für ein Brett wird jetzt komplett in
+			den Speicher geladen. Sollte das nächste Brett
+			gleich zum letzten sein, braucht sie nicht wieder
+			geladen werden.
+			Progress-Balken eingebaut.
+	23.07.93	Umlautkonvertierung geschieht nicht mehr zeichen-
+			sondern zeilenweise.
+	26.07.93	neue Nachrichten werden für die Points jetzt an
+			die Datei "Puffer.neu" im Pointverzeichnis ange-
+			fügt. Nach dem Sortiervorgang wird dann zusammen-
+			gefügt.
+	27.07.93	Neue @{"Option" link AUFRUF} : -m
+			Die interne Hashtabelle für die MsgIDs wurde auf
+			29 Einträge erhöht. Dadurch ca. 65%ige Geschwin-
+			digkeitssteigerung beim Suchen von IDs.
+	10.08.93	Anzahl der unzustellbaren Nachrichten steht in der
+			@{"Sortierstatistik" link SYSSTAT}.
+			Die Statistik wird auch an den Vertreter geschickt.
+			Bei einer Adressangabe von mehr als 20 Zeichen
+			Länge stürzte ZSort einfach ab.
+	14.08.93	PMs, die an Boxen gingen, die in der eigenen Box ein-
+			getragen sind, aber nicht direkt geroutet werden,
+			bekamen einen falschen Empfänger Header.
+	16.08.93	Nachrichten an User, die nicht im System eingetragen
+			sind, landen auch in Unzustellbar.
+1.36	24.09.93	RoutePMs an unbekannte Systeme werden nach Unzu-
+			stellbar geschrieben.
+	05.10.93	Umstellung auf die neue Routingtabelle für die
+			DomainMaps im PM-Netz.
+1.37	10.10.93	Bugfix : Der Absender der Statistik an bei einem
+			Pointvertreter war nicht korrekt.
+			RoutePMs wurden nicht immer weitergeleitet, sondern
+			nach Unzustellbar sortiert.
+			Über die Konfigurationsdatei "Anubis:Config/AutoEintrag"
+			ist steuerbar, welcher Server in welchen Brettgruppen
+			automatisch @{"Bretter einrichten" link BCREATE} kann.
+	11.10.93	Die Statistik für die Netznachrichten wird jetzt korrekt
+			geführt.
+1.38	19.10.93	Neue Commandline Option : -sys<name> setzt das Empfänger-
+			system des Puffers.
+	24.10.93	ZSort machte für jede Nachricht einen Enforcerhit.
+			Nach "kein Schreibzugriff für Brett..." gab es jedesmal
+			einen "defekter Header" hinterher.
+	26.10.93	Die Hashtable für MsgIDs wurde erneut erhöht (Speedup)
+	26.12.93	Bretter können jetzt unter völlig anderem Namen
+			einsortiert werden siehe @{"Bretterumbenennung" link ALIAS}
+	27.12.93	PMs an User mit einem '.' im Usernamen wurden im
+			Empfänger hinter dem Punkt abgeschnitten.
+	04.01.94	ASCII-Nachrichten werden blockweise und nicht mehr zeilen-
+			weise bearbeitet (Speedup).
+			Der alte ZSort Header vor jeder Nachricht wurde ent-
+			fernt.
+			Das Erstellungsdatum einer Mail wird in die Index-
+			struktur übernommen.
+	11.01.94	neue Option : -xpk<size> setzt das Packlimit aus
+			den Systemdaten um.
+			ASCII Nachrichten werden beim Einsortieren in die
+			MsgBase mittels XPK gepackt.
+	13.01.94	Statistik Mail wurde erweitert.
+	14.01.94	Es wird nicht mehr sortiert, wenn ein Puffer nicht
+			eindeutig zugeordnet werden kann.
+	02.02.94	Die Statistik Mail wird nur noch in das Protokoll-
+			brett für ZMail gestellt.
+	10.02.94	Zu lange Brettnachrichten landen jetzt in Unzustell-
+			bar.
+1.39	25.02.94	Die @{"Empfaengsbestätigung" link BEST} ist jetzt aussagekräftiger.
+	06.03.94	Einträge aus der Routing-Datei werden gecached, dadurch
+			Geschwindigkeitszuwachs.
+	07.04.94	Ein neues Verfahren der anubis.library vermindert die
+			Anzahl der Indexzugriffe um 2/3.
+	11.04.94	Umstellung des Source auf SAS C 6.51
+1.40	15.06.94	ZSort arbeitet im Batchmode und kann so mehrere Puffer
+			hinterander verarbeiten (MultiPuffer Archive z.B.).
+			neue Commandline-Option : -prearc
+			Umstellung auf neue Datenstrukturen für Point- und
+			EilConfig Liste.
+			Bei der Konvertierung von Z 3.8 nach ZConnect werden
+			Adressen und Routestring jetzt korrekt nach Richt-
+			linien konvertiert.
+	26.06.94	@{"Empfangsbestätigungen" link BEST} für den ZConnect Teil
+			@{"MailBouncing" link FEHLER.3} implementiert.
+	12.07.94	Unzustellbar Handling für den ZConnect Teil ist drin.
+			Für das korrekte Funktionieren muß das Programm
+			"CreateUnz" einmal gestartet werden, damit für jedes
+			System ein eigenes Unzustellbar Brett angelegt wird.
+1.41	14.11.94	ZAlias im ZConnect Teil funktioniert jetzt wieder.
+			RoutePMs werden in einem File namens "Route.log" ver-
+			zeichnet, daß mit dem Programm "RouteStat" ausgewertet
+			werden kann.
+			Leichte Beschleunigung des ZC-Teils.
+			Versenden der @{"Statistik" link SYSSTAT} Nachricht an den Pointbetrei-
+			ber, wenn das entsprechende Bit gesetzt ist.
+			Das Display wird vor dem Abspeichern der Brettliste
+			gelöscht.
+			Im Display wird die Länge des aktuellen Puffers ange-
+			zeigt.
+			Einrichten fehlender Brettverzeichnisse möglich.
+			Beim @{"automatischen Einrichten" link BCREATE} eines Brettes kann der
+			BrettEd 1.01 dies jetzt feststellen.
+			Bei Brettern des Typs "Route" wird kein Indexeintrag
+			mehr geschrieben, sondern nur noch an Systeme in
+			der MAPSListe geroutet.
+			Unzustellbar Behandlung funktioniert wieder korrekt.
+			Bouncing von folgenden Format Fehlern bei EMP-Header :
+
+			 - Es steht kein Username vor dem '@'
+			 - Das erste Zeichen hinter dem '@' ist ein Punkt '.'
+			 - Hinter dem '@' steht kein Punkt und der String da-
+			   hinter ist nicht der Name der eigenen Box
+
+			Bounce-Mails werden unter folgenden Bedingungen nicht
+			mehr erzeugt :
+
+			 o die Originalmail war eine Fehlermeldung
+			 o die Originalmail war eine Empfangsbestätigung
+			 o die Originalmail war eine Kontrollnachricht
+
+			Neue @{"Commandline-Option" link AUFRUF} : -maxxpost.
+			ZSort läuft parallel zu ANUBIS.
+1.42	20.04.95	Länge der Kommentar Bytes steht in der Statistik Mail.
+			Optimierungen.
+			Auswertung des CHARSET: Headers.
+			Ist ein FILE: Header vorhanden, so wird dies statt
+			des Betreffs benutzt.
+			ZSort fügt VIA: Header ein.
+			Parameter "-fast" und "-m" entfernt.
+			Umstellung auf neues MsgID Verwaltung Modul, zuvor müssen
+			alte Daten mittels "SplitMID" konvertiert werden !
+			Das Crunchen der MsgIDs geschieht jetzt über @{"CrMID" link CRMID}.
+			Die Zeile "Länge MsgIDs" in der Statistik ent-
+			fällt.
+			Verbesserung der Status Kontrolle, auch bei mehrfachen
+			STAT: Headern werden jetzt Empfangsbestätigungen und
+			Control-Mails erkannt.
+			Erweiterung der MAILER: Zeile, wenn Nachrichten von
+			einem Point kamen.
+			Benutzung der anubisroute.library mit absenderge-
+			steuertem Routing.
+	23.04.95	Reine RouteMails werden jetzt nach "PufferPM.neu"
+			geschrieben.
+	01.05.95	Es wird kein Bounce "unbekannter User" für den
+			mailerdaemon erzeugt.
+			Neue @{"Commandline-Optionen" link AUFRUF} :
+
+			 -novia   : keinen VIA: Header anfügen
+			 -nounz   : keine Mails ins Unzustellbar
+			 -nodel   : Puffer nach Sortierung nicht löschen
+
+			ANTWORT-AN: Header für die Statistik-Mail an Points
+	18.05.95	Es wurden auch dann Empfangsbestätigungen erzeugt,
+			wenn der User nicht im System bekannt war.
+			Die LogFile Meldung "doppelte MsgID" entfällt (da
+			nichtssagend).
+			Beim @{"Auto-Eintrag" link BCREATE} lässt sich ein bestimmter User
+			für den Eintrag neuer Bretter festlegen.
+			Ist bei einer privaten Nachricht ein TRACE: Header
+			vorhanden, wird eine Trace-Info-Nachricht zu-
+			rückgeschickt.
+			Neuer @{"Commandline-Parameter" link AUFRUF} :
+
+			 -notrace : Es wird kein Trace-Info erzeugt.
+
+			Der Bounce "unbekanntes Brett" wird für Nachrichten
+			mit BEZ: Header nicht mehr erzeugt.
+			Kann eine öffentliche Nachricht an einen Point
+			wegen des Routelimits nicht zugestellt werden, wird
+			der Pointsysop jetzt davon informiert.
+@endnode
+
+@node TODO "geplante Erweiterungen"
+
+ - Beschleunigung des ZConnect Teils.
+ - Implementierung von Adress-Kapselung.
+ - ZAlias für komplette Brettgruppen.
+@endnode

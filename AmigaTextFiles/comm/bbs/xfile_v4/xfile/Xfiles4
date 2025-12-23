@@ -1,0 +1,133 @@
+/* JUST TO SAy SOMETHING */
+
+TING = " _+*!$%&()=?^,\ABCDEFGHIJKLMNOPQRSTUWXYZ"
+Arg First
+second = Word(First,1)
+terz = Word(first,3)
+First = Word(First,2)
+SAY ''
+SAY 'XFiles2! Processor For INDEX found on Aminet CD - By Massimiliano Pala'
+SAY 'Patch Program for Version 1.20 of Excelsior!'
+file2 = 'BBS:Fbase/'terz'/'First
+First = 'CD0:Aminet/'second'/'first
+file = first'/INDEX'
+SAY ''
+SAY ' File to process --> 'file
+SAY ' Destination File -> 'file2'/Files.BBS'
+SAY ''
+
+If ~EXISTS(File) | ~EXISTS(FILE2) Then DO
+	If ~EXISTS(File) THEN SAY '<*> File 'File' Does NOT Exists!'
+	If ~EXISTS(File2) THEN SAY '<*> File 'File2' Does NOT Exists!'
+	Exit
+END
+
+File2 = file2'/Files.BBS'
+
+J = 0
+K = Open(lettura,file,'R')
+K = Open(scrittura,'RAM:T/BB.Temp','W')
+Temp = Readln(lettura)
+Temp = Readln(lettura)
+DO WHILE ~EOF(Lettura)
+	Temp = Readln(lettura)
+	Temp2 = Word(Temp,1)
+	Temp = Substr(Temp,38)
+	Temp = Temp2' 'Temp
+	P = Writeln(scrittura,Temp)
+	J = J + 1
+END
+
+SAY ' Total Files Listed Are --> 'J
+
+K = Close(lettura)
+K = Close(scrittura)
+
+TOL.=''
+SAY ''
+SAY '(((*))) Sorting Tables :'
+J=1
+K = Open(lettura,'RAM:T/BB.Temp','R')
+DO WHILE ~EOF(Lettura)
+	Temp = Readln(lettura)
+	If Temp ~= '' Then DO
+	Temp2 = Word(Temp,1)
+	Temp3 = First'/'Temp2
+		If Exists(Temp3) Then DO
+			TOL.J = Temp
+			J = J + 1
+		END
+	END
+END
+K = CLOSE(LETTURA)
+
+J = J - 1
+SAY J' Files Found And Checked!'
+SAY ''
+SAY '(((*))) Processing :'
+
+JOP = ''
+JOP2 = ''
+DO I = 1 To 37
+	JOP = JOP||D2C(8)
+END
+DO I = 1 To 36
+	JOP2 = JOP2||D2C(8)
+END
+
+DO I = 1 TO J-1
+	BUFF = TOL.I
+	PUNT = I
+	JIP = TOL.I
+	DO F = I+1 TO J
+		O = 1
+		DO WHILE UPPER(SUBSTR(TOL.F,O,1)) = UPPER(SUBSTR(BUFF,O,1))
+			O = O + 1
+		END
+		A = INDEX(TING,SUBSTR(UPPER(TOL.F),O,1))
+		B = INDEX(TING,SUBSTR(UPPER(BUFF),O,1))
+		IF A < B Then DO
+			BUFF = TOL.F
+			PUNT = F
+		END
+	END
+	TOL.PUNT = TOL.I
+	TOL.I = BUFF
+	PERC = (I*100)%J
+	GAY = SUBSTR('.[ 'Left(I,6)'] 'SUBSTR(WORD(TOL.I,1),1,20,'.')'...   ['Right(PERC,2)'%]',1,43)
+	GAY = 'ECHO 'GAY' NOLINE'
+	IF I > 1 Then DO 
+		IF I < 10 Then Temp = JOP2
+		ELSE Temp = JOP
+		GAY2 = 'ECHO 'Temp' NOLINE'
+		Address Command GAY2
+	END
+	Address Command GAY
+END
+I = J
+GAY2 = 'ECHO 'Temp' NOLINE'
+Address Command GAY2
+PERC = (I*100)%J
+GAY = SUBSTR('.[ 'Left(I,6)'] 'SUBSTR(WORD(TOL.I,1),1,20,'.')'...   ['Right(PERC,3)'%]',1,43)
+GAY = 'ECHO 'GAY' NOLINE'
+Address Command GAY
+
+
+SAY ''
+SAY ''
+GAY = 'ECHO (((*))) Writing Ordered Data... NOLINE'
+Address Command GAY
+
+K = Open(scrittura,file2,'W')
+
+DO I = 1 To J
+	K = Writeln(scrittura,TOL.I)
+END
+
+K= CLOSE(scrittura)
+
+SAY 'All Done!'
+Say ''
+Say ''
+
+EXit

@@ -1,0 +1,94 @@
+; Poll-Script2 (for Frontiers BBS)
+;
+stack 80000
+echo "Restarting Log Files..."
+delete sysdata:log/poll
+rx fido:Poll.rexx Restarting Log Files...
+
+delete sysdata:log/traplist
+delete sysdata:log/JamMail
+
+echo ""
+echo "Clearing temp directories..."
+rx fido:Poll.rexx Clearing temp directories...
+
+delete mail:temp/outbound/#?
+delete mail:temp/inbound/#?
+delete mail:temp/netmail/#?
+
+echo ""
+echo "Backing up outbound & netmail..."
+rx fido:Poll.rexx Backing up outbound & netmail...
+
+copy outbound:#? mail:temp/outbound/
+copy netmail:#?  mail:temp/netmail/
+
+echo ""
+echo "Tossing outbound packets..."
+rx fido:Poll.rexx Tossing outbound packets...
+
+; It is NOT neccessary to specify additional logging verbosity if you plan
+; on using the TossReporter utility. The default verbosity 0 setting is fine!
+;
+cnet:toss
+
+echo ""
+echo "JamScanning outbound packets..."
+rx fido:Poll.rexx JamScanning outbound packets...
+
+; The "stack" command at the beginning of this script is needed in order to
+; launch the JAMSCAN file. You may/may not be able to lower the value used
+; in the stack command, but you'll have to play with that on your system.
+;
+jammail:jamscan
+
+echo ""
+echo "Calling the Boss..."
+rx fido:Poll.rexx Calling the Boss...
+
+; Replace the "1:260/20.0" address with the Node Address of your Fido Boss
+; Node or the node address you'll be catching your polls from.
+;
+rx mail:JamCall.rexx 1:260/20.0 99 50
+
+echo ""
+echo "Finished polling..."
+rx fido:Poll.rexx Finished polling...
+
+echo ""
+echo "Backing up inbound & netmail..."
+rx fido:Poll.rexx Backing up inbound & netmail...
+
+copy inbound:#? mail:temp/inbound/
+copy netmail:#? mail:temp/netmail/
+
+; Remove the semicolons from the following lines if you wish to use the
+; included "NodeDiff" processor.
+;
+;echo ""
+;echo "Checking for new NODEDIFF files..."
+;rx fido:Poll.rexx Checking for new NODEDIFF files...
+;
+;cd nodelist:
+;rx fido:NodeDiff.rexx
+
+; Remove the semicolons from the following lines if you wish to use the
+; included "DoTick" .TIC processor.
+;
+;echo ""
+;echo "Checking for new TIC files..."
+;rx fido:Poll.rexx Checking for new TIC files...
+;
+;rx fido:DoTick.rexx
+
+echo ""
+echo "Tossing inbound packets..."
+rx fido:Poll.rexx Tossing inbound packets...
+
+cnet:toss
+
+echo ""
+echo "Poller finished."
+rx fido:Poll.rexx Poller finished.
+
+endcli

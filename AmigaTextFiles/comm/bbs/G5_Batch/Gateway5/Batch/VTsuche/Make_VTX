@@ -1,0 +1,74 @@
+FailAt 21
+
+if NOT EXISTS Box:VollTextSuche.NEU
+	Makedir Box:VollTextSuche.NEU
+else
+	Delete Box:VollTextSuche.NEU/#? ALL QUIET CLONE
+endif
+Assign G5_VTX: Box:VollTextSuche.NEU
+
+Delete G5_VTX:#? ALL
+
+;;; ----- Die Suchfiles werden aufgebaut ----- ;;;
+
+Cd G5_Man:
+Execute G5_Bat:vtsuche/Generiere Manual "G5_Man:#?"
+
+
+Cd G5_Txt:Info
+Execute G5_Bat:vtsuche/Generiere InfoWall "G5_Txt:Info/Info#?"
+
+
+Cd G5_Tra:
+Execute G5_Bat:vtsuche/Generiere Trade "G5_Tra:#?Welt#?" "G5_Tra:Ankunft" "G5_Tra:#?hilf#?" "G5_Tra:#?help#?"
+
+
+Cd G5_Txt:
+Execute G5_Bat:vtsuche/Generiere Texte "G5_Txt:#?hilf#?" "G5_Txt:#?help#?" "G5_Txt:(AGB|ANL|ChatOrdnung|FAN|HYP|LEV|POR|TXT.TETRIS|SND)"
+
+
+Cd G5_Sys:
+Execute G5_Bat:vtsuche/Generiere Areas "G5_Sys:AreaNamen#?" CD G5_Are: "G5_Are:#?.~(#?DAT)"
+
+
+Cd G5_Sys:
+Execute G5_Bat:vtsuche/Generiere Bretter "G5_Sys:BrettNamen#?" CD G5_Brt: "G5_Brt:#?.~(#?DAT)"
+
+
+Cd Box:Doku
+Execute G5_Bat:vtsuche/Generiere GatewayDok "Box:Doku/#?.~(#?INFO)"
+
+
+Cd Box:Doku/ExterneDoks
+Execute G5_Bat:vtsuche/Generiere ExternDok "Box:Doku/ExterneDoks/#?.~(#?INFO)"
+
+;;; ----- mega-Suchfiles aus kleinen Dateien aufbauen ----- ;;;
+
+Cd Box:
+
+Execute G5_Bat:vtsuche/BuildBigIndex BBS_Online Manual InfoWall Trade Texte
+Execute G5_Bat:vtsuche/BuildBigIndex BBS_Struktur Areas Bretter
+Execute G5_Bat:vtsuche/BuildBigIndex BBS_Offline GatewayDok ExternDok
+
+Execute G5_Bat:vtsuche/BuildBigIndex System_Komplett BBS_Online BBS_Struktur BBS_Offline
+
+
+Execute G5_Bat:vtsuche/Make_InfoText
+
+Echo "Aufräumen!"
+
+Delete Box:VollTextSuche/#?
+Copy Box:VollTextSuche.NEU/#? Box:VollTextSuche/ ALL QUIET MOVE
+Copy Box:VollTextSuche Box:VollTextSuche ALL QUIET
+
+Assign G5_VTS: DISMOUNT
+Assign G5_VTX: DISMOUNT
+Assign G5_VTS: Box:VollTextSuche
+Assign G5_VTX: Box:VollTextSuche
+
+If ExistsDelete Box:VollTextSuche.ALT
+	Delete Box:VollTextSuche.ALT ALL QUIET FORCE
+EndIf
+If ExistsDelete Box:VollTextSuche.NEU
+	Delete Box:VollTextSuche.NEU ALL QUIET FORCE
+EndIf

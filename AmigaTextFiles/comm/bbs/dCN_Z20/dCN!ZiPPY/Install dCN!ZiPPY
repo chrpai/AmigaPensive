@@ -1,0 +1,150 @@
+; Installer for dCN!ZiPPY
+; (C) 1997 by TranceTip (dCN-/F·dEZiGN)
+
+; $VER: Install dCN!ZiPPY 2.0 (09.03.97)
+
+(set #appname "dCN!ZiPPY")
+(set #destdir "FAME:Doors")
+(set #appdestdir (tackon #destdir #appname))
+(set #bbscmddestdir "FAME:Settings/Doors/BBSCMD")
+(set #sourcedir "Data")
+(set #bbscmdsourcedir "DoorSettings/BBSCMD")
+
+(set @default-dest #destdir)
+(set @app-name #appname)
+
+(if (not (patmatch "(68000|68010)" (database "cpu")))
+   (
+     (if (not (patmatch "(68020|68030)" (database "cpu")))
+       (set #cputype "68040")
+       (set #cputype "68020")
+     )
+   )
+
+   (
+     (set #cputype "68000")
+   )
+)
+
+(set #verrev (getversion "Data/dCN!ZiPPY/dCN!ZiPPY.000"))
+
+(if #verrev
+  (
+    (set #ver (/ #verrev 65536))
+    (set #rev (- #verrev (* #ver 65536)))
+  )
+
+  (
+    (set #ver "x")
+    (set #rev "x")
+  )
+)
+
+(set #oldverrev (getversion (tackon #destdir "dCN!ZiPPY/dCN!ZiPPY.FIM")))
+
+(if #oldverrev
+  (
+    (set #oldver (/ #oldverrev 65536))
+    (set #oldrev (- #oldverrev (* #oldver 65536)))
+  )
+
+  (
+    (set #oldver "x")
+    (set #oldrev "x")
+  )
+)
+
+(if (= @language "deutsch")
+  (
+  (set #welcometext (cat "Willkommen zum Installationsprogramm von " #appname " V" #ver "." #rev "!\n\n" #appname " ist ein sehr zuverlässiges und schnelles Suchutility für FAME."))
+  (set #willbecopied (cat "Das " #appname "-Programmpaket als " #cputype " Version wird nun nach \"" #destdir "\" installiert.\n\nDas benötigte Verzeichnis wird dort erstellt."))
+  (set #note060 "Bitte beachten:\n\nSie haben zwar einen 68060 Prozessor, SAS/C V6.57 hat allerdings beim Kompilieren für den 68060 exakt dasselbe Binary erstellt wie für den 68040.\n\nDeshalb wird die 040 Version installiert.")
+  (set #note030 "Bitte beachten:\n\nSie haben zwar einen 68030 Prozessor, SAS/C V6.57 hat allerdings beim Kompilieren für den 68030 exakt dasselbe Binary erstellt wie für den 68020.\n\nDeshalb wird die 020 Version installiert.")
+  (set #alreadyinstalled (cat #appname " V" #oldver "." #oldrev " befindet sich bereits im Verzeichnis \"" #destdir "/" #appname "\".\n\nDie neue Version wird über die alte kopiert, jegliche Config-Files bleiben erhalten."))
+  (set #installbbscmd (cat "Installiere nun das BBS-Command \"z\" für " #appname "."))
+  (set #alreadybbscmd "Das bereits existierende wird dabei überschrieben.")
+  (set #finished (cat "Bitte lesen Sie den Guide und denken Sie daran, daß " #appname " Shareware ist. Registrieren Sie sich deshalb bitte möglichst bald.\n\nDie registrierte Version bietet übrigens eine Reihe zusätzlicher Features!\n\n\nSigning off,\n\nTranceTip (dCN-/F·dEZiGN)"))
+  )
+
+  (
+  (set #welcometext (cat "Welcome to the installation script for " #appname " V" #ver "." #rev "!\n\n" #appname " is a very reliable and fast search utility for FAME."))
+  (set #willbecopied (cat #appname " " #cputype " will now be installed to \"" #destdir "\".\n\nThe required directory will be created there."))
+  (set #note060 "Please note:\n\nYou've got a 68060 processor for sure, but SAS/C V6.57 created exactly the same binary for the 68060 and the 68040.\n\nTherefore the 040 version will be installed.")
+  (set #note030 "Please note:\n\nYou've got a 68030 processor for sure, but SAS/C V6.57 created exactly the same binary for the 68030 and the 68020.\n\nTherefore the 020 version will be installed.")
+  (set #alreadyinstalled (cat #appname " V" #oldver "." #oldrev " already exists in \"" #destdir "/" #appname "\".\n\nThe new version will be copied over the old one. All existing config files will be left untouched."))
+  (set #installbbscmd (cat "Now installing the BBS command \"z\" for " #appname "."))
+  (set #alreadybbscmd "The already existing one will be overwritten.")
+  (set #finished (cat "Please read the guide and remember that " #appname " is Shareware. Please register as soon as possible.\n\nThe registered version has some additional features, by the way.\n\n\nSigning off,\n\nTranceTip (dCN-/F·dEZiGN)"))
+  )
+)
+
+(welcome #welcometext)
+
+(complete 0)
+
+(if (= (database "cpu") "68060")
+  (message #note060)
+)
+
+(if (= (database "cpu") "68030")
+  (message #note030)
+)
+
+(message #willbecopied)
+
+(if (exists (tackon #destdir "dCN!ZiPPY"))
+  (
+    (message (cat #alreadyinstalled))
+    (set #already 1)
+  )
+)
+
+(copyfiles
+  (source #sourcedir)
+  (dest #destdir)
+  (all)
+  (optional force)
+)
+
+(delete (tackon #appdestdir "dCN!ZiPPY.FIM"))
+
+(if (= #cputype "68000")
+  (
+    (rename (tackon #appdestdir "dCN!ZiPPY.000") (tackon #appdestdir "dCN!ZiPPY.FIM"))
+    (delete (tackon #appdestdir "dCN!ZiPPY.020"))
+    (delete (tackon #appdestdir "dCN!ZiPPY.040"))
+  )
+)
+
+(if (= #cputype "68020")
+  (
+    (rename (tackon #appdestdir "dCN!ZiPPY.020") (tackon #appdestdir "dCN!ZiPPY.FIM"))
+    (delete (tackon #appdestdir "dCN!ZiPPY.000"))
+    (delete (tackon #appdestdir "dCN!ZiPPY.040"))
+  )
+)
+
+(if (= #cputype "68040")
+  (
+    (rename (tackon #appdestdir "dCN!ZiPPY.040") (tackon #appdestdir "dCN!ZiPPY.FIM"))
+    (delete (tackon #appdestdir "dCN!ZiPPY.000"))
+    (delete (tackon #appdestdir "dCN!ZiPPY.020"))
+  )
+)
+
+(complete 80)
+
+(if (exists (tackon #bbscmddestdir "Z"))
+  (message (cat #installbbscmd "\n\n" #alreadybbscmd))
+  (message (cat #installbbscmd))
+)
+
+(copyfiles
+  (source #bbscmdsourcedir)
+  (dest #bbscmddestdir)
+  (all)
+  (optional force)
+)
+
+(complete 100)
+(message #finished)

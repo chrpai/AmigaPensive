@@ -1,0 +1,149 @@
+/************************************************************************/
+/*         Guessing_Game - External Wild-Bank Gambling Game             */
+/*                       by: Party Master                               */
+/*                                                                      */
+/* This is an example of an external gambling game that you can use     */
+/* with Wild-Bank versions 1.2 and higher. Just place this file in your */
+/* Wild-Bank Games directory  ('Doors:WildBankGames' is the default).   */
+/* Everthing else will be taken care of automatically by Wild-Bank.     */
+/* For more information on how to make your own external gambling       */
+/* games, please refer to the WildBank docs.                            */
+/*                                                                      */
+/* You are free to edit this file however you want.                     */
+/*                                                                      */
+/************************************************************************/
+
+options results
+
+signal on error                                 /* You should put this  */
+signal on syntax                                /* error detection in   */
+signal on ioerr                                 /* all of your external */
+signal on halt                                  /* gambling games.      */
+
+/************************************************************************/
+/* EDIT THE FOLLOWING VARIABLES TO SUIT YOUR PREFERENCES                */
+/************************************************************************/
+numguess=4       /* Number of Guesses a user gets                       */
+highlow=0        /* Say Higher and Lower after a guess? (1=yes, 0=no)   */
+highnum=9        /* Highest guessing game number                        */
+/************************************************************************/
+
+                                                /* If you need to know  */
+                                                /* how much time the    */
+                                                /* user bet, then put   */
+bet=getclip('bet')                              /* this line in your    */
+                                                /* game and the         */
+                                                /* variable 'bet' will  */
+                                                /* be the user's bet.   */
+
+sendstring "\n1\C3Read the docs \C2(\C7y\C2/\C7N\C2)\C3?\Q1 "
+getchar
+if upper(result)='Y' then do
+ transmit "\n2\C4     After you place your bet, the computer will pick a number between 0 and" highnum" (including 0 and" highnum") and you have" numguess "guesses to find the number.\n1"
+ if highlow='Y' then transmit "     The computer will help you out a bit by telling you if the number is higher or lower than your guess.\n1"
+ transmit "     If you guess the number within" numguess "guesses then you win, otherwise, you lose.\n2\C2Hit RETURN:\g1\Q1"
+end
+transmit "\n2"
+do x=1 to random(2,50,time('s'))
+ call randu()
+end
+number=left(randu()*(highnum+1),1)
+do z=1 to numguess
+ Query "\C5\n1(guess\C2" z "\C5of\C2" numguess"\C5)\C4 Pick a number between 0 and" highnum": \Q1"
+ guess=result
+ if guess="###PANIC" then exit
+
+                                                /* Always set this      */
+                                                /* variable to either   */
+ winlose = 'loser'                              /* 'winner' or 'loser'  */
+                                                /* before exiting your  */
+                                                /* gambling game.       */
+
+ select
+  when guess=number then do
+
+                                                /* Always set this      */
+                                                /* variable to either   */
+  winlose = 'winner'                            /* 'winner' or 'loser'  */
+                                                /* before exiting your  */
+                                                /* gambling game.       */
+
+   transmit "\C7\n1YOU GOT IT!\Q1"
+   leave z
+  end
+  when highlow='Y' then do
+   if number<guess then transmit "\C7\n1LOWER\Q1"
+   if number>guess then transmit "\C7\n1HIGHER\Q1"
+  end
+  when guess>highnum | guess<0 then do
+   transmit "\C7\n1That guess is not in the range of 0 to" highnum"!"
+   z=z-1
+  end
+  otherwise transmit "\C7\n1THAT'S NOT IT!\Q1"
+ end
+end
+
+                                                /* You must set this    */
+                                                /* clipboard file       */
+                                                /* before you exit your */
+ call setclip('gameresult',winlose)             /* your gambling game.  */
+                                                /* It must contain      */
+                                                /* 'winner' or 'loser'  */
+                                                /* or 'error'.          */
+
+                                                /* Exit your gambling   */
+ exit                                           /* game after you set   */
+                                                /* the clipboard file.  */
+
+/************************************************************************/
+/* You should use the following error procedures in your gambling games */
+/* to let Wild-Bank know that an error has occured, so it will exit     */
+/* cleanly. Just change the name "Guessing_Game" to whatever the name   */
+/* of your game is.                                                     */
+/************************************************************************/
+
+HALT:                                           /* HALT                 */
+transmit '\n1AREXX HALT issued.'
+transmit 'Guessing_Game aborted...\n1'
+
+                                                /* The clipboard file   */
+call setclip('gameresult','error')              /* is set to 'error'    */
+                                                /* when an error occurs */
+
+exit
+
+IOERR:                                          /* I/O ERROR            */
+transmit 'An I/O Error has occured.'
+transmit 'Line:' SIGL
+logentry 'IO Error occured in Guessing_Game'
+logentry 'Line:' SIGL
+
+                                                /* The clipboard file   */
+call setclip('gameresult','error')              /* is set to 'error'    */
+                                                /* when an error occurs */
+
+exit
+
+ERROR:                                          /* ERROR                */
+transmit 'An Error has occured.'
+transmit 'Line:' SIGL '  Severity:' RC
+logentry 'Error occured in Guessing_Game' 
+logentry 'Line:' SIGL '  Severity:' RC
+
+                                                /* The clipboard file   */
+call setclip('gameresult','error')              /* is set to 'error'    */
+                                                /* when an error occurs */
+
+exit
+
+SYNTAX:                                         /* SYNTAX ERROR         */
+transmit 'A Syntax Error has occured.'
+transmit 'Line:' SIGL '   Severity:' RC
+logentry 'Syntax Error occured in Guessing_Game'
+logentry 'Line:' SIGL '  Error Code:' RC
+
+                                                /* The clipboard file   */
+call setclip('gameresult','error')              /* is set to 'error'    */
+                                                /* when an error occurs */
+
+exit

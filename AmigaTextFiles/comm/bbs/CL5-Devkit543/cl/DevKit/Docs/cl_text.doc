@@ -1,0 +1,507 @@
+TABLE OF CONTENTS
+
+cl_text.library/--background--
+cl_text.library/CLTXT_CloseCatalog
+cl_text.library/CLTXT_FormatDate
+cl_text.library/CLTXT_GetLanguageByDomain
+cl_text.library/CLTXT_GetString
+cl_text.library/CLTXT_MakeFile
+cl_text.library/CLTXT_OpenCatalog
+cl_text.library/CLTXT_OpenLocale
+cl_text.library/CLTXT_PrintfA
+cl_text.library/CLTXT_Replace
+cl_text.library/CLTXT_ReplaceAll
+cl_text.library/CLTXT_SPrintfA
+cl_text.library/--background--                 cl_text.library/--background--
+
+   PURPOSE
+   The purpose of cl_text.library is to provide support for online
+   text output. It supports automatic language selection and
+   and has a versatile token replacement ability.
+
+   CONNECTLINE LANGUAGES
+   The "cl_text.library" deals with it's internal set of languages
+   and text catalogs different from locale.library. The languages
+   are configured with a special preference editor (CL-TEXT-PREFS).
+   Every language setting consists of a few prefs entries and a set
+   of texts. The prefs currently consist of a reference language
+   and a workbench locale setting to use for the given language.
+   The reference language is used as a fallback if a given text
+   is not definied in the current language.
+
+   Connectline Languages are accessed by name. Unknown languages
+   will automatically cause fallback to the default language.
+
+   LOCALE SUPPORT
+   The library contains a few functions to support the functionality
+   of "locale.library", e.g. language specific number output and
+   date format. Also provided is a function to obtain a locale
+   pointer by connectline language name.
+
+   TOKENS
+   "cl_text.library" supports a token replacement ability for
+   text files. Both builtin and application specific tokens
+   are supported.
+
+   Tokens generally have the format
+
+       $(tokenanme{optional-data})
+
+   Valid examples for tokens are
+
+       $(BOLD)
+       $(ENV{USERNAME})
+
+
+   BUILTIN TOKENS
+   Various tokens are implemented internally and can be used
+   everytime.
+
+   $(DATE{fmt})  Insert current date with locale.library's FormatDate()
+                 (e.g. "$(DATE{%c})")
+   $(ENV{name})  Insert value of ENV variable (e.g. "$(ENV{USERNAME})")
+   $(FILE{name}) Insert file (max. 1024 chars)
+   $(FF)          Insert FormFeed (^L, 0x0c)
+   $(BELL)          Insert Bell (^G, 0x07)
+   $(BOLD)       Insert ANSI bold sequence
+   $(ITALIC)      Insert ANSI italic sequence
+   $(UNDERLINE)  Insert ANSI underline sequence
+   $(NORMAL)     Insert ANSI normal sequence
+   $(COL{num})   Insert ANSI color select sequence (e.g. "$(COL{1})")
+   $(BCOL0{num}} Insert ANSI background color select sequence
+
+   EXTERNAL TOKENS
+   External tokens may be used to customize text output for special
+   applications. From the user's side, external tokens are no way different
+   from internal ones. However, the programmer providing external
+   tokens must specify them prior usage.
+
+   External tokens are specified via an array of CLTXT_TokEnts:
+
+     typedef struct CLTXT_TokEntry {
+       char *name;        // Name of token (UPPER CASE ONLY!)
+        ULONG type;        // Replacement type
+        APTR data;        // Data
+     };
+
+   "type" may take different values depending on the type of "data":
+
+      CLTXT_RT_STRING 0    Insert Data as a string (max. 1024 chars)
+      CLTXT_RT_INTEGER 1      Insert Data with %lD
+      CLTXT_RT_UNSIGNED 2    Insert Data with %lU
+      CLTXT_RT_HOOK 3        Call Hook
+                           (a0 = Hook, a1 = STRPTR to token data,
+                            a2 = STRPTR to buffer (must be zero-terminated, m
+ax. 1024 chars!))
+      CLTXT_RT_FILE 4        Data is file to include (max. 1024 chars!)
+
+cl_text.library/CLTXT_CloseCatalog         cl_text.library/CLTXT_CloseCatalog
+
+   NAME
+   CLTXT_CloseCatalog -- close a CL catalog (V2)
+                     
+
+   SYNOPSIS
+   void CLTXT_CloseCatalog( clcatalog );
+                               A0
+
+   void CLTXT_CloseCatalog( APTR );
+
+   FUNCTION
+   Closes a catalog opened by CLTXT_OpenCatalog(). Note that
+   catalogs are cached until a memory flush.
+
+   INPUTS
+   clcatalog -- catalog to close. Passing NULL is ignored.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLTXT_OpenCatalog(), CLTXT_GetString()
+
+cl_text.library/CLTXT_FormatDate             cl_text.library/CLTXT_FormatDate
+
+   NAME
+   CLTXT_FormatDate -- sprintf()-like interface to FormatDate()
+
+   SYNOPSIS
+   CLTXT_FormatDate( locale, buffer, format, datestamp );
+                       A0      A1      A2       A3
+
+   void CLTXT_FormatDate( struct Locale *, STRPTR, STRPTR, struct DateStamp *
+ );
+
+   FUNCTION
+   calls locale.library/FormatDate() in a sprintf() like
+   manner.
+
+   INPUTS
+   locale -- Locale to use. May be NULL.
+   buffer -- buffer to write to.
+   format -- formating string.
+   datestamp -- datestamp to use.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   locale.library/FormatDate(), CLTXT_PrintfA(), dos.library/DateStamp()
+
+cl_text.library/CLTXT_GetLanguageByDomainxt.library/CLTXT_GetLanguageByDomain
+
+   NAME
+   CLTXT_GetLanguageByDomain -- get langauge by domain adresse (V2)
+                     
+
+   SYNOPSIS
+   langname = CLTXT_GetLanguageByDomain( domainadr );
+   D9                                       A0
+
+   STRPTR CLTXT_GetLanguageByDomain( STRPTR );
+
+   FUNCTION
+   Returns the language set for domain adresse "domainadr".
+   Returns the default language if no preference match is found.
+
+   INPUTS
+   domainadr -- Domain address to parse.
+
+   RESULT
+   langname -- pointer to language associated with "domainadr".
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+
+cl_text.library/CLTXT_GetString               cl_text.library/CLTXT_GetString
+
+   NAME
+   CLTXT_GetString -- get a string from a CL catalog (V2)
+                     
+
+   SYNOPSIS
+   STRPTR CLTXT_GetString( clcatalog, stringid, defstring );
+                               A0        A1        A2
+
+   STRPTR CLTXT_GetString( APTR, STRPTR, STRPTR );
+
+   FUNCTION
+   Returns a string from a CL catalog. If the string is not found,
+   or the catalog pointer is NULL, defstring is returned.
+
+   INPUTS
+   clcatalog -- catalog. May be NULL.
+   stringid -- string ID of the string to find. Case insensitive.
+   defstring -- default string to return if clcatalog is NULL
+                or the string is not found.
+
+   RESULT
+   None.
+
+   EXAMPLE
+
+   NOTES
+   Do never ever modify a string returned by this function!
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLTXT_OpenCatalog(), CLTXT_GetString()
+
+cl_text.library/CLTXT_MakeFile                 cl_text.library/CLTXT_MakeFile
+
+   NAME
+   CLTXT_MakeFile -- create a connectline text file with automatic
+                     langauge selection and token replacement.
+
+   SYNOPSIS
+   error = CLTXT_MakeFile( cllangname, textid, tofilename, tokents )
+   D0                          A0        A1       A2          A3
+
+   APTR CLTXT_MakeFile( STRPTR, STRPTR, STRPTR, struct  );
+
+   FUNCTION
+   This is the big one: Given a language and a textid, it
+   creates a parsed output file with replaced macros et al.
+   Will fall back to the reference langauge or system default
+   langauge if the text is not avaible within the given
+   langauge set.
+
+   INPUTS
+   cllangname -- language to use.
+   textid -- ID of text to create (e.g. "Login")
+   tofilename -- name of output file. If this string is EMPTY (not NULL!),
+                 it will automatically be filled with a temporary
+                 file name.
+   tokens -- external token entries. This is an array
+             terminated by an entry with a NULL name field.
+
+   RESULT
+   error -- either 0 for succes or a negative value indicating an
+            error.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLTXT_Replace()
+
+cl_text.library/CLTXT_OpenCatalog           cl_text.library/CLTXT_OpenCatalog
+
+   NAME
+   CLTXT_OpenCatalog -- open a CL catalog (V2)
+                     
+
+   SYNOPSIS
+   clcatalog = CLTXT_OpenCatalog( cllangname, catalog )
+   D0                             A0         A1
+
+   APTR CLTXT_OpenCatalog( STRPTR, STRPTR );
+
+   FUNCTION
+   This function opens a CL catalog. CL catalogs are specialized
+   text files which contain tokens designating text strings.
+   This is somewhat comparable to locale's catalogs, but CL
+   catalogs are parsed at run time.
+
+   The format of CL Catalogs is:
+
+   ##stringid
+   text (may contain standard C escaping)
+
+   for example:
+
+   ##MSG_UNKNOWN_USER
+   User %s unbekannt!\n
+
+   INPUTS
+   cllangname -- language to use.
+   catalog -- name of catalog.
+
+   RESULT
+   catalog -- Pointer to (private) Catalog handle or NULL upon error.
+              Secondary result code is placed in IoErr()
+
+   EXAMPLE
+    APTR cat;
+    cat = CLTXT_OpenCatalog( "Deutsch", "CLMSortin.cat" );
+    Printf( CLTXT_GetString( cat, "MSG_UNKNOWN_USER", "User %s unknown." ), u
+ser );
+    CLTXT_CloseCatalog( cat );
+
+   NOTES
+
+   BUGS
+   Stringids are limited to 63 chars, strings to 4095 chars.
+
+   SEE ALSO
+   CLTXT_CloseCatalog(), CLTXT_GetString()
+
+cl_text.library/CLTXT_OpenLocale             cl_text.library/CLTXT_OpenLocale
+
+   NAME
+   CLTXT_OpenLocale -- open Locale by Connectline language name
+
+   SYNOPSIS
+   locale = CLTXT_OpenLocale( cllangname )
+   D0                             A0
+
+   struct Locale *CLTXT_OpenLocale( STRPTR );
+
+   FUNCTION
+   Opens the Locale belonging to cllangname. Will automatically
+   fall back to the system's default locale.
+
+   INPUTS
+   cllangname -- Connectline language name (don't mess up with
+                 locale languages)
+
+   RESULT
+   locale -- wanted locale. Remember to CloseLocale() it
+             yourself.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   locale.library/OpenLocale(), locale.library/CloseLocale()
+
+cl_text.library/CLTXT_PrintfA                   cl_text.library/CLTXT_PrintfA
+
+  NAME
+   CLTXT_PrintfA -- printf()-like interface to FormatString()
+   CLTXT_Printf -- varargs stub
+
+  SYNOPSIS
+   nextdata = CLTXT_PrintfA( locale, format, args );
+   D0                          A0      A1     A2
+
+   APTR CLTXT_PrintfA( struct Locale *, STRPTR, APTR );
+   APTR CLTXT_Printf( struct Locale *, STRPTR, ... );
+
+  FUNCTION
+   calls locale.library/FormatString() in a printf() like
+   manner. The string will first be formatted, then processed
+   by CLTXT_ReplaceAll() and finally be printed.
+
+  INPUTS
+   locale -- Locale to use. May be NULL.
+   format -- formating string
+   args -- args to format into string
+
+  RESULT
+   nextdata -- points after last used element of args
+
+  EXAMPLE
+
+  NOTES
+
+  BUGS
+   None known.
+
+  SEE ALSO
+   locale.library/FormatString(), CLTXT_SPrintfA(),
+   dos.library/FPutC()
+
+cl_text.library/CLTXT_Replace                   cl_text.library/CLTXT_Replace
+
+   NAME
+   CLTXT_Replace -- token replacement.
+
+   SYNOPSIS
+   replen = CLTXT_Replace( locale, token, buffer, tokents );
+   D0                         A0         A1     A2      A3
+
+   APTR CLTXT_Replace( struct Locale *, STRPTR, STRPTR, CLTXT_TokEntry * );
+
+   FUNCTION
+   This function replaces the token by it's value. Both
+   internal tokens and external token extensions are
+   recognized.
+
+   INPUTS
+   locale -- locale to use (necessary for internal tokens)
+   token  -- token to replace
+   buffer -- buffer to hold token data.
+   tokens -- external token entries. This is an array
+             terminated by an entry with a NULL name field.
+                 
+   RESULT
+   replen -- replacement length or 0 if token couldn't be found.
+
+   EXAMPLE
+
+   NOTES
+   This is mainly a low level function to support other
+   cl_text.library functions.
+
+   BUGS
+   None known.
+
+   SEE ALSO
+   CLTXT_MakeText()
+
+cl_text.library/CLTXT_ReplaceAll             cl_text.library/CLTXT_ReplaceAll
+
+  NAME
+    CLTXT_ReplaceAll -- token replacement for strings.
+
+  SYNOPSIS
+    len = CLTXT_ReplaceAll( locale, src, dst, dstlen, tokents );
+    D0                         A0          A1   A2   D0      A3
+
+    size_t CLTXT_ReplaceAll( struct Locale *, STRPTR, STRPTR, size_t,
+                             CLTXT_TokEntry * );
+
+  FUNCTION
+    Replaces all cltext tokens occuring in src, result will
+    be put into dst.
+
+  INPUTS
+    locale     -- locale to use (necessary for internal tokens)
+    src        -- source string
+    dst        -- destination buffer
+    dstlen     -- size of destination buffer
+    tokents    -- external token entries. This is an array
+                  terminated by an entry with a NULL name field.
+
+  RESULT
+    len        -- length of resulting destination string
+
+  EXAMPLE
+
+  NOTES
+
+  BUGS
+   None known.
+
+  SEE ALSO
+    CLTXT_Replace()
+
+cl_text.library/CLTXT_SPrintfA                 cl_text.library/CLTXT_SPrintfA
+
+  NAME
+   CLTXT_SPrintfA -- sprintf()-like interface to FormatString() & ReplaceAll(
+)
+   CLTXT_SPrintf -- varargs stub
+
+  SYNOPSIS
+   nextdata = CLTXT_SPrintfA( locale, buffer, format, args );
+   D0                           A0      A1      A2     A3
+
+   APTR CLTXT_SprintfA( struct Locale *, STRPTR, STRPTR, APTR );
+   APTR CLTXT_SPrintf( struct Locale *, STRPTR, STRPTR, ... );
+
+  FUNCTION
+   calls locale.library/FormatString() in a sprintf() like
+   manner. The resulting string will be processed by CLTXT_ReplaceAll().
+
+  INPUTS
+   locale -- Locale to use. May be NULL.
+   buffer -- buffer to write to.
+   format -- formating string
+   args   -- args to format into string
+
+  RESULT
+   nextdata -- points after last used element of args
+
+  EXAMPLE
+
+  NOTES
+
+  BUGS
+   None known.
+
+  SEE ALSO
+   locale.library/FormatString(), CLTXT_PrintfA()
+
+

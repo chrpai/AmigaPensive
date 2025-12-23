@@ -1,0 +1,350 @@
+;
+;	NAME : SELECT
+;
+;	VERSION : $VER: 3.01 / 19.05.1995
+;
+;	FUNKTION : Auswahlprogramm fuer Bretter und Filebretter
+;
+;	AUFRUF : SELECT
+;
+;	AUTOR : Markus Marquardt
+;
+;	Diese Batchdatei benutzt folgende Befehle :
+;	-------------------------------------------
+;	CD
+;	CHECK BOARD
+;	CHECK FBOARD
+;	DISK EXECUTE
+;	ECHO
+;	EXTERN
+;	FILES
+;	GET DIR
+;	GOSUB
+;	GOTO
+;	IF
+;	MENU
+;	READ
+;	RETURN
+;
+;	Voreinstellungen
+;
+SCRSTART = 1				; Nr. 1. Zeile auf Bildschirm
+SCRLINES = {APAGE}-SCRSTART+1-2		; Anzahl Zeilen auf Bildschirm
+PATHLINE = SCRLINES+1			; Zeile fuer Pfad
+STATLINE = SCRLINES+2			; Zeile fuer Status etc.
+;
+;	***** Proggy *****
+;
+
+;
+;	Sprachabhaengige Texte einlesen
+;
+
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/select.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/select.bat"
+
+;
+;	Eigentlicher Programmstart
+;
+
+LEV=0					; Zaehler fuer Sprung in UnterDirs
+
+S_NEWDIR:
+BN=0					; Brettnummer auf Screen
+FIRSTB=1				; Nr. 1. Brett auf Screen
+
+S_RESCAN:
+_gosub GETDIR
+_if/i FIRSTB+BN >= BANZ then BN=0	; evtl. BN korrigieren
+
+S_REFRESH:
+_echo/nolf PATHTEXT			; Pfad ausgeben
+_echo/nolf HELPTEXT			; Helpzeile ausgeben
+
+SANZ=SCRLINES*3				; Anzahl Bretter
+_if/i FIRSTB+SANZ > BANZ then SANZ=BANZ-FIRSTB+1 ; evtl. begrenzen
+SCL=SCRLINES				; Anzeigezeilen = max.
+_if/i SCL > SANZ then SCL=SANZ		; evtl. begrenzen
+
+I=BN					; BN merken
+_gosub PRINTDIR
+BN=I					; altes BN holen
+
+S_LOOP:
+RBN=BN+FIRSTB				; Brettnummer
+_gosub SC				; Cursor setzen
+
+S_MENU:
+_menu/noecho/nopmsgs "" -
+KEY_QUIT S_QUIT "^M" S_SEL "^1" S_UP "^2" S_DOWN "^3" S_LEFT "^4" S_RIGHT -
+KEY_MARK S_MARK KEY_NEXT S_NEXT KEY_LAST S_LAST
+
+;	***** Funktion BRETT WAEHLEN *****
+
+S_SEL:					; Aktuelles Brett gewaehlt
+BNAME=BNAME'RBN'
+_if BTYP'RBN' == "M" then _goto S_READ	; Lesen im Brett
+_if BTYP'RBN' == "F" then _goto S_FILES	; Files
+
+;	Es war ein Dir
+
+_if BNAME == "/" then _goto S_SEL_PARENT ; wenn ParentDir, verzw.
+
+FIRSTB'LEV'=FIRSTB			; Position im Dir merken
+BN'LEV'=BN
+LEV=LEV+1				; Zaehler erhoehen
+
+_cd "'BNAME'"				; CD auf das Dir
+_goto S_NEWDIR				; -> Alles von vorne
+
+S_SEL_PARENT:				; ParentDir angewaehlt
+_cd /
+_if/i LEV == 0 then _goto S_NEWDIR	; Wenn hoeher als vorher, pech
+LEV=LEV-1
+FIRSTB=FIRSTB'LEV'			; Alte Position holen
+BN=BN'LEV'
+FIRSTB'LEV'=
+BN'LEV'=
+_goto S_RESCAN
+
+S_READ:					; LESEN
+_echo/nolf "#reset##cls##home#"
+_read "'BNAME'"
+_goto S_REFRESH
+
+S_FILES:				; FILES
+_echo/nolf "#reset##cls##home#"
+_files "'BNAME'"
+_goto S_REFRESH
+
+;	***** FUNKTION QUIT *****
+
+S_QUIT:					; QUIT
+_echo/nolf "#reset##cls##home#"
+_eod
+
+;       ***** Funktion CURSOR HOCH *****
+
+S_UP:
+_gosub CC				; Cursor loeschen
+_if/i BN == 0 then BN=SANZ		; Wenn ganz oben war, zum letzten
+BN=BN-1					; Boardnr. -1
+_goto S_LOOP
+
+;	***** Funktion CURSOR RUNTER *****
+
+S_DOWN:					; Cursor nach unten
+_gosub CC				; Cursor loeschen
+_if/i BN == SANZ-1 then BN=-1		; Wenn ganz untern, zum 1.
+BN=BN+1
+_goto S_LOOP
+
+;	***** Funktion CURSOR LINKS *****
+
+S_LEFT:					; Cursor nach links
+_gosub CC				; Cursor loeschen
+_if/i BN-SCL < 0 then BN=BN+SANZ/(SCL+1)*SCL-(BN+1+SANZ/(SCL+1)*SCL)/(SANZ+1)*SCL+SCL
+BN=BN-SCL				; neue Brettnummer
+_goto S_LOOP
+
+;	***** Funktion CURSOR RECHTS *****
+
+S_RIGHT:				; Cursor nach rechts
+_gosub CC				; Cursor loeschen
+_if/i BN+SCL >= SANZ then BN=BN%SCL-SCL
+BN=BN+SCL
+_goto S_LOOP
+
+;	***** Funktion SEITE VOR *****
+
+S_NEXT:
+_if/i FIRSTB+SCRLINES*3 > BANZ then _goto S_MENU ; Wenn nix mehr da, nix
+FIRSTB=FIRSTB+SCRLINES*3		; Nummer 1. Brett hochsetzen
+_if/i FIRSTB+SCRLINES*3 > BANZ then FIRSTB=BANZ-SCRLINES*3+1 ; Evtl. begr.
+_goto S_REFRESH				; und neu aufbauen alles
+
+;	***** Funktion SEITE ZURUECK *****
+
+S_LAST:
+_if/i FIRSTB == 1 then _goto S_MENU	; Wenn schon auf 1. nix machen
+FIRSTB=FIRSTB-SCRLINES*3
+_if/i FIRSTB < 1 then FIRSTB=1		; Evtl. begrenzen
+_goto S_REFRESH				; und neu aufbauen alles
+
+;	***** Funktion MARK *****
+
+S_MARK:
+BNAME=BNAME'RBN'
+_if BTYP'RBN' == "D" then _goto S_MARK_DIR ; wenn Dir, verzw.
+
+_gosub CC				; Cursor loeschen
+
+_if BTYP'RBN' == "M" then MARKCOM="_read"  ; Wenn MsgBrett, dann mit Read
+_if BTYP'RBN' == "F" then MARKCOM="_files" ; Wenn FileBrett dann mit Files
+
+_if BMRK'RBN' == "*" then _goto S_MARK_WECH ; Wenn schon markiert, entmarkieren
+
+I=1+8					; Markieren
+BMRK'RBN'="*"
+_echo/nolf " *"				; * ausgeben
+_goto S_MARK_YO
+
+S_MARK_WECH:
+I=2+8					; Entmarkieren
+BMRK'RBN'=" "
+_echo/nolf "  "				; * loeschen
+
+S_MARK_YO:
+'MARKCOM'/action='i' "'BNAME'"		; Read/Files mit /action=x aufrufen
+
+_goto S_LOOP
+
+S_MARK_DIR:
+_if BNAME == "/" then _goto S_MENU	; Wenn /, keine Reaktion
+
+_cd "'BNAME'"				; In Dir gehen
+
+_menu/noecho/nopmsgs MARKMENU -
+KEY_MARKDIR S_MARK_DIRM KEY_UNMARKDIR S_MARK_DIRU KEY_ABORT S_MARK_DIRA
+
+S_MARK_DIRM:
+I=1+8					; Wert /Action
+_gosub MB				; Alles markieren
+_goto S_MARK_DIRA			; und Ende
+
+S_MARK_DIRU:
+I=2+8					; Wert /Action
+_gosub MB				; Alles entmarkieren
+
+S_MARK_DIRA:
+_cd /					; Ins Parent-Dir zurueck
+_echo/nolf HELPTEXT			; Helpzeile ausgeben
+_goto S_LOOP				; und zurueck
+
+;
+;-----------------------------------------------------------------------------
+;	SC : Cursor auf Position fuer Brett BN setzen und ausgeben.
+;
+SC:
+SC_L=BN%SCRLINES+SCRSTART		; Zeilennr.
+SC_C=BN/SCRLINES*26+1			; Spaltennummer
+_echo/nolf "#setpos 'SC_L','SC_C'#>#left#"
+_return
+
+;
+;-----------------------------------------------------------------------------
+;	CC : Cursor auf Position fuer Brett BN setzen und loeschen
+;
+CC:
+SC_L=BN%SCRLINES+SCRSTART		; Zeilennr.
+SC_C=BN/SCRLINES*26+1			; Spaltennummer
+_echo/nolf "#setpos 'SC_L','SC_C'# "
+_return
+
+;
+;-----------------------------------------------------------------------------
+;	PRINTDIR : Ausgeben des aktuellen Directory-Inhaltes.
+;
+;	Die Namen/Typen der Bretter muessen in den Variablen
+;	BNAME1...BNAMEn und BTYP1...BTYPn stehen, BANZ muss
+;	die Anzahl der Bretter enthalten.
+;
+PRINTDIR:
+BN=0					; Aktuelle Brettnummer
+RBN=FIRSTB				; Variablennummer
+
+PRINTDIR_LOOP:
+_if/i RBN >  BANZ then _return
+_if/i BN  == SANZ then _return
+
+_gosub CC				; Cursor setzen
+
+STR=BNAME'RBN'
+MRK=BMRK'RBN'
+
+_if BTYP'RBN' == "M" then STR=" 'MRK' #vfarbe 2#'STR'#reset#"
+_if BTYP'RBN' == "F" then STR=" 'MRK' #vfarbe 6#'STR'#reset#"
+_if BTYP'RBN' == "D" then STR=" 'MRK' #vfarbe 1#'STR'#reset#"
+
+_echo/nolf STR				; Brettname ausgeben
+
+BN=BN+1					; Zaehler +1
+RBN=RBN+1
+_goto PRINTDIR_LOOP			; Weiter
+
+;
+;-----------------------------------------------------------------------------
+;	GETDIR : Auslesen des aktuellen Directories
+;
+;	Es werden die Variablen BNAME1...BNAMEn (Name des entspr.
+;	Brettes) und BTYP1...BTYPn (Typ des Brettes, M = Msg, F = File
+;	und D = Dir) gesetzt. In BANZ wird die Anzahl der Bretter
+;	gesetzt.
+;
+GETDIR:
+BANZ=0					; Anzahl auf 0
+
+;       Nach UnterDirs im Dir suchen
+
+BNAME=""				; Aktueller Boardname
+
+_if {cdpath} == ":" then _goto GETDIR_DLOOP
+
+BANZ=BANZ+1				; 1. Eintrag = Parent
+BNAME1="/"
+BTYP1="D"
+BMRK1=" "
+
+GETDIR_DLOOP:
+_get dir/dirs "'BNAME'" BNAME		; Naechsten Eintrag holen
+_if BNAME == "" then _goto GETDIR_M	; Wenn Leer -> MsgBoards suchen
+BANZ=BANZ+1				; Brettanzahl erhoehen
+BNAME'BANZ'="'BNAME'/"			; Name in Variable BNAMEn
+BTYP'BANZ'="D"				; Typ auf Directory
+BMRK'BANZ'=" "				; auf nicht markiert
+_goto GETDIR_DLOOP
+
+;	Nach MsgBrettern im Dir suchen
+
+GETDIR_M:
+BNAME=""				; Aktueller Boardname
+
+GETDIR_MLOOP:
+_get dir/boards "'BNAME'" BNAME		; Naechsten Eintrag holen
+_if BNAME == "" then _goto GETDIR_F	; Wenn Leer -> nach FileBoards suchen
+BANZ=BANZ+1				; Brettanzahl erhoehen
+BNAME'BANZ'=BNAME			; Name in Variable BNAMEn
+BTYP'BANZ'="M"				; Typ auf MsgBrett
+BMRK'BANZ'=" "				; auf nicht markiert
+_check board/boardlist "'BNAME'" GETDIR_MLOOP ; markiert ?
+BMRK'BANZ'="*"				; auf markiert
+_goto GETDIR_MLOOP
+
+;	Nach FileBrettern im Dir suchen
+
+GETDIR_F:
+BNAME=""				; Aktueller Boardname
+
+GETDIR_FLOOP:
+_get dir/fboards "'BNAME'" BNAME	; Naechsten Eintrag holen
+_if BNAME == "" then _return		; Wenn Leer -> Ende
+BANZ=BANZ+1				; Brettanzahl erhoehen
+BNAME'BANZ'=BNAME			; Name in Variable BNAMEn
+BTYP'BANZ'="F"				; Typ auf FileBrett
+BMRK'BANZ'=" "				; Auf nicht markiert
+_check fboard/boardlist "'BNAME'" GETDIR_FLOOP ; markiert ?
+BMRK'BANZ'="*"				; Auf markiert
+_goto GETDIR_FLOOP
+
+;
+;-----------------------------------------------------------------------------
+;	MB : Rekursives (ent)Markieren von Brettern, auch in Unterdirs
+;	     In der Variable I wird der Wert fuer Force uebergeben !
+;
+MB:
+_read/action='I' *
+_files/action='I' *
+_return

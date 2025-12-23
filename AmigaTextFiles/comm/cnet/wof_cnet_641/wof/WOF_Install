@@ -1,0 +1,497 @@
+; Installation Script for Wheel of Fortune, v6.41 by Dotoran of Frontiers!
+;
+; You need a copy of Commodore's Installer file(included with WOF)
+; Please launch this script from the ICON ONLY!
+
+(set @default-dest "PFiles:WoFortune")
+(set temp "PFiles:WOFTemp" temp2 (cat temp "/WoFortune"))
+(set temp3 (cat temp2 "/Graphics"))
+(set flag (exists "PFiles:WoFortune.Config" (noreq)))
+(set f1 2 f2 2 f3 0 Ver0 0 Ver1 0 Ver2 0 Ver3 0)
+
+(procedure FIRST_TIME
+
+  (complete 20)
+
+  (makedir @default-dest)
+  (makedir "PFiles:WoFortune/Graphics")
+  (makedir "PFiles:WoFortune/Register")
+  (makedir "PFiles:WoFortune/Guides")
+  (makedir "PFiles:WoFortune/data")
+
+  (complete 30)
+
+  (set ver
+    (askoptions
+      (prompt "Pat asks, \"Which versions of the Wheel of Fortune game "
+              "do you wish to install now? Hit the HELP button for more "
+              "info on the different versions.\"")
+      (help "Vanna explains, \"There are three versions of the game:\n\n"
+            "   ASCII - Contains NO color codes or IBM graphic characters.\n\n"
+            "    ANSI - Contains COLOR, but uses ONLY character graphics.\n\n"
+            "IBM-ANSI - Contains BOTH Color and IBM Graphic Characters.\"")
+      (choices "The ASC Version (Ascii)"
+               "The ANS Version (Amiga-Ansi)"
+               "The IBM Version (IBM-Ansi)")
+      (default "111")
+    )
+  )
+
+  (if (= ver 0)
+    (
+      (message "Pat exclaims, \"What? you have to specify at least ONE of "
+               "the versions. Installing ALL versions now!\"")
+      (set ver "111")
+    )
+  )
+
+  (if (= ver 7) (set Ver0 1 Ver1 1 Ver2 1 Ver3 1))
+  (if (OR (= ver 1) (= ver 3) (= ver 5)) (set Ver1 1))
+  (if (OR (= ver 2) (= ver 3) (= ver 6)) (set Ver2 1))
+  (if (OR (= ver 4) (= ver 5) (= ver 6)) (set Ver3 1))
+
+  (complete 40)
+
+  (working "Pat continues, \"Unpacking Wheel of Fortune support files.\"")
+
+  (run "lha x PFiles:WOFTemp/WoFortune/Support.LHA PFiles:WoFortune/")
+
+  (complete 45)
+
+  (copyfiles
+    (source  temp)
+    (dest    "PFiles:")
+    (pattern "WoFortune.Config")
+  )
+
+  (complete 50)
+
+  (if (OR (= Ver0 1) (= Ver1 1))
+    ( (working "...Installing ASCII Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameASC.LHA PFiles:WoFortune/")
+      (complete 55)
+      (working "...Installing ASCII Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsASC.LHA PFiles:WoFortune/Graphics/")
+    )
+  )
+
+  (complete 60)
+
+  (if (OR (= Ver0 1) (= Ver2 1))
+    ( (working "...Installing ANSI Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameANS.LHA PFiles:WoFortune/")
+      (complete 65)
+      (working "...Installing ANSI Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsANS.LHA PFiles:WoFortune/Graphics/")
+    )
+  )
+
+  (complete 70)
+
+  (if (OR (= Ver0 1) (= Ver3 1))
+    ( (working "...Installing IBM-ANSI Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameIBM.LHA PFiles:WoFortune/")
+      (complete 75)
+      (working "...Installing IBM-ANSI Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsIBM.LHA PFiles:WoFortune/Graphics/")
+    )
+  )
+
+  (complete 80)
+
+  (set f3
+    (askbool
+      (prompt "Pat tells you, \"I need to make a change to line 920 of your "
+              "BBSTEXT file, as well as ADDING four NEW commands to Menu # 2 "
+              "in your BBSMENU file. Is it alright if I do this automatically?\"")
+      (help "Slinking up to you, Vanna says, \"The installer uses the "
+            "FPInstall tool to make automatic changes to lines in your "
+            "BBSTEXT and BBSMENU files. Dotoran assures me it works 100%, "
+            "but I guess we can ALL be a little skeptic. Backups of BOTH "
+            "files are automatically created, so you really won't destroy "
+            "anything in the process.\"")
+      (default "1")
+      (choices "Yes, Go Ahead!" "No, I'll Do It!")
+    )
+  )
+  (if (= f3 1)
+    ( (working "Pat asks, \"Please wait a second, while I make the needed "
+               "changes to all BBSTEXT/BBSMENU files...\"")
+      (run "FPInstall WOFf.FP_Install CNET:")
+    )
+    (message "Pat looks at you quizically, then says, \"Alright, but be "
+             "sure to read the `README.guide' file to find out which lines "
+             "to change!\"")
+  )
+
+  (complete 90)
+
+  (working "Pat states, \"Almost done with the installation. Just have to "
+           "clean up a bit first!\"")
+
+  (run "delete pfiles:WOFTemp/ all")
+  (makedir "pfiles:WoFortune/Install")
+  (run "copy #? pfiles:WoFortune/Install")
+  (run "delete #? all")
+
+  (complete 100)
+
+  (message "Wheel of Fortune, v6.41 has been successfully installed into "
+           "your system.\n\nYou'll need to RELOAD your BBSTEXT/BBSMENU "
+           "files by selecting the CNet Control Panel, then pressing the "
+           "RAMIGA-T key combo.\n\nYou should then log onto your bbs and "
+           "type WOFS from your Main Prompt> to enter the game's Config "
+           "File, where you can set numerous game play options.\n\nPlease "
+           "refer to the `README.guide' file for information on the other "
+           "commands that were added to your BBSMENU file.")
+  (exit)
+)
+
+(procedure CONVERT640
+
+  (set ok
+    (askbool
+      (prompt "Pat tells you, \"You'll want to make sure NOONE is presently "
+              "using any of the WOF modules before attempting this upgrade. "
+              "The safest way to insure this is to take the board down, but "
+              "the decision is yours. Is it OK to continue with the upgrade?\"")
+      (help "Vanna meanders over to you, \"It wouldn't do to have a user or "
+            "two playing the game, while we were trying to clean up the "
+            "game, now would it?\"")
+      (default "1")
+      (choices "Yes, please proceed." "No, please abort for now.")
+    )
+  )
+
+  (if (= ok 0)
+    ( (message "Alright then, please insure it is safe to continue, then "
+               "reload this upgrade script.")
+      (exit)
+    )
+  )
+
+  (complete 20)
+
+  (working "Pat says, \"Please wait while I delete some older files from "
+           "your designated WoFortune directory. I also need to update "
+           "your WoFortune.Config file. I'll also rename your PuzData "
+           "file if I find you're a registered WOF owner, so it won't "
+           "be mistakenly overwritten later.\"")
+
+  (run "rx WOF_Install.Rexx3")
+
+  (complete 50)
+
+  (set ver
+    (askoptions
+      (prompt "Pat asks, \"Which versions of the Wheel of Fortune game "
+              "do you wish to install now? Hit the HELP button for more "
+              "info on the different versions.\"")
+      (help "Vanna explains, \"There are three versions of the game:\n\n"
+            "   ASCII - Contains NO color codes or IBM graphic characters.\n\n"
+            "    ANSI - Contains COLOR, but uses ONLY character graphics.\n\n"
+            "IBM-ANSI - Contains BOTH Color and IBM Graphic Characters.\"")
+      (choices "The ASC Version (Ascii)"
+               "The ANS Version (Amiga-Ansi)"
+               "The IBM Version (IBM-Ansi)")
+      (default "111")
+    )
+  )
+
+  (if (= ver 0)
+    (
+      (message "Pat exclaims, \"What? you have to specify at least ONE of "
+               "the versions. Installing ALL versions now!\"")
+      (set ver "111")
+    )
+  )
+
+  (if (= ver 7) (set Ver0 1 Ver1 1 Ver2 1 Ver3 1))
+  (if (OR (= ver 1) (= ver 3) (= ver 5)) (set Ver1 1))
+  (if (OR (= ver 2) (= ver 3) (= ver 6)) (set Ver2 1))
+  (if (OR (= ver 4) (= ver 5) (= ver 6)) (set Ver3 1))
+
+  (complete 60)
+
+  (working "Pat continues, \"Unpacking Wheel of Fortune support files.\"")
+
+  (set df (getenv "WOFPath") df2 (cat df "Graphics/") df3 (cat df "Install/"))
+
+  (run "lha x PFiles:WOFTemp/WoFortune/Support.LHA "df)
+
+  (complete 70)
+
+  (if (OR (= Ver0 1) (= Ver1 1))
+    ( (working "...Installing ASCII Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameASC.LHA "df)
+      (complete 75)
+      (working "...Installing ASCII Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsASC.LHA "df2)
+    )
+  )
+
+  (complete 80)
+
+  (if (OR (= Ver0 1) (= Ver2 1))
+    ( (working "...Installing ANSI Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameANS.LHA "df)
+      (complete 85)
+      (working "...Installing ANSI Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsANS.LHA "df2)
+    )
+  )
+
+  (complete 90)
+
+  (if (OR (= Ver0 1) (= Ver3 1))
+    ( (working "...Installing IBM-ANSI Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameIBM.LHA "df)
+      (complete 95)
+      (working "...Installing IBM-ANSI Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsIBM.LHA "df2)
+    )
+  )
+
+  (complete 97)
+
+  (working "Pat states, \"Almost done with the installation. Just have to "
+           "clean up a bit first!\"")
+
+  (run "delete pfiles:WOFTemp/ all")
+  (run "copy #? "df3)
+  (run "delete #? all")
+
+  (complete 100)
+
+  (message "Your Wheel of Fortune has been successfully upgraded to v6.41!"
+           "\n\nPlease refer to the `HISTORY.guide' file for specific "
+           "information on what, exactly, has changed since v6.40.")
+
+  (exit)
+)
+
+(procedure CONVERT63C
+
+  (set ok
+    (askbool
+      (prompt "Pat tells you, \"You'll want to make sure NOONE is presently "
+              "using any of the WOF modules before attempting this upgrade. "
+              "The safest way to insure this is to take the board down, but "
+              "the decision is yours. Is it OK to continue with the upgrade?\"")
+      (help "Vanna meanders over to you, \"It wouldn't do to have a user or "
+            "two playing the game, while we were trying to clean up the "
+            "game, now would it?\"")
+      (default "1")
+      (choices "Yes, please proceed." "No, please abort for now.")
+    )
+  )
+
+  (if (= ok 0)
+    ( (message "Alright then, please insure it is safe to continue, then "
+               "reload this upgrade script.")
+      (exit)
+    )
+  )
+
+  (complete 20)
+
+  (working "Pat says, \"Please wait while I delete some older files from "
+           "your designated WoFortune directory. I also need to update "
+           "your WoFortune.Config and your Players files. If I see you are "
+           "a registered WOF owner, I'll also rename your PuzData file, "
+           "so it won't be mistakenly overwritten later.\"")
+
+  (run "rx WOF_Install.Rexx2")
+
+  (complete 40)
+
+  (set ver
+    (askoptions
+      (prompt "Pat asks, \"Which versions of the Wheel of Fortune game "
+              "do you wish to install now? Hit the HELP button for more "
+              "info on the different versions.\"")
+      (help "Vanna explains, \"There are three versions of the game:\n\n"
+            "   ASCII - Contains NO color codes or IBM graphic characters.\n\n"
+            "    ANSI - Contains COLOR, but uses ONLY character graphics.\n\n"
+            "IBM-ANSI - Contains BOTH Color and IBM Graphic Characters.\"")
+      (choices "The ASC Version (Ascii)"
+               "The ANS Version (Amiga-Ansi)"
+               "The IBM Version (IBM-Ansi)")
+      (default "111")
+    )
+  )
+
+  (if (= ver 0)
+    (
+      (message "Pat exclaims, \"What? you have to specify at least ONE of "
+               "the versions. Installing ALL versions now!\"")
+      (set ver "111")
+    )
+  )
+
+  (if (= ver 7) (set Ver0 1 Ver1 1 Ver2 1 Ver3 1))
+  (if (OR (= ver 1) (= ver 3) (= ver 5)) (set Ver1 1))
+  (if (OR (= ver 2) (= ver 3) (= ver 6)) (set Ver2 1))
+  (if (OR (= ver 4) (= ver 5) (= ver 6)) (set Ver3 1))
+
+  (complete 50)
+
+  (working "Pat continues, \"Unpacking Wheel of Fortune support files.\"")
+
+  (set df (getenv "WOFPath") df2 (cat df "Graphics/") df3 (cat df "Install/"))
+
+  (run "lha x PFiles:WOFTemp/WoFortune/Support.LHA "df)
+
+  (complete 60)
+
+  (if (OR (= Ver0 1) (= Ver1 1))
+    ( (working "...Installing ASCII Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameASC.LHA "df)
+      (complete 65)
+      (working "...Installing ASCII Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsASC.LHA "df2)
+    )
+  )
+
+  (complete 70)
+
+  (if (OR (= Ver0 1) (= Ver2 1))
+    ( (working "...Installing ANSI Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameANS.LHA "df)
+      (complete 75)
+      (working "...Installing ANSI Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsANS.LHA "df2)
+    )
+  )
+
+  (complete 80)
+
+  (if (OR (= Ver0 1) (= Ver3 1))
+    ( (working "...Installing IBM-ANSI Game Module & Docs...")
+      (run "lha x PFiles:WOFTemp/WoFortune/GameIBM.LHA "df)
+      (complete 85)
+      (working "...Installing IBM-ANSI Graphic Picture Files...")
+      (run "lha x PFiles:WOFTemp/WoFortune/Graphics/GraphicsIBM.LHA "df2)
+    )
+  )
+
+  (complete 90)
+
+  (set f3
+    (askbool
+      (prompt "Pat tells you, \"I need to make a change to line 920 of your "
+              "BBSTEXT file, as well as ADDING three NEW commands to Menu # 2 "
+              "in your BBSMENU file. Is it alright if I do this automatically?\"")
+      (help "Slinking up to you, Vanna says, \"The installer uses the "
+            "FPInstall tool to make automatic changes to lines in your "
+            "BBSTEXT and BBSMENU files. Dotoran assures me it works 100%, "
+            "but I guess we can ALL be a little skeptic. Backups of BOTH "
+            "files are automatically created, so you really won't destroy "
+            "anything in the process.\"")
+      (default "1")
+      (choices "Yes, Go Ahead!" "No, I'll Do It!")
+    )
+  )
+  (if (= f3 1)
+    ( (working "Pat asks, \"Please wait a second, while I make the needed "
+               "changes to all BBSTEXT/BBSMENU files...\"")
+      (run "FPInstall WOFc.FP_Install CNET:")
+    )
+    (message "Pat looks at you quizically, then says, \"Alright, but be "
+             "sure to read the `README.guide' file to find out which lines "
+             "to change!\"")
+  )
+
+  (complete 95)
+
+  (working "Pat states, \"Almost done with the installation. Just have to "
+           "clean up a bit first!\"")
+
+  (run "delete pfiles:WOFTemp/ all")
+  (makedir df"Install")
+  (run "copy #? "df3)
+  (run "delete #? all")
+
+  (complete 97)
+
+  (message "Wheel of Fortune successfully upgraded to v6.41!\n\nYou'll "
+           "need to RELOAD your BBSTEXT/BBSMENU files by selecting the "
+           "CNet Control Panel, then pressing the RAMIGA-T key combo.\n"
+           "\nYou should then log onto your bbs and type WOFS from your "
+           "Main Prompt> to enter the game's Config File, as there are a "
+           "few new options you'll want to set. You can also type WOFC to "
+           "enter the UserConfig file.\n\nPlease refer to the `README.guide' "
+           "file for information on the other commands that were added to "
+           "your BBSMENU file.")
+
+  (complete 100)
+
+  (message "Three NEW commands were added to your BBSMENU file, however "
+           "any existing WOF Quick Command you may have set up was not "
+           "touched. You'll want to make sure you edit any existing WOF "
+           "Quick Command you may be using, so that it correctly points "
+           "to the loader file, which is now named `Loader' and resides "
+           "in your "df" directory.\n\nLine 920 in your BBSTEXT file is "
+           "simply the stock line, minus the \@1 command, so you may "
+           "wish to recolorize this line if you had in the past.")
+
+  (exit)
+)
+
+(run "rx WOF_Install.Rexx1")
+
+(set f3 (getenv "WOFVer"))
+
+; Actual script STARTS here...
+
+(welcome "Vanna exclaims, \"Welcome to Wheel of Fortune!\"\n")
+
+(complete 0)
+
+(working "Pat shakes your hand and tells you, \"Welcome to Wheel of "
+         "Fortune! Please wait while I unpack the `WOF.LHA' archive "
+         "to a temporary directory.\"")
+
+(makedir temp)
+
+(run "lha x wof.lha PFiles:WOFTemp/")
+
+(complete 10)
+
+(if (OR (= f3 1) (= f3 2))
+  (set f1
+    (askchoice
+      (prompt "Pat asks, \"What would you like to do right now?\"")
+      (help "Vanna confers with you, \"I see you're already running "
+            "either version v6.3b(c) or v6.40 of Wheel of Fortune! If "
+            "you'd like, you can choose to UPGRADE to v6.41 now!\"")
+      (choices "Convert v6.40    to v6.41 Now!"
+               "Convert v6.3b(c) to v6.41 Now!"
+               "Quit the Installation Now!")
+    )
+  )
+  (set f2
+    (askchoice
+      (prompt "Pat asks, \"Would you like to install Wheel of Fortune, v6.41 "
+              "into your system for the First Time right now?\"")
+      (help "Winking, Vanna tells you, \"It doesn't look as if you've "
+            "ever run a copy of Wheel of Fortune before. I could not "
+            "locate the WoFortune.Config file in your PFILES: path. "
+            "Perhaps this is the first time you've ever tried to run "
+            "Wheel of Fortune? If not, please check your system for "
+            "possible problems. It's possible you're using a version "
+            "of Wheel of Fortune earlier than v6.3b(c). If this is the "
+            "case, you'll have to first update to v6.3b(c), before trying "
+            "to use this script\"")
+      (choices "Yes, Install Wheel of Fortune, v6.41!"
+               "No, Quit the Installation Right Now!")
+    )
+  )
+)
+
+(if (= f1 0) (CONVERT640))
+(if (= f1 1) (CONVERT63C))
+(if (= f2 0) (FIRST_TIME))
+
+(message "Pat frowns, then tells you, \"Alright then, perhaps later...\"")
+(exit)

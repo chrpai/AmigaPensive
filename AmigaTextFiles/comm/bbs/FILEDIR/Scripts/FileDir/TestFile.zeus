@@ -1,0 +1,111 @@
+/*
+** File/TestFile.pl -- Test an archive based on it's extension and extract
+**                     a FILE_ID.DIZ if possible.
+**
+**                     The filename to test is set in an Env Var called
+**                     FILENAME.
+*/
+
+Options Results
+Parse Arg Line
+
+GetVar 'FILENAME'
+Filename = RESULT
+if RC ~= 0 then exit
+
+GetVar 'GETDIZ'
+if RC = 0 then GetDIZ = 1
+else GetDIZ = 0
+
+DelVar 'FILENAME'
+DelVar 'GETDIZ'
+
+Len = Length( Filename )
+Tmp = LastPos( '.', Filename )
+
+if Tmp > 0 then do
+	Base = Left( Filename, Tmp - 1 )
+	Ext  = Upper( Right( Filename, Len - Tmp ) )
+	end
+
+/*
+** Create a working directory called T:WorkDir<LineNumber>
+*/
+
+WorkDir = 'T:WorkDir'Line
+
+if ~exists( WorkDir ) then do
+	if makedir( WorkDir ) = 0 then exit
+	end
+
+Ret = 0
+
+select
+	when Ext = 'ARC' then do
+		CLIDoor '"Arc t 'Filename'"'
+		Ret = RC
+
+		if Ret = 0 & GetDIZ = 1 then CLIDoor '"Arc x 'Filename' FILE_ID.DIZ"' Dir WorkDir
+		end
+
+	when Ext = 'ARJ' then do
+		CLIDoor '"UnArj t 'Filename'"'
+		Ret = RC
+		end
+
+	when Ext = 'DMS' then do
+		CLIDoor '"hschk 'upper(Filename)'"'
+		Ret = RC
+
+		if Ret = 0 & GetDIZ = 1 then CLIDoor '"DMSdiz x FILE_ID.DIZ 'FileName'"' Dir WorkDir
+		end
+
+	when Ext = 'DOC' | Ext = 'TXT' | Ext = 'NFO' then do
+		if GetDIZ = 1 then CLIDoor '"TXTdiz e FILE_ID.DIZ 'FileName'"' Dir WorkDir
+		end
+
+	when Ext = 'EXE' then do
+		if GetDIZ = 1 then CLIDoor '"EXEdiz x FILE_ID.DIZ 'Filename'"' Dir WorkDir
+		end
+	
+	when Ext = 'GZ' | Ext = 'Z' then do
+		CLIDoor '"GZip -t 'Filename'"'
+		Ret = RC
+		end
+
+	when Ext = 'LHA' | Ext = 'LZH' then do
+		Write '"Testing archive integrity ... "' NoMore
+		CLIDoor '"LHA t -q 'Filename'"'
+		Ret = RC
+		Write '"Tested."' NoMore
+		
+		if Ret = 0 & GetDIZ = 1 then CLIDoor '"Lha -q -x0 e 'Filename' FILE_ID.DIZ"' Dir WorkDir
+		end
+
+	when Ext = 'ZIP' then do
+		CLIDoor '"UnZIP -t 'Filename'"'
+		Ret = RC
+		
+		if Ret = 0 & GetDIZ = 1 then CLIDoor '"UnZIP -j 'Filename' FILE_ID.DIZ"' Dir WorkDir
+		end
+
+	when Ext = 'ZOO' then do
+		CLIDoor '"Zoo -test 'Filename'"'
+		Ret = RC
+
+		if Ret = 0 & GetDIZ = 1 then CLIDoor '"Zoo e 'Filename' FILE_ID.DIZ"' Dir WorkDir
+		end
+
+	otherwise Ret = 0
+
+	end
+
+if GetDIZ & exists( WorkDir'/FILE_ID.DIZ' ) then do
+	address command 'Copy 'WorkDir'/FILE_ID.DIZ T:FileDesc.'Line
+	end
+
+if exists( WorkDir ) then do
+	call delete( WorkDir'/FILE_ID.DIZ' )
+	end
+
+Return 0

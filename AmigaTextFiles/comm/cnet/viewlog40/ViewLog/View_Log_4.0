@@ -1,0 +1,140 @@
+/*************************************************************************\
+|*                                                                       *|
+|*    View Log, v4.0     Written by: Dotoran, Thanksgiving, 1992.        *|
+|*                                                                       *|
+|*       For more information, refer to the VL_READ_ME! file.            *|
+|*                                                                       *|
+\*************************************************************************/
+
+options results ; signal on SYNTAX ; signal on IOERR ; signal on ERROR
+tr=transmit ; se=sendstring ; gc=getchar ; qu=query
+tr '\f1\@4' ; dfile='pfiles:ViewLog/'
+
+if ~exists(dfile||'VL_Config') then do
+    tr '\n1\c9Error\cf: \ceVL_Config \cffile is missing.\n1'
+    signal ASKSYSOP ; end
+
+se '\n9\cfReading \ceVL_Config\cf file...\ca[\cd00\ca]\<3\cd'
+call open(f1,dfile||'VL_Config','r') ; logs=readln(f1)
+    if logs=0 then do
+        tr '\n2\c9Error\cf: \ceThere are \c9NO \caLogs \ceconfigured!\n1'
+        call close(f1) ; signal ASKSYSOP ; end
+    do i=1 to logs ; log1.i=readln(f1) ; se right(i,2,'0')'\<2'
+        auto.i=substr('-*',left(log1.i,1)+1,1)
+        user.i=substr('-*',word(log1.i,2)+1,1)
+        log.i =word(log1.i,3) ; flag.i='-' ; log=log.i
+        if log.i='UpLoads' then log='uloads'
+        if log.i='DownLoads' then log='dloads'
+        if exists('sysdata:Log/'||log) then flag.i='*'
+    end i ; a=readln(f1) ; autoscan=word(a,1) ; tr '\c9OK'
+call close(f1) ; a1=logs%4 ; if logs//4>0 then a1=a1+1
+a2=(23-(a1+7))%2 ; if autoscan>0 then do ; c1=0 ; signal SCAN ; end
+
+START:
+    se '\f1\n'a2'\z5\cf Custom Logs \z0 \ce(\cf*\ce=\cfLog Present\ce) '
+    se '(\c9*\ce=\c9AutoRestart\ce) (\cb*\ce=\cbUserViewableLog\ce) '
+    tr '\z5\cf Custom Logs \z0'
+    se '\z5\cf     v4.0      Written by Dotoran, Frontiers BBS '
+    tr '(716)/823-9892!       v4.0    \z0\n1' ; i2=1 ; i5=4+a2
+    do i=1 to logs by 4 ; do j=0 to 3 ; i1=i+j ; if i1<=logs then do
+        se '['i5';'i2'H\c6<\cf'flag.i1'\c9'auto.i1'\cb'user.i1'\c6>\cd'
+        tr right(i1,2)'\c6: \ca'log.i1 ; i2=i2+20 ; end
+    end j ; i2=1 ; i5=i5+1 ; end i
+    tr '['a1+a2+5';1H\z5\cf Other Options: <S>can ALL Existing Logs, <Q>uit View Log, <C>onfig Creator.   \z0\n1'
+    se '\caView Which Log: \ce(\cf1\ce-\cf'logs'\ce/\cfS\ce/\cfQ\ce/\cfC\ce)\cb:\ca '
+START2:
+    gc ; a=result ; call CHECK ; b1=index('0123456789SQC',a)
+    if b1=13 then do ; tr 'Config Creator\#0'dfile'VL_Creator_4.0' ; exit ; end
+    if b1=12 then do ; tr 'Quit View Log' ; signal LEAVE ; end
+    if b1=11 then do ; tr 'Scan Logs' ; c1=0 ; signal SCAN ; end
+    if b1=0 | a>logs then signal START2 ; else se a
+START3:
+    gc ; c=result ; call CHECK ; if c2d(c)=13 then signal START4
+    if c2d(c)=8 | c2d(c)>126 then do ; se '\h1' ; signal START2 ; end
+    c1=index('0123456789',c) ; if c1=0 then signal START3 ; else tr c
+    b1=b1-1 ; c1=c1-1 ; a=b1||c1
+START4:
+    log=log.a ; if log='UpLoads' then log='uloads'
+    if log='DownLoads' then log='dloads'
+    if flag.a='-' then do
+        tr '\f1\na\cf(\ceThe \cb"\c9'log.a'\cb" \ceLog is \caEmpty\cf)'
+        se '\n1\cfPress \ceENTER \cfnow...' ; gc ; k=result
+        if k='Q' then signal LEAVE ; else signal START ; end
+    tr '\f1\cfThe \cb"\ce'log.a'\cb" \cfLog:\n1\*4sysdata:Log/'log'\\@4'
+    if auto.a='*' then do ; se '\cfRestarting log...' ; signal START5 ; end
+    se '\cfRestart this Log? \ce(\cbY\ce/\cbn\ce)\cf: \cb'
+    gc ; b=result ; if b='N' then do ; tr 'No.' ; signal START ; end
+    tr 'Yes!'
+START5:
+    se '\$odelete sysdata:Log/'log ; flag.a='-'
+    if auto.a='*' then do ; se '\p4\cf...won \ceRETNE \cfsserP\p0\>f\>3'
+        gc ; k=result ; if k='Q' then signal LEAVE ; end
+  signal START
+
+SCAN:
+    do i=1 to logs
+        log=log.i ; if log='UpLoads' then log='uloads'
+        if log='DownLoads' then log='dloads'
+        if flag.i='-' then do ; c1=c1+1 ; iterate i ; end
+        tr '\f1\cfThe \cb"\ce'log.i'\cb" \cfLog:\n1\*4sysdata:Log/'log'\\@4'
+        if auto.i='*' then do ; se '\cfRestarting log...\$odelete sysdata:Log/'log
+            se '\p4\cf...won \ceRETNE \cfsserP\p0\>f\>3' ; gc ; a=result ; flag.i='-' ; end
+        if auto.i='-' then do
+            se '\cfRestart this Log? \ce(\cbY\ce/\cbn\ce)\cf: \cb' ; gc ; a=result
+            if a~='N' then do ; tr 'Yes!\$odelete sysdata:Log/'log ; flag.i='-' ; end ; else tr 'No.'
+            se '\n1\cfPress \ceENTER \cfnow...' ; gc ; a=result ; end
+        if a='Q' then signal LEAVE
+        if a='M' then signal START
+    end i
+    if c1<logs & autoscan<2 then signal START
+    if c1=logs then do
+        tr '\f1\na\cf(\c9ALL \ceLogs Are \caEmpty\cf)'
+        se '\n1\cfPress \ceENTER \cfnow...' ; gc ; a=result ; end
+    if (autoscan=2 & a~='M') | a='Q' then signal LEAVE
+  signal START
+
+CHECK:
+    if result~='###PANIC' then return
+    logentry '\c9Lost Carrier \cfin \ceView_Log_4.0\cf...'
+    bufferflush
+  exit
+
+ASKSYSOP:
+    se '\cfDo you want to load \caVL_Creator_4.0\cf? \cb(\ceY\cb/\cen\cb)\cf: \ca'
+    gc ; a=result ; if a~='N' then do
+        tr 'Yes!  Loading...\#0pfiles:VL_Creator_4.0\' ; exit ; end
+    se 'No. '
+
+LEAVE:
+    tr '\caExiting\cf...\n1'
+    bufferflush
+  exit
+
+SYNTAX:
+    tr '\n2*** BOOM *** Syntax Error Detected!'
+    tr 'ER:'rc' ('errortext(rc)') @ 'sigl
+    tr 'Sysop has been notified...'
+    logentry 'ER:'rc' ('errortext(rc)') @ 'sigl
+    logentry 'while using ViewLog4.0'
+    bufferflush
+  exit
+
+IOERR:
+    tr '\n2*** BOOM *** I/O Error Detected!'
+    tr 'ER:'rc' ('errortext(rc)') @ 'sigl
+    tr 'Sysop has been notified...'
+    logentry 'ER:'rc' ('errortext(rc)') @ 'sigl
+    logentry 'while using ViewLog4.0'
+    bufferflush
+  exit
+
+ERROR:
+    tr '\n2*** BOOM *** General Error Detected!'
+    tr 'ER:'rc' ('errortext(rc)') @ 'sigl
+    tr 'Sysop has been notified...'
+    logentry 'ER:'rc' ('errortext(rc)') @ 'sigl
+    logentry 'while using ViewLog4.0'
+    bufferflush
+  exit
+
+/*                        < END OF FILE MARKER >                         */

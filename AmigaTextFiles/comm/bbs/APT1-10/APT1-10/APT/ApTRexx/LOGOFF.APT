@@ -1,0 +1,162 @@
+/* logoff.apt
+**
+** $VER: logoff.apt 0.0.2 (5.3.93)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** This is a logoff script which should be called via
+** the 'RunRexx' command under your logoff key. This
+** script will NOT be run off its own back via the ApTRexx
+** system at logoff time.
+**
+** In calling this routine you will be alianating the
+** following AUTO-Called ApTRexx scripts.
+**
+** interlogoff.apt
+** logoff_final.apt
+**
+** Generally everything that would be done within the
+** above .apt scripts can be included in here, and it is
+** a good idea to use this kind of script as your logoff
+** sequence.
+**
+** Copyright © 1993 ApT-Design All Rights Reserved,AG
+**
+*/
+
+CALLSMADE_VAR		= 2
+MSGSLEFT_VAR		= 3
+USERNAME_STR 		= 0
+
+parse arg lineno
+
+options results
+
+portname = 'APTREXX'lineno
+address value portname
+
+'GETVAR' CALLSMADE_VAR ; callsmade = result /* how many calls made */
+'GETVAR' MSGSLEFT_VAR  ; msgsleft = result  /* How many msgs left  */
+'GETSTR' USERNAME_STR  ; username = result  /* username            */
+
+   /*
+	** Now see if they have called 0 times before (thus a new user)
+	** and have left 0 msgs (so no feedback), if so then we obviously
+	** are going to warn/delete the person involved.
+	**
+	** As this script will ONLY be called IF the user has attempted
+	** we give the user a choice of returning back to the BBS or
+	** having his account removed from the system.
+	*/
+
+/* This part disabled. - Its upto you whether you want to re-enable it!
+
+if(callsmade=0 & msgsleft=0) THEN DO
+	'MESSAGE' "%NL.%NL.%BOLD=1.%TC=1.You have not yet left any feedback to the System Operator."
+	'MESSAGE' "If you log off without leaving any form of feedback then your"
+	'MESSAGE' "account will be deleted. If you do choose to leave some feedback"
+	'MESSAGE' "then you should leave something about yourself/hobbies etc.."
+
+	'MESSAGE' "%NL.%TC=3.Remember, choosing to logoff now will result in your account"
+	'MESSAGE' "being %TC=1.PURGED%TC=3. from the system as soon as logoff is complete.%BOLD=0.%NL."
+
+	'MSG' "%TC=5.Delete account [%TC=7.y/N%TC=5.] %TC=6.=>%TC=7."
+
+	call YESNO 0
+
+	/*
+	** Check to see if the user wanted to keep his
+	** account or lose it.
+	**
+	** NOTE: The DROPLINE command is placed quite near the end, the
+	** reason being is for as soon as this command is hit then arexx
+	** and everything else is a DODO, its gone.. to be seen no more
+	** (well until the next caller..) so never expect any commands
+	** to work after a dropline, it just wont happen... arexx ends..
+	*/
+	if(result) THEN DO
+		'MESSAGE' "%BOLD=0.%TC=7.%NL.Tut,tut.. Could not be bothered to leave feedback, well we can't really"
+		'MESSAGE' "be bothered to even consider you for access. You read the messages when"
+		'MESSAGE' "you first logged on, it clearly stated that you *have to* leave feedback."
+		'MESSAGE' "%NL.%NL.%BOLD=1.%TC=1.<And your account Vanishes into Dust....!>%BOLD=0.%TC=7."
+		'GETSTR' 0
+		'DELETEACCOUNT' result
+		'DROPLINE'
+		'APTXEND'
+	   END
+	ELSE
+		'HOTKEY' "%NL.%BOLD=1.%TC=1.You selected wisely my-son...(hit a key!)%BOLD=0.%TC=7."
+END
+*/
+
+
+/*
+** NORMAL LOGOFF:
+**
+** If the user comes to this part, then he is
+** just a normal user and should be offered the
+** chance of returning back to the BBS or just
+** logging off..
+**
+** NOTE: Take note that the DROPLINE command is placed at the end
+** of the 'outta here' routine. Once this part is hit everything
+** goes dead and the user is out of here before he can think
+** well... you think something he can think..
+*/
+/*ELSE DO*/
+	DO
+	'MSG' "%NL.%NL.%BOLD=1.%TC=6.Are you sure you wish to logoff!? [%TC=7.y/N%TC=6.] %TC=6.=>%TC=7.%BOLD=0.%TC=7."
+	call YESNO 0
+	if(result) THEN DO
+		'REMOVEDLG'
+		'MSG' "%NL.%BOLD=1.%TC=1.Hope you enjoyed your stay!"
+		'SHOWFILE' "review/review_day"
+		'FLUSHACCOUNT'
+		'DROPLINE'
+	END
+	ELSE
+		'HOTKEY' "%NL.%BOLD=1.%TC=1.OK you are welcome to stick around! (hit a key!)%BOLD=0.%TC=7."
+END
+
+'APTXEND'
+
+EXIT
+
+/*
+** PROCEDURE: YESNO
+**
+** Used whenever requesting a [Y/n] [y/N] style hotkey input
+**
+** Flag = 1 for Default to YES, 0 for Default to NO on return
+**
+** RETURNS: 1 for YES and 0 for NO
+*/
+
+YESNO: procedure
+
+parse arg Flag
+
+'HOTKEY' ""
+Key=upper(result)
+if(Flag=0) THEN DO
+	if(Key='Y') THEN DO
+		'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+		Flag = 1
+	END
+	ELSE DO
+		'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+		Flag = 0
+	END
+END
+ELSE
+if(Key='N') THEN DO
+	'MESSAGE' "%BOLD=1.%TC=7.No%BOLD=0.%TC=7."
+	Flag = 0
+END
+ELSE DO
+	'MESSAGE' "%BOLD=1.%TC=7.Yes%BOLD=0.%TC=7."
+	Flag = 1
+END
+	return Flag
+
+

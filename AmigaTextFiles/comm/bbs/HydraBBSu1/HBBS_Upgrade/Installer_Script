@@ -1,0 +1,91 @@
+(if (= @user-level 0) (set @user-level 2))
+(if (< (/ (getversion) 65536) 37) (abort "You need 2.04 or better"))
+
+(message "\n\nHydraBBS\n\nBy Dominic Clifton\n\nHydra^CRoSS POiNT")
+(message "\n\nThis script will update a working V1.0 installation to V1.01\n\nNo configuration files, data or screens will be changed")
+(welcome)
+
+(set #msg_continue "\n\nContinue upgrading the version\n of HydraBBS in HBBS: ?")
+(set #help_continue "\n\nThis is required to perform the upgrade!")
+(set #msg_done "HydraBBS has been upgraded ok\n\nPlease read the document:\n\nHBBS:Docs/Misc/Upgrades/Changes_To_V1.01.guide\n\nReboot before re-starting HydraBBS\n(very important!)")
+(set #msg_HBBSRunning "\n\nCannot perform upgrade when HydraBBS is running")
+
+(if (= (exists "ENV:HBBS_ScreenName") 1)
+ (
+  (abort #msg_HBBSRunning)
+ )
+ (
+
+  (set #Target "HBBS:")
+  (set @default-dest #Target)
+
+  (if (= (exists #Target) 2)
+   (
+     (if (= 1 (askbool (prompt #msg_Continue) (help #help_Continue) (default 1)))
+      (
+       (if (= 2 (exists "Core"))
+        (
+
+         (complete 10)
+
+         (copyfiles (source "Core/")
+                    (dest #Target)
+                    (optional "force" "nofail")
+                    (infos)
+                    (noposition)
+                    (all)
+         )
+
+        )
+       )
+
+       (if (= 2 (exists "Misc"))
+        (
+
+         (complete 40)
+
+         (copyfiles (source "Misc/")
+                    (dest #Target)
+                    (optional "force" "nofail")
+                    (infos)
+                    (noposition)
+                    (all)
+         )
+        )
+       )
+
+       (if (= 2 (exists "Developer"))
+        (
+
+         (complete 80)
+
+         (if (= 2 (exists (tackon #Target "Developer")))
+          (
+           (copyfiles (source "Developer/")
+                      (dest #Target)
+                      (optional "force" "nofail")
+                      (infos)
+                      (noposition)
+                      (all)
+           )
+          )
+         )
+        )
+       )
+
+       (complete 100)
+
+       (run "multiview HBBS:Docs/Misc/Upgrades/Changes_To_V1.01.guide")
+
+       (message #msg_done)
+       (exit)
+
+      )
+     )
+   )
+   (
+    (abort "Can't find your HBBS: directory!")
+   )
+  )
+ )
+)

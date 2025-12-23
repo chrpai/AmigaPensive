@@ -1,0 +1,2 @@
+S WINDOW "CNet Amiga Pager"
+GADGETUP "" 1,9,599,82

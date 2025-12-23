@@ -1,0 +1,97 @@
+(welcome "Welcome to the Reccoon installation script...")
+
+(message "This script will install the Reccoon BBS software in a place of your selection.")
+
+(set rdest (askdir (prompt "Please select destination") (help "The script needs to know where you want to install Reccoon, a drawer called Reccoon will be created.") (default "Work:") ) )
+
+(if ( = (substr rdest (- (strlen rdest) 1) ) ":")
+   (complete 0)
+   (if ( = (substr rdest (- (strlen rdest) 1) ) "/")
+      (complete 0)
+      (set rdest (cat rdest "/"))
+   )
+)
+(complete 20)
+
+(working "...Decrunching main archive...\n\nLX is Copyright © 1993, Xenomiga Technology")
+(if (> (run ("LX >\"CON:0/0/400/50/UnPackning Reccoon - Please wait...\" -a x ReccoonBBS.LhA \"%s\"" rdest)) 0)
+   (abort "LX failed to extract Reccoon.\n\nToo little memory available?")
+)
+
+(complete 50)
+
+(protect ("%sReccoon/S/R-Alias" rdest) "+s")
+(protect ("%sReccoon/S/StartBBS" rdest) "+s")
+(protect ("%sReccoon/S/ProcMail" rdest) "+s")
+(protect ("%sReccoon/S/StartReccoon" rdest) "+s")
+
+(complete 60)
+
+(message "I will now startup the needed programs to get the system running.")
+(makeassign "Reccoon" ("%sReccoon/" rdest))
+(complete 70)
+(run ("execute \"%sReccoon/S/StartBBS\"" rdest))
+
+(complete 80)
+
+(message "I will now start the UserEditor so you can change the information about the sysop (IE, name, password, etc)")
+(run ("\"%sReccoon/C/UserEd\" \"John Doe\"" rdest))
+(complete 90)
+(working "Setting you up as sysop")
+(if (= (run "GetFirst >T:Tmp2 RDATA:User.dat") 20)
+   (abort "Error! Couldn't find first user!")
+   (complete 90)
+)
+(run "echo >T:Tmp \"D*nS\"")
+(run "type >>T:Tmp T:Tmp2")
+(run "echo >>T:Tmp \"Q*nW*nX*n\"")
+(run ("\"%sReccoon/C/Config-STDIO\" <T:TMP" rdest))
+(run "Delete \"T:TMP\"")
+(run "Delete \"T:TMP2\"")
+(complete 99)
+
+(set try
+   (askbool
+      (prompt "Do you want to try Reccoon now?")
+      (help "This gives you the possibility to try the BBS right now so you don't have to restart the computer.")
+      (default 1)
+   )
+)
+
+(if (= try 1)
+   (
+      (working "Reccoon Node 0 is running, shut it down to end this script")
+      (run "Reccoon:s/startreccoon NoRun 0")
+   )
+)
+
+(set fix
+   (askbool
+      (prompt "Do you want me to make the changes needed to install Reccoon permanetly?")
+      (help "If you select yes, the script will add the assign & scripts needed to run reccoon after every reboot.")
+      (default 0)
+   )
+)
+
+(if (= fix 1)
+   (
+      (startup "Reccoon BBS"
+         (prompt "Adding the Reccoon: assign to s:User-startup")
+         (help "See the prompt")
+         (command ("Assign Reccoon: \"%sReccoon/\"\nexecute reccoon:s/StartBBS" rdest))
+      )
+      (set cho
+         (askbool
+            (prompt "Adding lines to your S:Shell-Startup")
+            (help "I need to add a few lines to the S:Shell-Startup so it will work properly with Reccoon. What it actually does is adding a line saying \"execute Reccoon:S/R-Alias\" so you can type \"R 0\" and get the local (?) line up and running.")
+            (default 1)
+            (choices "Proceed" "Cancel")
+         )
+      )
+      (if (= cho 1)
+         (run "echo >>S:Shell-Startup \";BEGIN Reccoon BBS*nexecute Reccoon:S/R-Alias*n;END Reccoon BBS\"")
+      )
+   )
+)
+(complete 100)
+(exit (quiet))

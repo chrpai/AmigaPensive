@@ -1,0 +1,25 @@
+/* this is an example ARexx script for using FileLister                 */
+
+options results
+
+listenart='NEWFILES'             /* choose command                      */
+filelister='BBS:bin/FileLister'  /* path and name of FileLister         */
+
+bbsidentify term
+bbsline=strip(word(result,4))
+
+/* check if FileLister was alreadey started                             */
+befehl="host=show('P','FILELISTER."||bbsline||"')"
+interpret befehl
+
+/* start FileLister and wait for his ARexx port                         */
+if ~host then do
+  address command 'run '||filelister||' '||bbsline
+  address command 'waitforport FILELISTER'||bbsline
+end
+
+/* execute command dependent of the bbsline                             */
+befehl="address 'FILELISTER."||bbsline||"' '"||listenart||"'"
+interpret befehl
+
+exit

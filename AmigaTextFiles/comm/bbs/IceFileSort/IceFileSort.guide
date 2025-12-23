@@ -1,0 +1,255 @@
+@database IceSortFile.guide
+@node main "IceSortFile.guide"
+******************************************************************************
+                                 
+@{b}                              IceFileSort v0.39 @{ub}
+
+                              © Kenji Irie 1997
+******************************************************************************
+
+
+                            @{"     Introduction     " link intro}       
+                            @{"         Why?         " link why}         
+                            @{"     Requirements     " link requirements}
+                            @{"        Usage         " link Usage}       
+                            @{"   IceSortDir file    " link IceSortDir} 
+                            @{"   Problem Solving    " link Problem}     
+                            @{"       History        " link history}     
+                            @{"     Contributors     " link contributors}
+
+
+                        Written by @{" Kenji Irie " link author} 21/1/97
+              
+@endnode
+
+@node intro "Introduction"
+
+ Introduction
+ ------------
+
+    IceFileSort is an arexx script for IceBBS Sysop's to help (and in my case
+saves 3-4 hours of work a week!) with file maintanence of Aminet files. The
+IceBBS file type which it uses is an aminet file with the .readme file in the
+IceBBS header.
+    Basically, what the script will do for you is move files from a directory
+(via an assign) to appropriate places which you specify on your hard drive. As
+you can see, having a script automatically moving x number of files instead of
+having to look at the file description, think of where they should go on the HD
+and then move them across will save a lot of time. In my case, about 2/3 of all
+files are now moved via the script. Yesterday I downloaded 17 megs of new files
+from Aminet, and 14 Megs today! <From overnight-uploads to Aminet> As you can
+imagine, this is a fair number of files!
+
+PLEASE NOTE! This program was originally intended to be written in C, but on
+advice from a friend, I used Arexx. I have never programmed in arexx in my
+life, and only had 3 arexx scripts to which I could try to understand to code
+this script. It is probably the worst & messiest script you wil lhave ever
+seen, and can be optimised in many many ways. At the moment, it is about 10x
+faster than what it originally was. Its usable. On my machine (030/50) it went
+throuh 340 files in 5 mintutes. That was a build up of about 1-2 months of new
+files! I will optimise it when I find out how, and will release newer versions
+on aminet. Keep an eye out!
+
+@endnode
+
+@node why "Why?"
+
+ Why write IceFileSort?
+ ----------------------
+
+    Basically, apart from moving lots of files quickly, the Aminet directory
+structure isnt practical for BBS's. ie, a picture viewer that is in pix/show
+would be more applicable in Graphics:Picture_viewers/ or something like that on
+a BBS. The IceFileSort script takes care of all this by using the
+@{"IceFileSort" link IceSortDir} file.
+
+@endnode
+
+@node requirements "IceFileSort requirements"
+
+IceFileSort requires Arexx (wb 2.0+), the following AmigaDOS
+commands:
+
+delete
+dir
+execute
+list
+move
+
+And the command "Append" from the full IceBBS package (by Stephen Vermeulen.) 
+
+Make sure all these files are pathed, ie, "append" is available in c: or any
+other pathed directory.
+
+An Assign "IceFileDir:" is needed to the directory you want the script to
+operate, and an assign "BBS:" is required for the IceSortDir file.
+
+@endnode
+
+@node Usage "IceFileSort Usage"
+
+ Usage
+ -----
+
+Note: To make files so you can use IceFileSort, read the last part of this
+section.
+
+Usage: rx icefilesort.rx
+
+Icefilesort looks into the directory/assign "BBS:" for the file @{"IceSortDir"
+link IceSortDir}
+and also looks for the assign "IceFileDir:" for the BBS files to be moved.
+
+When the script is running, you will be told how many 'comparison' files there
+are in the IceSortDir file, and how many files there are in the "IceFileDir:"
+assign. It will then go through each file in the list one at a time, and will
+tell you if the aminet "Type:" word is found in the first 10 lines of the file.
+If it is, it looks in the IceSortDir file for the aminet subdir. If it is
+found, the file will be added to the script in ram, and if it isnt found you
+will be notified and the file added to a list in ram.
+
+Once IceFileDir has finished its work, you will find 2 files in Ram:
+
+MoveIceFiles
+UnknownFiles
+
+The first file, an AmigaDos script MoveIceFiles, will move the files it found
+with equivalent dirs in the @{"comparison" link IceSortDir} file.  Note that
+there are a couple of restrictions with filenames.  These can be seen in the
+@{"Restrictions" link restictions} section.
+
+Type: execute ram:MoveIceFiles
+
+and the script will be run
+
+The second file, UnknownFiles, contains a list of all the files in the assign
+"BBS:" that were aminet files with .readme's in the header, but no equivalent
+direcory in the IceSortDir comparison file.  This is so you can see what files
+wont be moved and also what repective aminet directories the files are from.
+THis can help when adding dirs to the IceSortDir comparison file.
+
+
+Making integrated .readme and IceBBS files
+------------------------------------------
+
+    The way I quickly and easily make the files is by the following way:
+
+1) Download Aminet files with their respective .readme's
+2) Convert to LZX (optional)
+3) Use the IceBBS 'AmiJoin' command. This will join the aminet files with their
+readmes in an IceBBS file, with the Short: of the aminet as the Short
+description of the file, and the whole .readme as the long description.
+4) Copy the files into NewFiles: .
+5) Move all files over about 2 weeks old to a temporary dir.
+6) Run the IceFileSort script every few days or whenever to move a lot of the
+files quickly and easily to their proper dirs on the Hard Drive.
+
+Simple, quick, efficent and brilliant.
+
+@endnode
+
+@node IceSortDir "The IceSortDir file"
+
+ The IceSortDir file
+ -------------------
+
+Is looked for in an assign "BBS:"
+
+The IceSortDir file is a simple file containing text which IceFileSort
+requires. There are 2 pieces of text in each line: The first is an aminet-dir
+(eg: pix/show, util/boot) and the second is the path to the dir on your HD.
+(eg, could be Graphics:viewers or Utilities:Boot_programs). Note there are
+@{"Restrictions" link restrictions} on filenames. You can have spaces in the
+list if you like, but it is faster if you dont have them. No order is
+neccessary, although it is easier to see if you have a dir in there already.
+
+I have included my own IcefileSort file for you to edit. 
+
+Basically, it is a comparison or equivalent-making file.
+
+@endnode
+
+
+@node restrictions "IceFileSort Restrictions"
+
+ Restictions
+ -----------
+
+- Filenames in the assign "IceFileDir:" must have no spaces.
+- The destination directory must have no spaces
+    (Due to being unable to echo quotes)
+
+
+@endnode
+
+@node Problems "Problem Solving"
+
+Following is a list of problems and possible answers, that arise from using the
+script :-
+
+Prob: When running the script, "Move cannot locate file <filename>" or similar.
+Answer: The move command does not seem to like having '/' at the end of a dir.
+        Go into your IceSortDir file and locate the directory that the problem 
+        is occuring in, and remove the end '/'.
+
+Prob: When running the IceFileSort rexx script, the program breaks and says
+      "Cant find file <something>".
+Answer: The filename it is trying to locate has a space in it. Remove the space
+        and try again.
+
+Prob: When running the IceFileSort rexx scrip, it locates a file with a "Type:"
+      and attempts to find the aminet-subdir in the IceSortDir file, but says
+      it cant find it, even though you KNOW it is there!
+Answer: Load up Ced (or your favourite text editor) and load the file with the
+        problem. Check the aminet-subdir after "Type:". You will probably find
+        that the sub-dir is something like util/boot<ctrl-M>! This is probably
+        due to the uploader probably using a PC which has funny text formatting.
+        So how do you get round it? Simple, just add a line in your IceFileDir
+        script with the exact representation of what is in the file (eg:
+        util/boot<control-m>). This will solve the problem for that file and
+        any other file that has a wierd aminet-subdir.
+
+@endnode    
+
+@node History "History IceFileSort"
+
+ History
+ -------
+
+Dec-96 : Idea started
+21/1/97: Finished coding and tidying up the first version
+
+@endnode
+
+@node contributors "DemoRating Contributors"
+
+ Contributors
+ ------------
+
+Thanks to Jeffry Meikle for doing the tedious boring work of filling out most
+of my IceFileDir file! Its saved me a lot of time.
+
+Thanks also to Stephen Vermeulen for writing IceBBS. Its one great BBS System.
+
+@endnode
+@node author "The author of these lists"
+
+ Author
+ ------
+
+You can contact me for any reason at the adress's below.
+
+Email:  kenji_irie@geocities.com
+        iriek@elec.canterbury.ac.nz (between March-Nov 97)
+
+BBS:    Phoenix Amiga BBS, running Stephen Vermeulens IceBBS (tm) multitasking
+        BBS software.
+        Phone: 64-03-3228-208
+
+
+Snail Mail: Kenji Irie
+            11 Calverton Place,
+            Christchurch 3
+            New Zealand.
+
+@endnode

@@ -1,0 +1,576 @@
+/***********************************************************************
+ *               Excelsior! Poker Solitaire v1.3  (1/14/93)            *
+ *                            by Sean Workman                          *
+ *       Due to the crap I see in all those CNet games, this game      *
+ *          is ONLY to be used by REGISTERED EXCELSIOR! SYSOPS!        *
+ *       This game is NOT for use on ANY version of ANY other BBS!     *
+ *                                                                     *
+ *    I worked hard on this game, please do not modify it in ANY way!  *
+ *     If there is a bug, please leave me mail on my board or on the   *
+ *       Excelsior! support BBS (Skynet) by handle is The Trooper.     *
+ *                                                                     *
+ *    If you like this game enough to keep it on your BBS for longer   *
+ *    than a 30 day trial period, please send me a mere $5 so that I   *
+ *            can continue to write more doors for Excelsior!          *
+ *      Send money to: Sean Workman  P.O.Box 5229 Eugene, OR 97405     *
+ *                                                                     *
+ *   This game is REALLY fast with a 68030 powering it... (hint hint!) *
+ *                                                                     *
+ *     Now that I've got that out of the way, the newest version of    *
+ *     Excelsior! Poker Solitaire will always be available on my BBS   *
+ *          AmigaX BBS 503-342-2144 68030/16.8k Ultimate Speed!        *
+ *             Multiline, multiuser chats, 50+ online games            *
+ *  And powered by the BEST BBS software out for the Amiga, Excelsior! *
+ ***********************************************************************/
+options results
+
+SIGNAL ON ioerr
+SIGNAL ON syntax
+
+
+Call Init
+Call Instructions
+StartOver:
+Call NewDeck
+Call Shuffle
+Call Display
+Call AssignVals
+Call Output
+Call ShowCurrent
+
+do until gameover=1
+  Call GetMoves
+  Call showcurrent
+end
+  call CheckHighs
+  if userquit=0 then do
+    call WriteScores
+  end
+
+  tr '\q1\f1\n1\c5Excelsior! Poker Solitaire Top Ten Players\n1'
+  tr 'Name                          Score'
+  tr       '\c7------------------------------------------'
+  do i=1 to 10
+    name=right(TopTen.i,length(TopTen.i)-5)
+    tr '\c3'right(name,20,' ')||'\>a\c2'||strip(left(TopTen.i,5),'L','0')
+  end
+  tr '\n1'
+  tr '\q1\c5Thank you for playing Excelsior! Poker Solitaire 'EPSV
+  tr '\c5Copyright 1993 Sean Workman - AmigaX BBS 503-342-2144\n1'
+  tr '\@2\c6Returning you to \c5\v@\c6.  Another great Excelsior! powered BBS...\'
+ASCIIABORT:
+CarrierLost:
+EXIT
+
+Init:
+  se = sendstring ; tr = transmit ; d1=1 ; gameover = 0 ; userquit = 0
+  cx = 1 ; cy = 1 ; nx = 4 ; ny = 3 ; mcx = 0 ; mcy = 0 ; firstmarked = 0
+  trf=0 ; tsf=0 ; tfk=0 ; tfh=0 ; tfl=0 ; tst=0 ; ttk=0 ; ttp=0 ; top=0
+  path = 'doors:poker/' ; EPSV='\c2v\c31\c2.\c33'
+  table = '123456789abcdefghijklmnopqrstuvwxyz'
+  getuser 28 ; emulation = result
+  if emulation=0 then
+    do
+      tr '\q1Sorry, Excelsior! Poker Solitare uses ANSI control codes.'
+      tr 'You''ll have to set your terminal to ANSI emulation and use'
+      tr 'the TS command from within the BBS.\n1'
+      se 'Please press any key to continue...'
+      getchar
+      key = ans
+      if ans = '###PANIC' then signal DoQuit
+      signal ASCIIABORT
+    end
+  if emulation=1 then termtype=0
+  if emulation=3 then termtype=1
+  getuser 1 ; handle = result
+  getuser 24 ; baud=result
+return
+
+Instructions:
+  tr '\q1\f1Welcome to Excelsior! Poker Solitaire 'EPSV'\n1'
+  se '\c6Do you need instructions? \c3(\c7y\c3/\c7N\c3) \c1'
+  getchar ans
+  ans = result
+  if ans = '###PANIC' then signal DoQuit
+  tr ans'\n1'
+  if upper(ans)='Y' then
+  do
+    tr '\*0'path'poker.inst'
+    se '\n1\c5Please press any key to continue...'
+    getchar
+  ans = result
+  if ans = '###PANIC' then signal DoQuit
+  end
+return
+
+NewDeck:
+    if termtype=1 & Baud~=19200 then suitstring=''
+    else
+    suitstring='HDCS'
+    do s=1 to 4 ; do v=1 to 13 ; deck.d1=substr('A234567891JQK',v,1)
+    if v=10 then deck.d1=deck.d1||'0' ; c=1 ; if s=3 | s=4 then c=0
+    deck.d1='\c'c||deck.d1||substr(suitstring,s,1) ; d1=d1+1 ; end v ; end
+return
+
+Shuffle:
+  tr '\q1\f1'
+  se '\^8\n1\>f\>f\z0\c2Shuffling...\c7 \c5   %\c2 done\<9\c5'
+  do i=1 to 52
+    d.i=deck.i
+  end i
+  do i=1 to 49
+    a1=random(1,52,time('s'))
+    a2=random(1,52,time('s'))
+    a=d.a1
+    d.a1=d.a2
+    d.a2=a
+    se right(i,3,'0')'\<3'
+  end i
+  do i=1 to 26
+    a.i=d.i
+  end i
+  se '\<d\c2Cutting...'
+  do i=1 to 26
+    a=i+26
+    d.i=d.a
+    d.a=a.i
+  end i
+  se '\<aShuffling...\c5\>1'
+  do i=50 to 100
+    a1=random(1,52,time('s'))
+    a2=random(1,52,time('s'))
+    a=d.a1
+    d.a1=d.a2
+    d.a2=a
+    se right(i,3,'0')'\<3'
+  end i
+  se '\<d\c2Finished....'
+  card=0
+return
+
+Output:
+  se '\f0\!2'
+  do y=1 to 5
+    se '\>2'
+    do x=1 to 5
+      len1=length(card.x.y)-3
+      len2=7-length(card.x.y)
+      if len1>2 then len2=len2+1
+      se '\z7\c0'card.x.y' \<'len1+1'\!2\>'4-len1'\z7\c0 'card.x.y'\^2\>'len2
+    end
+    tr '\n3'
+  end
+return
+
+AssignVals:
+    z=0 ; do x=1 to 5 ; do y=1 to 5 ; z=z+1 ; card.x.y=d.z ; end ; end
+return
+
+Display:
+  if termtype=1 then
+  do
+    b1 = '\c2\z0같같같같같같같같같같같같같같같같같같�\z0 '
+    b2 = '\c2\z0같\z7     \c2\z0같\z7     \c2\z0같\z7     \c2\z0같\z7     \c2\z0같\z7     \c2\z0같 '
+    b3 = '\q1靈컴컴컴컴컴컴컴컴컴컴컴컴컴�\q1'
+    b4 = '\q1픔컴컴컴컴컴컴컴컴컴컴컴컴컴�\q1'
+    b5 = '\q1聃컴컴컴컴컴컴컴컴컴컴컴컴컴�\q1'
+    b6 = '�'
+  end
+  else
+  do
+    b1 = '\z2                                     \z0 '
+    b2 = '\z2  \z7     \z2  \z7     \z2  \z7     \z2  \z7     \z2  \z7     \z2  \z0 '
+    b3 = '\q1.---------------------------.\q1'
+    b4 = '\q1|---------------------------|\q1'
+    b5 = '\q1|___________________________|\q1'
+    b6 = '|'
+  end
+  tr '\@4\q1\f1\c5   Excelsior! Poker Solitaire 'EPSV'  \>g\c6By Sean Workman'
+  tr b1'       'b3
+  tr b2'     \c5A \q1'b6'\c6 Royal flush     \c3= \c7100 \c6pts\q1 'b6' \c5A'
+  tr b2'     \c5M \q1'b6'\c6 Straight flush  \c3= \c7 75 \c6pts\q1 'b6' \c5M'
+  tr b2'     \c5I \q1'b6'\c6 Four of a kind  \c3= \c7 50 \c6pts\q1 'b6' \c5I'
+  tr b1'     \c5G \q1'b6'\c6 Full house      \c3= \c7 25 \c6pts\q1 'b6' \c5G'
+  tr b2'     \c5A \q1'b6'\c6 Flush           \c3= \c7 20 \c6pts\q1 'b6' \c5A'
+  tr b2'     \c5X \q1'b6'\c6 Straight        \c3= \c7 15 \c6pts\q1 'b6' \c5X'
+  tr b2'     \c5  \q1'b6'\c6 Three of a kind \c3= \c7 10 \c6pts\q1 'b6'  '
+  tr b1'     \c55 \q1'b6'\c6 Two pair        \c3= \c7  5 \c6pts\q1 'b6' \c5\c55'
+  tr b2'     \c50 \q1'b6'\c6 One pair        \c3= \c7  2 \c6pts\q1 'b6' \c50'
+  tr b2'     \c53 'b4' \c53'
+  tr b2'     \c5  \q1'b6'    \c27 8 9      5 \q1= \c7Pick\q1    'b6''
+  tr b1'     \c53 \q1'b6'    \c24\c7-\c1+\c7-\c26      \c2R \q1= \c7Redraw\q1  'b6' \c53'
+  tr b2'     \c54 \q1'b6'    \c21 2 3      \c2Q \q1= \c7Quit    \q1'b6' \c54'
+  tr b2'     \c52 \q1'b6' Keypad moves  \c2S \q1= \c7Score   \q1'b6' \c52'
+  tr b2'     \c5  'b4
+  tr b1'     \c52 \q1'b6' \c6Action\q1:                   'b6'\q1 \c52'
+  tr b2'     \c51 'b4' \c51'
+  tr b2'     \c54 \q1'b6'         \c6Messages:         \q1'b6' \c54'
+  tr b2'     \c54 \q1'b6'                           'b6'\q1 \c54'
+  se b1'     \c5  'b5
+return
+
+GetInput:
+    se '\q1\f0\!h\>k\>z'
+    getchar
+    key = result
+    if key = '###PANIC' then signal DoQuit
+return
+
+GetMoves:
+  Call GetInput
+  key=upper(key)
+  if key='1' | key='M' then Call MDL
+  if key='2' | key=',' then Call MDown
+  if key='3' | key='.' then Call MDR
+  if key='4' | key='J' then Call MLeft
+  if key='5' | key=' ' | key='K' then Call Mark
+  if key='6' | key='L' then Call MRight
+  if key='7' | key='U' then Call MUL
+  if key='8' | key='I' then Call MUp
+  if key='9' | key='O' then Call MUR
+  if key='0' | key='S' | key='*' then Call Score
+  if key='Q' | key='Q' then Call DoQuit
+  if key='R' | key='R' then Call ReDraw
+return
+
+ShowCurrent:
+  se '\f0\!'ny'\>'nx'\z7 '
+  nx=substr(table,cx*7-3,1)
+  ny=substr(table,cy*4-1,1)
+  se '\f0\!'ny'\>'nx'\q1\z7\c5*'
+return
+
+Mark:
+  if firstmarked=0 then se '\f0\!k\>c\>z\z7\c0'card.cx.cy'\q1 marked. Card to swap?'
+  else
+    se '\f0\!k\>c\>z                         '
+  if firstmarked=1 then
+    do
+      if mcx=cx & mcy=cy then
+        do
+          tr '\f0\!k\>c\>z\z7\c0'card.cx.cy'\q1 deselected!    \w1'
+          tr '\f0\!k\>c\>z                   '
+          se '\f0\!'my'\>'mx'\q1\z7\c7   '
+        end
+      else
+        do
+          tr '\f0\!k\>c\>zNow swapping \z7\c0'card.mcx.mcy'\q1 and \z7\c0'card.cx.cy'\q1 '
+          temp=card.mcx.mcy
+          card.mcx.mcy=card.cx.cy
+          card.cx.cy=temp
+          swap card.mcx.mcy card.cx.cy
+          Call cardswap
+          tr '\f0\q1\!k\>c\>z                          '
+        end
+      firstmarked=0
+    end
+  else firstmarked = 1
+  mx=substr(table,cx*7-4,1)
+  my=substr(table,cy*4-1,1)
+  mcx=cx ; mlx = mx
+  mcy=cy ; mly = my
+return
+
+MUP:
+  cy=cy-1
+  if cy<1 then cy=1
+return
+
+MDown:
+  cy=cy+1
+  if cy>5 then cy=5
+return
+
+MRight:
+  cx=cx+1
+  if cx>5 then cx=5
+return
+
+MLeft:
+  cx=cx-1
+  if cx<1 then cx=1
+return
+
+MUL:
+  Call MUP
+  Call MLeft
+return
+
+MUR:
+  Call MUP
+  Call MRight
+return
+
+MDL:
+  Call MDown
+  Call MLeft
+return
+
+MDR:
+  Call MDown
+  Call MRight
+return
+
+CardSwap:
+  x1=cx
+  y1=cy
+  x2=mcx
+  y2=mcy
+  v1=substr(table,y1*4-2,1)
+  v2=substr(table,y2*4-2,1)
+  h1=substr(table,x1*7-5,1)
+  h2=substr(table,x2*7-5,1)
+ len1=length(card.cx.cy)-3
+ len2=7-length(card.cx.cy)
+ if len1>2 then len2=len2+1
+ len3=length(card.mcx.mcy)-3
+ len4=7-length(card.mcx.mcy)
+ if len3>2 then len4=len4+1
+ tr '\f0\!'v1'\>'h1'\z7\c0'card.cx.cy' \<'len1+1'\!2\>'4-len1' 'card.cx.cy
+ tr '\f0\!'v2'\>'h2'\z7\c0'card.mcx.mcy' \<'len3+1'\!2\>'4-len3' 'card.mcx.mcy
+return
+
+Score:
+  se '\c1Score? \c3(\c7Y\c3/\c7n\c3) '
+  getchar
+  ans = result
+  if ans = '###PANIC' then signal DoQuit
+  if upper(ans)='N' then
+  do
+  se '\q1\f0\!h\>k\>z             '
+  signal SkipScore
+  end
+  se '\q1\f0\!h\>k\>zScoring...        '
+  tr '\f0\q1'
+  total=0
+  do y=1 to 5
+    do i=1 to 5
+      cd.i=right(card.i.y,length(card.i.y)-3)
+    end
+    v1 = substr(table,y*4-1,1)
+    tr '\f0\z7\c0\!'v1'\>4-\>6-\>6-\>6-\>6-\>4\q1'
+    call CheckCards
+    se '\f0\q1\!'v1'\^1\>z\>2'
+    do dummy=1 to length(sub)
+      se substr(sub,dummy,1)'\<1\!1'
+    end
+  end
+  do x=1 to 5
+    do i=1 to 5
+      cd.i=right(card.x.i,length(card.x.i)-3)
+    end
+    h1=substr(table,x*7-3,1)
+    tr '\f0\z7\c0\!3\>'h1'+\!4\<1+\!4\<1+\!4\<1+\!4\<1+'
+    call CheckCards
+    se '\q1\f0\!m\>'h1'\<2'sub 
+    se '\f0\q1\!k\>z\>cTotal points:\c2'total
+  end
+  se '\q1! \c3(\c7Final\c3)'
+  se '\q1\f0\!h\>k\>z\c1Play again? \c3(\c7y\c3/\c7N\c3)\c2'
+  getchar
+  ans = result
+  if ans = '###PANIC' then signal DoQuit
+  if upper(ans)='Y' then
+  do
+    call CheckHighs
+    if userquit=0 then call WriteScores
+    signal StartOver
+  end
+  else
+  do
+    gameover = 1
+    logentry '\c6'handle'\q1 played \c5Excelsior! Poker Solitaire! 'EPSV
+  end
+SkipScore:
+return
+
+ReDraw:
+  tr 'ReDraw'
+  Call display
+  Call output
+return
+
+DoQuit:
+  se '\q1\c1Quit? \c3(\c7y\c3/\c7N\c3) \c2'
+  getchar
+  ans = result
+  if ans = '###PANIC' then 
+  do
+    logentry '\c1\z7'handle' dropped carrier while playing EPS 'EPSV
+    Signal CarrierLost
+  end
+  if upper(ans)='Y' then
+  do
+    gameover = 1
+    getuser 1
+    handle = result
+    logentry '\c6'handle'\q1 played \c5Excelsior! Poker Solitaire! 'EPSV
+  end
+  else se '\q1\f0\!h\>k\>z             '
+  userquit=1
+return
+
+CheckCards:
+  call SortCards
+  call CompareHand
+  total = total + Sub
+  se '\f0\q1\!k\>z\>cTotal points:\c2'total
+return
+
+SortCards:
+  do i=1 to 4
+    do j=i+1 to 5
+    if cd.i>cd.j then
+      do
+        temp=cd.i
+        cd.i=cd.j
+        cd.j=temp
+      end
+    end j
+  end i
+return
+
+CompareHand:
+  Sub=0 ; flush=0
+  if right(cd.1,1)=right(cd.2,1) & right(cd.2,1)=right(cd.3,1) & right(cd.3,1)=right(cd.4,1) & right(cd.4,1)=right(cd.5,1) then
+    do
+      sub=20
+    end
+  if Sub=20 then
+    do
+      Sub = 20
+      flush=1
+    end
+  do i=1 to 5
+    cd.i=left(cd.i,length(cd.i)-1)
+  end
+  cards=cd.1||cd.2||cd.3||cd.4||cd.5
+  if index('23456789 106789 10789J 1089JQ 109JKQ 2345A 10AJKQ',cards) >0 then
+    do
+      if flush=1 then Sub=Sub+55
+      else Sub=Sub+15
+    end
+  if index('10AJKQ',cards)>0 & flush=1 then
+  do
+    Sub=Sub+25
+    signal DoneChecking
+  end
+  if length(cards)=14 then Sub=50
+  if cd.1=cd.2 & cd.2=cd.3 & cd.3=cd.4 | cd.2=cd.3 & cd.3=cd.4 & cd.4=cd.5 then
+  do
+    Sub=50
+    signal DoneChecking
+  end
+  if cd.1=cd.2 & cd.2=cd.3 then
+  do
+    Sub=10
+    if cd.4=cd.5 then Sub=Sub+15
+    signal DoneChecking
+  end
+  if cd.2=cd.3 & cd.3=cd.4 then
+  do
+    Sub=10
+    signal DoneChecking
+  end
+  if cd.3=cd.4 & cd.4=cd.5 then
+  do
+    Sub=10
+    if cd.1=cd.2 then Sub=Sub+15
+    signal DoneChecking
+  end
+  if cd.1=cd.2 & cd.2~=cd.3 & cd.3=cd.4 & cd.4~=cd.5 then
+  do
+    Sub=Sub+5
+    signal DoneChecking
+  end
+  if cd.1=cd.2 & cd.2~=cd.3 & cd.3~=cd.4 & cd.4=cd.5 then
+  do
+    Sub=Sub+5
+    signal DoneChecking
+  end
+  if cd.1~=cd.2 & cd.2=cd.3 & cd.3~=cd.4 & cd.4=cd.5 then
+  do
+    Sub=Sub+5
+    signal DoneChecking
+  end
+  if cd.1=cd.2 & cd.2~=cd.3 & cd.3~=cd.4 & cd.4~=cd.5 then
+  do
+    Sub=Sub+2
+    signal DoneChecking
+  end
+  if cd.1~=cd.2 & cd.2=cd.3 & cd.3~=cd.4 & cd.4~=cd.5 then
+  do
+    Sub=Sub+2
+    signal DoneChecking
+  end
+  if cd.1~=cd.2 & cd.2~=cd.3 & cd.3=cd.4 & cd.4~=cd.5 then
+  do
+    Sub=Sub+2
+    signal DoneChecking
+  end
+  if cd.1~=cd.2 & cd.2~=cd.3 & cd.3~=cd.4 & cd.4=cd.5 then
+  do
+    Sub=Sub+2
+    signal DoneChecking
+  end
+
+DoneChecking:
+if sub=2 then top=top+1
+if sub=5 then ttp=ttp+1
+if sub=10 then ttk=ttk+1
+if sub=15 then tst=tst+1
+if sub=20 then tfl=tfl+1
+if sub=25 then tfh=tfh+1
+if sub=50 then tfk=tfk+1
+if sub=75 then tsf=tsf+1
+if sub=100 then trf=trf+1
+return
+
+CheckHighs:
+  if ~exists(path||'TopTen.pkr') then
+  do
+    open(file1,path||'TopTen.pkr', 'W')
+    do i=1 to 10
+      TopTen.i='00001AmigaX 503-342-2144 '
+      writeln(file1, TopTen.i)
+    end
+    close(file1)
+  end
+  else
+  do
+    open(file1,path||'TopTen.pkr', 'R')
+    do i=1 to 10
+      TopTen.i=readln(file1)
+    end
+    close(file1)
+  end
+return
+
+WriteScores:
+  if total>0 then
+  do
+    TopTen.11=right(total,5,'0')||left(handle,20,' ')
+    do i=1 to 10
+      do j=i+1 to 11
+        if TopTen.i<TopTen.j then
+        do
+          temp=TopTen.i
+          TopTen.i=TopTen.j
+          TopTen.j=temp
+        end
+      end
+    end
+    open(file1,path||'TopTen.pkr', 'W')
+    do i=1 to 10
+      writeln(file1, TopTen.i)
+    end
+    close(file1)
+  end
+return
+
+IOERR:
+SYNTAX:
+    tr '\f1\nf\c7Error: \c3'rc' \c7- \c6'errortext(rc)' \c3@ line #\c6'sigl
+    le='\c7Error: '||rc||'/'||errortext(rc)||' @ '||sigl
+    logentry le ; bufferflush ; exit
+EXIT

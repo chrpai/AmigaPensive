@@ -1,0 +1,103 @@
+/*************************************************************************\
+|*                                                                       *|
+|*   User Logs, v4.0   Written by: Dotoran, Thanksgiving, 1992.          *|
+|*                                                                       *|
+|*      For more information, refer to the VL_READ_ME! file.             *|
+|*                                                                       *|
+\*************************************************************************/
+
+options results ; signal on SYNTAX ; signal on IOERR ; signal on ERROR
+tr=transmit ; se=sendstring ; gc=getchar ; qu=query
+tr '\f1\@4' ; dfile='pfiles:ViewLog/'
+
+if ~exists(dfile||'VL_Config') then do
+    tr '\n1\c9Error\cf: \ceVL_Config \cffile is missing.\n1' ; exit ; end
+
+se '\n9\cfReading \ceVL_Config\cf file...\ce[\ca00\ce]\<3\ca'
+call open(f1,dfile||'VL_Config','r') ; logs=readln(f1) ; newlogs=0
+    if logs=0 then do
+        tr '\n2\c9Error\cf: \ceThere are \c9NO \caLogs \ceconfigured!\n1'
+        call close(f1) ; exit ; end
+    do i=1 to logs ; log1.i=readln(f1) ; se right(newlogs,2,'0')'\<2'
+        if word(log1.i,2)=1 then do ; newlogs=newlogs+1
+            log.newlogs=word(log1.i,3) ; flag.newlogs=' ' ; log=log.newlogs
+            if log.newlogs='UpLoads' then log='uloads'
+            if log.newlogs='DownLoads' then log='dloads'
+            if exists('sysdata:Log/'||log) then flag.newlogs='*'
+            end ; end i ; tr '\c9OK'
+    if newlogs=0 then do
+        tr '\n1\c9Error\cf: \ceThere are \c9NO \caUser Logs \ceconfigured!\n1'
+        call close(f1) ; exit ; end
+call close(f1) ; a1=newlogs%4 ; if newlogs//4>0 then a1=a1+1
+a2=(23-(a1+7))%2
+
+START:
+    se '\f1\n'a2'\z5\cf  \ceUser Logs\cf, v4.0  \z0 \ce( \cf* \ce= \cfLog Exists \ce) '
+    tr '\z5\cf  Written by Dotoran of \ceFrontiers BBS\cf!  \z0'
+    i2=1 ; i5=3+a2
+    do i=1 to newlogs by 4 ; do j=0 to 3 ; i1=i+j ;
+        if i1<=newlogs then do
+            se '['i5';'i2'H\ce<\cf'flag.i1'\ce>\cb'right(i1,2)'\c9: \ca'log.i1
+            i2=i2+20 ; end
+    end j ; i2=1 ; i5=i5+1 ; end i
+    se '['a1+a2+4';1H\z5\cf Other Options: \ce<\cfS\ce>\cfcan ALL Existing Logs, '
+    tr '\ce<\cfQ\ce>\cfuit User Logs.   \ce(\cf716\ce)/\cf823\ce-\cf9892\ce!  \z0\n1'
+    se '\cfView Which Log: \cb(\ce1\cb-\ce'newlogs'\cb/\ceS\cb/\ceQ\cb)\cf:\ce '
+START2:
+    gc ; a=result ; call CHECK ; b1=index('0123456789SQ',a)
+    if b1=12 then do ; tr 'Quit User Logs' ; signal LEAVE ; end
+    if b1=11 then do ; tr 'Scan User Logs' ; c1=0 ; signal SCAN ; end
+    if b1=0 | a>logs then signal START2 ; else se a
+START3:
+    gc ; c=result ; call CHECK ; if c2d(c)=13 then signal START4
+    if c2d(c)=8 | c2d(c)>126 then do ; se '\h1' ; signal START2 ; end
+    c1=index('0123456789',c) ; if c1=0 then signal START3 ; else tr c
+    b1=b1-1 ; c1=c1-1 ; a=b1||c1
+START4:
+    log=log.a ; if log='UpLoads' then log='uloads'
+    if log='DownLoads' then log='dloads'
+    if flag.a=' ' then do
+        tr '\f1\na\cf(\ceThe \cb"\ca'log.a'\cb" \ceLog is \c9Empty\cf)'
+        se '\n1\cfPress \ceENTER \cfnow...' ; gc ; k=result
+        if k='Q' then signal LEAVE ; else signal START ; end
+    tr '\f1\cfThe \cb"\ca'log.a'\cb" \cfLog:\n1\*4sysdata:Log/'log'\\@4'
+    se '\cfPress \ceENTER \cfnow...\i1'
+  signal START
+
+SCAN:
+    do i=1 to newlogs
+        log=log.i ; if log='UpLoads' then log='uloads'
+        if log='DownLoads' then log='dloads'
+        if flag.i=' ' then do ; c1=c1+1 ; iterate i ; end
+        tr '\f1\cfThe \cb"\ca'log.i'\cb" \cfLog:\n1\*4sysdata:Log/'log'\\@4'
+        se '\cfPress \ceENTER \cfnow...\i1'
+    end i
+    if c1<newlogs then signal START
+    if c1=newlogs then do
+        tr '\f1\na\cf(\c9ALL \ceLogs Are \caEmpty\cf)'
+        se '\n1\cfPress \ceENTER \cfnow...\i1' ; end
+  signal START
+
+CHECK:
+    if result~='###PANIC' then return
+    logentry '\c9Lost Carrier \cfin \ceUser_Logs_4.0\cf...'
+    bufferflush
+  exit
+
+LEAVE:
+    tr '\caExiting\cf...'
+    bufferflush
+  exit
+
+SYNTAX:
+ERROR:
+IOERR:
+    tr '\n2*** BOOM *** Error Detected!'
+    tr 'ER:'rc' ('errortext(rc)') @ 'sigl
+    tr 'Sysop has been notified...'
+    logentry 'ER:'rc' ('errortext(rc)') @ 'sigl
+    logentry 'while using User_Logs_4.0'
+    bufferflush
+  exit
+
+/*                        < END OF FILE MARKER >                         */

@@ -1,0 +1,496 @@
+@database "SerTrans"
+@master "TestDisk:SerTrans/SerTrans/Extras/Developer/Docs/SerTrans.Doc"
+
+@Node Main "SerTrans.Doc"
+    @{" ST_OpenSerTrans() " Link "ST_OpenSerTrans()"}
+    @{" ST_CloseSerTrans() " Link "ST_CloseSerTrans()"}
+    @{" ST_Send() " Link "ST_Send()"}
+    @{" ST_Read() " Link "ST_Read()"}
+    @{" ST_CursorInput() " Link "ST_CursorInput()"}
+    @{" ST_ReceiveFile() " Link "ST_ReceiveFile()"}
+    @{" ST_SendFile() " Link "ST_SendFile()"}
+    @{" ST_Logoff() " Link "ST_Logoff()"}
+    @{" ST_OutKick() " Link "ST_OutKick()"}
+    @{" ST_CheckCarrier() " Link "ST_CheckCarrier()"}
+    @{" ST_ConPutString() " Link "ST_ConPutString()"}
+    @{" ST_SerPutString() " Link "ST_SerPutString()"}
+    @{" ST_WriteProtocol() " Link "ST_WriteProtocol()"}
+    @{" ST_GetChar() " Link "ST_GetChar()"}
+    @{" ST_HorizCursorInput() " Link "ST_HorizCursorInput()"}
+@EndNode
+
+@Node "ST_OpenSerTrans()" "SerTrans.Library/ST_OpenSerTrans"
+
+@{b}   NAME@{ub}
+	ST_OpenSerTrans -- Opens SerTrans External Port (V10)
+
+@{b}   SYNOPSIS@{ub}
+	stport = ST_OpenSerTrans( portnumber )
+	  D0                          D0    
+
+@{b}   FUNCTION@{ub}
+	Opens the SerTrans Port for external Modules. I.e. UserLogin
+	UploadChecker, StatusCheck etc.
+
+@{b}   INPUTS@{ub}
+	portnumber    - Port ID (Must be NULL for now! In later
+		      versions it identifies the Number of the Port)
+
+@{b}   RESULT@{ub}
+	stport	    - The @{"MsgPort" Link "TEXT_INCLUDE:exec/ports.h/Main" 29} of SerTrans
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_CloseSerTrans()" Link "ST_CloseSerTrans()"}
+
+@EndNode
+
+@Node "ST_CloseSerTrans()" "SerTrans.Library/ST_CloseSerTrans"
+
+@{b}   NAME@{ub}
+	ST_CloseSerTrans -- Closes the external Port of SerTrans (V10)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_CloseSerTrans( stport )
+	  D0                    D0
+
+@{b}   FUNCTION@{ub}
+	Closes the External Port of SerTrans so SeTrans can work on the
+	normal way
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_OpenSerTrans()" Link "ST_OpenSerTrans()"}
+
+@EndNode
+
+@Node "ST_Send()" "SerTrans.Library/ST_Send"
+
+@{b}   NAME@{ub}
+	ST_Send -- Sends a String (V10)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_Send( stport, string )
+	  D0              D0      A0
+
+@{b}   FUNCTION@{ub}
+	Sends a given string to the Modem and the Console. If the Console
+	is closed nothing will happen. The String will send only to the
+	Modem. On the other hand, if no carrier is detected the string
+	will only be shown on the console.
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	string        - A null-terminated String
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_Read()" Link "ST_Read()"}
+
+@EndNode
+
+@Node "ST_Read()" "SerTrans.Library/ST_Read"
+
+@{b}   NAME@{ub}
+	ST_Read -- Reads a String (V10)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_Read( stport, len, blueline, protect, blankenter,
+	  D0              D0     D1    D2        D3         D4
+
+					 buffer, text, title)
+					   A0     A1    A2
+
+@{b}   FUNCTION@{ub}
+	Reads a string from the Modem or the Console. Also you can
+	specify wether the line is blue undergrounded or the chars
+	will be protected (i.e. Password Input).
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	len           - Number of chars to read. Must be at least 1.
+	blueline      - Underground is Blue
+		      (TRUE for blue Underground / FALSE for NONE)
+	protect	    - Chars will be protected with a star
+		      (TRUE for protected Chars / FALSE for Normal)
+	blankenter    - Allows no blank input. The User has to enter
+		      one or more chars. (TRUE = Disable / TRUE = Enable)
+	buffer	    - A pointer to allocated memory, where to put the
+		      entered string in.
+	text	    - The Text which could be stored in the line where
+		      the User has to enter a string. May be NULL
+	title	    - The title which is standing in front of the
+		      line. May be NULL
+
+@{b}   RESULT@{ub}
+	The given Pointer to the MemoryBlock
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_Send()" Link "ST_Send()"}
+
+@EndNode
+
+@Node "ST_CursorInput()" "SerTrans.Library/ST_CursorInput"
+
+
+@{b}   NAME@{ub}
+	ST_CursorInput -- Waits for Input via CursorKeys (V10)
+
+@{b}   SYNOPSIS@{ub}
+	number = ST_CursorInput( stport, ypos, array )
+	  D0                    D0     D1    A0
+
+@{b}   FUNCTION@{ub}
+	Prints a line with options on the @{"Screen" Link "TEXT_INCLUDE:intuition/screens.h/Main" 97} so that the user can
+	select one of those Items via CursorKeys. Also the User can
+	select them with the shortcuts which are shown in the line.
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	ypos          - Y-Position where to place the ItemLine
+	Array         - An null terminated String
+
+@{b}   EXAMPLE@{ub}
+	Example 1: "_Select Another one|_Old One|_Keep this|_Try again",0
+	Example 2: "_Continue|_Nonstop|_Cancel",0
+
+	The '_' means that the Char after that will be highlighted for 
+	the shortcut.
+	The '|' truncates the words.
+
+@{b}   RESULT@{ub}
+	The number of the selected Item.
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_Read()" Link "ST_Read()"} @{"SerTrans.Library/ST_Send()" Link "ST_Send()"}
+	@{"SerTrans.Library/ST_HorizCursorInput()" Link "ST_HorizCursorInput()"}
+
+@EndNode
+
+@Node "ST_ReceiveFile()" "SerTrans.Library/ST_ReceiveFile"
+
+
+@{b}   NAME@{ub}
+	ST_ReceiveFile -- Receives a File (V10)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_ReceiveFile( stport, path )
+	 D0                      D0     A0
+
+@{b}   FUNCTION@{ub}
+	Receives a File from the User and places it to the given Path
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	path          - Path where to put the file
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_SendFile()" Link "ST_SendFile()"}
+
+@EndNode
+
+@Node "ST_SendFile()" "SerTrans.Library/ST_SendFile"
+
+@{b}   NAME@{ub}
+	ST_SendFile -- Sends a File (V10)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_SendFile( stport, array )
+	 D0                   D0     A0
+
+@{b}   FUNCTION@{ub}
+	Sends one or more Files to the User
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	array         - An Null terminated array of Filenames
+
+@{b}   EXAMPLE@{ub}
+
+	(not language specified)
+
+	array = AllocMem(12,$10000)
+
+	array+0 = &File1		; Means Pointer of String
+	array+4 = &File2		; Means Pointer of String
+	array+8 = 0		; Null for Array termination
+
+	FreeMem(array,12)
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	SerTrans.Library/ST_SendFile()
+
+@EndNode
+
+@Node "ST_Logoff()" "SerTrans.Library/ST_Logoff"
+
+@{b}   NAME@{ub}
+	ST_Logoff -- Logs a User out (V11)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_Logoff( stport )
+	 D0                 D0
+
+@{b}   FUNCTION@{ub}
+	Logs the User with Question out of the System
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_OutKick()" Link "ST_OutKick()"}
+
+@EndNode
+
+@Node "ST_OutKick()" "SerTrans.Library/ST_OutKick"
+
+@{b}   NAME@{ub}
+	ST_OutKick -- Kicks the User out of the System (V11)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_OutKick( stport, kind )
+	 D0                 D0      A0
+
+@{b}   FUNCTION@{ub}
+	Kicks Users ass out of the System
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	kind          - Kind of 'OutKicking'. Must be NULL for now!
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_Logoff()" Link "ST_Logoff()"}
+
+@EndNode
+
+@Node "ST_CheckCarrier()" "SerTrans.Library/ST_CheckCarrier"
+
+@{b}   NAME@{ub}
+	ST_CheckCarrier -- Checks if a Carrier is present (V11)
+
+@{b}   SYNOPSIS@{ub}
+	BOOL = ST_CheckCarrier( stport )
+	 D0                       D0   
+
+@{b}   FUNCTION@{ub}
+	Checks if a Carrier is on the Serial device present or a SysopLogin
+	is done.
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+
+@{b}   RESULT@{ub}
+	BOOL	- TRUE  for Carrier
+		- FALSE for NO CARRIER
+
+@{b}   NOTE@{ub}
+	New for V13 of SerTrans.Lib, SerTrans will return a TRUE
+	when a User logged in or the Sysop has done a SysopLogin. If no
+	login is done, this Function will return FALSE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@EndNode
+
+@Node "ST_ConPutString()" "SerTrans.Library/ST_ConPutString"
+
+@{b}   NAME@{ub}
+	ST_ConPutString -- Puts a String to the Console (V11)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_ConPutString( stport, string )
+	 D0                       D0      A0
+
+@{b}   FUNCTION@{ub}
+	Puts a String to the Console only!
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	string        - String to display
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_SerPutString()" Link "ST_SerPutString()"}
+
+@EndNode
+
+@Node "ST_SerPutString()" "SerTrans.Library/ST_SerPutString"
+
+@{b}   NAME@{ub}
+	ST_SerPutString -- Puts a String to the Serial @{"Device" Link "TEXT_INCLUDE:exec/devices.h/Main" 25} (V11)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_SerPutString( stport, string )
+	 D0                       D0      A0
+
+@{b}   FUNCTION@{ub}
+	Puts a String to the Serial @{"Device" Link "TEXT_INCLUDE:exec/devices.h/Main" 25} only!
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	string        - String to display
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   NOTE@{ub}
+	This function is not included yet!
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_ConPutString()" Link "ST_ConPutString()"}
+
+@EndNode
+
+@Node "ST_WriteProtocol()" "SerTrans.Library/ST_WriteProtocol"
+
+@{b}   NAME@{ub}
+	ST_WriteProtocol -- Writes a String to the Protocol (V11)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_WriteProtocol( stport, string )
+	 D0                        D0      A0
+
+@{b}   FUNCTION@{ub}
+	Writes a string to the opened Protocol. This function is
+	usefull, because you can't open the Systems Protocol to write
+	in it. While the User is logged in, a @{"Lock()" Link "dos/Lock()"} will disable
+	any work with it. So if you want to write something into the
+	Protocol use this function.
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	string        - String to write
+
+@{b}   RESULT@{ub}
+	NONE
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_SerPutString()" Link "ST_SerPutString()"}  @{"SerTrans.Library/ST_SerPutString()" Link "ST_SerPutString()"}
+	@{"Dos.Library/Lock()" Link "dos/Lock()"}
+
+@EndNode
+
+@Node "ST_GetChar()" "SerTrans.Library/ST_GetChar"
+
+@{b}   NAME@{ub}
+	ST_GetChar -- Wait for a Char (V13)
+
+@{b}   SYNOPSIS@{ub}
+	void = ST_GetChar( stport )
+	 D0                  D0    
+
+@{b}   FUNCTION@{ub}
+	Waits for a Char. This Function returns the Ascii value of a pressed
+	key.
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+
+@{b}   RESULT@{ub}
+	Ascii Value of the pressed key
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_Read()" Link "ST_Read()"}
+
+@EndNode
+
+@Node "ST_HorizCursorInput()" "SerTrans.Library/ST_HorizCursorInput"
+
+
+@{b}   NAME@{ub}
+	ST_HorizCursorInput -- Waits for Input via CursorKeys (V14)
+
+@{b}   SYNOPSIS@{ub}
+	number = ST_HorizCursorInput( stport, array )
+	  D0                            D0     A0
+
+@{b}   FUNCTION@{ub}
+	Prints a menu with options on the @{"Screen" Link "TEXT_INCLUDE:intuition/screens.h/Main" 97} so that the user can
+	select one of those Items via CursorKeys. Also the User can
+	select any entry with a hotkey, if highlighted.
+
+
+@{b}   INPUTS@{ub}
+	stport        - STPort which is returned by OpenSerTrans
+	Array         - An null terminated String
+
+@{b}   EXAMPLE@{ub}
+	Example 1: "_Select Another one|_Old One|_Keep this|_Try again",0
+	Example 2: "_Continue|_Nonstop|_Cancel",0
+
+	The '_' means that the Char after that will be highlighted for 
+	the shortcut.
+	The '|' truncates the words.
+
+@{b}   RESULT@{ub}
+	The number of the selected Item.
+
+@{b}   BUGS@{ub}
+	None Known
+
+@{b}   SEE ALSO@{ub}
+	@{"SerTrans.Library/ST_Read()" Link "ST_Read()"} @{"SerTrans.Library/ST_Send()" Link "ST_Send()"}
+	@{"SerTrans.Library/ST_CursorInput()" Link "ST_CursorInput()"}
+
+@EndNode
+

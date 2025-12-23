@@ -1,0 +1,43 @@
+/* $VER: GreedWelcome v2.1 (9/25/95) by Spike Dethman
+*/
+/********************************/
+/*  GreedWelcome                */
+/*   Log-in "welcome" for Greed */
+/*   Displays News:GreedNews    */
+/*   for each user on their     */
+/*   first log-in after winners */
+/*   are awarded each maint.    */
+/********************************/
+options results ; signal on SYNTAX ; signal on ERROR ; signal on IOERR
+INIT:
+call GetConfig
+if ~exists(GreedPath||'GreedNewsDate') | ~exists(NewsFile) then exit
+
+call open(f1,GreedPath||'GreedNewsDate','r') ; newsdate=readln(f1) ; call close(f1)
+
+lastdate=date('S') ; if lastdate <= newsdate then sendfile NewsFile
+
+SYNTAX:
+ERROR:
+IOERR:
+	exit
+
+GetConfig:
+if ~exists('Pfiles:Greed.Config') then do ;
+	tr 'Can find Pfiles:Greed.Config file!' ;
+	bufferflush ;
+	exit ;
+end
+
+call open(f1,'PFiles:Greed.Config','r')
+l=1
+do until eof(f1)|l=3;
+	line=readln(f1) ;
+	if eof(f1) then iterate ;
+	if left(line,1)=';' then iterate ;
+	if l=1 then GreedPath=line ;
+	if l=2 then NewsFile=line ;
+	l=l+1 ;
+end
+call close(f1)
+return

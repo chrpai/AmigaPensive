@@ -1,0 +1,694 @@
+@database Readme.guide
+@author "David Wettig"
+@(c) "Copyright © 1998 David Wettig"
+@$VER: Readme.guide 0.1 (31.05.1998)
+@wordwrap
+
+@REM==============================================================================
+
+@node "main" "Readme.guide"
+
+          @{b}.---------------------------------------------------------.
+          |   _ _________  _ _________  _ _______________  _ _______|_
+          | __\\\\\\_      /__\\\\\\_      /__\\\\\\_______      /__\\\\\\_______/
+          |/     /_____//   __/     //     /     /     //     __/___|
+          /     __/    /    \\      //     /     /     //    _/     /|
+         /_____/      /_____/_____//_____/_____/_____//___________/ |
+          |                                                         |sYz
+          `--------------[@{ub}@{i} - bULLETIN bOARD sYSTEMS - @{ui}@{b}]-------------'@{ub}
+
+                       @{b}@{fg highlight}F@{ub}@{fg text}_inal  @{b}@{fg highlight}A@{ub}@{fg text}_miga  @{b}@{fg highlight}M@{ub}@{fg text}_ailbox  @{b}@{fg highlight}E@{ub}@{fg text}_ngine
+                      @{b}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~@{ub}
+
+
+                            @{b}FAME DEVELOPER DOCUMENT@{ub}
+
+
+!!! NOTE !!! !!! NOTE !!! !!! NOTE !!! !!! NOTE !!! !!! NOTE !!! !!! NOTE !!!
+
+Before you can use the links in this guide you have to copy the file called
+"FAME.guide" in the "AutoDoc/" sub-directory into the directory
+"FAME:Documentation/" under the name "FAMELibrary.guide" or execute the
+"CopyAutoDoc" script which does the following:
+
+Copy AutoDoc/FAME.guide FAME:Documentation/FAMELibrary.guide
+
+!!! NOTE !!! !!! NOTE !!! !!! NOTE !!! !!! NOTE !!! !!! NOTE !!! !!! NOTE !!!
+
+
+           FAME Config feature and FAME.library 6.0 alpha pre-release
+          ============================================================
+
+
+!!! WARNING !!! !!! WARNING !!! !!! WARNING !!! !!! WARNING !!! !!! WARNING !!!
+
+The FAME Config feature and because of it FAME.library 6.0 is an alpha
+pre-release.
+
+Structures and function calls could differ from the beta release which will
+be the FAME 2.0 release then.
+
+So remeber that you have to check your tools using the FAME Config feature
+then if something has changed with the official release of FAME.library 6.0.
+
+!!! WARNING !!! !!! WARNING !!! !!! WARNING !!! !!! WARNING !!! !!! WARNING !!!
+
+The current development of the FAME Config feature is nearly at the end, it's
+99% finished and 90% tested. So there will be not much changes in the final
+version. This means i expect no more changes in structures and function calls.
+
+The FAME Config feature is based on the new FAME.library 6.0.
+FAME.library has been more than doubled in size, because of a big and mighty
+code which handles the whole FAME Config feature.
+
+
+
+What is the FAME Config feature?
+--------------------------------
+
+The FAME Config feature of FAME 2.0 has been implemented for easy FAME
+configuration and data file access. This results in:
+
+ - No longer load - modify - save file needed.
+ - No longer nasty DOS operations and their error handling.
+ - Less memory usage.
+ - Faster data access.
+ - Complete control about all FAME Config feature using tools.
+ - Dynamical memory usage for FAME settings and users.
+ - Controled memory sharing between all FAME Config featured tools and FAME.
+ - No longer data loss.
+
+The access to any available FAME configuration data file like settings and
+user datas is very easy now.
+
+Forget about Open(), Read(), Write() and Close() any FAME config data
+structure. If a tool wants to load a setting or a user into memory to
+use or modify it normally a lot of stuff has to be done.
+First the structure has to be allocated then DOS functions and all their
+nasty failure depending error handling has to be used to load the data
+- after building a path to the wanted file - into memory. Later the
+data has to be freed and maybe saved back to disk before.
+
+With FAME Config feature functions it's easier. A tool just requests
+the data after describing what data it wants to have. It directly gets
+if nothing failed the pointer to the allocated and loaded data the tool
+requested. If it's no longer needed the tools just have to release it.
+It's just like saying "Give me this!" and "Take it back.".
+
+FAME Config feature also increases the speed and decreases the RAM usage
+drastically, because of having a data structure only once in memory and on
+sharing this between all tools which are using the FAME Config feature.
+
+Everything is under control. With a monitor you can control and see the
+currently used FAME Config data structures, their owners and more.
+FAME is able to control what happens and is able to react on changes
+what means it could do something against wrong usages and whats more
+important and very interresting for SysOps: You now can do online changes
+(from FAME 2.0 on) what means if you change for example the timeout of a
+Node or the name of a Conference the changes will take effect at the same
+time you did them! You do no longer need to restart parts or the whole BBS
+if you change something with the SystemEditor for example.
+
+You also will no longer have the problem with online users and changing
+externally or from a different Node their user datas. In past it could
+happen that for example a Nuker was changing the bytes and files of an
+online user that if the user logs off the changes are overwritten then.
+With FAME 2.0 you can change user datas of an online user from for example
+a different Node and the changes are taking effect at the same time
+and nothing is being lost or overwritten.
+
+A big feature for the programmers is that they can let search for entries
+in multiple config files like the user datas. It's possible to search for
+every variable type like bytes, words, longs, strings and so on. It's possible
+to search in every offset of a strcuture means every element of a structure
+can be used to search for. You have operators like equal, unequal, greater,
+greater-equal, smaller, smaller-equal and also string specific operators
+like left string, right string and mid string matches.
+
+For programmes easy to use and also nice, because now all FAME config
+data structures will be released to the public too, because it's no longer
+needed to access the FAME configuration files (settings) directly with
+DOS functions. It's no longer needed and it's also no longer allowed
+except in special cases like for some kind of Converter tools which may
+differ from some specifications. So a new FAME Style-Guide rule is to use
+the FAME Config feature and *DO NOT* access the files directly on disk
+from FAME 2.0 on.
+
+The pointer you will get if you request a config data structure is directly
+the pointer to the data type you have requested, So if you have requested
+for example the System.dat structure it's a pointer to exactly
+"struct FAMESystem", but this pointer is more then this, but that's
+not important for you to know. Only that you can use this pointer like
+a base pointer with the different FAME Config FAME.library functions.
+
+You have to use this pointer at the end of your needs with a function
+to give it back to FAME or you can use it for example to lock this
+data structure. Locking a FAME data structure will be done via an
+internal Semaphore which exists for every loaded FAME data structure.
+You need to lock a FAME data structure in the case where you modify
+something in the data structure which is bigger in size than 4 bytes.
+4 bytes, because of an move.l which will be done without interuption
+by a task switch. This exactly means that if you modify any numeric
+variable of a structure you never need and have to lock a FAME
+config data structure, but on changinf for example strings you have
+to lock this! If you change more datas like strings at the same time
+you can lock it for the whole change and it's absolutely ok if you
+change by the way also numeric 1-4 byte variables. Better lock more
+as needed than to lock not or never. You can also lock if you read
+strings, but it's not that important. If you don't want it's ok, because
+it's all a speed reason.
+
+You will get more then enough functions for every needed case to handle
+your needed datas. The functions will be shown now:
+
+ - @{" FAMEObtainConfig() " link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"}
+ - @{" FAMEModifyConfig () " link "FAME:Documentation/FAMELibrary.guide/FAMEModifyConfig"}
+ - @{" FAMEReleaseConfig() " link "FAME:Documentation/FAMELibrary.guide/FAMEReleaseConfig"}
+ - @{" FAMERequestReset() " link "FAME:Documentation/FAMELibrary.guide/FAMERequestReset"}
+ - @{" FAMEReloadConfig() " link "FAME:Documentation/FAMELibrary.guide/FAMEReloadConfig"}
+ - @{" FAMESaveConfig() " link "FAME:Documentation/FAMELibrary.guide/FAMESaveConfig"}
+ - @{" FAMESaveAllConfig() " link "FAME:Documentation/FAMELibrary.guide/FAMESaveAllConfig"}
+ - @{" FAMELockConfig() " link "FAME:Documentation/FAMELibrary.guide/FAMELockConfig"}
+ - @{" FAMEAttemptLockConfig() " link "FAME:Documentation/FAMELibrary.guide/FAMEAttemptLockConfig"}
+ - @{" FAMEUnLockConfig() " link "FAME:Documentation/FAMELibrary.guide/FAMEUnLockConfig"}
+ - @{" FAMEHandleConfigResults() " link "FAME:Documentation/FAMELibrary.guide/FAMEHandleConfigResults"}
+
+How does the FAME Config feature work?
+--------------------------------------
+
+The functions above will handle all Config data structures dynamical and
+multiple usable and this completelly internal. If you request a pointer to
+a specific data structure it will be automatically loaded into the internal
+list and handed over to your program, but before it will be loaded into the
+internal list it will be checked if the data file you request already exists
+in the list and if it's the case then you get the pointer to it directly from
+the list and an internal opencounter will be increased. If this opencounter
+runs to 0 later (@{"FAMEReleaseConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEReleaseConfig"} decreases it) the data structure will be
+automatically saved back to disk (if an owner has used the FAMECFG_MODE_MODIFY
+define) and freed from the list and the memory.
+For the case that an opencounter of a data structure runs to 0 and the
+FAMECFG_MODE_MODIFY flag has not been set by one of the previous owners the
+config data structure won't be saved back just freed to speed up things.
+
+So real and online data sharing without disk access is posisble now.
+
+And you do not need to think about saving changes. You just inform on obtaining
+between or on releasing the data structure that you have changed something.
+FAME Config feature automatically saves for you (later).
+
+How does the FAME Config will be used?
+--------------------------------------
+
+It's easy.
+The only maybe a bit confusing thing is the FAMEConfigRequest structure,
+because of the fact that there are so many possibilities like requesting
+numeric, with a text/string, combined, searching for and so on a structure
+will be used and has to be filled before using the FAME Config feature
+for each config request you have, because the function @{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"}
+would have too much arguments without having a structure for this.
+Maybe i will implement alternative a tag using Obtain function later.
+
+The FAMEConfigRequest is defined in include:libraries/FAME.h  and
+looks like this:
+
+struct FAMEConfigRequest
+{
+  struct Task *fcr_CfgUserTask;        /* The task pointer of the Config user.  */
+  STRPTR      fcr_CfgUserName,         /* Config user name.                     */
+              fcr_CfgUserDesc;         /* Config user description.              */
+  ULONG       fcr_ConfigType;          /* The defined Config data number.       */
+  long        fcr_ConfigMode,          /* The Config data structure mode.       */
+              fcr_ConfigNum,           /* Numeric expansion.                    */
+              fcr_ConfigNum2;          /* 2nd Numeric expansion.                */
+  STRPTR      fcr_ConfigStr;           /* String expansion.                     */
+  ULONG       fcr_SearchOffset;        /* Data structure search offset.         */
+  APTR        fcr_SearchValue;         /* Data structure search value.          */
+  long        fcr_SearchType,          /* Data structure search mem type.       */
+              fcr_SearchOperator;      /* Data structure search operator.       */
+  ULONG       fcr_UnUsed[20];          /* Dummy for future expansions.          */
+  APTR        fcr_Private;             /* Private.                              */
+};
+
+This structure will be used only one time by the user tool and can be reused
+for as many requests as needed. It contains all needed information if it's
+filled for calling @{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"} to handle the wanted Config data
+structure in return to the Config data user (requestor in this case).
+
+fcr_CfgUserTask, fcr_CfgUserName, fcr_ConfigType, fcr_ConfigMode and
+depending on the fcr_ConfigType fcr_ConfigNum and/or fcr_ConfigNum2 and/or
+fcr_ConfigStr are *MUST* structure elements and have to be filled out before
+calling @{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"} with this structure.
+
+fcr_CfgUserTask    - Has to be FindTask( NULL );
+fcr_CfgUserName    - Should be as short as possible, contains the name of the 
+                     user (tool).
+fcr_CfgUserDesc    - Is not a must, but it would be nice to have a short 
+                     description too.
+fcr_ConfigType     - Is a FCDD_<xyz> define like FCDD_System to indicate your 
+                     wanted Config data structure.
+fcr_ConfigMode     - Is FAMECFG_MODE_READ or FAMECFG_MODE_MODIFY to indicate 
+                     if you only read from the Config data structure or if you 
+                     modify it too. If you don't know on requesting if you 
+                     modify anything then set it to FAMECFG_MODE_READ here. 
+                     Later you can inform the FAME.library about that you will
+                     or have to modify something or the last case is directly
+                     on releasing the data structure.
+fcr_ConfigNum      - Is needed for multiple possible files on disk for the in
+                     fcr_ConfigType defined Config data structure if it has to 
+                     be indentified by a number like Level200.dat.
+                     fcr_ConfigNum could also be the Node number for a Node 
+                     depending Config data structure.
+fcr_ConfigNum2     - Is needed for multiple possible files on disk for the in
+                     fcr_ConfigType defined Config data structure if it has to 
+                     be indentified by two numbers like a user entry from a 
+                     specific BBS-Conference (number) like UserCnf.data.
+fcr_ConfigStr      - Is needed for multiple possible files on disk for the in
+                     fcr_ConfigType defined Config data structure if it has to 
+                     be indentified by string (text/word) like the Conf Access 
+                     for a user defined alternative by the user's name.
+fcr_SearchOffset   - Is the offset of the structure element of the in 
+                     fcr_ConfigType defined Config data structure which shall 
+                     be used to search with. If for example the Config data 
+                     structure exists of two LONGs and you want to search in 
+                     the second long of a multiple entry file like the user 
+                     data files are, then the offset will be the size of the
+                     first long means 4. For the first long it will be 0.
+fcr_SearchValue    - Is a pointer to the data field like a BYTE, WORD, LONG 
+                     or string (char array) which will be used to search for.
+fcr_SearchType     - Defines the variable type you are pointing to with 
+                     fcr_SearchValue and which points with fcr_SearchOffset in 
+                     the Config data structure.
+fcr_SearchOperator - Is the operator which defines if you search for equal, 
+                     unequal, greater, smaller and so on matches. Possible 
+                     defines are
+                     FAMECFGOP_EQUAL, FAMECFGOP_UNEQUAL, FAMECFGOP_SMALLER,
+                     FAMECFGOP_GREATER, FAMECFGOP_SMALLEREQUAL, 
+                     FAMECFGOP_GREATEREQUAL, FAMECFGOP_LEFTSTR, 
+                     FAMECFGOP_RIGHTSTR and FAMECFGOP_MIDSTR.
+
+Note: On reusing the FAMEConfigRequest you *HAVE* to reset all not needed structure
+      elements before reusing FAMEConfigRequest by setting these elements to 0!
+      Especially if you have used the request before to search an entry, because
+      fcr_SearchValue and fcr_SearchOperator are indicating a search request if they
+      are not 0.
+      To made this reinitializing more compfortable to you the function
+      @{"FAMERequestReset()" link "FAME:Documentation/FAMELibrary.guide/FAMERequestReset"} exists.
+
+So as you see there are some things you need to know to be able to fill out
+this request. They are:
+
+ - The ConfigType define you need and with it which of the three indicator
+   elements (fcr_ConfigNum, fcr_ConfigNum2 and fcr_ConfigStr) are needed to
+   be used either alone or in combination.
+
+ - Other FAMEConfigRequest elements.
+
+ - What you have to do to search an entry.
+
+First searching is only possible on multiple entries depending FAME Config
+data structurs like the user datas (struct: User/file: User.data).
+
+Then you need to identify with one of the three indicators what config
+data file you want to have if there are existing more than a single one
+of this type. The System.dat (FAME main settings - FAME:Settings/System.dat)
+for example exists only on time what means that no indicator is needed to
+identify what file you mean, but the Conference settings like Conf1.dat
+(FAME:Settings/Conferences/Conf<x>.dat) exists in more files - one file
+for each existing Conference. The same for Node depending files and so
+on... most config datas are existing in more files. Most are indicated
+by a number, some by strings and/or numbers and so on.
+
+The indicator fcr_ConfigNum is now used for numeric cases, fcr_ConfigNum2
+for enhanced numeric cases and fcr_ConfigStr for ones which can be
+identified by a text/string.
+
+fcr_ConfigNum is easy to understand. If you for example need the load the
+Conference settings of Conference 3 you have to set fcr_ConfigNum to 3;
+
+The Conference access settings (FAME:Settings/Access/Conferences<x>.dat)
+for example can be indicated by a name/text/string like "X_X_X___",
+"NewUser", "Normal" or "SysOp", but they can also be indicated by a user name
+like "Strider", "SieGeL", "Bloodrock" or whatever name and they can also be
+indicated by a user number, like 1, 10, 23 and so on.
+
+So you have 3 possibilities in this case. For the first (name/text/string)
+you have to set the name/text/string you are looking for as a pointer to
+a string to fcr_ConfigStr. The same for the second case (user name).
+And for the third case with the user number you have to use fcr_ConfigNum.
+
+fcr_ConfigNum2 now is used in cases where you need more then one number
+to identify the config data structure. There are not much only two at the
+moment - Conference depending user datas and the baud time settings.
+
+Conference depending user datas (UserCnf.data) are needing fcr_ConfigNum2
+to indicate the conference number. fcr_ConfigNum will be used if you
+want to load a specific user data entry by the user number. You will
+need fcr_ConfigNum2 for the Conference number and fcr_ConfigNum for the
+user number.
+
+In the case of baud time settings you need fcr_ConfigNum2 to indicate
+the baud rate. fcr_ConfigNum indicates the Node you mean.
+
+To see what indicator you can use the following table will show you
+the possibilities you have.
+
+Btw. if fcr_ConfigNum2 is needed fcr_ConfigNum is normally needed too!
+Exceptions are in the case of Conference depending user datas if you
+search for a user where you define other elements (more later below).
+
+Also on multiple entry files fcr_ConfigNum will always be used as
+the instance indicator.
+
+ -------------------------------------------
+|Type defines (fcr_ConfigType) | Indicators |
+|------------------------------+------------|
+|FCDD_System                   | -/-        |
+|FCDD_Server                   | -/-        |
+|FCDD_Conf                     | N          |
+|FCDD_Levels                   | N | S | C  |
+|FCDD_ConfAccess               | N | S      |
+|FCDD_Preset                   | N | S      |
+|FCDD_Activities               | -/-        |
+|FCDD_Error                    | -/-        |
+|FCDD_Doors                    | S          |
+|FCDD_InternDoors              | -/-        |
+|FCDD_Screens                  | N          |
+|FCDD_Node                     | N          |
+|FCDD_Serial                   | N          |
+|FCDD_Modem                    | N          |
+|FCDD_Screen                   | N          |
+|FCDD_Checker                  | S          |
+|FCDD_TextLang                 | N | M      |
+|FCDD_LangLocale               | -/-        |
+|FCDD_DoorConfig               | S          |
+|FCDD_UserHandler              | S          |
+|FCDD_FameModules              | -/-        |
+|FCDD_ComputerTypes            | N | M      |
+|FCDD_ModemTypes               | N | M      |
+|FCDD_Misc                     | -/-        |
+|FCDD_Protocol                 | -/-        |
+|FCDD_BaudTimes                | N | N2 | S |
+|FCDD_UserButtons              | -/-        |
+|FCDD_FameHydra                | -/-        |
+|FCDD_FameHydraNode            | N          |
+|FCDD_FameSmodem               | -/-        |
+|FCDD_FameDebug                | -/-        |
+|FCDD_ColPenDat                | N          |
+|FCDD_AwayMsg                  | -/-        |
+|FCDD_UserExpansion            | N | M      |
+|FCDD_UserConfExpansion        | N | N2 | M |
+|FCDD_User                     | N | M      |
+|FCDD_UserKeys                 | N | M      |
+|FCDD_UserConf                 | N | N2 | M |
+ -------------------------------------------
+
+N   - stands for fcr_ConfigNum
+N2  - stands for fcr_ConfigNum2 (includes fcr_ConfigNum)
+S   - stands for fcr_ConfigStr
+C   - stands for combined (fcr_ConfigNum and fcr_ConfigStr)
+M   - stands for multiple entry files
+-/- - stands for no indicator needed
+
+Now you know what indicators you need to support in your request.
+
+Next follows a short discription for each config type to see what
+indicator is used for what and why.
+
+FCDD_System            - Single file, no indicator.
+
+FCDD_Server            - Single file, no indicator.
+
+FCDD_Conf              - fcr_ConfigNum, to indicate the Conference number.
+
+FCDD_Levels            - fcr_ConfigNum, fcr_ConfigStr, in different combinations:
+
+                         - If fcr_ConfigStr is not set (fcr_ConfigStr = "";
+                           or NULL) fcr_ConfigNum is the Level which will be used
+                           (FAME:Settings/Access/Levels/Level<fcr_ConfigNum>.dat).
+
+                         - If fcr_ConfigStr is "-1" (fcr_ConfigStr = "-1";)
+                           fcr_ConfigNum is the user number which will be used
+                           (FAME:Settings/Access/Levels/<fcr_ConfigNum>.dat).
+
+                         - If fcr_ConfigStr is valid and not "-1" fcr_ConfigStr
+                           is the user name which will be used
+                           (FAME:Settings/Access/Levels/<fcr_ConfigStr>.dat).
+
+FCDD_ConfAccess          - fcr_ConfigNum or fcr_ConfigStr:
+
+                         - If fcr_ConfigNum is greater than 0 (fcr_ConfigNum > 0)
+                           fcr_ConfigNum is the user number which will be used
+                           (FAME:Settings/Access/Conferences/<fcr_ConfigNum>.dat).
+
+                         - Else and if fcr_ConfigStr is set fcr_ConfigStr is the
+                           user name or any other alias which will be used
+                           (FAME:Settings/Access/Conferences/<fcr_ConfigStr>.dat).
+
+FCDD_Preset            - fcr_ConfigNum or fcr_ConfigStr:
+
+                         - If fcr_ConfigNum is smaller than 0 (fcr_ConfigNum < 0)
+                           the default newuser preset will be used
+                           (FANE:Settings/Access/Presets/NewUserPreset.dat).
+
+                         - Else fcr_ConfigNum is the preset number (0-9) which
+                           will be used
+                           (FAME:Settings/Access/Conferences/<fcr_ConfigNum>.dat).
+
+FCDD_Activities        - Single file, no indicator.
+
+FCDD_Error             - Single file, no indicator.
+
+FCDD_Doors             - fcr_ConfigStr, the complete path to a Door config data
+                         file like FAME:Settings/Doors/SYSCMD/FULLED .
+
+FCDD_InternDoors       - Single file, no indicator.
+
+FCDD_Screens           - fcr_ConfigNum, is the Node number for Screens.
+
+FCDD_Node              - fcr_ConfigNum, is the Node number.
+
+FCDD_Serial            - fcr_ConfigNum, is the Node number.
+
+FCDD_Modem             - fcr_ConfigNum, is the Node number.
+
+FCDD_Screen            - fcr_ConfigNum, is the Node number.
+
+FCDD_Checker           - fcr_ConfigStr, the FileChecker extension (suffix) and
+                         identifier (FAME:Settings/FileCheckers/<fcr_ConfigStr>).
+
+FCDD_TextLang          - fcr_ConfigNum, the number of the text language setting
+                         (1 - 15). Describes the entry of
+                         FAME:Settings/Language/TextLanguage.dat .
+
+FCDD_LangLocale        - Single file, no indicator.
+
+FCDD_DoorConfig        - fcr_ConfigStr, the DoorConfig name
+                         (FAME:Settings/DoorConfig/<fcr_ConfigStr>.dat).
+
+FCDD_UserHandler       - fcr_ConfigStr, the UserHandler name
+                         (FAME:Settings/UserHandler/<fcr_ConfigStr>.dat).
+
+FCDD_FameModules       - Single file, no indicator.
+
+FCDD_ComputerTypes     - fcr_ConfigNum, the number of the Computer type (1-45).
+                         Describes the entry of FAME:Settings/ComputerTypes.dat .
+
+FCDD_ModemTypes        - fcr_ConfigNum, the number of the Modem type (1-45).
+                         Describes the entry of FAME:Settings/ModemTypes.dat .
+
+FCDD_Misc              - Single file, no indicator.
+
+FCDD_Protocol          - Single file, no indicator.
+
+FCDD_BaudTimes         - fcr_ConfigNum is always the Node number.
+                         fcr_ConfigNum2 and fcr_ConfigStr are building together
+                         the following possibilities:
+
+                         - If fcr_ConfigStr is not set or fcr_ConfigStr contains
+                           "0" or a different char than a numeric value in form
+                           of ASCII characters, fcr_ConfigNum2 will be the
+                           used baud rate. This way will be used to load
+                           without modification or calculations from FAME
+                           directly the requested BaudTime setting (if exists).
+
+                         - Else fcr_ConfigStr defines a numeric value in ASCII
+                           char form and defines how the next in fcr_ConfigNum2 
+                           defined baud rate match should be calculated.
+                           If fcr_ConfigStr is converted to long (FAMEAtol())
+                           greater than 0 (FAMEAtol( fcr_ConfigStr ) > 0) the
+                           next greater baud time setting will be used else
+                           if fcr_ConfigStr is converted to long (FAMEAtol())
+                           smaller than 0 (FAMEAtol( fcr_ConfigStr ) < 0), but
+                           not 0 the next smaller baud time setting will be used.
+
+                         So you have two ways. First get directly a BaudTime
+                         setting if it exists or second try to get the next
+                         matching greater or smaller one (if there is one).
+
+FCDD_UserButtons       - Single file, no indicator.
+
+FCDD_FameHydra         - Single file, no indicator.
+
+FCDD_FameHydraNode     - fcr_ConfigNum, is the Node number.
+
+FCDD_FameSmodem        - Single file, no indicator.
+
+FCDD_FameDebug         - Single file, no indicator.
+
+FCDD_ColPenDat         - Obsolete.
+
+FCDD_AwayMsg           - Single file, no indicator.
+
+FCDD_UserExpansion     - For future expansins. Does not exist yet.
+
+                         fcr_ConfigNum, the user number of this multiple entry
+                         file.
+
+FCDD_UserConfExpansion - For future expansins. Does not exist yet.
+
+                         fcr_ConfigNum, the user number of this multiple entry
+                         file. fcr_ConfigNum2, the Conference number.
+
+FCDD_User              - fcr_ConfigNum, the user number of this multiple entry
+                         file.
+
+FCDD_UserKeys          - fcr_ConfigNum, the user number of this multiple entry
+                         file.
+
+FCDD_UserConf          - fcr_ConfigNum, the user number of this multiple entry
+                         file. fcr_ConfigNum2, the Conference number.
+
+Other FAMEConfigRequest elements
+--------------------------------
+
+Beside the indicators and search elements there are some other elements you
+have to know about.
+
+fcr_CfgUserTask is the task address of your tool and must be set before using
+@{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"} (fcr_CfgUserTask = FindTask( NULL );).
+
+fcr_CfgUserName is the name of your Tool and must be set before using
+@{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"} (fcr_CfgUserName = "MyToolName";).
+
+fcr_CfgUserDesc is a short description of your tool and it would be nice if you
+set it too before using @{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"} (fcr_CfgUserDesc = "Does nothing";).
+
+fcr_ConfigType is a FCDD_<xyz> define like FCDD_System to indicate your wanted
+Config data structure (fcr_ConfigType = FCDD_System).
+
+fcr_ConfigMode is FAMECFG_MODE_READ or FAMECFG_MODE_MODIFY to indicate if you
+only read from the Config data structure or if you want to modify it too.
+It's possible to change the mode to FAMECFG_MODE_MODIFY later if it's not
+sure on obtaining the Config data structure if you have to modify.
+You can change this for example with @{"FAMEReleaseConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEReleaseConfig"} later.
+
+How does the the search feature work?
+-------------------------------------
+
+Searching must be indicated in the FAMEConfigRequest structure too before
+calling @{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"}. For this you have to fill the following structure
+elements:
+
+ - fcr_SearchOffset   Is the offset of the structure element of the in
+                      fcr_ConfigType defined Config data structure which shall
+                      be used to search with. If for example the Config data
+                      structure exists of two LONGs and you want to search in
+                      the second long of a multiple entry file like the user
+                      data files are, then the offset will be the size of the
+                      first long means 4. For the first long it will be 0.
+
+ - fcr_SearchValue    Is a pointer to the data field like a BYTE, WORD, LONG or
+                      string (char array) which will be used to search for.
+
+ - fcr_SearchType     Defines the variable type you are pointing to with
+                      fcr_SearchValue and which points with fcr_SearchOffset
+                      in the Config data structure.
+                      Available defines are FAMECFGVARTYPE_BYTE,
+                      FAMECFGVARTYPE_WORD, FAMECFGVARTYPE_LONG and
+                      FAMECFGVARTYPE_STRING.
+
+ - fcr_SearchOperator Is the operator which defines if you search for equal,
+                      unequal, greater, smaller and so on matches. Possible
+                      defines are FAMECFGOP_EQUAL, FAMECFGOP_UNEQUAL,
+                      FAMECFGOP_SMALLER, FAMECFGOP_GREATER,
+                      FAMECFGOP_SMALLEREQUAL, FAMECFGOP_GREATEREQUAL,
+                      FAMECFGOP_LEFTSTR, FAMECFGOP_RIGHTSTR and 
+                      FAMECFGOP_MIDSTR.
+
+ If you search you override the indicators like fcr_ConfigNum, fcr_ConfigNum2,
+ and fcr_ConfigStr, only exception is fcr_ConfigNum2 which defines for example
+ the Conference number. So if you search for example in the user datas your
+ fcr_ConfigNum entry will be overwritten, because the search code does the
+ search and sets fcr_ConfigNum to the found entry which will then be used
+ to get/load your requested FAME Config structure.
+
+ This does not mean that fcr_ConfigNum is not important! If you want to search
+ from the very first entry you have to set fcr_ConfigNum to 0 or better 1.
+ One is better, but 0 is also ok, because if fcr_ConfigNum is smaller than 1
+ (fcr_ConfigNum < 1) it will be internally set to 1.
+ So as you see you can use on searching for an entry fcr_ConfigNum to define
+ the entry point or the begining of the search. You can search for example
+ from the 3rd entry on if you set fcr_ConfigNum to 3 (fcr_ConfigNum = 3;).
+
+ Because of this you can search in a loop to continue search by just increasing
+ fcr_ConfigNum after every call/match by 1.
+
+ Notes:
+
+ If fcr_SearchValue and fcr_SearchOperator are set together you indicate that
+ you want to do a search, so if you search with a FAMEConfigRequest structure
+ and you reuse this structure later where you don't want to search then you
+ have to reset this structure. To easy do this @{"FAMERequestReset()" link "FAME:Documentation/FAMELibrary.guide/FAMERequestReset"} exists.
+ You can also do this by hand by nulling the not needed structure elements if
+ @{"FAMERequestReset()" link "FAME:Documentation/FAMELibrary.guide/FAMERequestReset"} resets you too much.
+
+ Searching is of course only possible in multiple entry files.
+
+Simple function usage overview
+------------------------------
+
+First after filling all needed information into a FAMEConfigRequest structure
+you have to use this structure with @{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"}.
+
+@{"FAMEObtainConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEObtainConfig"} returns NULL on failure or a pointer to the requested
+FAME Config data structure.
+
+This pointer now allows you to read/modify it's contends which depends on the
+config type you have choosen, but you can do more with it.
+
+First: one thing always has to be done with this pointer. You have to release
+it after you no longer need it with @{"FAMEReleaseConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEReleaseConfig"}.
+
+Between you can use it with the following support functions:
+
+@{"FAMEReloadConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEReloadConfig"}      - In most cases you don't need this function.
+
+@{"FAMESaveConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMESaveConfig"}        - In most cases you don't need this function too.
+
+@{"FAMESaveAllConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMESaveAllConfig"}     - Using this function is also not needed in normal cases.
+
+@{"FAMELockConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMELockConfig"}        - To lock your data structure while you are modifying it.
+
+@{"FAMEAttemptLockConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEAttemptLockConfig"} - Attempt to get the lock without waiting for it.
+
+@{"FAMEUnLockConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEUnLockConfig"}      - Unlock after using @{"FAMELockConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMELockConfig"}
+                          or @{"FAMEAttemptLockConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEAttemptLockConfig"}.
+
+@{"FAMEModifyConfig()" link "FAME:Documentation/FAMELibrary.guide/FAMEModifyConfig"}      - To inform that you have modified something now.
+                          Nice if you don't want to remeber this till you release the data structure.
+
+Other functions.
+
+On functions which are returning a Result you can use @{"FAMEHandleConfigResults()" link "FAME:Documentation/FAMELibrary.guide/FAMEHandleConfigResults"}
+to receive a complete error message you can use for an error description.
+
+Use @{"FAMERequestReset()" link "FAMELibrary.guide/FAMERequestReset"} to reset your FAMEConfigRequest structure for reusage.
+
+Finally
+-------
+
+That's all you need to know to support the FAME Config feature.
+There are also example tools with sources to show you the usage.
+
+@endnode
+

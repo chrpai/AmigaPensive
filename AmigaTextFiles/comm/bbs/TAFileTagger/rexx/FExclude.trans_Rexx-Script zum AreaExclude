@@ -1,0 +1,289 @@
+/* Script to Exclude FileAreas for use within TransAmiga */
+options results
+signal on error
+signal on ioerr
+signal on halt
+signal on break_c
+signal on syntax
+signal on failure
+
+if ~show('L', "rexxsupport.library") then
+  if ~addlib("rexxsupport.library", 0, -30, 0) then do
+    say "Couldn't access support.library !"
+    exit 20
+  end
+
+
+SystemData:
+date     = '30th of July 1995'
+author   = 'Juergen A.Lamers'
+fileconfig  = 'BBS:Configs/file.cfg'
+setupdir ='BBS:System/Setups/'
+count = 0
+fcount = 0
+scrlen = 23
+
+parse arg what
+
+userinfo 'a' ; name = result
+userinfo 'o' ; access = result
+userinfo 'v' ; scrlen = result
+if scrlen=0 then scrlen=24
+name=translate(name,'_',' ')
+if length(name)>20 then
+  name=left(name,1,20)
+name=setupdir||name'.excl'
+UserExcl= GetExclude()
+
+call setansi
+print 'Get information'blink'...'
+call readfconfig
+cls
+numareas=strip(numareas)
+
+do a = 1 to numareas
+  wht = ((a % 31)*4)+1
+  pos = (a // 31)
+  if bittst(substr(UserExcl,wht,4),pos) then
+    libraryname.a = upper(libraryname.a)
+
+  if AreaAccess.a<=access then do
+    transmit f4||' -'||BRIGHT||f7||a||NOANSI||f4'-'f7 libraryname.a
+    checkabort ; ab = result
+    if ab=1 then call break_c
+    count = count + 1
+  end
+  if count>=scrlen-2 then do
+    getchar f3||'Q'noansi' - Quit  '||f3'N'noansi' - Next  'f3'E'noansi' - Exclude  'f3'I'noansi' - Include'||f7||b0' ' ; cmd = UPPER(result)
+    if cmd='N' then do
+      count = 0
+    end
+    if cmd='Q' then do
+      newline
+      call PutExclude;
+      exit
+    end
+    if cmd='E' then do
+      count = 0
+      call ExclFileA('1')
+    end
+    if cmd='I' then do
+      count = 0
+      call ExclFileA('0')
+    end
+    else do
+      count = 0
+      newline
+    end
+    cls
+  end
+end
+
+if count>0 then do
+  getchar f3'E'noansi' - Exclude  'f3'I'noansi' - Include'||f7||b0' ' ; cmd = UPPER(result)
+  if cmd='E' then do
+    call ExclFileA('1')
+  end
+  if cmd='I' then do
+    call ExclFileA('0')
+  end
+end
+
+scriptexit:
+call PutExclude;
+
+shutdown ; exit 0
+
+
+readfconfig:
+/*
+    this routine reads BBS:Configs/file.cfg to find file area
+    names and paths for directorys to process. It also determines
+    the number of areas.
+*/
+config = exists(fileconfig)
+if config ~= 0 then do
+  config = 1
+  call open('infile',fileconfig,'R')
+  do a = 1 to 3
+    dud = readln('infile')
+  end
+  numareas = readln('infile')
+  do b = 1 to numareas
+    libraryname.b = readln('infile')
+    path.b = readln('infile')
+    do c = 1 to 2
+      dud = readln('infile')
+    end
+    AreaAccess.b = readln('infile')
+    do c = 1 to 3
+      dud = readln('infile')
+    end
+  end
+end
+call close('infile')
+
+return
+
+
+setansi:
+/*  Use to set ansi on and use colors */
+ userinfo 'x' ; ansiflag = result
+ if ansiflag = 'ON' then do
+  ESC     = '1B'X
+  ClrLine = ESC||'[K'
+  Blink   = ESC||'[5m'
+  BRIGHT  = ESC||'[1m'
+  NOANSI  = ESC||'[0m'
+  ITALICS = ESC||'[3m'
+  ULINE   = ESC||'[4m'
+  INVERSE = ESC||'[7m'
+  UP      = ESC||'[A'
+  DOWN    = ESC||'[B'
+  RIGHT   = ESC||'[C'
+  LEFT    = ESC||'[D'
+  f0 = ESC||'[30m' ;b0 = ESC||'[40m'  /* Black  */
+  f1 = ESC||'[31m' ;b1 = ESC||'[41m'  /* Red    */
+  f2 = ESC||'[32m' ;b2 = ESC||'[42m'  /* Green  */
+  f3 = ESC||'[33m' ;b3 = ESC||'[43m'  /* Yellow */
+  f4 = ESC||'[34m' ;b4 = ESC||'[44m'  /* Blue   */
+  f5 = ESC||'[35m' ;b5 = ESC||'[45m'  /* Purple */
+  f6 = ESC||'[36m' ;b6 = ESC||'[46m'  /* Cyan   */
+  f7 = ESC||'[37m' ;b7 = ESC||'[47m'  /* White  */
+  end
+ else do
+  ESC     = '1B'X
+  Blink=''
+  ClrLine = ''
+  BRIGHT  = ''
+  NOANSI  = ''
+  ITALICS = ''
+  ULINE   = ''
+  INVERSE = ''
+  UP      = ESC||'[A'
+  DOWN    = ESC||'[B'
+  RIGHT   = ESC||'[C'
+  LEFT    = ESC||'[D'
+  f0 = '' ; b0 = ''
+  f1 = '' ; b1 = ''
+  f2 = '' ; b2 = ''
+  f3 = '' ; b3 = ''
+  f4 = '' ; b4 = ''
+  f5 = '' ; b5 = ''
+  f6 = '' ; b6 = ''
+  f7 = '' ; b7 = ''
+  end
+ return
+
+
+cleanup:
+        sysoplog name||' Exiting '
+return 0
+
+/*  Error handling */
+break_c:
+error:
+    sysoplog name||' aborted FExclude.trans'
+    call cleanup()
+    exit 10
+
+syntax:
+        call template_oops "Syntax(RC=" || RC || ")" sigl
+failure:
+        call template_oops "Failure(RC=" || RC || ")" sigl
+ioerr:
+        call template_oops "IOErr" sigl
+halt:
+        call template_oops "Halt" sigl
+
+template_oops:
+        parse arg what badline
+        Sysoplog 'ERR:'||what||"Line:"||badline
+        sysopLog 'ERR:'||strip(sourceline(badline))
+        call cleanup()
+        exit(40)
+
+ExclFileA:
+parse arg what
+
+newline
+ExclFileA2:
+query up||ClrLine||f3||'Q'noansi' - Quit  'f3'B'noansi' - Back  Welche Areas? 'f4'['bright||f7'1'noansi'..'bright||f7||numareas||noansi||f4'] 'noansi ; choices = result
+choices=upper(compress(choices))
+if choices='' then return ''
+if choices='B' then return ''
+if choices='Q' then signal scriptexit
+pp = ''
+do while length(choices)~=0
+  send=1
+  kpos=pos(',',choices)
+  leni=length(choices)+1
+  if kpos=0 then kpos=leni
+  bpos=pos('-',choices)
+  if bpos=0 then bpos=leni
+  if kpos>0 & kpos<bpos then do
+    num=''
+    parse var choices  num ',' choices
+    if num~='' & num>0 & num<=numareas then do
+      wht = ((num % 31)*4)+1
+      pos = (num // 31)
+      str=substr(UserExcl,wht,4)
+      if what then
+        str=bitset(str,pos)
+      else
+        str=bitclr(str,pos)
+      UserExcl=overlay(str,UserExcl,wht,4)
+    end
+  end
+  if bpos>0 & bpos<kpos then do
+    von=''
+    bis=''
+    parse var choices von '-' bis ',' choices
+    if bis='' then bis=numareas
+    if von='' then von=1
+    do mm = von to bis
+      if mm>0 & mm<=numareas then do
+        wht = ((mm % 31)*4)+1
+        pos = (mm // 31)
+        str=substr(UserExcl,wht,4)
+        if what then
+          str=bitset(str,pos)
+        else
+          str=bitclr(str,pos)
+        UserExcl=overlay(str,UserExcl,wht,4)
+      end
+    end
+  end
+  if (Bpos=leni) & (kpos=leni) then do
+    if choices~='' & choices>0 & choices<=numareas then do
+      wht = ((choices % 31)*4)+1
+      pos = (choices // 31)
+      str=substr(UserExcl,wht,4)
+      if what then
+        str=bitset(str,pos)
+      else
+        str=bitclr(str,pos)
+      UserExcl=overlay(str,UserExcl,wht,4)
+    end
+    choices = ''
+  end
+end
+signal ExclFileA2
+return pp
+
+GetExclude:
+
+if ~open(ifile,name,'R') then
+  return ','
+dummy = readch(ifile,4004)
+call close(ifile);
+return dummy
+
+PutExclude:
+
+if ~open(ifile,name,'W') then
+  return ','
+call writech(ifile,UserExcl)
+call close(ifile);
+
+

@@ -1,0 +1,1310 @@
+TABLE OF CONTENTS
+
+HBBSNode.library/--Description--
+HBBSNode.library/CarrierLost
+HBBSNode.library/DOOR_AContinuePrompt
+HBBSNode.library/DOOR_CheckRaw
+HBBSNode.library/DOOR_Continue
+HBBSNode.library/DOOR_ContinuePrompt
+HBBSNode.library/DOOR_DisplayBulletin
+HBBSNode.library/DOOR_DisplayScreen
+HBBSNode.library/DOOR_DisplaySpecialScreen
+HBBSNode.library/DOOR_GetLine
+HBBSNode.library/DOOR_Goodbye
+HBBSNode.library/DOOR_HangUp
+HBBSNode.library/DOOR_MenuPrompt
+HBBSNode.library/DOOR_PausePrompt
+HBBSNode.library/DOOR_Return
+HBBSNode.library/DOOR_SysopText
+HBBSNode.library/DOOR_SystemDoor
+HBBSNode.library/DOOR_UpdateNodeStatus
+HBBSNode.library/DOOR_UserDoor
+HBBSNode.library/DOOR_WriteSerText
+HBBSNode.library/DOOR_WriteText
+HBBSNode.library/FindConf
+HBBSNode.library/HBBS_AddToCallersLog
+HBBSNode.library/HBBS_AllowConfAccess
+HBBSNode.library/HBBS_CheckAccess
+HBBSNode.library/HBBS_CleanUpDoor
+HBBSNode.library/HBBS_InitDoor
+HBBSNode.library/HBBS_ModifyString
+HBBSNode.library/HBBS_SetAccess
+HBBSNode.library/HBBS_SetBBSCols
+HBBSNode.library/HBBS_SetBBSStrings
+HBBSNode.library/HBBS_TimeLeft
+HBBSNode.library/HBBS_TimeOnline
+HBBSNode.library/ValidConfNum
+HBBSNode.library/--Description--             HBBSNode.library/--Description--
+
+   NAME
+      HBBSNode.library - Shared library for HBBS Nodes and doors.
+
+HBBSNode.library/CarrierLost                     HBBSNode.library/CarrierLost
+
+   NAME
+      CarrierLost - Checks to see if the carrier has been lost
+
+   SYNOPSIS
+      CarrierLost( void )
+
+      V_BOOL CarrierLost( void )
+
+   FUNCTION
+      This function is used to check if the carrier is lost.
+      Normally, The node's NodeData->OnlineStatus will be
+      set to OS_ONLINE or OS_ONLINE when carrier is lost
+      So you should normally check that, instead of using this
+      function.
+
+      However, if your door displays lots of output without
+      asking for much input then you should use this function.
+
+   INPUTS
+      None
+
+   RESULT
+      TRUE if carrier has been lost.
+
+   SEE ALSO
+      defines.h/struct NodeData
+
+HBBSNode.library/DOOR_AContinuePrompt   HBBSNode.library/DOOR_AContinuePrompt
+
+   NAME
+      DOOR_AContinuePrompt - Display a continue prompt.
+
+   SYNOPSIS
+      DOOR_AContinuePrompt( prompt, Flags, Timeout )
+                            A0      D0     D1
+
+      void DOOR_AContinuePrompt( UBYTE *prompt, V_BIGNUM Flags,
+         ULONG Timeout )
+
+   FUNCTION
+      This function displays the prompt to the user, and waits
+      for either Y or N or return to be pressed.
+      It is the same is DOOR_ContinuePrompt, except that it can
+      accept an extra flag and a timeout (used by the extra flag)
+
+   INPUTS
+      prompt - see DOOR_ContinuePrompt()
+
+      Flags - to be logically OR'd together.
+
+          DCP_COUNTDOWN - adds a countdown timer
+          DCP_... see DOOR_ContinuePrompt()
+
+   RESULT
+      TRUE if the user presses Y, or FALSE if the user presses N
+
+      If the user looses carrier FALSE is returned
+
+   SEE ALSO
+      HBBS_ModifyString(), DOOR_ContinuePrompt(), DOOR_PausePrompt()
+      DOOR_MenuPrompt()
+
+HBBSNode.library/DOOR_CheckRaw                 HBBSNode.library/DOOR_CheckRaw
+
+   NAME
+      DOOR_CheckRaw - Check to see if any data has come from the
+         serial device or the watch window.
+
+   SYNOPSIS
+      DOOR_CheckRaw( Flags )
+                     D0
+
+      V_BOOL DOOR_CheckRaw( ULONG Flags )
+
+   FUNCTION
+      This function checks and retrieves raw bytes from the serial
+      device and console device for the node's watch window, it is
+      primarily used to enable doors to do ctrl-c checking.
+      While performing functions that take quite a long time, eg.
+      MailScan or FileList searching.
+
+   INPUTS
+      Flags - Specify one or more flag by logically OR'ing them
+         together.
+
+         CR_NONE - No flags, read from serial and console and don't
+             check for function key presses.
+         CR_NOSERIAL - Don't read from the serial device
+         CR_NOCONSOLE - Don't read from the console device.
+         CR_CHECKFUNC - Check and handle function key presses
+             e.g. so the sysop can kick users and chat, etc..
+
+         If the sysop presses the key to log a user off and you
+         don't specify CD_CHECKFUNC then you'll have to handle
+         that yourself (which you *really* don't want to have to
+         do!)
+
+   RESULT
+      TRUE if there is input to be checked.
+
+      if this function returns TRUE then check the first byte of
+      NodeData->CurrentLine for the actual keys that were pressed.
+
+      For ease of use, NodeData->CurrentLine[1] is set to NULL
+      which means you can still use NodeData->CurrentLine as a
+      null-terminated string.
+
+      If the input came from the serial device then
+      NodeData->CurrentLine[2] will be set to GET_SERIAL
+
+      If the input came from the watch window then
+      NodeData->CurrentLine[2] will be set to GET_CONSOLE
+
+      E.g. to implement Ctrl-C checking, you might do this:
+      if (DOOR_CheckRaw(CR_NONE) && N_ND->CurrentLine[0]==3) ...
+
+   NOTES
+      Do not call this function in loop with CR_NOSERIAL, because if
+      the watch window is not open then you'll sit there forever.
+      This function is processor intensive if called in a loop
+      as it keeps sending messages via a named port to the node
+      program (unavoidable).
+
+   SEE ALSO
+      DOOR_GetLine()
+
+HBBSNode.library/DOOR_Continue                 HBBSNode.library/DOOR_Continue
+
+   NAME
+      DOOR_Continue - Allows other doors with the same name to run
+
+   SYNOPSIS
+      DOOR_Continue( Continue )
+                     D0
+
+      void DOOR_Continue( V_BOOL Continue )
+
+   FUNCTION
+      This function lets the current door decide if other doors that
+      have the same name run when this one finishes.
+
+      this would be usefull if your door could not complete it's task
+      and another door depends on it.
+
+      E.g.  say you had a commands/system that looked like this
+
+      MyDoor_Type_1=HBBS
+      MyDoor_Door_1=<door 1>
+      MyDoor_Type_2=HBBS
+      MyDoor_Door_2=<door 2>
+
+      And <door 2> depends on <door 1>'s sucessful completion you
+      would call DOOR_Continue( FALSE ) and <door 2> would not be
+      run.
+
+   INPUTS
+      Continue - boolean allow or dis-allow other doors to run
+          after the door calling this function, that have the same
+          name.
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_Return()
+
+HBBSNode.library/DOOR_ContinuePrompt     HBBSNode.library/DOOR_ContinuePrompt
+
+   NAME
+      DOOR_ContinuePrompt - Display a continue prompt.
+
+   SYNOPSIS
+      DOOR_ContinuePrompt( prompt, Flags )
+                           A0      D0
+
+      void DOOR_ContinuePrompt( UBYTE *prompt, V_BIGNUM Flags )
+
+   FUNCTION
+      This function displays the prompt to the user, and waits
+      for either Y or N or return to be pressed.
+
+   INPUTS
+      prompt - a null-terminated string to display, or NULL for the
+         default prompt, which can differ depending on the conference
+         and node.
+
+      Flags - to be logically OR'd together.
+
+          DCP_NONE - accept internal defaults (subject to change at)
+          DCP_DEFAULT_YES - set the default to YES
+          DCP_DEFAULT_NO - set the default to NO
+          DCP_ADDYN - add's [Y/n] or [y/N] accordingly.
+          DCP_CLEAR - removes the prompt line after continuing.
+          DCP_NODISPLAY - does not display Y or N when the user
+              presses a key.
+          DCP_COLOURIZE - passes the prompt string through
+              DOOR_MenuPrompt() before displaying it
+
+
+   RESULT
+      TRUE if the user presses Y, or FALSE if the user presses N
+
+      If the user looses carrier FALSE is returned
+
+   NOTES
+      Specifing the DCP_TIMEOUT flag, from DOOR_AContinuePrompt()
+      as one of the flags here will have no effect, but don't do
+      it anyway!
+      
+
+   SEE ALSO
+      HBBS_ModifyString(), DOOR_PausePrompt(), DOOR_AContinuePrompt()
+      DOOR_MenuPrompt()
+
+HBBSNode.library/DOOR_DisplayBulletin   HBBSNode.library/DOOR_DisplayBulletin
+
+   NAME
+      DOOR_DisplayBulletin - Display a special screen.
+
+   SYNOPSIS
+      DOOR_DisplayBulletin( BulletinName )
+                                 A0
+
+      V_BOOL DOOR_DisplayBulletin( UBYTE *BulletinName )
+
+   FUNCTION
+      This function searches for a bulletin in the same manor
+      that DOOR_DisplaySpecialScreen() uses, as described
+      in HBBS:Docs/Reference/Screens.Guide, but instead of looking
+      in the Screens/Special directory, it looks in the
+      Screens/Bulletins directory instead, it also adds the user's
+      selected language extension to the filename as defined by
+      BBSGlobal/LanguageName_XX and BBSGlobal/LanguageExtn_XX.
+
+      If a screen file is found, the filename is then passed to
+      DOOR_DisplayScreen(), see that for further information.
+
+      Only the first screen file that is found will be displayed.
+
+      After displaying a screen it is good practise to check if the
+      node is still on-line.  The user may have lost carrier while
+      the screen was being displayed, or another door may have been
+      called by a @^@ code which hung up the modem, etc.
+
+      So check NodeStatus->OnlineStatus after each call.
+
+   INPUTS
+      BulletinName - null terminated bulletin name.
+
+   RESULT
+      TRUE if a screen was displayed.
+
+   SEE ALSO
+      DOOR_DisplayScreen(), HBBS:Docs/Reference/Screens.Guide
+      BBSGlobal/LanguageName_XX, BBSGlobal/LanguageExtn_XX
+      DOOR_DisplaySpecialScreen()
+
+HBBSNode.library/DOOR_DisplayScreen       HBBSNode.library/DOOR_DisplayScreen
+
+   NAME
+      DOOR_DisplayScreen - Display a screen/text file.
+
+   SYNOPSIS
+      DOOR_DisplayScreen( screenname )
+                          A0
+
+      V_BOOL DOOR_DisplayScreen( UBYTE *screenname )
+
+   FUNCTION
+      This function opens the screenname specified and displays the
+      contents of the file, if the file starts with "@^@" then all
+      other @^@ codes will be processed
+
+      After displaying a screen it is good practise to check if the
+      node is still on-line.  The user may have lost carrier while
+      the screen was being displayed, or another door may have been
+      called by a @^@ code which hung up the modem, etc.
+
+      So check NodeStatus->OnlineStatus after each call.
+
+   INPUTS
+      screenname - null terminated absolute filename.
+          The filename must be an absolute filename because the
+          device/assign/volume it resides on is checked, to avoid
+          "Please Insert Volume xxx:" requesters.
+          So, "HBBS:Screens/Misc/myscreen.txt" is valid, but
+          "Screens/Misc/myscreen.txt" is not.
+
+   RESULT
+      TRUE if a screen was displayed.
+
+   SEE ALSO
+      DOOR_DisplaySpecialScreen(), HBBS:Docs/Reference/Screens.Guide
+      BBSGlobal/LanguageName_XX, BBSGlobal/LanguageExtn_XX
+      DOOR_DisplyBulletin()
+
+HBBSNode.library/DOOR_DisplaySpecialScreene.library/DOOR_DisplaySpecialScreen
+
+   NAME
+      DOOR_DisplaySpecialScreen - Display a special screen.
+
+   SYNOPSIS
+      DOOR_DisplaySpecialScreen( screenname )
+                                 A0
+
+      V_BOOL DOOR_DisplaySpecialScreen( UBYTE *screenname )
+
+   FUNCTION
+      This function searches for a screen in the manor described
+      in HBBS:Docs/Reference/Screens.Guide, adding the user's
+      selected language extension to the filename as defined by
+      BBSGlobal/LanguageName_XX and BBSGlobal/LanguageExtn_XX.
+
+      If a screen file is found, the filename is then passed to
+      DOOR_DisplayScreen(), see that for further information.
+
+      Only the first screen file that is found will be displayed.
+
+      After displaying a screen it is good practise to check if the
+      node is still on-line.  The user may have lost carrier while
+      the screen was being displayed, or another door may have been
+      called by a @^@ code which hung up the modem, etc.
+
+      So check NodeStatus->OnlineStatus after each call.
+
+   INPUTS
+      screenname - null terminated screen name.
+
+   RESULT
+      TRUE if a screen was displayed.
+
+   SEE ALSO
+      DOOR_DisplayScreen(), HBBS:Docs/Reference/Screens.Guide
+      BBSGlobal/LanguageName_XX, BBSGlobal/LanguageExtn_XX
+      DOOR_DisplayBulletin()
+
+HBBSNode.library/DOOR_GetLine                   HBBSNode.library/DOOR_GetLine
+
+   NAME
+      DOOR_GetLine - Gets input from the sysop/user
+
+   SYNOPSIS
+      DOOR_GetLine( Flags, PasswordChar, MaxLen, Timeout, PromptStr )
+                    D0     D1            D2      D3       A0
+
+      void DOOR_GetLine( ULONG Flags, char PasswordChar,
+          ULONG MaxLen, ULONG Timeout, UBYTE *PromptStr)
+
+   FUNCTION
+      This function is used to get input, and not actually only
+      a line of text from the user/sysop.
+
+      It is an extremly powerful function and you should learn all
+      of it's (simple) modes of operation otherwise you might end
+      up re-inventing the wheel, so to speak.
+
+   INPUTS
+      Flags - a ULONG of logically OR'd flags.
+
+          GL_NONE - Specify this to accept all defaults
+              Most of the time you'd never want to use the defaults
+              as nothing will be displayed on the screen when the
+              user presses a key.
+
+          GL_HISTORY - Specifying this enables the user to use the
+              cursor up/down keys for command line history
+
+          GL_LINEWRAP - Use this for line based editors, if the user
+              inputs a line of text that is the same length as maxlen
+              then the last word (seperated by a ' ' character) will
+              be copied to NodeData->CurrentLineWrap, which you can
+              then copy to a temporary string and then pass back to
+              DOOR_GetLine as the PromptStr paramater
+              You must specify GL_IMMEDIATE for this to work correctly
+
+          GL_IMMEDIATE - Specify this if you want the function to
+              return as soon as the uer has entered a string that is
+              maxlen characters long.
+
+              If you use this flag with a maxlen of 1, you can use it
+              for hotkeys in menus!
+
+          GL_NORETURN - Specify this to make sure the BBS does not
+              output a "cr+lf" when a) the string is maxlen characters
+              long, or b) timeout a timeout occurs, or c) return is
+              pressed.
+
+              This is very useful when you don't want the on-screen
+              ansi disturbed or when you're implementing hotkeys in
+              a menu.
+
+          GL_EDIT - This enables the cursor left/right and backspace
+              and delete keys.
+
+          GL_DISPLAY - Using this flag makes the BBS output the
+              keypresses, if you don't use this flag nothing will
+              be displayed!
+
+              If you specified a non-zero character for PasswordChar
+              then keypresses will appear as that character instead
+              of the key that was actually pressed.
+
+              Not specifying this option is really only used when
+              implementing things like: "Press [Return]" and hotkeys
+
+          GL_SYSOP - If this flag is specified then the user's key-
+              presses are ignored, input can only come from the sysop
+
+              This is most often used for things like the account
+              editor, when validating an user that is on-line.
+
+          GL_USECHARS - This option makes GetLine only accept certain
+              key-presses.
+
+              If you copy a string to NodeData->CharsAllowed then
+              only characters that are present in that string can be
+              used as input.
+              If a user presses a key that's not in that string then
+              they will be sent a BEL character, which normally makes
+              a sound or makes their screen flash.
+
+              This function is really handy for limiting the keys
+              that a user can press when implementing hotkeys or menu
+              options.  It can also save on the error checking that
+              you'd normally have to do.
+
+          GL_NOBEEP - If specified with GL_USECHARS then a BEL
+              character will NOT be sent to the user when they press
+              an invalid key. (that doesn't appear in
+              NodeData->CharsAllowed
+
+          GL_NOOLM - Short for NO OnLine Message.
+              If this is specified then OLM's that are sent to the
+              node will not be displayed until another call to
+              GetLine is made without this flag.
+
+          GL_NODISTURB - Specifying this flag makes sure the ansi to
+              the right of the cursor is not moved or disturbed.
+
+              This is great when you want to input text in a certain
+              on-screen area.
+
+              E.g. display "Enter ID: [    ] (4 chars max)" and move
+              the cursor back to here  ^ and then call GetLine
+              and the "] (4 chars max)" will not be moved.
+
+              You must specify a maxlen for this to work correctly.
+
+          GL_CVTUPPER - This converts all characters to upper case
+              when they are pressed.
+
+          GL_NOINACTIVITY - This disables inactivity checking for
+               this call to GetLine.  Primarily for use with
+               AwaitConnect doors.
+
+          GL_COUNTDOWN - This function displays a countdown timer
+               that ticks down.  When the user presses a key the
+               countdown is removed and stopped.
+
+               You must specify a value for Timeout.
+
+               Currently the countdown appears as a number between
+               two square braces, e.g. "[10]"
+
+      PasswordChar - a character to be used instead of the keys that
+          the user presses when GL_DISPLAY is used.
+          Set this to '\0' if you want to have the keys displayed
+          as the user presses them.
+          This option is normally used when asking the user to
+          input a password.
+
+      MaxLen - This specifies the maximum amount of characters that
+          the user is allowed to input, it must NOT be longer than
+          LEN_CURRENTLINE.
+
+      Timeout - Specify the timeout (in seconds)
+          See GL_COUNTDOWN above!
+
+      PromptStr - This is copied to NodeData->CurrentLine and is
+          displayed to the user, and the cursor will be positioned
+          after the last character.
+
+   RESULT
+      The actual string that the user entered will be stored
+      as a null terminated string in NodeData->CurrentLine, which
+      you should treat as read-only.
+
+      Most of the return codes are only of use for await and chat
+      doors.
+
+      Normally, you can ignore the result of this function, but it
+      is *critical* that you check NodeData->OnlineStatus to see
+      if the user lost carrier after *every* call to GetLine.
+      If the user has lost carrier your door must not output any
+      more text to the serial device! (otherwise you'll be sending
+      commands to the modem!)  And you may end up with a hung node
+      if you attempt to ask the user for more information!
+
+      This function will return the following numbers depending on
+      what door is running and what happened while this function was
+      active.
+
+      IN_NOTHING (0) - Reserved use.
+
+      IN_GOTLINE (1) - Returned if function actually got a line of
+          text from somewhere.
+
+      IN_LOSSCARRIER (2) - Returned only if NodeData->Logintype !=
+          LOGIN_NONE, or if the sysop logged (kicked) the user off
+
+      IN_LOGIN (3) - Returned if N_ND->LoginType==LOGIN_NONE and
+          sysop wants to local login
+
+      IN_SHUTDOWN (4) - Will only ever be returned to the
+          AwaitConnect door.  This is due the the fact that
+          NodeData->RequestShutdown can only be set if there's no
+          user online and therefore no door can be running!
+
+      IN_IMMEDIATE (5) - This is returned if the user entered some
+          text that reached MaxLen without the user having pressed
+          return.
+
+      IN_TERMINAL (6) - This is returned if the user pressed the
+          key that runs the terminal door from the AwaitConnect
+          door.
+
+      IN_TIMEOUT (7) - A timeout occured before the user could
+          enter a whole line of text (not always by Timeout, it
+          could also be because the user ran out of time or
+          an inactivity disconnect)
+
+      IN_ENDCHAT (8) - Returned if the chat door is running and
+          the sysop presses the chat start key again.
+
+      IN_DISPLAYAWAIT (9) - Returned if the sysop presses F4 at Await
+          connect prompt.
+
+      IN_DIALOUT (10) - If the sysop presses the key to dial a phone
+          number this will be returned, (only from the AwaitConnect
+          door)
+
+      IN_PAGEANSWERED (11) - If a SYSOPCHAT door is NOT running when
+          the sysop enters chat mode this will be returned.  This is
+          useful for pager doors.
+          Control will be returned to this function when the sysop
+          has FINISHED chatting to the user.
+
+
+   SEE ALSO
+      HBBSCommon.library/RemoveSpaces()
+
+HBBSNode.library/DOOR_Goodbye                   HBBSNode.library/DOOR_Goodbye
+
+   NAME
+      DOOR_Goodbye - Perform logoff requirements
+
+   SYNOPSIS
+      DOOR_Goodbye( void )
+
+      void DOOR_Goodbye( void )
+
+   FUNCTION
+      This function performs all the required actions for a
+      sucessful logoff, it does NOT hang up the modem
+
+      Is is normally called by the LogOff door ("G") or the
+      re-logon door ("RL")
+
+   INPUTS
+      None
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_HangUp()
+
+HBBSNode.library/DOOR_HangUp                     HBBSNode.library/DOOR_HangUp
+
+   NAME
+      DOOR_HangUp - Hang up the modem.
+
+   SYNOPSIS
+      DOOR_HangUp( void )
+
+      void DOOR_HangUp( void )
+
+   FUNCTION
+      This function hangs up the modem
+
+   INPUTS
+      None
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_GoodBye()
+
+HBBSNode.library/DOOR_MenuPrompt             HBBSNode.library/DOOR_MenuPrompt
+
+   NAME
+      DOOR_MenuPrompt - Display a prompt, for a menu.
+
+   SYNOPSIS
+      DOOR_MenuPrompt( promptstr, promptdefault )
+                       A0         D0
+
+      void DOOR_MenuPrompt( char *promptstr, char promptdefault )
+
+   FUNCTION
+      This function displays a prompt, with options in colour and the
+      default option highlighted.
+
+      This function does not actually wait for the user to press
+      any keys, so a call to this function is normally followed by
+      a call to DOOR_GetLine()
+
+   INPUTS
+      promptstr - The menu prompt, if this string contain's square
+          braces ('[' or ']') then they will be replaced with the
+          strings defines in the current BBSColours.CFG file.
+          (which may contain ANSI and may remove or change the
+          square braces completly).
+          If the string ends with a ':' character then it will
+          be replaced with the default ANSI prompt string.
+      promptdefault - If this character is found between two square
+          braces then it will be highlighted in some way (depending
+          (again) on the configuration of the BBSColours.CFG file)
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_GetLine(), DOOR_PausePrompt(), DOOR_ContinuePrompt()
+      DOOR_AContinuePrompt()
+      HBBS:System/Data/BBSColours.CFG
+
+HBBSNode.library/DOOR_PausePrompt           HBBSNode.library/DOOR_PausePrompt
+
+   NAME
+      DOOR_PausePrompt - Display a pause prompt.
+
+   SYNOPSIS
+      DOOR_PausePrompt( prompt )
+                        A0
+
+      void DOOR_PausePrompt( UBYTE *prompt )
+
+   FUNCTION
+      This function displays the prompt to the user, and waits
+      for the a key to be pressed.
+
+   INPUTS
+      prompt - a null-terminated string, or NULL for the default
+         prompt, which differs depending on the conference and node.
+         If a null terminated string is passed, it is first copied
+         and then passed through HBBS_ModifyString() so that
+         it is colourised and string replacements are made.
+
+   RESULT
+      None
+
+   SEE ALSO
+      HBBS_ModifyString(), DOOR_ContinuePrompt(),
+      DOOR_MenuPrompt(), DOOR_AContinuePrompt()
+
+HBBSNode.library/DOOR_Return                     HBBSNode.library/DOOR_Return
+
+   NAME
+      DOOR_Return - Return a string.
+
+   SYNOPSIS
+      DOOR_Return( returnstring )
+                   A0
+
+      void DOOR_Return( UBYTE *returnstring )
+
+   FUNCTION
+      This function is used to return a string to the program/door
+      that called the current door.  This lets you pass messages
+      back to the calling program/door.
+
+      e.g. say the CheckFiles door called the dupechecker, and
+      the dupechecker detected a duplicate file, it might do this:
+
+      DOOR_Return("DUPLICATE");
+
+      Then the CheckFiles door would check NodeData->DoorReturn
+      the to see if contained the string "DUPLICATE"
+      e.g: if (iposition("DUPLICATE",N_ND->DoorReturn) >= 0 ) ...
+
+   INPUTS
+      a string to return, not longer than LEN_MAXDOORRETURN
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_Continue()
+
+HBBSNode.library/DOOR_SysopText               HBBSNode.library/DOOR_SysopText
+
+   NAME
+      DOOR_SysopText - Outputs text to the sysop's watch window.
+
+   SYNOPSIS
+      DOOR_SysopText( str )
+                      A0
+
+      void DOOR_SysopText( UBYTE *str )
+
+   FUNCTION
+      This function writes str to the node's watch window, this lets
+      you display text/ansi that only the sysop can see.
+
+   INPUTS
+      str - a null terminated string.
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_WriteText(), DOOR_WriteSerText()
+
+HBBSNode.library/DOOR_SystemDoor             HBBSNode.library/DOOR_SystemDoor
+
+   NAME
+      DOOR_SystemDoor - Calls a system door.
+
+   SYNOPSIS
+      DOOR_SystemDoor( doorname, options )
+                       A0        D0
+
+      void DOOR_SystemDoor( UBYTE *doorname, UBYTE *options )
+
+   FUNCTION
+      This function calls another door that has been defined in
+      a Commands/System file, e.g. "HBBS:Commands/System".
+
+      Control is NOT returned until the called door has returned.
+
+   INPUTS
+      doorname - a null terminated string containing the doorname
+      options - a null terminated string containing paramaters that
+      are passed to the door as command line arguments.
+
+      e.g.  To tag a file you might do this
+
+      sprintf(myparams,"C=%d,N=%s",confnum,filename);
+      DOOR_SystemDoor("Tag_File",myparams);
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_Return(), DOOR_UserDoor(), DOOR_Continue()
+
+HBBSNode.library/DOOR_UpdateNodeStatus HBBSNode.library/DOOR_UpdateNodeStatus
+
+   NAME
+      DOOR_UpdateNodeStatus - Update's a part of the node's status
+          line.
+
+   SYNOPSIS
+      DOOR_UpdateNodeStatus( What )
+                             D0
+
+      void DOOR_UpdateNodeStatus( ULONG *What )
+
+   FUNCTION
+      This function is used to update the status information of the
+      node's status window.
+
+   INPUTS
+      What - Flag, can be one of:
+          You can only specify one at a time (this change in future!)
+          UPD_NAME - Updates the name/handle
+          UPD_GROUP - Updates the user's group part
+          UPD_ACTION - Updates the action part
+          UPD_CPSBAUD - Updates the current CPS or BAUD rate
+              depending on the value of NodeData->TransferringFile
+
+   RESULT
+      None
+
+   SEE ALSO
+      None
+
+HBBSNode.library/DOOR_UserDoor                 HBBSNode.library/DOOR_UserDoor
+
+   NAME
+      DOOR_UserDoor - Calls a system door.
+
+   SYNOPSIS
+      DOOR_UserDoor( doorname, options )
+                       A0        D0
+
+      void DOOR_UserDoor( UBYTE *doorname, UBYTE *options )
+
+   FUNCTION
+      This function calls another door that has been defined in
+      a Commands/Level#? file, e.g. "HBBS:Commands/Level_50".
+
+      Control is NOT returned until the called door has returned.
+
+   INPUTS
+      doorname - a null terminated string containing the doorname
+      options - a null terminated string containing paramaters that
+      are passed to the door as command line arguments.
+
+      e.g.  To run the config of the mailscanner you might do this:
+
+      DOOR_UserDoor("MS","?");
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_Return(), DOOR_SystemDoor(), DOOR_Continue()
+
+HBBSNode.library/DOOR_WriteSerText         HBBSNode.library/DOOR_WriteSerText
+
+   NAME
+      DOOR_WriteSerText - Outputs text/ansi to the serial device
+
+   SYNOPSIS
+      DOOR_WriteSerText( str )
+                         A0
+
+      void DOOR_WriteSerText( UBYTE *str )
+
+   FUNCTION
+      This function writes str to the serial device, but not the
+      node's watch window, so the sysop can't see it.
+
+      Most doors will never need to use this function.
+
+   INPUTS
+      str - a null terminated string.
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_SysopText(), DOOR_WriteText()
+
+HBBSNode.library/DOOR_WriteText               HBBSNode.library/DOOR_WriteText
+
+   NAME
+      DOOR_WriteText - Outputs text/ansi
+
+   SYNOPSIS
+      DOOR_WriteText( str )
+                      A0
+
+      void DOOR_WriteText( UBYTE *str )
+
+   FUNCTION
+      This function writes str to the node's watch window, and to
+      the serial device.
+
+   INPUTS
+      str - a null terminated string.
+
+   RESULT
+      None
+
+   SEE ALSO
+      DOOR_SysopText(), DOOR_WriteSerText()
+
+HBBSNode.library/FindConf                           HBBSNode.library/FindConf
+
+   NAME
+      FindConf - Find the user's conference.
+
+   SYNOPSIS
+      FindConf( void )
+
+      struct ConfData *FindConf( void )
+
+   FUNCTION
+      This function finds the user's current conference, or, if
+      they haven't joined a conference yet, the conference that they
+      were last in.
+
+      This function should be used with care.  Some of though
+      must be paid to what might happen if you use/store this
+      information, or if you pass it to other doors which depend
+      on the user *actually* being in a conference.
+
+      It can also return a NULL pointer, so care must be taken
+      to check the result.  It can only return NULL if the user's
+      last conference does not exist.
+
+      Also, the conference may be validm but the user may not be
+      able to see or even access the conference.
+
+      Also bear in mind, that the user's last conference may be
+      have a different number now, if the sysop has re-organized
+      the conferences.
+
+   INPUTS
+      None
+
+   RESULT
+      struct ConfData * - a pointer to a conference data structure,
+        or NULL if the user's last conference does not exist.
+
+   SEE ALSO
+      HBBS_AllowConfAccess(), CheckUser system door
+
+HBBSNode.library/HBBS_AddToCallersLog   HBBSNode.library/HBBS_AddToCallersLog
+
+   NAME
+      HBBS_AddToCallersLog - Adds a string to the node's callers log
+
+   SYNOPSIS
+      HBBS_AddToCallersLog( String )
+                            A0
+
+      void HBBS_AddToCallersLog( UBYTE *String )
+
+   FUNCTION
+      This function adds the specified String to the current node's
+      callers log file, along with a time and date stamp.
+
+   INPUTS
+      String - null terminated plain text string, do not include ANSI
+
+   RESULT
+      None
+
+   NOTES
+      Try to make all text that that is written to the callers log
+      nicely formatted and easily read back in by log file examiners
+      Try to seperate data with keywords, e.g. "files 50 amount 35"
+      and not just "50 35"
+      Make all text/output as human readable as possible, try to make
+      problems stand out.
+
+   SEE ALSO
+      HBBSCommon.library/HBBS_LogError()
+
+HBBSNode.library/HBBS_AllowConfAccess   HBBSNode.library/HBBS_AllowConfAccess
+
+   NAME
+      HBBS_AllowConfAccess - Checks to see if a user has access to
+          a conference.
+
+   SYNOPSIS
+      HBBS_AllowConfAccess( confnum, User )
+                            D0       A0
+
+      BOOL HBBS_AllowConfAccess( V_BIGNUM confnum,
+          struct UserData *User )
+
+   FUNCTION
+      This function checks to see if a user has access to the
+      conference specified.
+
+   INPUTS
+      Confnum - number of a conference, from 1 to
+          BBSGlobal->Conferences
+
+      User - Pointer to a valid struct UserData, or NULL to check the
+          current node's current user.
+
+   RESULT
+      struct ConfData * - a pointer to a conference data structure,
+        or NULL if the user's last conference does not exist.
+
+   NOTES
+      This function should really be called HBBS_CheckConfAccess()
+
+   SEE ALSO
+      ValidConfNum(), FindConf()
+
+HBBSNode.library/HBBS_CheckAccess           HBBSNode.library/HBBS_CheckAccess
+
+   NAME
+      HBBS_CheckAccess - Check an access level option.
+
+   SYNOPSIS
+      HBBS_CheckAccess( AccessOption )
+                        D0
+
+      V_BOOL HBBS_CheckAccess( ULONG AccessOption )
+
+   FUNCTION
+      Checks an access level setting for the current user.
+
+   INPUTS
+      AccessOption - an access level number to check, see
+         includes/HBBS/Access.h for a list of possible values.
+
+      e.g. to see if the current user has unlimited time, do this
+
+      HBBS_CheckAccess(ACS_UNLIMTIME)
+
+   RESULT
+      Returns TRUE if the access level is set.
+
+   SEE ALSO
+      DOOR_TimeLeft()
+
+HBBSNode.library/HBBS_CleanUpDoor           HBBSNode.library/HBBS_CleanUpDoor
+
+   NAME
+      HBBS_CleanUpDoor - Cleans up memory allocated by this library
+      that was used for the program's access to the BBS.
+
+   SYNOPSIS
+      HBBS_CleanUpDoor( void )
+
+      void HBBS_CleanUpDoor( void )
+
+   FUNCTION
+      This function is to be called once during a program's
+      execution, it must be called before the program exits, other-
+      wise the node will hang.
+
+   INPUTS
+      None
+
+   RESULT
+      None
+
+   SEE ALSO
+      HBBS_InitDoor()
+
+HBBSNode.library/HBBS_InitDoor                 HBBSNode.library/HBBS_InitDoor
+
+   NAME
+      HBBS_InitDoor - Initalises syncronisation of the current
+      program to the node.
+
+   SYNOPSIS
+      HBBS_InitDoor( NodeNum, DoorName )
+                     D0,      A0
+
+      BOOL HBBS_InitDoor(int NodeNum, char *DoorName)
+
+   FUNCTION
+      This function is to be called once during a program's
+      execution, it must be called before any other function in this
+      library is called.
+
+   INPUTS
+      NodeNum - the number of the node that this door is to run on
+      DoorName - a string.  Only MAX_ACTION_LEN chars are displayed
+          in the node's status window and WHO doors.
+
+   RESULT
+      Returns TRUE if the initalisation was sucessful
+
+   SEE ALSO
+      HBBS_CleanUpDoor()
+
+HBBSNode.library/HBBS_ModifyString         HBBSNode.library/HBBS_ModifyString
+
+   NAME
+      HBBS_ModifyString - Modify a string.
+
+   SYNOPSIS
+      HBBS_ModifyString( str )
+                         A0
+
+      char *HBBS_ModifyString( char *str )
+
+   FUNCTION
+      This function takes a string and modifies it, replacing items
+      enclosed in curly braces ('{' and '}') with data.
+
+      This is great for making menu prompts and such like.
+
+   INPUTS
+      str - a null terminated string. See NOTES below for important
+          information regarding the size!
+
+          If str contains any of the following items, they will
+          be replaced accordingly.
+
+          {L} - Time left on-line (0 if user has ACS_UNLIMITEDTIME)
+          {O} - Time user has been on-line
+          {S} - The BBS's name (taken from BBSGlobalData->BBSName)
+          {C} - The name of the current conference, if a user is not
+                in a conference then this will be left blank.
+          {T} - Actual time, without seconds
+          {TS} - Actual time, with seconds
+          {D} - Actual date. (DD-MM-YYYY)
+          {B} - Bytes left in current conference
+                (Not implemented yet!)
+          {E} - ANSI control sequence introducer.
+          {H} - The user's handle, if the user is not valid at the
+                time this is called, then this will be left blank
+          {G} - The user's group, if the user is not valid at the
+                time this is called, then this will be left blank
+
+   NOTES
+      No memory size checking is done, so your string must be big
+      enough to handle all the replacements.
+      So make sure you allocate a big string!
+
+   RESULT
+      returns a pointer to the input string (str)
+
+   SEE ALSO
+      HBBS_AllowConfAccess(), CheckUser system door
+      HBBS:Docs/Configuration/ConfConfig.guide/MenuPrompt
+
+HBBSNode.library/HBBS_SetAccess               HBBSNode.library/HBBS_SetAccess
+
+   NAME
+      HBBS_SetAccess - Force a re-load of the access level settings
+
+   SYNOPSIS
+      HBBS_SetAccess( void )
+
+      void HBBS_SetAccess( void )
+
+   FUNCTION
+      This function will force the node to re-load the access level
+      settings from the current conference or node.
+
+      This is normally only used when changing conference or access
+      level, so it should really only be called by the AccountEdit
+      or JoinConference door.
+
+   INPUTS
+      None
+
+   RESULT
+      None
+
+   SEE ALSO
+      HBBS_SetBBSStrings(), HBBS_SetBBSCols()
+
+HBBSNode.library/HBBS_SetBBSCols             HBBSNode.library/HBBS_SetBBSCols
+
+   NAME
+      HBBS_SetBBSCols - Force a re-load of the BBS colours config.
+
+   SYNOPSIS
+      HBBS_SetBBSCols( void )
+
+      void HBBS_SetBBSCols( void )
+
+   FUNCTION
+      This function will force the node to re-load the BBSColours.CFG
+      file from the current conference or node.
+
+      This is normally only used when changing conference and it
+      should really only be called by the JoinConference door.
+
+   INPUTS
+      None
+
+   RESULT
+      None
+
+   SEE ALSO
+      HBBS_SetBBSStrings(), HBBS_SetAccess()
+
+HBBSNode.library/HBBS_SetBBSStrings       HBBSNode.library/HBBS_SetBBSStrings
+
+   NAME
+      HBBS_SetBBSStrings - Force a re-load of the bbs strings.
+
+   SYNOPSIS
+      HBBS_SetBBSStrings( void )
+
+      void HBBS_SetBBSStrings( void )
+
+   FUNCTION
+      This function will force the node to re-load the BBSStrings.CFG
+      file from the current conference or node.
+
+      This is normally only used when changing conference and it
+      should really only be called by the JoinConference door.
+
+   INPUTS
+      None
+
+   RESULT
+      None
+
+   SEE ALSO
+      HBBS_SetBBSCols(), HBBS_SetAccess()
+
+HBBSNode.library/HBBS_TimeLeft                 HBBSNode.library/HBBS_TimeLeft
+
+   NAME
+      HBBS_TimeLeft - Get the amount of time the user has left.
+
+   SYNOPSIS
+      HBBS_TimeLeft( void )
+
+      LONG HBBS_TimeLeft( void )
+
+   FUNCTION
+      Get's the amount of time the current user has has got left.
+
+   INPUTS
+      None
+
+   RESULT
+      LONG - Time in minutes, if less than 0 then they've been
+          on-line too long, if 0 they may have unlimited time, so
+          do a HBBS_CheckAccess(ACS_UNLIMTIME) to see..
+
+   NOTES
+      Be careful when testing this, when it is used on a sysop
+      account the result will almost always be 0.
+
+   SEE ALSO
+      DOOR_TimeOnline(), HBBS_CheckAccess()
+
+HBBSNode.library/HBBS_TimeOnline             HBBSNode.library/HBBS_TimeOnline
+
+   NAME
+      HBBS_TimeOnline - Get the amount of time the user's been online
+
+   SYNOPSIS
+      HBBS_TimeOnline( void )
+
+      LONG HBBS_TimeOnline( void )
+
+   FUNCTION
+      Get's the amount of time the current user has been online.
+
+   INPUTS
+      None
+
+   RESULT
+      LONG - Time in minutes
+
+   SEE ALSO
+      DOOR_TimeLeft()
+
+HBBSNode.library/ValidConfNum                   HBBSNode.library/ValidConfNum
+
+   NAME
+      ValidConfNum - Find the user's conference.
+
+   SYNOPSIS
+      ValidConfNum( ConfNum )
+
+      V_BOOL ValidConfNum( ConfNum )
+
+   FUNCTION
+      This function checks to see if a conference exists.
+
+   INPUTS
+      ConfNum - number of a conference, from 1 to
+          BBSGlobal->Conferences
+
+   RESULT
+      TRUE if the conference exists.
+
+   NOTES
+      A user may or may not have access to the specified conference
+
+   SEE ALSO
+      HBBS_AllowConfAccess(), FindConf(), CheckUser system door
+
+

@@ -1,0 +1,28 @@
+.KEY DIR/A,SOURCEDIR/A,TARGETDIR/A,FLGDIR/A
+.BRA {
+.KET }
+
+SET PAT "~(#?.(readme|bbs|info)|INDEX)"
+
+IF NOT EXISTS {TARGETDIR}{DIR}
+    C:MakeDir `RexxC:RX 'Say( left( "{TARGETDIR}{DIR}", length( "{TARGETDIR}{DIR}") - 1))`
+ENDIF
+
+RexxC:RX 'Say( Translate( "{SOURCEDIR}{DIR}", "..", "/:")) >ENV:TRANSDIR
+
+C:Delete {TARGETDIR}{DIR}Files.bbs >NIL:
+
+C:List {DIR} FILES LFORMAT "%-22N %10L %6D %C" PAT $PAT TO T:FLG.DIR{$$}
+
+C:List T:FLG.DIR{$$} LFORMAT "%B" TO ENV:SIZE
+
+IF empty NOT EQ $SIZE
+    C:Sort T:FLG.DIR{$$} T:FLG.DIR{$$} >NIL:
+    {FLGDIR}FLG.TrimDir.rexx T:FLG.DIR{$$} T:FLG.DIR.2.{$$}
+
+    C:Echo >>{TARGETDIR}{DIR}Files.bbs "*n--------------------------------------------------------------------------------"
+    RexxC:RX >>{TARGETDIR}{DIR}Files.bbs  'Say( Center( $TRANSDIR, 80))
+    C:Echo >>{TARGETDIR}{DIR}Files.bbs "--------------------------------------------------------------------------------*n"
+
+    C:Attach F=T:FLG.DIR.2.{$$} T={TARGETDIR}{DIR}Files.bbs
+ENDIF

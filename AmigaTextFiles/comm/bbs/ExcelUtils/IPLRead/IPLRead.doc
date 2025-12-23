@@ -1,0 +1,220 @@
+;Released as public domain 28-Jan-1996 by the author Dave Dustin
+
+
+
+
+                              IPLRead V1.10
+                             ~~~~~~~~~~~~~~~
+                   (c) David Dustin / ECLIPSE Software
+
+
+                             1 February, 1993
+
+
+
+
+Preface
+~~~~~~~
+  The programs and files in this distribution are freely distributable,
+but are also Copyright (c) David Dustin.  They may be freely distributed
+as long as no more than a minimum fee is charged to cover time and copying
+costs.  Permission is given for this distribution archive to be placed
+into Public-Domain collections such as the Amiga Library run by Fred Fish.
+
+  They may also be made freely available to any REGISTERED Excelsior!  BBS
+sysops, and may be placed on any Support BBS's for the Excelsior!  BBS.
+
+
+  If you do decide to make use of IPLRead, you are suggested to send any
+form of donation or gift as payment.  This will get you the latest version
+of IPLRead, and also any other programs I have released.
+
+  Written in 100% pure assembly using Devpac 3.02.  The source code is
+enclosed in this archive.  If you make any changes, and decide to release
+a version to the general public, please at least send me a copy, so I know
+not to use the same revision number.
+
+
+
+  If you do have any suggestions, bug notes or ideas about this program,
+or if you would like to donate something, please let me know.
+
+
+    Write to me at the following address:
+
+                               David Dustin
+                             30 Richmond Ave
+                             Palmerston North
+                               NEW ZEALAND
+
+
+    Or I can be contacted via:
+                         dave@eclipse.acme.gen.nz
+
+
+
+
+Contents
+~~~~~~~~
+    1.     An introduction
+    2.     Requirments
+    3.     Usage
+    4.     History
+    5.     Future
+    6.     Credits / Copyrights
+
+
+
+1.  An Introduction
+~~~~~~~~~~~~~~~~~~~
+  IPLRead was written because I recently decided to upgrade my BBS to
+Excelsior!  BBS.  The thing with Excelsior, is that it doesn't use
+standard ANSI codes for the menus and text screens.  It uses a system
+called IPL (Intuitive Programming Language), which is a variant of the
+standard MCI codes, which uses the "\" character as an identifier for the
+start of a code.
+
+  This makes designing screens and such forth quite hard, as the text is
+all over the place.  It also means that you can only check what it will
+look like from withen Excelsior.
+
+
+  Therefore, IPLRead simply translates the IPL codes into ANSI and either
+displays the file to the console or saves it to disk.
+
+
+
+2.  Requirments
+~~~~~~~~~~~~~~~
+  IPLRead can only be used on machine with at least V37 of the DOS library
+(seeing as Excelsior only works with V37+ I decided not to provide support
+for < V35 ).
+
+
+
+3.  Usage
+~~~~~~~~~
+  IPLRead can only be used from the CLI/SHELL.  The arguments available
+are:  NAME/A,TO/K,F=FILTER/S
+
+  NAME - This is the name of the text file to display.  It can be any text
+file (all ANSI and standard ASCII is supported as well as IPL codes).
+This is ALWAYS required otherwise nothing will happen
+
+  TO - This is an optional filename.  If none is specified, then the text
+file will just be typed to the console.  If a file name is present, then
+the file will be saved out to disk.
+
+  F=FILTER - The optional flag is the FILTER option.  After the file
+name, you can place a F or the word FILTER, and ALL IPL codes will be
+filtered out of the file.  This can make the file look strange, especially
+if there are codes like the ones to display variables and clear the screen
+and such forth.  This option was mainly added so that the Excelsior! log
+files would be more readable.
+
+
+  Unfortunally, not all of the IPL codes are supported in this version of
+IPLRead.  Hopefully, I will include the missing functions in later
+releases.  The commands that are available are:
+
+   Bx     Print x bells (DisplayBeep() on local console)
+   Cx     Change the cursor color to:
+   Fx     Screen Manipulation, move cursor to:
+   Hn     Print x backspaces
+   Nx     Print x newlines
+   Ox     Set BOLD Text (ANSI)
+   Qx     IPL Setting Mode:
+   Rx     Set Reverse Mode:
+   Ux     Set underline mode
+   Vx     Display a system variable. Replaces variable with description
+   Xx     Immediatedly exit message
+   Zn     Change background color, use same colors as command "C"
+   ^x     Move cursor up x lines
+   !x     Move cursor down x lines
+   >x     Move cursor right x columns
+   <x     Move cursor left x columns
+   \\     Actually print a single slash "\"
+   \      A slash on it's own (end of some IPL commands)
+
+
+  Also, with some of the control codes, like Bold, Underline, I use the
+ANSI code to turn off the setting, whereas Excelsior!  appears to just
+send a Reset code (<esc>[0m).  Therefore is something looks good using
+IPLRead, please check it via Excelsior!  just to make sure.  I guess they
+had to do it this way so it works with all terminals that support ANSI.
+
+
+
+4.  History
+~~~~~~~~~~~
+V1.00   6 January 93
+    * First release.
+
+V1.01   7 January 93
+    * Corrected error with Newlines & Backspaces.  Would output too many
+      due to typo in Number conversion routine
+    * Improved IPL converson routines
+    * Added support for more than single digit numbers for all IPL codes
+      that make use of them
+    * Increased IPL translation buffer size (now 4 times original size)
+
+V1.02   7 January 93
+    * Corrected Error with copy loops
+    * Changed from normal Write() to VFPrintf()   (buffered write)
+    * Added TO option, so files can be saved to disk instead of just being
+      viewed
+    * Changed back from using CSI code ($9B) to using <esc>[ to make
+      editing in text editors (like CED) a lot easier
+    * Added break option (CTRL-C)
+
+V1.03   24 January 93
+    * Corrected error with change of background colour routine
+    * Now supports \ on it's own (some IPL commands need this as an end of
+      command identifier)
+    * Cleaned up code and text slightly
+
+V1.04   28 January 93
+    * Now should always work.  Used to stop after typing the first line of
+      text.  Couldn't guess why, but hopefully this has fixed it.
+    * Removed ANSI-code to activate Console wordwraping.  This should make
+      things works a little faster.
+    * Removed an old routine that was no-longer being called, but still
+      existed in the final file.
+
+V1.05   28 January 93
+    * Re-wrote Load/Save routines so it should work correctly.  Was still
+      not working on Renze's system even after my last attack at the code.
+    * Added two more IPL variables.  \v@ (BBS Name) & \v# (UUCP Address)
+
+V1.06   1 February 93
+    * Changed to using PowerPacker.library by Nico François for file
+      routines in the hope that would make things better.
+
+V1.10   1 February 93
+    * Removed PowerPacker routines as they were not helping.
+    * Totally re-wrote the output routines.
+    * Improved file error handling
+    * Removed checks for \'s on their own, because it helps to point out
+      any mistakes if they are removed properly.
+    * Cleaned up conversion routines, thus increaseing overall speed.
+
+
+
+5.  Future
+~~~~~~~~~~
+  - Include a file requestor
+  - Allow usage from WorkBench
+  - Convert ANSI text file to IPL text file
+  - Support for more IPL codes
+
+
+
+6.  Credits / Copyrights
+~~~~~~~~~~~~~~~~~~~~~~~~
+    Main code                   - David Dustin
+    Ideas/Bug testing           - Renze de Ruiter
+
+    IPLRead                     - (c) 1993 David Dustin
+    Excelsior! BBS              - (c) 1992-93 Sycom
+    Devpac 3                    - (c) 1985-92 HiSoft
+    Kickstart/Workbench         - (c) 1985-91 Commodore-Amiga, Inc.

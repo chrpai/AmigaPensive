@@ -1,0 +1,414 @@
+/****************************************************/
+/*                 BBS Lister - v1.0                */
+/*        by Carl Tashian aka Guru Meditation       */
+/*        for registered CNet Amiga BBSs only!      */
+/****************************************************/
+/*                  Blatent BBS ad:                 */
+/*      Amiga Central! BBS - (615) 383-9679         */
+/*    Multitaskin' with a 14.4K v.32bis Data Pump   */
+/*   Lotsa Amiga files - Amiga only - CNet Support  */
+/*              UseNet Newsgroups/Mail              */
+/****************************************************/
+
+/*
+I don't like to (and i'm not good at) writing docs.. but here are the basics
+...built right into the program! ;-)
+
+I think the BBS lister that came with CNet is pretty good..
+but it doesn't go into detail much about the BBS..and it wouldnt let you have
+multiple BBS lists. So I decided to write one that did all of this. 
+This is one of my first ARexx programs that really does something..
+and I havent been working on it for long..I'd still like it to have more Maint
+functions..and some other stuff.
+
+for help/comments/whatever, pick one of these seven ways to contact me...
+
+BBS (see Blatent BBS Ad above)........Amiga Central! BBS (615)383-9679
+FidoNet Mail (sorda slow).............Carl Tashian @ 1:116/48.0
+UUCP Mail (even slower)...............amicent!root@naraltd.raider.net
+Internet Mail (really fast)...........tashiacm@ctrvax.Vanderbilt.edu
+Internet Relay Chat (real-time).......i'm in #amiga sometimes as gm
+BitNet Mail (really fast).............tashiacm@vuctrvax
+Future World BBS (I dont call often)..Guru Meditation
+
+INSTALLING:
+type "execute execute.me"
+            OR
+Copy BBSLISTER to PFiles: and maked these directories:
+
+pfiles:bbslist, pfiles:bbslist/list1 pfiles:bbslist/list2
+pfiles:bbslist/list3, pfiles:bbslist/list4
+
+Then, if you want, add it to your main menu or something.. or just AO it
+into PFiles:
+
+Don't forget to change the variables below to whatever you want 
+*/
+
+/*
+EXTRA STUFF: 
+You can edit the main menu from the maint menu..and you can change the
+prompts by changing the variables..
+You will probably need to delete a BBS sometime..just edit the
+smallistX file..where X is the number of the list you want to delete from..
+then delete the file called pfiles:bbslist/listX/numY .. where X is the
+same as before and Y is the number of the entry you want to delete.
+the only problem is, you can't re-number the entries in smallistX. So
+you will have to just leave a number out in most cases...it's a bit too
+tricky..
+
+You can mess with this program as much as you like .. just leave my name as 
+the original author, upload a copy to my BBS or send me your version to the
+internet/uucp/fidonet addresses above, and leave in my Blatent BBS Ad
+somewhere..
+
+ARexx authors: Please do something with this program.. it really needs a lot
+of help.. and it could be a good program if someone with more ARexx knowledge
+than me (just about anyone) would work on this some.
+*/
+
+/* Error checking and stuff */
+options results
+bufferflush
+signal on error
+signal on ioerr
+signal on syntax
+
+transmit 'Getting set up..'
+/* Variable stuff */
+
+/* Don't mess with this stuff unless you know what it is (I don't even know
+what it is!) */
+new = 1
+list = 0
+count = 0
+argh = 0
+tr = transmit
+ss = sendstring
+qu = query
+/* Change these to whatever */
+dir = 'PFiles:bbslist/' /* Directory to BBS list files - must end in : or / */
+sysop = 'Guru Meditation' /* Name of sysop */
+name = 'Amiga Central! BBS' /* Name of your BBS */
+lowacc = 22 /* lowest access level for maint menu */
+line1 = '### | BBS NAME'
+line2 = '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-='
+line3 = '-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-'
+GETUSER 1;handle = result
+GETUSER 15;access = result
+/* The Prompts.. */
+prompt1 = '\c6AmiCentral/BBSList>\q1 '
+prompt2 = '\c6AmiCentral/BBSList/Maint>\q1 '
+prompt3 = '\c6AmiCentral/BBSList/InList>\q1 '
+prompt4 = '\c6AmiCentral/BBSList/InEntry>\q1 '
+
+/* Start of program */
+logentry '\z1\c7'handle' used the BBS Lister\q1'
+call title
+MAIN:
+if new = 0 then ss '\f1'
+new = 0
+sendfile dir'mainmenu'
+call sysopt
+PROMPT:
+/* Main Menu */
+ss prompt1
+getchar; ans = result; tr ans
+if ans = '' then call prompt
+if ans = '#' then exit
+if ans = 'Q' then do;tr
+/* PLEASE leave this in here... */
+tr '\c6BBS Lister\q1 for CNet by \c1Guru Meditation\q1'
+tr 'Amiga Central! BBS (615) 383-9679'
+/* thanks... */
+exit; end
+if ans = '1' then list = 1
+if ans = '2' then list = 2
+if ans = '3' then list = 3
+if ans = '4' then list = 4
+if ans = '5' then do
+if access >= lowacc then call sysmenu; end
+call = 0
+if list = 0 then do; tr 'Enter a number from the menu'; call = 3; end
+if call = 3 then call main
+if list = 1 then wow = open(smallist,dir"smallist1","R")
+if list = 2 then wow = open(smallist,dir"smallist2","R")
+if list = 3 then wow = open(smallist,dir"smallist3","R")
+if list = 4 then wow = open(smallist,dir"smallist4","R")
+if wow = 0 then do
+tr 'Making new list for entry 'list
+blackhole = open(abcd,dir"smallist"list,"W")
+blackhole = close(abcd)
+tr 'Done.'
+end
+call listhead
+SENDLIST:
+blackhole = open(smallist,dir"smallist"list,"R")
+do until EOF(smallist)
+count = count + 1
+if count > 1 then tr
+entry.count = Readln(smallist)
+ss entry.count
+end
+hole = Close(smallist)
+realcou = count - 1
+if argh = 2 then call vlistend
+call listfoot
+DONESEND:
+call listmenu
+TITLE:
+/* title */
+if new = 1 then ss '\f1'
+tr 'BBS lister - By Guru Meditaton\q1'
+tr 'ON: 'name; tr 'SYSOP: 'sysop
+call MAIN
+SYSOPT:
+/* looks for lowacc */
+if access >= lowacc then do
+tr '<\c65\q1> Maint Menu'
+end
+call PROMPT
+SYSMENU:
+/* sysop maint menu */
+ss '\f1'
+tr 'Maint Menu'
+tr 'Access level for entry is 'lowacc
+tr '<1> Edit the main menu'
+tr '<Q> Quit to main menu'
+ss prompt2; getchar
+ans6 = result; if ans6 = '1' then do
+tr 'Edit Main Menu...'
+bbscommand 'WF 'dir'MAINMENU'
+call sysmenu
+end
+if ans6 = 'Q' then do; tr 'Quit..'; call main
+if ans6 = '#' then exit
+if ans6 = '' then call sysmenu
+call main
+LISTHEAD:
+/* header for the BBS list */
+count = 0
+tr
+tr line1
+tr line2
+call sendlist
+LISTFOOT:
+/* footer for the BBS list */
+tr line3
+tr realcou' BBSs listed'
+call donesend
+LISTMENU:
+/* choose an item from a list */
+tr
+tr 'Enter a number, [A]dd, [L]ist, or [Q]uit'
+ss prompt3
+qu; ans62 = result
+if ans62 = 'A' | ans62 = 'a' then call addbbs
+if ans62 = 'L' | ans62 = 'l' then call listhead
+if ans62 = 'Q' | ans62 = 'q' then call main  
+if ans62 = '###PANIC' then exit
+if ans62 = '' then call listmenu
+notherhole = open(listent,dir"list"list"/num"ans62,"R")
+if notherhole = 0 then do
+tr 'There is no number 'ans62'!'
+call listmenu
+end
+call worked
+ADDBBS:
+/* add a bbs to the list */
+tr '\f1Add a BBS - Enter the correct information'; tr
+hole = Open(addata,dir"list"list"/num"count,"W")
+hole = Writeln(addata,handle)
+ENTSTART:
+ss 'BBS Name -> '; qu
+bbs.1 = result
+ss 'Sysop -> '; qu
+bbs.2 = result
+ss 'Phone number -> '; qu
+bbs.3 = result
+ss 'City -> '; qu
+bbs.4 = result
+ss 'State -> '; qu
+bbs.5 = result
+ss 'Software Used -> '; qu
+bbs.6 = result
+ss 'Minimum baud rate -> '; qu
+bbs.7 = result
+tr '\f1Info:'
+tr 'BBS Name: 'bbs.1
+tr 'Sysop   : 'bbs.2
+tr 'Phone   : 'bbs.3
+tr 'City    : 'bbs.4
+tr 'State   : 'bbs.5
+tr 'Software: 'bbs.6
+tr 'MinBaud : 'bbs.7
+ss 'Is this OK [Y/n]? '; getchar; ok = result
+if ok = 'n' | ok = 'N' then do; tr'\f1'; call entstart; end
+if ok = '#' then call cloexi
+do i = 1 to 7 by 1
+hole = Writeln(addata, bbs.i)
+end
+MODTY:
+tr '\f1Pick a modem type:'
+tr '<0> 300 baud modem'
+tr '<1> 1200 baud modem'
+tr '<2> 2400 baud modem'
+tr '<3> 9600 baud - v.32'
+tr '<4> 9600 baud - HST'
+tr '<5> 9600 baud - HST/v.32'
+tr '<6> 14400 baud - v.32bis'
+tr '<7> 14400 baud - HST'
+tr '<8> 14400 baud - HST/v.32bis'
+tr '<9> 16800 baud - HST/v.32bis'
+tr '<10> Other'
+tr '<11> Unknown'
+ss 'Modem type number -> '; qu
+modemtype = result; ok = 0
+if modemtype = '0' then ok = 12
+if modemtype = '1' then ok = 1
+if modemtype = '2' then ok = 2
+if modemtype = '3' then ok = 3
+if modemtype = '4' then ok = 4
+if modemtype = '5' then ok = 5
+if modemtype = '6' then ok = 6
+if modemtype = '7' then ok = 7
+if modemtype = '8' then ok = 8
+if modemtype = '9' then ok = 9
+if modemtype = '10' then ok = 10
+if modemtype = '11' then ok = 11
+if modemtype = '###PANIC' then call cloexi
+if ok = 0 then do; tr '\n1Please try again'; call modty; end
+hole = Writeln(addata,modemtype)
+ss 'Hours -> '; qu
+bbs2.1 = result
+ss 'Megs -> '; qu
+bbs2.2 = result
+do i = 1 to 2 by 1
+hole = Writeln(addata,bbs2.i)
+end
+AMIS:
+ss 'Amiga Support [y/n]? '; getchar
+ans3 = result
+yo = 0
+if ans3 = 'y' | ans3 = 'Y' then do; tr 'Y'; amisup = '1'; yo = 1; end
+if ans3 = 'n' | ans3 = 'N' then do; tr 'N'; amisup = '0'; yo = 1; end
+if ans3 = '#' then call cloexi
+if yo = 0 then do; tr; call amis; end
+hole = Writeln(addata,ans3)
+AMIO:
+ss 'Amiga Only [y/n]? '; getchar
+ans3 = result
+yo = 0
+if ans3 = 'y' | ans3 = 'Y' then do; tr 'Y'; amisup = '1'; yo = 1; end
+if ans3 = 'n' | ans3 = 'N' then do; tr 'N'; amisup = '0'; yo = 1; end
+if ans3 = '#' then call cloexi
+if yo = 0 then do; tr; call amio; end
+hole = Writeln(addata,ans3)
+ADUL:
+ss 'Adult only files [y/n]? '; getchar
+ans3 = result
+yo = 0
+if ans3 = 'y' | ans3 = 'Y' then do; tr 'Y'; amisup = '1'; yo = 1; end
+if ans3 = 'n' | ans3 = 'N' then do; tr 'N'; amisup = '0'; yo = 1; end
+if ans3 = '#' then call cloexi
+if yo = 0 then do; tr; call adul; end
+hole = Writeln(addata,ans3)
+ss 'Comments (line 1 of 2) -> '; qu
+comment1 = result
+hole = Writeln(addata,comment1)
+ss 'Comments (line 2 of 2) -> '; qu
+comment2 = result
+hole = Writeln(addata,comment2)
+hole = Close(addata)
+tr; ss 'Are you sure [Y/n]? '; getchar; sure = result
+if sure = 'n' | sure = 'N' then call listmenu
+hole = Open(shlist,dir"smallist"list,"A")
+nums = Writech(shlist,count)
+if nums = 1 then do;
+hole = Writeln(shlist,'    'bbs.1); end
+if nums = 2 then do;
+hole = Writeln(shlist,'   'bbs.1); end
+if nums = 3 then do;
+hole = Writeln(shlist,'  'bbs.1); end
+hole = Close(shlist)
+call listmenu
+WORKED:
+/* reads from entry and prints to screen */
+do i = 1 to 16 by 1
+info.i = readln(listent)
+end
+if info.9 = '0' then info.9 = '300 baud modem'
+if info.9 = '1' then info.9 = '1200 baud modem'
+if info.9 = '2' then info.9 = '2400 baud modem'
+if info.9 = '3' then info.9 = '9600 baud - v.32'
+if info.9 = '4' then info.9 = '9600 baud - HST'
+if info.9 = '5' then info.9 = '9600 baud - HST/v.32'
+if info.9 = '6' then info.9 = '14400 baud - v.32bis'
+if info.9 = '7' then info.9 = '14400 baud - HST'
+if info.9 = '8' then info.9 = '14400 baud - HST/v.32bis'
+if info.9 = '9' then info.9 = '16800 baud - HST/v.32bis'
+if info.9 = '10' then info.9 = 'Other'
+if info.9 = '11' then info.9 = 'Unknown'
+ss '\f1'
+tr '[ #'ans62' ] 'info.2' - added by 'info.1
+tr
+tr 'Sysop         : 'info.3;  tr 'Phone Number  : 'info.4
+tr 'City/State    : 'info.5', 'info.6
+tr 'Software used : 'info.7; tr 'Modem Type    : 'info.9
+tr 'Minimum baud  : 'info.8; tr 'Hours         : 'info.10
+tr 'Megs          : 'info.11; tr 'Comment 1     : 'info.15
+tr 'Comment 2     : 'info.16
+if info.12 = 'Y' then tr 'Amiga Supporting BBS'
+if info.13 = 'Y' then tr 'Amiga ONLY BBS'
+if info.14 = 'Y' then tr 'Has adult file areas'
+blackhole = close(listent)
+INENTMENU:
+/* In entry menu */
+tr
+tr '[V]iew list [<]Previous [>]Next [#]Entry Number [Q]uit'
+ss prompt4; qu; ans5 = result
+if ans5 = 'V' | ans5 = 'v'then do
+tr; tr line1
+tr line2
+argh = 2
+count = 0
+call sendlist; end
+if ans5 = 'Q' | ans5 = 'q' then call listmenu
+if ans5 = '' then call inentmenu
+if ans5 = '>' then call next
+if ans5 = '<' then call prev
+bighole = Open(listent,dir"list"list"/num"ans5,"R")
+if bighole = 0 then do
+tr 'There is no #'ans5'!'; call inentmenu; end
+if bighole = 1 then do; ans62 = ans5; call worked
+call inentmenu
+VLISTEND:
+argh = 0
+tr line3
+tr realcou' BBSs listed'
+call inentmenu
+hole = close(listent); call main
+CLOEXI:
+hole = Close(addata)
+exit
+NEXT:
+tester = ans62 + 1
+notherhole = open(listent,dir"list"list"/num"tester,"R")
+if notherhole = 0 then do
+tr; tr 'There is no #'tester'!'
+call inentmenu; end
+ans62 = tester
+call worked
+PREV:
+tester = ans62 - 1
+notherhole = open(listent,dir"list"list"/num"tester,"R")
+if notherhole = 0 then do
+tr; tr 'There is no #'tester'!'; call inentmenu; end
+ans62 = tester
+call worked
+ERROR:;IOERR;SYNTAX:
+eror = 'Error in line: 'sigl 'Code:' errortext(rc) 'in logon'
+tr eror
+tr 'Sysop has been notified.'
+logentry eror
+exit

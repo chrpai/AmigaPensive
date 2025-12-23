@@ -1,0 +1,266 @@
+;	ZConnect-Server
+;
+;	Scriptfile zum Senden neuer Nachrichten im ZConnect-Format
+;
+;	$VER: 1.00 / 16.08.1995
+;
+;       Beschreibung :
+;	Neue Daten im ZConnect-Puffer senden.
+;	Die zu sendenen Daten werden im Directory MBMSG:POINT/<Portname>/
+;	temporaer gespeichert.
+;	Stehen im Directory MBNET:EXPORT/ die Dateien <USERNAME>.LHA,
+;	<USERNAME>.MSGNR und <USERNAME>.PMNR, so werden nicht die neusten
+;	Nachrichten und Files aktuell exportiert und gepackt, sondern diese
+;	vorgepackten Daten benutzt.
+;	
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die folgende Befehle zugreifen kann !
+;
+;	ADD EVENT
+;	CHECK FILE
+;	DISK DOWNLOAD
+;	DISK EXECUTE
+;	DISK UPLOAD
+;	ECHO
+;	EXTERN
+;	FASTNET GETFILE
+;	GOTO
+;	HANGUP
+;	IF
+;	LOGOUT		<-- Option /FAST muss unterstuetzt werden !
+;	ON ERROR
+;	ON HANGUP
+;	ZCONNECT GETFILE
+;	ZCONNECT MAKEFILE
+;	WAIT
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DELETE
+;	LIST
+;	SORT
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	STRASSE  : @NETCALL
+;	STADT	 : Name der Domain (z.B. Fastnet.de)
+;
+;	Einrichtung eines LocalGates fuer die Einbindung eines anderen
+;	lokalen Netzwerks :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	VORNAME  : Gatename im Fastnet (z.B. Z-Netz)
+;	STRASSE  : @LOCALGATE
+;	STADT	 : Name der Domain (z.B. Z-Netz.de)
+;
+;	Einrichtung eines Gates fuer die Einbindung eines anderen
+;	globalen Netzwerks :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	VORNAME  : Gatename im Fastnet (z.B. Z-Netz)
+;	NACHNAME : Gatename im Zerberus-Netz (z.B. Fastnet)
+;	STRASSE  : @GATE
+;	STADT	 : Name der Domain (z.B. Z-Netz.de)
+;
+;
+;	Konstanten :
+;
+TMPDIR    = "mbmsg:point/'{port}'/"		; Dir fuer Tmp-Files
+EXPORTDIR = "mbnet:Export/"			; Export-Directory
+EXFTABDIR = "mbnet:ExportFTab/"			; Export-FTab-Directory
+MAXMSGLEN = 2000				; Max. Laenge der Msgs in KByte
+MAXPMLEN  = 2000				; Max. Laenge der PMs in KByte
+MSGFILE   = "'{CALLS}'.BRT"			; Oeff. Nachrichten
+PMFILE    = "'{CALLS}'.PRV"			; Private Nachrichten
+MSGNRFILE = "msgnr"				; File fuer Msg-Nummern
+PMNRFILE  = "pmnr"				; File fuer PM-Nummern
+COPYFILE  = "'{NAME}'@ZC.lha"			; Vorgabefile (Pack-Event)
+COPYMSGNR = "'{NAME}'@ZC.msgnr"			; File fuer Msg-Nummern
+COPYPMNR  = "'{NAME}'@ZC.pmnr"			; File fuer PM-Nummern
+PCKFILE   = "called.lzh"			; Name des gepackten Files
+PACKER    = "lha -P-1 m ""'TMPDIR''PCKFILE'"" ""'TMPDIR''PMFILE'"" ""'TMPDIR''MSGFILE'"""
+						; Packen
+
+;
+;	Domainname holen
+;
+_on error ERROR					; Im Fehlerfall ...
+DOMAIN={CITY}					; Domainname holen
+
+;
+;	Pruefe auf normalen Netcall
+;
+
+_if {STREET} != "@NETCALL" then _goto LOCALGATE
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=0/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=0/Filter='FIL'"
+_goto START
+
+;
+;	Pruefe auf LocalGate
+;
+LOCALGATE:
+_if {STREET} != "@LOCALGATE" then _goto GATE
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=2/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=2/Filter='FIL'"
+_goto START
+
+;
+;	Pruefe auf Gate
+;
+GATE:
+_if {STREET} != "@GATE" then _goto USERPOINT
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=1/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=1/Filter='FIL'"
+_goto START
+
+;
+;	User-Point
+;
+USERPOINT:
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=3/Filter='FIL'"
+FIL=2+4+8+16+32+64
+OP_MAKEMSG="/Type=3/Filter='FIL'"
+DOMAIN="ZER"					; Domain ZER setzen
+
+;
+;	Texte laden
+;
+START:
+_gosub LOADTEXT					; Texte laden
+
+;
+;	Starttext ausgeben
+;
+
+_echo STARTTEXT
+
+;
+;	Filebrett-Konverter-Files einbinden
+;
+
+_check file "'EXFTABDIR''{NAME}'" NOEXPORTCVT
+OP_MAKEMSG="'OP_MAKEMSG'/FBoardlist=""'EXFTABDIR''{NAME}'"""
+NOEXPORTCVT:
+
+;
+;	Loesche alte Files / Rename, wenn File immer noch geoeffnet
+;
+
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_extern/q rename "'TMPDIR''PCKFILE'" "'TMPDIR''PCKFILE''{CALLNR}'"
+
+;
+;	Neue Nachrichten fuer andere Box sammeln & packen
+;
+
+COPYSTAT=0					; Kopier-Status auf FALSE
+_check file "'EXPORTDIR''COPYPMNR'" EXPORT	; Existiert Sendefile ?
+_echo "'COPYTEXT'"				; Status-Meldung ausgeben
+_extern/q copy "'EXPORTDIR''COPYFILE'" "'TMPDIR''PCKFILE'"    ; Ja, vorgepackte
+_extern/q copy "'EXPORTDIR''COPYMSGNR'" "'TMPDIR''MSGNRFILE'" ; Files benutzen
+_extern/q copy "'EXPORTDIR''COPYPMNR'" "'TMPDIR''PMNRFILE'"
+_check file "'TMPDIR''PMNRFILE'" DELETE		; Alle Daten korrekt kopiert ?
+_check file "'TMPDIR''MSGNRFILE'" DELETE	; Wenn Nein, verzw.
+_check file "'TMPDIR''PCKNRFILE'" DELETE
+COPYSTAT=1					; Kopier-Status auf TRUE
+_goto QUESTION					; Ja -> Abfrage
+
+;	Schon kopierte Daten aus TMP-Directory loeschen
+
+DELETE:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" ; Nein, kopierte Daten loeschen
+
+
+;	PMs und Messages exportieren
+
+EXPORT:
+_echo/NOLF "'EXPORTTEXT'"			; Status-Meldung ausgeben
+_on error/ignore				
+_zconnect makefile'OP_MAKEPM' "'TMPDIR''PMFILE'" 'MAXPMLEN' "'TMPDIR''PMNRFILE'" "'DOMAIN'"
+_zconnect makefile'OP_MAKEMSG' "'TMPDIR''MSGFILE'" 'MAXMSGLEN' "'TMPDIR''MSGNRFILE'" "'DOMAIN'"
+_on error ERROR
+
+;	Messages packen
+
+_echo/NOLF "'PACKTEXT'"				; Status-Meldung ausgeben
+_extern/q 'PACKER'
+_echo "'PACKENDTEXT'"				; Status-Meldung ausgeben
+
+;
+;	Frage: Welche Messages exportieren & packen ?
+;
+QUESTION:
+_menu MENUTEXT -
+ KEY_DOWN DOWNLOAD -
+ KEY_ABORT ABORT
+
+;
+;       Gepacktes File Downloaden
+;
+DOWNLOAD:
+_on error/ignore
+_disk download "'TMPDIR''PCKFILE'"
+_on error ERROR
+
+;
+;	Download wiederholen ?
+;
+_menu RETRYTEXT -
+ KEY_RETRY DOWNLOAD -
+ KEY_OK OK
+
+;
+;	Gesendete Nachrichten als gelesen markieren ?
+;
+OK:
+_menu MARKTEXT -
+ KEY_MARKMSGS SETNR -
+ KEY_UNMARK END
+
+;
+;	Geschickte Messages und PMs als gelesen markieren
+;
+SETNR:
+_zconnect makefile/setnr "'TMPDIR''MSGNRFILE'"	; Gezogene Msgs = alte Msgs
+_zconnect makefile/setnr "'TMPDIR''PMNRFILE'"	; Gezogene PMs = alte PMs
+
+;
+;	Wenn Files vorgepackt abgeholt, dann vorgepackte Daten loeschen
+;
+
+_if/i COPYSTAT == 1 then _extern/q delete "'EXPORTDIR''COPYPMNR'" "'EXPORTDIR''COPYFILE'" "'EXPORTDIR''COPYMSGNR'"
+
+;
+;       Ende
+;
+END:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"	; Disk aufraeumen
+_eod
+
+;
+;       Wenn Abbruch oder Fehler
+;
+ERROR:
+_echo ERRORTEXT
+ABORT:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_eod
+
+;
+; Unterroutine: Lade sprachspezifische Texte
+;
+LOADTEXT:
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/zconnect_download.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/zconnect_download.bat"
+_return

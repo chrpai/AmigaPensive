@@ -1,0 +1,281 @@
+/* NEW USER SCRIPT V1.01 BY KAI MICHELSEN */
+
+OPTIONS RESULTS
+
+/* DO NOT CHANGE ANYTHING */
+
+ANSITERM(0)
+IF ANSI = "Y" THEN ANSICOLOR(0)
+IF RC = 20 Then Exit
+PAGELENGTH(0)
+IF RC = 20 Then Exit
+CHARSET(0)
+IF RC = 20 Then Exit
+PROTOCOL(0)
+IF RC = 20 Then Exit
+ARCFORMAT(0)
+IF RC = 20 Then Exit
+CHECK(0)
+IF RC = 20 Then Exit
+
+/* ------------------------------------------ */
+
+ANSITERM: Prosedure
+Parse arg test
+NOMORE
+IF Exists('ABBS:SYS/NEWUSER/ANSI') = 0 Then Failure()
+        Typefile 'ABBS:SYS/NEWUSER/ANSI'
+Printnocr('Do you have an ANSI terminal ? (Y/n): ') ; IF RC = 20 then exit ; Getline 1
+        IF RC = 20 then exit
+        Ansi = Upper(Result) ; IF Length(Ansi) < 1 Then Ansi = "Y"
+        IF Ansi ~= "Y" Then Ansi = "N"
+        IF Ansi = "NOPE" then FAILURE()
+if test = 1 then CHECK2()
+else Return 0
+
+ANSICOLOR: Prosedure
+Parse arg test
+NOMORE
+IF Exists('ABBS:SYS/NEWUSER/COLOR') = 0 Then Failure()
+        Typefile 'ABBS:SYS/NEWUSER/COLOR'
+Printnocr('Do you have ANSI Color ? (Y/n): ') ; Getline 1
+        IF RC = 20 then exit
+        Color = Upper(Result) ; IF Length(Color) < 1 Then Color = "Y"
+        IF Color ~= "Y" Then Color = "N"
+        IF Color = "PINK" then FAILURE()
+if test = 1 then CHECK2()
+else return 0
+
+PAGELENGTH: Prosedure
+Parse arg test
+NOMORE
+IF Exists('ABBS:SYS/NEWUSER/LENGTH') = 0 Then Failure()
+        Typefile 'ABBS:SYS/NEWUSER/LENGTH'
+Print('')
+Printnocr('How many lines can your terminal display? : ') ; Getline 2
+        IF RC = 20 then exit
+        Lines = Result ; IF Length(Lines) < 1 Then Call Pagelength
+        IF Lines < 10 Then Lines = 28
+        IF Lines > 99 then FAILURE()
+if test = 1 then CHECK2()
+else Return 0
+
+CHARSET: Prosedure
+Parse arg test
+NOMORE
+Typ = "?"
+Printex()
+Print('Let''s find out what character set you are using. Please')
+Printnocr('type a norwegian ''AE'' :') ; Readchar
+IF RC = 20 then exit
+Typesett = C2D(Result)
+IF typesett = "230" ^ typesett = "198" Then Call Isotype
+IF typesett = "145" ^ typesett = "146" Then Call Ibntype
+If Typ = "?" then call Hmmm
+if test = 1 then CHECK2()
+else Return 0
+
+Hmmm:
+        Printex('')
+          Print('Unfortunately, we cannot recognize your character set, so you')
+        Print('are set to use the ISO standard as a default. Please change this')
+        Print('if you like with the U S option, when you have logged in.')
+        Typ = "ISO"
+        Rawfile = "N"
+return 0
+
+Ibntype:
+Printex('')
+        Print('Looks like you use the IBN 8 bit character set.')
+        Print('Do want RAW files to be sent? This means menus and texts with')
+        Print('IBM 8 bit Ascii graphics.')
+        Printnocr('Do you want RAW files to be sent? (Y/n) : ') ; Getline 1
+        IF RC = 20 then exit
+        Rawfile = Upper(result) ; IF Length(Rawfile) < 1 Then Rawfile = "Y"
+        IF Rawfile ~= "Y" Then Rawfile = "N"
+        Typ = "IBN"
+
+Return 0
+
+Isotype:
+Printex('')
+        Print('Aha! We have an ISO user with an 8 bit character set. That''s')
+        Print('fine, it''s the preferred character set here...')
+        Typ = "ISO"
+        Rawfile = "N"
+
+Return 0
+
+PROTOCOL: Prosedure
+Parse arg test
+NOMORE
+IF Exists('ABBS:SYS/NEWUSER/PROTOCOL') = 0 Then Failure()
+Printex('')
+        Print('To Transfer files To/From the system you will need')
+        Print('a XPR Protocol. Please select the protocol you use')
+        Printex('on your Terminal program.')
+        Typefile 'ABBS:SYS/NEWUSER/PROTOCOL'
+        IF RC = 20 then exit
+        Print()
+        Printnocr('Protocol (Enter = Zmodem) : ') ; Getline 2
+        IF RC = 20 then exit
+        PROT = Upper(result) ; If length(PROT) < 1 THEN PROT = "Z"
+        IF PROT = "Z" ^ PROT = "Y" ^ PROT = "YB" ^ PROT = "X" ^ PROT = "C" then call PROTTEST()
+        ELSE PROTOCOL()
+
+PROTTEST:
+if test = 1 then CHECK2()
+else return 0
+return 0
+
+
+ARCFORMAT: Prosedure
+Parse arg test
+NOMORE
+IF EXists('ABBS:SYS/NEWUSER/ARCHIVES') = 0 Then Failure()
+Printex()
+        Print('You can GRAB messages from this system, and it can be')
+        Print('much messages in one grab. This a good idea to pack the')
+        Printex('grab file to save money.')
+        Typefile 'ABBS:SYS/NEWUSER/ARCHIVES'
+        IF RC = 20 then exit
+        Print()
+        Printnocr('Archive type (Enter = None): ') ; Getline 1
+        IF RC = 20 then exit
+        ARCHIVE = Upper(result) ; If length(ARCHIVE) < 1 then ARCHIVE = "T"
+        IF ARCHIVE = "L" ^ ARCHIVE = "H" ^ ARCHIVE = "Z" ^ ARCHIVE = "T" ^ ARCHIVE = "A" then call PROTTEST()
+        ELSE ARCFORMAT()
+
+SETUP: Prosedure
+
+IF Ansi = "N" Then Color = "N"
+IF Ansi = "N" Then Ansi$ = "NO"
+        Else Ansi$ = "YES"
+IF Color = "N" Then Color$ = "NO"
+        Else Color$ = "YES"
+IF ARCHIVE = "T" then ARC$ = "NONE"
+IF ARCHIVE = "H" then ARC$ = "LHA Packing"
+IF ARCHIVE = "L" then ARC$ = "LZH Packing"
+IF ARCHIVE = "Z" then ARC$ = "ZIP Packing"
+IF ARCHIVE = "A" then ARC$ = "ARC Packing"
+IF PROT = "Z" Then PROT$ = "Zmodem (Batch)"
+IF PROT = "Y" Then PROT$ = "Ymodem"
+IF PROT = "C" Then PROT$ = "Xmodem CRC"
+IF PROT = "X" Then PROT$ = "Xmodem Checksum"
+IF PROT = "YB" Then PROT$ = "Ymodem Batch"
+
+Return 0
+
+CHECK: Prosedure
+        SETUP()
+        Printex('')
+        Print('Ansi         : 'Ansi$)
+        Print('Ansi Color   : 'Color$)
+        Print('character set: 'Typ)
+        Print('Page Length  : 'Lines)
+        Print('Archive Type : 'ARC$)
+        Printex('Protocol     : 'PROT$)
+        Printnocr('Is this above correct ? (Y/n) : ') ; Getline 1
+        IF RC = 20 then exit
+        Test = Upper(result) ; IF Length(Test) < 1 Then Test = "Y"
+        IF Test ~= "Y" Then CHECK2()
+        ELSE FIN()
+
+Return 0
+
+CHECK2: Prosedure
+        SETUP()
+        Printex()
+        Print('1. Ansi         : 'Ansi$)
+        Print('2. Ansi Color   : 'Color$)
+        Print('3. character set: 'Typ)
+        Print('4. Page Length  : 'Lines)
+        Print('5. Archive Type : 'ARC$)
+        Printex('6. Protocol     : 'PROT$)
+        Printnocr('Type the number you will change (Enter = None): ') ; Getline 1
+        TODO = Result ; If length(TODO) < 1 then Fin()
+        IF TODO = 1 THEN ANSITERM(1)
+        IF TODO = 2 & ANSI = "Y" THEN ANSICOLOR(1)
+        IF TODO = 2 & ANSI = "N" THEN NOPE(1)
+        IF TODO = 3 THEN CHARSET(1)
+        IF TODO = 4 THEN PAGELENGTH(1)
+        IF TODO = 5 THEN ARCFORMAT(1)
+        IF TODO = 6 THEN PROTOCOL(1)
+        IF TODO = "-" THEN FAILURE()
+        ELSE CHECK2()
+CHECK2()
+
+NOPE: Prosedure
+Parse arg test
+        Print('You can''t turn on Ansi colors without Ansi Terminal')
+if test = 1 then CHECK2()
+else return 0
+
+FIN: Prosedure
+Printex('')
+Print('To get access at this board you must enter some Info about your self')
+Printex('To do this just type ''Q EDIT'' when you have logged on!')
+Printnocr('Press any key to Continue...') ; READCHAR
+IF RC = 20 then exit
+Print()
+IF TYP = "ISO" then TYP$ = "0" /* bit 24-28 */
+IF TYP = "IBN" then TYP$ = "2"
+LIN$ =right(D2X(LINES),2,"0")
+IF ARCHIVE = "T" then ARC$ = "0" /* bit 12-15 */
+IF ARCHIVE = "A" then ARC$ = "1"
+IF ARCHIVE = "L" then ARC$ = "2"
+IF ARCHIVE = "Z" then ARC$ = "3"
+IF ARCHIVE = "H" then ARC$ = "4"
+IF PROT = "Z" Then PROT$ = "1" /* bit 8-11 */
+IF PROT = "X" Then PROT$ = "2"
+IF PROT = "C" Then PROT$ = "3"
+IF PROT = "Y" Then PROT$ = "4"
+IF PROT = "YB" Then PROT$ = "5"
+IF ANSI = "Y" then B4 = "1" 
+IF ANSI = "Y" then B0 = "1" 
+IF ANSI = "Y" then B1 = "1" 
+IF ANSI = "N" then B4 = "0" 
+IF ANSI = "N" then B0 = "0" 
+IF ANSI = "N" then B1 = "0" 
+IF ANSI = "N" then B2 = "0"
+IF COLOR = "Y" then B2 ="1" ; ELSE B2 = "0"
+IF RAWFILE = "Y" then B6 = "1" ; ELSE B6 = "0"
+BIN = '1'B6'0'B4'1'B2''B1''B0
+MN = '0'TYP$''LIN$''ARC$''PROT$''C2X(B2C(BIN))
+
+USERSETUP X2D(MN)
+
+EXIT
+
+Return 0
+
+FAILURE: Prosedure
+Print('File not found') ; Printex('Please tell Sysop!')
+EXIT
+
+Return 0
+END;END
+
+/* ------------------------------------------ */
+
+Print: Procedure
+Parse arg text
+Writetext '"'||text||'"';Outimage
+If RC > 0 Then exit
+Return 0
+
+Printex: Prosedure
+Parse arg text
+Writetext '"'||text||'"';outimage;
+If RC > 0 Then exit
+outimage
+If RC > 0 Then exit
+
+Return 0
+
+Printnocr: Procedure
+Parse arg text
+Writetext '"'||text||'"';Breakoutimage
+If RC > 0 Then exit
+Return 0
+

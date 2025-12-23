@@ -1,0 +1,225 @@
+@Database DOOR_NewUser
+
+@Node Main "NewUser"
+
+  NewUser V1.02 Written by Hydra^cP!
+
+  @{" Description          " link Description}
+  @{" Installation         " link Installation}
+  @{" System Options       " link SystemOptions}
+  @{" Command Line Options " link CmdLineOptions}
+  @{" Screens Displayed    " link ScreensDisplayed}
+  @{" Doors Called         " link DoorsCalled}
+  @{" Returns              " link Returns}
+  @{" Config Files         " link ConfigFiles}
+  @{" ToDo                 " link ToDo}
+  @{" History              " link History}
+
+@EndNode
+
+@Node Description "Description"
+
+  Description
+  ===========
+
+    This door creates new user accounts.
+
+    In operation it does this:
+
+    - Check:
+      - new users are allowed
+      - min new user connect speed
+      - ask for NUP
+
+    - Create and initialise a UserData structure for the user
+
+    - Apply "AccountDefaults" file from HBBS:System/Data/AccountDefaults/#?.CFG
+      to the account.
+
+    - Display GuestLogon screen
+
+    - Ask user certain questions and fill UserData structure accordingly
+      - make sure that if handle and realname are in use then check all other
+        accounts to see if someone else has the same realname or handle as
+        the new user.
+
+    - Ask user if they are sure they want a new account
+
+    - Add new UserData structure to the user database making sure that
+      the STATUS variable in the UserData structure is set to 'N'
+
+    - return USERADDED if user added ok, otherwise return FAILED
+
+
+
+@EndNode
+
+
+@Node Installation "Installation"
+
+  Installation
+  ============
+
+    Included as part of the default HBBS setup.
+
+    Create a new directory "HBBS:Doors/System/NewUser"
+    Copy "NewUser.HBBS" to it, create config file as "NewUser.CFG"
+
+    Add options to HBBS:Commands/System like this:
+
+    NewUser_Type_1=HBBS
+    NewUser_Door_1=HBBS:Doors/System/NewUser/NewUser.HBBS {N} {O}
+
+@EndNode
+
+@Node SystemOptions "SystemOptions"
+
+  System Options
+  ==============
+
+    None
+
+@EndNode
+
+@Node CmdLineOptions "CmdLineOptions"
+
+  Command Line Options
+  ====================
+
+    None
+
+@EndNode
+
+@Node ScreensDisplayed "Screens Displayed"
+
+  Special Screens Displayed
+  =========================
+
+    Note: it is unadvisable to use any doors that check the users account for
+    details other than thier handle until the Joined screen is displayed
+
+    NoNewAt_All    - if this screen is present, no new users are allowed to join.
+    NoNewAt_<Baud> - if this screen is present the user will have to call back
+                     using a faster modem.
+
+    GuestLogin     - displayed before the user is asked for account/pw details
+
+    Joined         - displayed when user has joined the system
+
+    OptionMsg_TOP  - displayed before an option message
+    OptionMsg_BOT  - displayed after an option message
+
+@EndNode
+
+@Node DoorsCalled "Doors Called"
+
+  Doors Called
+  ============
+
+    System Doors:
+
+    SelectLanguage - Called after main options have been selected.
+    LinesPerScreen - Called after selectlanguage
+
+    User Doors:
+
+    SENT           - Called after LinesPerScreen
+
+@EndNode
+
+@Node Returns "Returns"
+
+  Returned Values (in N_ND->DoorReturn)
+  =====================================
+
+    USERADDED
+    FAILED
+
+@EndNode
+
+@Node ConfigFiles "ConfigFiles"
+
+  Config Files
+  ============
+
+    <filename>.CFG (e.g if door was renamed to moo.hbbs then cfg file
+    -------------- would be moo.cfg in the same directory as moo.hbbs
+
+      @{"AccessLevel" link CFG_AccessLevel} - Access Level assigned to new users
+      @{"ConfNum    " link CFG_ConfNum    } - Conference Number to join
+      @{"TimeAllowed" link CFG_TimeAllowed} - Amount of time a new user is allowed
+
+@EndNode
+
+@Node CFG_AccessLevel "AccessLevel"
+
+  AccessLevel=<number>
+
+    E.G.
+
+    AccessLevel=10
+
+    No Default, required
+
+    This is the access level that is given to a new user when they join the
+    system
+
+    This access level must be defined in the "HBBS:Access/Levels/Level_List"
+    file.
+
+@EndNode
+
+@Node CFG_ConfNum "ConfNum"
+
+  ConfNum=<number>
+
+    E.G.
+
+    ConfNum=4
+
+    No Default, required, must be a valid conference number.
+
+    The new user will join this conference when they first login to the BBS
+
+    Note, this is the actual conference number, not the number that would be
+    seen by this user if they used the JoinConference door from the BBS
+    prompt.
+
+@EndNode
+
+@Node CFG_TimeAllowed "TimeAllowed"
+
+  TimeAllowed=<number>
+
+    E.G.
+
+    TimeAllowed=20
+
+    No Default, required
+
+    This specifies the amout of time (in mins) that the user is allowed per
+    day by default, until the sysop changes their account details.
+
+@EndNode
+
+@Node ToDo "ToDo"
+
+  ToDo
+  ====
+
+    put min/max username/password lengths in config file.
+
+    add time check
+
+@EndNode
+
+@Node History "History"
+
+  History
+  =======
+
+    V1.0 - First Version
+
+@EndNode
+
+

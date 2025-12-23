@@ -1,0 +1,192 @@
+cnetcdoor.lib library reference.
+copyright © ZenMetal Software.  All rights reserved.
+
+The following are functions available in cnetcdoor.lib and are available
+for CNetC door use.
+
+---------------------------------------------------------------------------
+
+Function : CallHost
+ProtoType: void CallHost( UBYTE commandnum )
+Purpose  : To invoke a command internal to the BBS.  This causes "BBS" to
+           execute an internal version of the functions listed below.
+           CallHost() is the core of the CNetC built-in routines. CallHost
+           is generally not invoked by the CNetC door but is used internally
+           by the C#? functions below.
+Arguments: Number of internal command to invoke.
+Returns  : none.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CAddCharge
+ProtoType: UBYTE CAddCharge( short schedulenum, short amount )
+Purpose  : To add a charge to a user's CNet schedule.  Is applied to the
+           account of the user who is on the port which the CNetC door
+           is executed.
+Arguments: schedulenum = number of the schedule to which this charge is added.
+           amount = the amount to add to the account.  negative values may be
+           used for subtraction of an amount.
+Returns  : FALSE (0) if charge could not be added.
+           TRUE  (1) if charge added successfully
+Bugs     : non reported.
+
+---------------------------------------------------------------------------
+
+Function : CCallEditor
+ProtoType: void CCallEditor( short max, short inlines )
+Purpose  : Invokes the CNet editor according to user's preference of line or Visual
+Arguments: max = Number of lines of editor space to allow user.
+           inlines = if set to TRUE (1), the editor will import, and allow
+                     the user to edit the text existant in _edbuffX
+                     where X is the user's port number.
+                     if set to FALSE (0), CNet opens the editor with no text
+                     present.
+Returns  : none.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CCheckBalance
+ProtoType: UBYTE CCheckBalance( short schedule, short scalefactor )
+Purpose  : Companion function to AddCharge().  Checks if the users balance
+           would allow the addition of a charge.
+Arguments: charge = the number of the charge to be applied. 
+           scalefactor = the factor to be applied to the charge default value
+           before checking the user's balance.
+
+Example  : CCheckBalance(4, 2);
+           This would cause CNet to compare twice the amount of charge number
+           4 with the user's balance and return the result.
+Returns  : FALSE (0) - means the user's account cannot handle this charge
+                       without being forced into a negative situation.
+           TRUE (1) - mean this charge can be applied and the user's balance
+                      would still be positive.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CCheckChanges
+ProtoType: void CCheckChanges( void )
+Purpose  : Force CNet to update the current time, load the user's preferred
+           bbstext translation, charges If the user has little time remaining,
+           print "you have xx minutes left" and force Events to be checked for
+           pending execution.
+Arguments: none.
+Returns  : none.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CCheckFlowControl
+ProtoType: void CCheckFlowControl( void )
+Purpose  : Forces CNet to flush/check it's buffers and parse/update the
+           internal keyboard buffers.
+Arguments: none.
+Returns  : none.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CCheckOLM
+ProtoType: char CCheckOLM( void )
+Purpose  : Check if any OLMs are waiting and display them if so.
+Arguments: none.
+Returns  : 0 if no OLMs are waiting.
+           1 if OLMs were waiting and have been displayed.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CCommonCommands
+ProtoType: long CCommonCommands( void )
+Purpose  : Check z->InBuffer for Chat, OLM, etc. and execute any "everywhere
+           commands" that match.
+Arguments: This function expects the command and its arguments to be
+           setup in z->InBuffer.
+Example  :
+           strcpy(z->InBuffer, "MR");
+           CommonCommands();
+
+Returns  : 0 if no commands were executed.
+           1 if some "everywhere command" was executed.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CConvertAccess
+ProtoType: long CConvertAccess( char *s )
+Purpose  : Converts a CNet access/range string to a packed LONG value,
+Arguments: String containing a range of flags in CNet form. eg. 1,4,5-9
+Returns  : bit representation of the flags in packed LONG form.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CDoANSI
+ProtoType: void CDoANSI( UBYTE cmd, USHORT one, USHORT two)
+Purpose  : Print the specified ANSI sequence.
+Arguments: cmd = the ANSI command to execute. eg "H"
+           one = the first argument to the ANSI sequence.
+           two = the second argument to the ANSI sequence.
+Example  :
+           CDoANSI("H", 3, 5);
+
+           The above example would invoke the ANSI "H" command and cause the
+           cursor to go to line 3, column 5.
+
+Returns  : none.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function : CDoANSIOut
+ProtoType: void CDoANSIOut( UBYTE n)
+Purpose  : Invoke an ANSI command that requires no arguments.
+Arguments: n = a signelcharacter representing the ANSI command.
+Example  :
+           CDoANSIOut('s');
+
+           The above command would cause CNet to save the current cursor
+           position internally.
+ 
+Returns  : none.
+Bugs     : none.
+
+---------------------------------------------------------------------------
+
+Function         : CPutQMult
+ProtoType        : UBYTE CPutQMult( char *prompt, char *possiblities)
+Purpose          : This function operates similar to the YES or NO "CPutQ()"
+                   function.  Both of these functions print a prompt and return
+                   a value based on the key pressed by the user.  CPutQMult()
+                   differs from CPutQ in that CPutQMult allows more than 2
+                   keypress possibilities.  Where CPutQ allows Y, N or ENTER,
+                   CPutQMulti() lets the coder and, if coded properly, the user
+                   choose what keys to press and allows more than 2 choices.
+                   Based on the given choices, CPutQMult() returns a value
+                   equivalent to the key pressed.
+Arguments        : prompt = the string to print before accepting user input.
+                   possbilities = a string of keys available to the user
+                   and, as an option, a default key represented by the ENTER/RETURN
+                   keys. eg. "ABFGT G" where the final 'G' is the default key for
+                   and ENTER keypress.  Note:  If the default character is not
+                   specified in the possbilities string, the FIRST character of
+                   the possibilities string is used as a default for RETURN/ENTER
+                   keys.  eg. in the possbilities string "WYNQ", 'W' would be used
+                   as the default.
+link requirements: Global pointer to CNet port data (struct PortData *z)
+Returns          : positional value of the key pressed as represented by
+                   the "possibliities" input string.
+Example          : value = CPutQMult("Press A, B, T, or Q [ENTER=T]", "ABTQ T")
+
+                         Key pressed return value
+                         ----------- ------------                    
+                              A            1
+                              B            2
+                              T            3
+                              Q            4
+                            ENTER          3
+                            RETURN         3
+Bugs             : none.
+

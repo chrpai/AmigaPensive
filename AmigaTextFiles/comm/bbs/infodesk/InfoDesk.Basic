@@ -1,0 +1,301 @@
+1 DEFLNG a-z:cr$=CHR$(13)+CHR$(10):de$=CHR$(8)+" "+CHR$(8)
+
+ON ERROR GOTO Errors
+
+'2 rtime$="30":uname$="SYSOP":id$="1":lev$="9":bd$="2400":ring$="0"
+'3 path$="dh1:metro/doorfiles/door18/"
+'4 test$="YES"
+
+2 CLOSE#2:OPEN "I",#2,"RAM:USERDATA":LINE INPUT#2,rtime$:LINE INPUT#2,uname$
+3 LINE INPUT#2,id$:LINE INPUT#2,lev$:LINE INPUT#2,bd$:LINE INPUT#2,ring$
+4 LINE INPUT#2,path$:CLOSE#2
+
+5 rtime=VAL(rtime$):id=VAL(id$):lev=VAL(lev$):ring=VAL(ring$):GOSUB modem.o
+6 ON TIMER(60) GOSUB t.dec
+7 Title$="The Info Desk v1.0   ID:"+STR$(id)+"  "+uname$+"  Lev:"+STR$(lev)
+8 WINDOW 1,Title$,(0,0)-(617,185),7,-1:WINDOW OUTPUT 1:TIMER ON
+
+MAXSUB=25:maxlines=23
+
+SetUp:
+  DIM subject$(MAXSUB,2)
+  flnm$=path$+"Main.Dat"
+  GOSUB LoadMenu
+
+Title:
+  o$=cr$+cr$+cr$+cr$+"    The Info Desk"+cr$:GOSUB modem.out
+  o$="          by"+cr$:GOSUB modem.out
+  o$="    Mark D. Turner"+cr$:GOSUB modem.out
+
+MainMenu:
+  GOSUB TimeCheck
+  o$=cr$+cr$+cr$+"      MAIN MENU"+cr$+cr$:GOSUB modem.out
+  o$=" <R>ead a subject"+cr$:GOSUB modem.out
+  o$=" <S>uggest a topic"+cr$:GOSUB modem.out
+  o$=" <C>hange page length"+cr$:GOSUB modem.out
+  IF lev=9 THEN o$=" <M>aintenance"+cr$:GOSUB modem.out
+  o$=" <Q>uit"+cr$+cr$:GOSUB modem.out
+  o$=" Your choice: ":in=0:il=1:GOSUB modem
+  ch$=in$
+  IF ch$="R" THEN GOSUB ReadIt:IF newmenu$="YES" THEN GOSUB LoadMenu:GOSUB ReadIt
+  IF ch$="S" THEN GOSUB Suggestion
+  IF ch$="C" THEN GOSUB ChangePage
+  IF ch$="M" AND lev=9 THEN GOSUB Maintenance
+  IF ch$="Q" THEN GoodBye
+GOTO MainMenu
+
+ReadIt:
+  newmenu$="NO"
+  GOSUB PickSubject
+  IF which=0 AND UCASE$(exitmenu$)="NONE" THEN RETURN
+  IF which=0 THEN newmenu$="YES":flnm$=path$+exitmenu$+".Dat":CLOSE #2:GOSUB LoadMenu:GOTO ReadIt 
+  linect=0
+  flnm$=path$+subject$(which,2)+".Dat"
+1000 OPEN "i",#2,flnm$
+  WHILE EOF(2)<>-1
+    LINE INPUT #2, temp$
+    IF LEFT$(temp$,1)="\" THEN newmenu$="YES":flnm$=path$+subject$(which,2)+".Dat":CLOSE #2:GOSUB LoadMenu:GOTO ReadIt
+    o$=temp$+cr$:GOSUB modem.out
+    linect=linect+1
+    IF linect=(maxlines-2) THEN linect=0:GOSUB GoOrQuit:IF go$="Q" THEN CLOSE #2:RETURN
+  WEND
+  CLOSE #2
+1099 GOSUB AnyKey
+GOTO ReadIt
+
+LoadMenu:
+2000 OPEN "i",#2,flnm$
+  LINE INPUT #2, temp$
+  exitmenu$=RIGHT$(temp$,(LEN(temp$)-1))
+  ct=0
+  WHILE EOF(2)<>-1
+    LINE INPUT #2,temp$
+    IF temp$<>"" THEN
+      ct=ct+1
+      pos1=INSTR(temp$,"\")
+      subject$(ct,1)=LEFT$(temp$,(pos1-1))
+      subject$(ct,2)=RIGHT$(temp$,(LEN(temp$)-pos1))
+    END IF
+  WEND
+  subjects=ct
+  CLOSE #2
+2099 RETURN
+
+PickSubject:
+  GOSUB TimeCheck
+  which=0
+  o$=cr$:GOSUB modem.out
+  FOR ct=1 TO subjects
+    IF ct<10 THEN o$=" " ELSE o$=""
+    o$=o$+STR$(ct)+"  "+subject$(ct,1)+cr$:GOSUB modem.out
+  NEXT ct
+  o$="  0  QUIT"+cr$:GOSUB modem.out
+PickSubject2:
+  o$=cr$+"Which subject (0 -"+STR$(subjects)+")? ":in=4:il=2:GOSUB modem
+  which$=in$
+  which=VAL(which$)
+  IF which<0 OR which>subjects THEN PickSubject2
+RETURN
+
+Suggestion:
+  o$=cr$+cr$+cr$+"What do you suggest for a future topic?"+cr$:in=1:il=78:GOSUB modem
+  sug$=in$
+  IF sug$="" THEN RETURN
+  flnm$=path$+"Suggest.Dat"
+  OPEN "a",#2,flnm$
+  PRINT#2,sug$
+  CLOSE #2
+  o$=cr$+"Thanks for the idea!"+cr$:GOSUB modem.out
+  GOSUB AnyKey
+RETURN
+
+ChangePage:
+  o$=cr$+cr$+cr$+"How many lines are on your screen? ":in=4:il=4:GOSUB modem
+  temp=VAL(in$)
+  IF temp>0 THEN maxlines=temp ELSE ChangePage
+RETURN
+
+Maintenance:
+  o$=cr$+cr$+cr$+"   MAINTENANCE MENU"+cr$+cr$:GOSUB modem.out
+  o$=" <D>elete Suggestions"+cr$:GOSUB modem.out
+  o$=" <R>ead Suggestions"+cr$:GOSUB modem.out
+  o$=" <Q>uit Maintenance"+cr$:GOSUB modem.out
+  o$=cr$+" Your choice: ":in=0:il=1:GOSUB modem
+  ch6$=in$
+  IF ch6$="D" THEN GOSUB DelSug
+  IF ch6$="R" THEN GOSUB ReadSug
+  IF ch6$="Q" THEN RETURN
+GOTO Maintenance
+
+GoodBye:
+  o$=cr$+cr$+"Call The Outer Limits - Monday to Friday - 8am to 7pm - 304-327-7452"+cr$+cr$:GOSUB modem.out
+  GOTO bye
+
+ReadSug:
+  o$=cr$+cr$+cr$+"USER'S SUGGESTIONS"+cr$+cr$:GOSUB modem.out
+  flnm$=path$+"Suggest.Dat"
+3000 OPEN "i",#2,flnm$
+  linect=2
+  WHILE EOF(2)<>-1
+    LINE INPUT #2,temp$
+    o$=temp$+cr$+cr$:GOSUB modem.out
+    linect=linect+2
+    IF linect=>(maxlines-2) THEN linect=0:GOSUB AnyKey
+  WEND
+  CLOSE #2
+3099 GOSUB AnyKey
+RETURN
+
+DelSug:
+  o$=cr$+cr$+"Do you want to delete the suggestions (y/N)? ":in=3:il=1:yes=0:GOSUB modem
+  IF in$="NO" THEN RETURN
+  flnm$=path$+"Suggest.Dat"
+4000 KILL flnm$
+4099 o$="The suggestions have been deleted!"+cr$:GOSUB modem.out
+  GOSUB AnyKey
+RETURN
+
+Errors:
+  IF ERL=1000 THEN o$="Sorry, that is not available today."+cr$:GOSUB modem.out:RESUME 1099
+  IF ERL=2000 THEN o$="Sorry, that is not available today."+cr$:GOSUB modem.out:RESUME 2099
+  IF ERL=3000 THEN o$="No suggestions have been made."+cr$:GOSUB modem.out:RESUME 3099
+  IF ERL=4000 THEN RESUME 4099
+  o$="Opps!  A program error."+cr$:GOSUB modem.out
+STOP
+  RESUME GoodBye
+
+AnyKey:
+  o$=cr$+"Press any key...":in=0:il=1:GOSUB modem
+  RETURN
+  
+GoOrQuit:
+  o$=cr$+"<C>ontinue or <Q>uit? ":in=0:il=1:GOSUB modem
+  go$=in$
+  IF go$="" THEN go$="C"
+  IF go$<>"C" AND go$<>"Q" THEN GoOrQuit
+  RETURN
+
+bye:
+  TIMER OFF
+  IF test$<>"YES" THEN
+    KILL "RAM:USERDATA"
+    WINDOW CLOSE 1
+  END IF
+  GOSUB modem.c
+  CLEAR
+END
+
+modem:
+GOSUB modem.out:GOSUB modem.in:RETURN
+
+modem.out:
+IF icon=0 THEN PRINT o$;
+IF ring=1 AND no.out=0 THEN PRINT#1,o$;:o$=""
+IF (modout=1 OR cmdmenu=1 OR dismsg=1 OR chat=1) THEN GOSUB modem.in
+RETURN
+mod.out1:
+abort=1:RETURN
+
+modem.in:
+idle=TIMER:key$="":in$="":a$="":mi$="":a=0:keyy=0:b=0
+WHILE keyy<>1
+ key$=INKEY$:IF key$<>"" THEN mod.in1
+ IF ring=1 THEN
+  cd=PEEKL(12570624&):cd=cd AND 8192
+  IF cd<>0 THEN bye
+  IF LOC(1) THEN a$=INPUT$(1,1):key$=a$
+ END IF
+mod.in1:
+IF key$=CHR$(19) THEN
+ pau$="":paused=TIMER
+ WHILE TIMER<paused+45
+  pau$=INKEY$
+  IF pau$<>"" THEN key$="":pau$="":GOTO mod.in1.1
+  IF ring=1 THEN
+   IF LOC(1) THEN key$="":pau$="":GOTO mod.in1.1
+  END IF
+ WEND
+ key$="":pau$=""
+END IF
+mod.in1.1:
+IF (modout=1 OR cmdmenu=1 OR dismsg=1 OR chat=1) AND key$="" THEN keyy=1
+IF modout=1 AND key$=CHR$(32) THEN mod.out1
+IF modout=1 AND key$<>CHR$(32) THEN keyy=1
+IF cmdmenu=1 AND key$<>"" THEN cmd=1
+IF dismsg=1 AND key$<>"" THEN cmd=1
+IF key$="" THEN mod.in2
+mod.in1.5:
+a=ASC(key$):b=LEN(in$)
+IF a=13 THEN mod.in1.6
+IF a=129 THEN bye
+IF (a=8 OR a=127) AND LEN(in$)>=1 THEN
+ in$=LEFT$(in$,b-1):b=b-1:o$=de$:GOSUB modem.out
+END IF
+IF b=il THEN mod.in2
+IF in=0 THEN
+ IF a>31 AND a<127 THEN
+  IF cmd=1 THEN cmdmenu=0:dismsg=0
+  key$=UCASE$(key$):o$=key$+cr$:GOSUB modem.out:in$=key$:keyy=1
+ END IF
+END IF
+mod.in1.6:
+IF in=1 AND a>31 AND a<127 THEN o$=key$:GOSUB modem.out:in$=in$+key$
+IF in=2 AND a>31 AND a<127 THEN
+ key$=UCASE$(key$):o$=key$:GOSUB modem.out:in$=in$+key$
+END IF
+IF in=3 THEN
+ IF a=13 AND yes=1 THEN o$="YES":GOSUB modem.out:in$="YES":keyy=1
+ IF a=13 AND yes=0 THEN o$="NO":GOSUB modem.out:in$="NO":keyy=1
+ IF a=89 OR a=121 THEN o$="YES"+cr$:GOSUB modem.out:in$="YES":keyy=1
+ IF a=78 OR a=110 THEN o$="NO"+cr$:GOSUB modem.out:in$="NO":keyy=1
+END IF
+IF in=4 AND a>47 AND a<58 THEN o$=key$:GOSUB modem.out:in$=in$+key$
+
+IF a=13 THEN o$=cr$:GOSUB modem.out:keyy=1
+mod.in2:
+IF TIMER>idle+300 THEN
+ IF sysop=1 AND logon=0 AND TIMER>idle+600 THEN bye
+ IF lev>7 AND TIMER>idle+600 THEN bye
+ IF lev<8 THEN bye
+END IF
+mod.in2.0:
+WEND
+
+IF ring=1 THEN
+ IF LOC(1) THEN mi$=INPUT$(LOF(1),1):mi$=""
+END IF
+mod.in2.1:
+RETURN
+
+time1:
+t.t=FRE(""):time1$=TIME$:t.t=VAL(LEFT$(time1$,2))
+IF t.t>11 THEN a$=" PM"
+IF t.t<12 THEN a$=" AM"
+IF t.t=0 THEN t.t=12:time1$=RIGHT$(STR$(t.t),2)+RIGHT$(time1$,6):GOTO timeout
+IF t.t<10 THEN time1$=RIGHT$(STR$(t.t),1)+RIGHT$(time1$,6):GOTO timeout
+IF t.t>21 THEN
+ t.t=t.t-12:time1$=RIGHT$(STR$(t.t),2)+RIGHT$(time1$,6):GOTO timeout
+END IF
+IF t.t>12 THEN t.t=t.t-12:time1$=RIGHT$(STR$(t.t),1)+RIGHT$(time1$,6)
+timeout:
+time1$=time1$+a$+"  "+DATE$:RETURN
+
+TimeCheck:
+GOSUB time1
+IF rtime<=0 THEN
+ o$=cr$+cr$+"Sorry, Time Limit Exceeded!":GOSUB modem.out:GOTO bye
+END IF
+RETURN
+
+t.dec:
+rtime=rtime-1
+RETURN
+
+delayy:
+pause=TIMER:WHILE TIMER<pause+tt:WEND:RETURN
+
+modem.c:
+CLOSE#1:RETURN
+
+modem.o:
+OPEN "COM1:"+bd$+",n,8,1" AS #1 LEN=2048:RETURN

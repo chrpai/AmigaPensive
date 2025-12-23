@@ -1,0 +1,185 @@
+;
+;	DELETE NODE
+;
+;	$VER: V1.02 / 16-08-95
+;
+;
+;	Funktion: Scriptfile zum Loeschen einer direkt angeschlossenen Node.
+;
+;
+;	Benoetigte AMMS-Befehle :
+;	-------------------------
+;	check file
+;	check user
+;	delete user
+;	disk execute
+;	echo
+;	eod
+;	extern
+;	gosub
+;	input
+;	on break
+;	on error
+;	return
+;	show nodes
+;
+;
+;	Benoetigte Amiga-Dos-Befehle :
+;	------------------------------
+;	delete
+;
+
+;
+;	Abbruch, Fehlerspruenge definieren
+;
+
+_on error END				; Bei Fehler -> Ende
+_on break END				; Bei Abbruch -> Ende
+
+;
+;	Sprachspezifische Daten laden
+;
+
+_gosub LOADTEXT
+
+;
+;	Nodename eingeben
+;
+
+_parse "DELETE NODE" P0 "N/'TEXT_GETNODE'" NODENAME
+_if NODENAME == "" then _goto END	; Wenn Leereingabe -> Ende
+
+;
+;	Pruefe, ob Netzuser existiert
+;
+
+AN=""					; Zusatzstring vor Name loeschen
+_check user "'NODENAME'" TESTNET	; Wenn Fehler, verzw.
+_goto DELUSER
+TESTNET:
+AN="net@"				; Zusatzstring vor Name setzen
+_check user "'AN''NODENAME'" NOUSER	; Wenn Fehler, verzw.
+
+;
+;	Netzuser loeschen
+;
+DELUSER:
+_delete user "'AN''NODENAME'"		; Loesche User
+_check user "'AN''NODENAME'" DELUSER_OK	; Wenn User vorhanden, Ende
+_goto END
+DELUSER_OK:
+
+;
+;	Node aus Nodeliste loeschen
+;
+
+_echo/nolf "'TEXT_DELNODE1''NODENAME''TEXT_DELNODE2'" ; Statustext ausgeben
+_change node/del "'NODENAME'"		; Node aus Nodeliste loeschen
+_echo TEXT_OK				; OK ausgeben
+
+;
+;	File mbdat:net@<NODENAME>.pw loeschen
+;
+
+FILE="mbdat:'AN''NODENAME'.pw"		; Filename erzeugen
+_gosub DELFILE				; File loeschen
+
+;
+;	File mbnet:nodes/<NODENAME> loeschen
+;
+
+FILE="mbnet:nodes/'NODENAME'"		; Filename erzeugen
+_gosub DELFILE				; File loeschen
+
+;
+;	File mbnet:localnodes/<NODENAME> loeschen
+;
+
+FILE="mbnet:localnodes/'NODENAME'"	; Filename erzeugen
+_gosub DELFILE				; File loeschen
+
+;
+;	File mbnet:<NODENAME>1 loeschen
+;
+
+FILE="mbnet:'NODENAME'1"		; Filename erzeugen
+_gosub DELFILE				; File loeschen
+
+;
+;	File mbnet:<NODENAME>2 loeschen
+;
+
+FILE="mbnet:'NODENAME'2"		; Filename erzeugen
+_gosub DELFILE				; File loeschen
+
+;
+;	Files mbnet:Export/<NODENAME>@??.#? loeschen
+;
+
+FILE="mbnet:Export/'NODENAME'@??.#?"	; Filename erzeugen
+_gosub DELFILE				; Files loeschen
+
+;
+;	Files mbnet:Import/<NODENAME>@#? loeschen
+;
+
+FILE="mbnet:Import/'NODENAME'@??.#?"	; Filename erzeugen
+_gosub DELFILE				; Files loeschen
+
+;
+;	File mbnet:ExportFTab/<NODENAME> loeschen
+;
+
+FILE="mbnet:ExportFTab/'NODENAME'"	; Filename erzeugen
+_gosub DELFILE				; File loeschen
+
+;
+;	File mbnet:ImportFTab/<NODENAME> loeschen
+;
+
+FILE="mbnet:ImportFTab/'NODENAME'"	; Filename erzeugen
+_gosub DELFILE				; File loeschen
+
+;
+;	Sprung zum Ende
+;
+
+_goto END				; -> Ende
+
+;
+;	File loeschen
+;	Var: FILE = Filename
+;
+DELFILE:
+_echo/nolf "'TEXT_DEL1''FILE''TEXT_DEL2'" ; Statustext ausgeben
+_extern delete >nil: "'FILE'"		; File loeschen
+_check file "'FILE'" DELFILE_OK		; Wenn File geloescht, verzw.
+_echo TEXT_ERROR			; Fehler, weil File vorhanden
+_return					; Ende
+
+DELFILE_OK:
+_echo TEXT_OK				; OK, wenn Filke geloeschtg
+_return					; Ende
+
+;
+;	Fehlermeldung: User nicht vorhanden
+;
+NOUSER:
+_echo "'TEXT_NOUSER1'""'NODENAME'""'TEXT_NOUSER2'"
+
+;
+;	Ende
+;
+END:
+_eod
+
+;
+; Unterroutine: Lade sprachspezifische Texte
+;
+LOADTEXT:
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/delete_node.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/delete_node.bat"
+_return

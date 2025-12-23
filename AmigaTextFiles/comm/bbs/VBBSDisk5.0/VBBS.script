@@ -1,0 +1,59 @@
+;VBBS.scp - script for dialing both of VBBS's lines automatically
+;
+;Features:
+;	 - handles both lines
+;	 - properly steps between lines
+;	 - waits a minute if both lines are busy, before tryinng again
+;	 - adjusts modems "NO CONNECT" timeout to more optimum values
+;		 (this may need individual attention)
+;	 - more reliable design
+;	 - allows human assistance (you can hit <return> if you hear a busy
+;		 signal, and your modem doesn't detect it)
+;
+;  This script works very nicely on USR modems.
+;
+;/kenw 910210
+
+init
+
+  delay 15	  ; make sure modem is clear
+  send +++
+  delay 20
+  send atz
+  cr
+  wait OK
+  send ats7=25	  ; set fairly short "connect patience"
+  cr
+  wait OK
+
+  on CONNECT startproto  ;when we get a CONNECT we go to the startproto label
+
+line1
+  cr
+  on "NO CARRIER" line2
+  on BUSY line2
+  send atdt284-2048
+  cr
+  delay 500
+  cr
+  wait OK
+
+line2
+  cr
+  on "NO CARRIER" line1
+  on BUSY waitaminute
+  send atdt284-5624
+  cr
+  delay 500
+  cr
+  wait OK
+
+waitaminute
+  print "Can't get through - waiting a minute before trying again..."
+  delay 600
+  goto line1
+
+startproto
+  wait 5
+  print "We have connection, starting protocol"
+  exit

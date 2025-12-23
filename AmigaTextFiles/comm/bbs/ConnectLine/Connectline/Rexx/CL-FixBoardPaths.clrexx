@@ -1,0 +1,144 @@
+/*
+**  $VER: CL-FixBoardPaths.clrexx 0.3 (05 Feb 1996)
+**
+**        © 1995-96 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-FixBoardPaths.clrexx
+**
+**  FUNCTION:
+**      Demonstrationsskript zur cl_rexx.library, Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl_rexx.library © 1995 Mathias Mischler
+**
+**      Dieses Skript setzt sämtliche Brettpfade auf den in der Haupt-
+**      konfiguration angegebenen Standardpfad, sofern sie von diesem
+**      abweichen. Die Brettinhalte werden soweit vorhanden umkopiert.
+**
+**      Für den Kopiervorgang wird ein 'rename' benutzt, dennoch be-
+**      steht die Gefahr, daß bei über mehrere Partitionen verteilten
+**      Bretter die Brettpfade von vorne bis hinten nicht mehr stimmen.
+**      Fertigen sie vor einem etwaigen Aufruf daher eine Sicherheits-
+**      kopie ihrer Bretterpartition(en)  und ihrer Brettliste an!
+**
+**      DISCLAIMER:
+**      Dieses Skript ist vorrangig für Demonstrationszwecke gedacht.
+**      Ein Einsatz dieses Skripts im praktischen Mailboxbetrieb kann
+**      mitunter zu Verlusten lokal eingelagerter Nachrichten führen,
+**      denn die Brettpfade werden elementar verändert.
+**      Jeglicher Einsatz dieses Skripts erfolgt auf eigene Verantwor-
+**      tung des Benutzers, für enstandene Schäden können die Copyright-
+**      inhaber nicht haftbar gemacht werden.
+**
+*/
+
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then exit 10
+    end
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+    end
+
+/* Fontsize ermitteln */
+
+gfxbase=showlist(l,'graphics.library',0,a)
+call forbid
+FontAddress=next(gfxbase,154)
+Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+call permit
+windowwidth=Fontsize*80
+windowheight=Fontsize*15
+windowY=Fontsize+1
+WindowX=Fontsize
+
+
+
+/* Standard-IO umleiten */
+
+screen=CLGET_FrontScreenName()
+
+call close STDOUT
+if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-FixBoardPath/SCREEN'screen,'W') then
+    exit 20
+else do
+    call close STDIN
+    call open STDIN,'*',R
+    call pragma '*'
+    end
+
+say 'Sie haben CL-FixBoardPaths.clrexx gestartet.'
+options prompt "Wollen Sie die Brettpfade wirklich korrigieren lassen?"
+pull wahl
+if wahl~='J' then exit
+
+
+
+/* Hauptprogamm */
+
+   stdpfad=CLGET_PathBoard()
+
+   say 'Ermittelter Standardpfad: 'stdpfad
+   say ''
+
+/* So, und jetzt geht die Malocherei in der Brettliste los */
+
+   anzahl=CLGET_BoardNumberOf()                 /* Anzahl der Bretter */
+   prev=''
+
+   do x=1 to anzahl
+    brett=CLGET_BoardNext(prev)
+    prev=brett
+    brettpfad=CLGET_BoardPath(brett)
+    if brettpfad~=stdpfad||brett then do       /* Nicht auf Standardpfad */
+
+        /* Jetzt müssen erstmal die Verzeichnisse alle angelegt werden */
+
+        do nextdir=1 to words(brett)
+            temppfad=stdpfad||word(brett,nextdir)
+            call makedir temppfad
+            end
+
+        /* Und nun kopieren wir alle Brettinhalte auf den neuen Pfad */
+        /* Und zwar alle Files in diesem Brett, keine Dirs           */
+
+        Inhalt=''
+
+        /* Wenn man showdir() als Parameter einen Leerstring über-  */
+        /* gibt, liefert die Funktion das aktuelle Verzeichnis zu-  */
+        /* rück. Diese Angabe müssen wir ausfiltern.                */
+
+        if brettpfad~='' then do
+            Inhalt=showdir(brettpfad,'FILE')
+            files=words(Inhalt)
+            if right(brettpfad,1)~='/' then brettpfad=brettpfad'/'
+            say 'Kopiere 'brettpfad'#? -> 'temppfad' ('files' Files)'
+
+            if files>0 then do
+                do y=1 to files
+                    name=word(Inhalt,y)
+                    if (rename(brettpfad||name,temppfad||'/'name) then do
+                    call CLSET_BoardPath(temppfad)
+                    end
+                end
+        else do
+            say 'Keine Pfadangabe, lege 'temppfad' neu an!'
+            call CLSET_BoardPath(brett,temppfad)
+            call CLSET_BoardRouteOnly(brett,1)
+            call CL_LogAdd(0,'FIXBPATH','Pfad von /'brett' jetzt:'temppfad)
+            end
+        end
+    end
+
+options prompt "<Bitte drücken Sie RETURN>"
+pull dummy
+
+call close STDOUT
+call close STDIN
+return

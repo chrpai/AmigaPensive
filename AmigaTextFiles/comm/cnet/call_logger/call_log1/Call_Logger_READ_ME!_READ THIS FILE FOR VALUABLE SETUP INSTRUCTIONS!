@@ -1,0 +1,399 @@
+===========================================================================
+        Call Logger, v3.34 READ_ME File By Dotoran of Frontiers BBS!
+===========================================================================
+
+    This is a "Last 10 Callers" type of program, but gives the Sysop a lot
+more flexibility in the customization of the finished output file. The out-
+put file is suitable for use as a Text File on your system, or for inclusion
+into your "sys.welcome" file.
+
+    For those upgrading from v2.0, please search out the term CONVERT for
+information on installing the new version.
+
+    If converting from v3.2(or higher), simply replace the Call_Logger file
+you're currently using with the newer one that came in this archive.
+
+      NOTE: There's an error in CNet where the counter used for running
+            pfiles(doors) is not being incremented. If you have users on
+            your bbs who call just to play the games, these users will
+            appear as having done "Nothing!" during their call. This bug
+            will hopefully be fixed by Ray sometime in the near future and
+            is NOT a fault with this program. :-)
+
+What you should have:
+~~~~~~~~~~~~~~~~~~~~~
+    The following files should have been included with this archive. If any
+of the files is missing, DO NOT TRUST THIS ARCHIVE!
+
+    Call_Log1                   - Directory.
+        Call_Logger             - Arexx Command File.
+        Call_Logger_READ_ME!    - This Text File.
+        Call_Logger_HISTORY!    - Lists Changes to Call_Logger.
+
+What will Call_Logger do:
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    Call_Logger will create a text file listing past callers to your system,
+along with stats on what they did while online. Each line in the Call_Log
+follows the format given below:
+
+0  1  *Dotoran          96 [prudgtfm]  10:00a 10:25a  3  Ami  50   12   2
+|  |  |   |              |     |         |      |     |   |    |    |   |
+A  B  C   D              E     F         G      H     I   J    K    L   M
+
+A: Port connection was made to.
+B: The ID number of the user who logged on.
+C: The NEW USER flag. If present, this is user's first call to your system.
+D: Handle of the user who logged on.
+E: Baud rate user connected with(divided by 100).
+F: Activity Flags:
+    P:ost, R:esponse, U:pload, D:ownload, G:ame, T:ext, F:eedback, M:ail
+    "Nothing!" will be printed if NONE of the above flags occurred.
+G: Sign-On time of the user.
+H: Log-Off time of the user.
+I: User's access group number.
+J: User's computer type(first three characters only).
+K: Total number of calls this user has made to your system.
+L: Total number of uploaded files this user has made to your system.
+M: Total number of posts AND responses this user has written.
+
+How to install the Logger:
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+    To install Call_Logger, v3.34, follow these steps:
+
+1: Copy the "Call_Log1" directory and it's files into a directory of your
+   choosing. It doesn't matter where you choose to store this directory, so
+   long as you keep all files INSIDE of this directory.
+
+2: In the "bbstext" file, on line 99 of the 4.24h version, locate
+   the following text: "@ Logoff complete\n1".
+
+3: Add the following to the END of that line, so that the finished line
+   looks like this:
+
+   @ Logoff complete\n1{#0doors:Call_Log1/Call_Logger}
+                       ^
+                    Control-Q
+
+   NOTE: If you chose to store the "Call_Log1/" directory in some other
+         location other than "doors:", change the above accordingly.
+
+4: Add the following line somewhere in your "sys.welcome" file:
+
+           {*4texts:Call_Log}
+           ^
+        Control-Q
+
+   NOTE: Change "texts:" to the path you're using to store "gfile" type
+         text files now.
+
+5: If you want a wait to immediately follow the Call_Log, add this line
+   right after the above line in your "sys.welcome" file:
+
+           \cfPress \c6ANY KEY \cfnow...\g1
+           `--------^---.------^--------'
+                        |
+                CONTROL-Y characters
+
+    That is all you HAVE to do to get the Logger functioning on your system,
+but you may want to customize the Logger to suit your needs better.
+
+How to customize the Logger:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    To customize the Logger for a more personal touch, you may edit the 16
+variables located near the beginning of the "Call_Logger" file. To do this,
+load the "Call_Logger" file into your favorite text editor. Starting on line
+10 are the sixteen Sysop definable variables that will be described fully
+below:
+
+V1:     {Ignore Ports}      - Default is [LOG ALL PORTS]
+~~~
+    This variable allows you to specify any ports you wish NOT to be logged.
+    To add ports to the variable, enclose them in double quote marks and
+    make sure to separate them with at least ONE space.
+
+    EXAMPLES:   "0"     -   Do NOT log calls made from port # 0.
+                "0 2"   -   Do NOT log calls made from ports 0 or 2.
+                "X"     -   log calls from ALL PORTS.
+____________________________________________________________________________
+
+V2:     {Ignore ID's}       - Default is [LOG ALL ID NUMBERS]
+~~~
+    This variable allows you to specify any ID numbers you do NOT want
+    logged. To add ID numbers, follow the same rules as for "V1".
+
+    EXAMPLES:   "1"     -   Do NOT log calls made by ID number 1.
+                "1 2"   -   Do NOT log calls from ID numbers 1 or 2.
+                "0"     -   Do NOT log calls made by "guests".
+                "X"     -   Log calls from ALL ID NUMBERS.
+
+    NOTE:   Guests are NEW users that do not supply a PASSWORD.
+____________________________________________________________________________
+
+V3:     {Ignore Accesses}   - Default is [LOG ALL ACCESS LEVELS]
+~~~
+    This variable allows you to specify any Access Levels you do NOT want
+    logged. To add Access Levels, follow the "V1" rules.
+
+    EXAMPLES:   "0"     -   Do NOT log calls made by Access Level 0 users.
+                "30 31" -   Do NOT log level 30 or level 31 users.
+                "X"     -   Log calls from ALL ACCESS LEVELS.
+____________________________________________________________________________
+
+V4:     {Max To Ever Log}   - Default is [LOG 10 CALLS: LAST 10 CALLERS]
+~~~
+    This variable allows you to control the size of the Call_Log file. You
+    can set this variable to ANY value, but I suggest keeping it between
+    1 and 13. This number tells the Logger the total number of calls that
+    can ever be in the Call_Log at one time.
+____________________________________________________________________________
+
+V5:     {Save Call-Backs}   - Defaults to [DO NOT SAVE CALL BACKS]
+~~~
+    This variable allows (or disallows) the Logger to log Call-Backs. A
+    call-back is when the same user calls your system twice in a row. This
+    variable can have two(2) values:
+
+        V5 = 0  - ( Call Backs should NOT be logged; default)
+        V5 = 1  - ( Call Backs should ALWAYS be logged)
+____________________________________________________________________________
+
+V6:     {Log Sysops}        - Defaults to [LOG EVERY FIFTH SYSOP CALL]
+~~~
+    This variable allows you to specify how often the Logger will log calls
+    made by the SysOp(only ID Number 1). The Logger keeps track of each time
+    the SysOp passes through the Logger and logs their call when the total
+    equals this value.
+____________________________________________________________________________
+
+V7:     {Activity BackDrop} - Defaults to [ 2  - ( [--------] ) ]
+~~~
+    This variable defines what the Non-Use Activity Flags will look like.
+    The variable can have a value between one(1) and seven(7).
+
+        V7 = 1 ( gives: [........] )       V7 = 2 ( gives: [--------] )
+        V7 = 3 ( gives: [prudgtfn] )       V7 = 4 ( gives: [********] )
+        V7 = 5 ( gives: [xxxxxxxx] )       V7 = 6 ( gives: [========] )
+        V7 = 7 ( Non-Use Activity Flags will use character in V8 )
+
+    NOTE1: If using the new Quick Call_Log output, it is suggested that you
+           use a value of 1 or 2 for V7 for the best readability.
+
+    NOTE2: If no activity was performed by the logged caller, the flag data
+           will be replaced with [Nothing!].
+
+    NOTE3: Since the release of the ZenMetal 4.xx releases, CNet is not
+           correctly updating the "doors opened" counter. For this reason,
+           you may see many more "Nothing!" users than you may actually have,
+           as users who call your bbs only to play games will always appear
+           as having done "Nothing!". Hopefully, Ray will fix this soon!
+____________________________________________________________________________
+
+V8:     {V7 Filler}         - Defaults to [THE   #   CHARACTER]
+~~~
+    This variable is used in conjunction with the V7 variable. In fact, the
+    V8 variable is ONLY used when the V7 variable holds a 7.    V7 = 7
+    The character within the V8 variable is used as the Non-Use character
+    in the Activity Flags when V7 = 7.
+
+    EXAMPLES:   V7 = 7   &   V8 = "#"  ( gives: [########] )
+                V7 = 7   &   V8 = "^"  ( gives: [^^^^^^^^] )
+____________________________________________________________________________
+
+V9:     {Abortable Log}     - Defaults to [ALLOW LOG TO BE ABORTED]
+~~~
+    This variable allows you to create a Call_Log that can be aborted by the
+    user when the /, SPACE, or CTRL-C key combinations are pressed, or to
+    create a Call_Log that can NOT be aborted with these sequences.
+
+        V9 = 0  - ( Log can NOT be aborted by the user)
+        V9 = 1  - ( Log CAN be aborted by the user)
+____________________________________________________________________________
+
+V10:    {Output Type}       - Defaults to [QUICK CALL_LOG OUTPUT]
+~~~~
+    You can now choose between two different looking Call_Logs.
+
+        V10 = 0  - ( The elaborate BLUE Call_Log from v2.0)
+        v10 = 1  - ( The NEW Quick Grey Call_Log from v3.0)
+____________________________________________________________________________
+
+V11:    {Log Ordering}      - Defaults to [NEWEST CALLS FIRST IN LOG]
+~~~~
+    You can now choose which order you wish the call data to come in.
+
+        V11 = 0  - ( The NEWEST calls come first in the Log)
+        V12 = 1  - ( The OLDEST calls come first in the Log)
+____________________________________________________________________________
+
+V12:    {Quick Colors}      - Defaults to [ db   (Lt.Purple/Lt.Yellow)]
+~~~~
+    This variable is only used with the NEW Quick Log( V10 = 1 ). The
+    contents of this variable tell the Logger which colors to make the call
+    entries in the Quick Log. The colors will cycle through. The default
+    value will create a Quick Log using Light Purple and Light Yellow for
+    the Log entries. The contents of this variable are the MCI color codes
+    needed, MINUS the \c
+
+    EXAMPLES:   V12 = '9fc'     - ( Creates a RED / WHITE / BLUE Quick Log)
+                V12 = '6e'      - ( Creates a CYAN / LIGHT CYAN Quick Log)
+____________________________________________________________________________
+
+V13:    {Notate Ignores}    - Defaults to [DO NOT NOTATE IGNORED CALLS]
+~~~~
+    This variable allows you to notate that a call was made, but will not
+    list personal data if the call that passed through the Logger would
+    normally have been ignored, as set by the values in the V1, V2, V3, V5,
+    and V6 variables.
+
+        V13 = 0  - ( Do NOT notate ignored calls)
+        v13 = 1  - ( NOTATE any calls that would normally be ignored)
+____________________________________________________________________________
+
+V14:    {Border Color}      - Defaults to [Use BRIGHT BLUE for Border]
+~~~~
+    This variable is NEW to Call_Logger v3.3! I discovered that the Dark
+    Grey color of the Border used in the Quick Log format showed as BLACK
+    on 8-color terminal screens, so I needed to change the color, but then
+    I thought the SysOps might like the ability to change it themselves.
+
+        V14 = "1"  - ( Use \cc (dark red) for border color )
+        V14 = "f"  - ( Use \cf (bright white) for border color )
+____________________________________________________________________________
+
+V15:    {Clear Screen}      - Defaults to [CLEAR SCREEN BEFORE DISPLAYING]
+~~~~
+    This variable is NEW to Call_Logger v3.3! This variable allows you to
+    specify if you wish the screen to be CLEARED before the Call_Log is
+    displayed on the screen. By NOT clearing the screen, you get kind of a
+    neat "scrolling" effect to the log that some SysOps might enjoy.
+
+        V15 = 1    - ( Clear the screen before displaying log )
+        V15 = 0    - ( Do NOT clear the screen before displaying log )
+____________________________________________________________________________
+
+D1:     {Call_Log Path}     - Defaults to [  TEXTS:  ]
+~~~
+    This variable tells the Logger where to store the outputted Call_Log
+    file. Normally, this would be the Texts: directory, but in the event
+    you wish to store it elsewhere, you will need to change this variable.
+    The contents of this variable must ALWAYS end with either a colon( : ),
+    or a slash( / ).
+
+    NOTE1: If you CHANGE this variable, you will also have to edit the line
+           you added to the "sys.welcome" file to reflect this change.
+
+    NOTE2: This is the reason the directory is called "Call_Log1", just in
+           case you wish to store it in the same directory you placed the
+           "Call_Log1/" directory.
+____________________________________________________________________________
+
+Editing Variables PostLogged:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    The Logger has been tested thoroughly as far as changing the variables
+on the fly. Although changing certain variables may have an obverse affect
+on how the Log looks, eventually the Log will clean itself up:
+
+   EXAMPLE1: Your running the Elaborate BLUE Log and decide you want to
+             change to the NEW Quick Grey Log. Simply changing the V10
+             variable is all that is needed. Both Logs line up, but you
+             will notice that some of the older entries in the Log are of
+             the Elaborate type. After a couple of calls, these OLD Log
+             entries will be replaced by newer Quick Log entries.
+
+   EXAMPLE2: Your using dashes for the Log Activity and decide to go with
+             the lowercase letters. Simply change the V7 variable. Older
+             entries will still have the dashes, while newer entries will
+             use the lowercase letters. Just as above, as soon as a couple
+             more calls are logged, the older dashed entries will vanish.
+
+   EXAMPLE3: You decide to reverse the ordering of the Log from Oldest 1st
+             to Newest 1st. You simply change the V11 variable. You will
+             notice that the SignOn/SignOff times don't seem to match up.
+             Again, soon they will, once a couple more calls are logged.
+____________________________________________________________________________
+
+Using the Logger:
+~~~~~~~~~~~~~~~~~
+    To use the log, simply log onto your bbs. If you've added the "Call_Log"
+file somewhere in your logon(like in "sys.welcome"), then you will be shown
+the log. Once you've logged on, log yourself off. The Logger will log your
+call, unless you've specified variables that will not capture your call.
+Check variables V1, V2, V3, V5, and/or V6 if it's not logging YOUR calls.
+
+    You will know for sure that the Logger logs your call if it prints the
+message: "Logging your call..." directly below the "@ Logoff complete"
+message. If the "Logging your call..." message does NOT print on your screen
+AND no error messages print as well, then you have one or more variables
+set to IGNORE your call.
+
+    This file does all it's work at LOGOFF, which is nice, because the user
+is not having to wait while the file writes data to the disk. All disk ops
+are performed once AFTER a user signs off.
+
+    The first time you use the logger, a "Call_Log_Computers3" file will
+be created inside the "Call_Log1/" directory. The Call_Logger program will
+actually look at how you have your Computer Types set up(in BBSMENU), and
+will create the file to contain the EXACT computers you have set up for
+your unique board.
+
+    To RESTART the Log, simply delete the file "Call_Log" from your D1
+variable path. The log will start anew.
+
+    To reconfigure for new Computer types, delete the "Call_Log_Computers3"
+file from your "Call_Log1/" directory. An updated file will be created the
+first time the Call_Logger is used again.
+
+    You should NEVER delete the file called "Call_Log_Config". Doing so will
+result in unknown results occurring in the log. If you happen to mistakenly
+delete this file, then you should also delete "Call_Log_Computers3" and the
+"Call_Log" file and start a fresh log.
+
+    The text file "Call_Log" is a suitable file for use as a Readable Text
+File as well, so feel free to add it into your TEXTS section.
+
+How to convert from v2.0:
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    Converting to v3.34 from v2.0 couldn't be simpler:
+
+1: Replace the older "Call_Logger" with the newer one in this archive.
+
+2: Delete the "Call_Log_Computers", "Call_Log_Config", and "Call_Log"
+   files from their appropriate directories. v3.34 is SO new these old
+   files are incompatible.
+
+3: Set the SysOp definable variables within the "Call_Logger" file to
+   fit your current needs. There are a couple NEW variables since v2.0,
+   so look above for more info on how they're used.
+
+    That's all there is to it. No changes were made to the "sys.welcome"
+and "bbstext" lines from v2.0, so no editing of those is needed. Run the
+logger the same way you always have, and ENJOY!
+
+That's It Folks!
+~~~~~~~~~~~~~~~~
+    Well, I rewrote this _READ_ME! in hopes of making it a bit easier to
+understand the gobs of info I am trying to shove down your throats. PLEASE,
+READ THIS ENTIRE DOCUMENT TO FULLY UNDERSTAND WHAT'S GOING ON!!!
+
+    That'll do it for this version. If you see I've made a mistake, or you
+think the Logger needs something else, feel free to contact me on The Metal
+Shoppe, or if you're a REALLY nice person, give my BBS a call for all the
+latest creations I've come up with.
+
+    I run all my mods on my bbs, both those that have been released, and
+those that are still in BETA stages, so if you want a looksie into the
+future of Dotoran Files, give a call!!!
+
+                              Dotoran's
+              ___  ___  ___        ____  ____  ___  ___  ___
+             /_   /__/ /  / /\  /   /     /   /_   /__/ /__
+            /    / /  /__/ /  \/   /   __/_  /__  / /  ___/
+
+                        Bulletin Board System
+
+                    ( 7 1 6 ) / 8 2 3 - 9 8 9 2 !
+
+                    Now from 300 thru 28,800 baud!
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+      Once again, the runner finds the finish line ahead of others!
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

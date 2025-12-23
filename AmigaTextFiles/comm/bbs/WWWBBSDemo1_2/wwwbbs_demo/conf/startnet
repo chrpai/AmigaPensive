@@ -1,0 +1,46 @@
+.key IPADDRESS
+.bra {
+.ket }
+.def IPADDRESS ±{ServerIP}
+
+; log in
+;echo
+;echo login: sysop
+;AmiTCP:bin/login -f sysop
+setenv LOGNAME sysop
+setenv USER sysop
+setenv HOME SYS:
+AmiTCP:bin/umask 022
+AmiTCP:AmiTCP
+WaitForPort AMITCP
+; Configure loop-back device
+AmiTCP:bin/ifconfig lo0 localhost
+; Assure that ENV:Sana2 exists
+if not exists ENV:Sana2
+  makedir ENV:Sana2
+endif
+; Create ±{Type}0 configuration file
+echo "±{Device} ±{Unit} ±{Speed} 0.0.0.0 MTU=1006 ±{SevenWire} " >ENV:Sana2/±{Type}0.config
+; Configure ±{Type}0
+AmiTCP:bin/ifconfig ±{Type}0 {IPADDRESS} ±{ClientIP}
+; Add IP address entry for this host 
+rx "address AMITCP; 'ADD HOST {IPADDRESS} ±{MainServerName}.±{domain} '"
+; Add route to this host
+AmiTCP:bin/route >NIL: add {IPADDRESS} localhost
+; Add route to the default gateway
+AmiTCP:bin/route >NIL: add default ±{ClientIP}
+setenv HOSTNAME `AmiTCP:bin/hostname`
+Assign TCP: Exists > NIL:
+IF Warn
+  Mount TCP: from AmiTCP:devs/Inet-Mountlist
+EndIf
+; Start the internet `super server'
+run >NIL: AmiTCP:bin/inetd
+
+assign apache: amitcp:
+assign bin: apache:bin
+cd amitcp:
+amitcp:bin/chmod -R o+rx ±{CGIDrawer}
+±{EnableHTTP}run >NIL: httpd -X
+;±{EnableIRC2}run >NIL: AmiTCP:Bin/CLChatServer
+;AmiTCP:Bin/ExpUser

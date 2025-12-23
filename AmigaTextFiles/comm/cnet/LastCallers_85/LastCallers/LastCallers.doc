@@ -1,0 +1,470 @@
+                            LastCallers v8.2
+                       For C-Net Amiga ** v3.04+ **
+                   Written by Ray Akey (AKA Heavy Metal)
+
+       This is an enhanced Last 10 callers program for C-Net Amiga.
+
+
+
+Current Changes (v8.5)
+----------------------
+1. LastCallers now uses a method of mutual exclusion so that when one port is
+   updating LastCallers data, another cannot access it until the port owning
+   the lock frees it.  This fixes the previous crashing problem and also the
+   rare but annoying problem that corrupted LastCallers data files.
+
+2. Network calls are now logged using "LastCallersNet".  LastCallersNet
+   is a DOS program that updates the LastCallers data file with the network
+   node's NODE NUMBER, CONNECT BAUDRATE and PORT NUMBER. 
+
+   The syntax of the LastCallersNet program is as follows:
+
+      LastCallersNet NODENUMBER BAUDRATE PORTNUMBER
+
+   Here is an example TRAPDOOR aftersession script that also runs CNet Toss:
+
+      =============== contents of Mail:AfterSession.script ===================
+      .key NODENUMBER,BAUDRATE
+      .bra {
+      .ket }
+
+   	if {NODENUMBER}
+	      LastCallersNet {NODENUMBER} {BAUDRATE} 1
+      endif
+      TOSS verbosity 1
+      ================ end of sample script ==============
+
+   If you install an eftersession script, don't forget to add the following
+   line to your trapdoor.cfg:
+
+      AFTERSESSION "c:runback >NIL: c:EXECUTE Mail:AfterSession.script %n %B"
+
+      note: Trapdoor expands the %n in the line above to the calling node's
+            node number.
+            Trapdoor also expands the %B to the calling node's CONNECT baud-
+            rate.
+
+
+Changes v8.4
+------------
+1. Added "LastCallersScr" to systext: so that status displays and the newly
+   added "records" could be set up for optimum viewing.  Also see Line 61 and
+   62 of LastCallersText.
+
+      LastCallersScr (default filename; configurable in LastCallersText) is a
+   crude script file that is capable of ALL CNet MCI/ANSI commands PLUS an
+   added bonus of parsing ALL of the variables that LastCallers uses, via
+   tokens.  Anything in curly braces {} is considered a LastCallers token and
+   will be removed and converted, if valid, to LastCallers tokens.  CTRL-Q
+   and CTRL-Y begin, of course, CNet MCI commands.
+      LastCallersScr is parsed and displayed in either of two places, your
+   choice;  BEFORE the last x callers are displayed or after.  If you want it
+   displayed before, put the name of the text/script file on line 61 of
+   LastCallersText.  To have the text displayed after the last callers, put
+   the filename, of the file to display, on line 62.  You can use both if
+   you wish.  If you want NOTHING displayed before or after the last callers
+   leave lines 61 and 62 of LastCallersText blank.
+ 
+2. Added "RECORD" variables.  The new token names and their appropriate
+   arguments are listed below.
+
+   NOTE: A few of these new tokens accept a THIRD argument. When a third
+         argument is required, it is used as in the following example:
+
+         {REC_DAYCALLSD %8.8s 1}
+
+         The third argument, above, is the "1" before the closing brace. With
+         DATE oriented tokens, the third argument will be your signal to
+         LastCallers that you wish to use the SHORT date format.  A "2" as
+         the third argument tells the program that you want the LONG date
+         format.  Other token uses for this newly implemented third argument
+         may be added in the future.
+
+         TOKEN/Explanation   C Formatter    Third Argument & options
+         ------------------- -------------- -----------------------------
+         REC_DAYCALLS        %s             NONE
+         Record Calls/day
+
+         REC_DAYCALLSD       %s             1 = SHORT (DD-MM-YY) date
+         Record Calls/Date                  2 = LONG (DD-MON-YY) date
+         This is the date
+         the record was acheived
+
+         REC_UPFILE          %s             NONE
+         Record Upfiles
+
+         REC_UPFILED         %s             1 = SHORT (DD-MM-YY) date
+         Record UpFiles/Date                2 = LONG (DD-MON-YY) date
+
+         REC_UPK             %s             NONE
+         Record Up KBytes
+
+         REC_UPKD            %s             1 = SHORT (DD-MM-YY) date
+         Record UpK/Date                    2 = LONG (DD-MON-YY) date
+
+         REC_DOWNFILE        %s             NONE
+         Record Down'd files
+
+         REC_DOWNFILED       %s             1 = SHORT (DD-MM-YY) date
+         Record DownFiles/Date              2 = LONG (DD-MON-YY) date
+
+         REC_DOWNK           %s             NONE
+         Record Down'd KBytes
+
+         REC_DOWNKD          %s             1 = SHORT (DD-MM-YY) date
+         Record DownK/Date                  2 = LONG (DD-MON-YY) date
+
+         REC_MINSON          %s             NONE
+         Record Minutes Online
+
+         REC_MINSOND         %s             1 = SHORT (DD-MM-YY) date
+         Record Minutes/Date                2 = LONG (DD-MON-YY) date
+
+         REC_CALLS           %s             NONE
+         Record Calls
+
+         REC_CALLSD          %s             1 = SHORT (DD-MM-YY) date
+         Record Calls Date                  2 = LONG (DD-MON-YY) date
+
+         REC_PUBMSG          %s             NONE
+         Record Public Messages
+
+         REC_PUBMSGD         %s             1 = SHORT (DD-MM-YY) date
+         Record PubMsg Date                 2 = LONG (DD-MON-YY) date
+
+         REC_PRIMSG          %s             NONE
+         Record Private Messages
+
+         REC_PRIMSGD         %s             1 = SHORT (DD-MM-YY) date
+         Record PriMsg Date                 2 = LONG (DD-MON-YY) date
+
+
+
+
+
+
+Changes v8.2
+-------------
+1. VERBOSE mode got some needed internal attention.
+2. Fixed NOLOGMAINTUSER and LOGMAINTUSER keywords:  were not being recognized
+   properly.
+3. sysdata:LastCallersText2 line 46 was displayed for ALL gfx/termwidth types
+   rather than choosing the proper line (45-50).  Thanks to PMK on Future
+   World for this bug report.
+4. New token types for LastCallersText2:
+
+      {ONTIME %s}
+      {ONDATE %s}
+      {OFFTIME %s}
+      {OFFDATE %s}
+
+5. {CALLSTODAY} is now a string type, so the following format is correct:
+
+      {CALLSTODAY %s}
+
+
+
+Changes v8.1
+-----------
+1. {REALNAME} added to the list of possible tokens available for
+   LASTCALLERSTEXT2.
+2. The following configuration keywords added.  The following is an exact
+   duplicate of explanation for each as found in Last10.cfg:
+
+               VERBOSE           -> Verbose (debug) output to user's screen
+                                    this option only works if the user has
+                                    SYSOP MAINT - otherwise ignored
+               NOLOGID x         -> Don't log account x
+               NOLOGNAME x       -> don't log handle x
+               NOLOGACCESS x     -> don't log access x
+
+;----------- -> SHOWNUM x        -> Show last x callers (this is also used to
+;IF USED,    ->                     determine the number of entries logged to
+;THESE THREE ->                     Last10.data.
+;OPTIONS MUST-> ADJUST x         -> Adjust users TermLength by this number
+;EXIST IN    ->                     (added to facilitate other mods to text)
+;LAST10.CFG  ->                     Increase or decrease until Top Ten fits
+;IN THIS     ->                     on user's screen when using USETERMLEN
+;ORDER!      ->                     default ADJUST = 11.
+;----------- -> USETERMLEN       -> Use the user's TERMLENGTH to determine
+;----------- ->                     number of last callers to display
+
+
+   NOTE: "SHOWNUM x" will always be used to set the number of entries that
+        will be logged into the last ten data.  For this reason, if SHOWNUM
+        is not configured, the user will see ONLY the last ten callers by
+        default as that is how many callers will be logged to last 10 data
+        in that case.  Also note that the USETERMLEN option must exist
+        before (above) the SHOWNUM x option in this cfg file, if that option
+        is used.  Also if "ADJUST x" is to be used, it must exist above
+        USETERMLEN.
+
+         ie. If SHOWNUM 40 is set, and a user's terminal length is set
+        to 23, the user may only see the last 19 callers but 40 entries
+        will actually exist in the Last10.data
+
+Changes v8.0
+-----------
+1.  Token interpreter added that allows you to choose exactly what you want
+    displayed and how you want it displayed!!
+
+   Choice of the following currently existing variables:
+
+   USER Variable Name       TYPE            Explanation
+   ------------------------ --------------- ---------------------------------
+   {HANDLE}                 %s              user's handle (doh)
+   {REALNAME}               %s              user's real name
+   {CITY}                   %s              user's City & State
+   {COUNTRY}                %s              user's Country
+   {PORTNUM}                %d              Port number user occupied
+   {BAUD}                   %d              user's login baud
+   {CALLERNUM}              %ld             the caller number the user was
+   {DOWNFILES}              %d              the number of files users has dloaded this call
+   {DOWNK}                  %ld             number of KILObytes user has dloaded this call
+   {UPFILES}                %d              the number of files users has uploaded this call
+   {UPK}                    %ld             number of KILObytes user has uploaded this call
+   {MINSON}                 %d              number of minutes user was online
+   {CALLSTODAY}             %s              Number of calls the user made to the
+                                            system (the day he/she logged in!)
+   {TOTALCALLS}             %d              total number of calls the user has
+                                            made to the system
+   {AGCNAME}                %s              user's access group name
+   {PUBMSGS}                %d              number of PUBLIC msgs user made to
+                                            the system
+   {PRIMSGS}                %d              number of PRIVATE msgs user made to
+                                            the system
+   {BANNER}                 %s              Users system banner
+   {ACCOUNTNUM}             %d              users account number
+
+
+   SYSTEM STAT Variable Name    TYPE SPECIFIER  Explanation
+   ---------------------------- --------------- -----------------------------
+   {TSYSCALLS}                  %ld             Calls to the system TODAY
+   {TSYSUPF}                    %d              number of files uploaded to
+                                                the system today
+   {TSYSUPK}                    %ld             number of K-bytes upload today
+   {TSYSDNF}                    %d              number of files downloaded
+                                                today
+   {TSYSDNK}                    %ld             number of K-BYTES downloaded 
+                                                today
+   {SSYSCALLS}                  %ld             TOTAL calls to the system
+   {SSYSUPF}                    %ld             TOTAL files uploaded
+   {SSYSUPK}                    %ld             Total K-bytes uploaded/1000
+   {SSYSDNF}                    %ld             total files downloaded
+   {SSYSDNK}                    %ld             total K-bytes downloaded/1000
+   {YSYSCALLS}                  %ld             calls to the system testerday
+   {YSYSUPF}                    %ld             files uploaded yesterday
+   {YSYSUPK}                    %ld             K-bytes uploaded yesterday
+   {YSYSDNF}                    %ld             files downloaded yesterday
+   {YSYSDNK}                    %ld             K-bytes downloaded yesterday
+   {AUTHOR}                     %s              ME! (Heavy Metal/NORML)
+   {ACTION}                     %s              String of actions the user
+                                                performed online
+
+   The format for these variables is as follows:
+
+   {AUTHOR %s}
+
+    ^^^^^^ ^^
+      |     |
+      |     c formatting specifier
+      variable name
+
+   Your variable name MUST be enclosed in braces.
+
+   More about C formatting specifiers:
+
+      You may also use any of the following formats for your C specifiers
+
+         %12s                Means print the variable as a STRING in a field
+                             of 12 characters RIGHT justified and padded with
+                             spaces.
+         %-12s               Means print the variable as a STRING in a field
+                             of 12 characters LEFT justified and padded with
+                             spaces
+         %12.11s             Means print the variable as a STRING in a field
+                             of 12 characters RIGHT justified and padded with
+                             spaces and if the string is longer than 11
+                             characters, truncate it at the 11th character
+         %5d                 print the variable as an integer in a field of
+                             width 5.
+         %4ld                Print the variable as a LONG integer in a field
+                             of width 4.  If you are getting strange values
+                             with %d, try %ld
+
+   If you have any suggestions on other variables you would like to see
+   added or if you have suggestions, please let me know.
+
+
+Changes v7.4
+------------
+1.  LastCallers now logs the last callers from bottom to top.
+    The last caller is displayed at the TOP of the last 10 display.
+2.  NOLOGMAINTUSER fixed.  Previously, this did not work properly.
+
+
+Changes v7.2
+------------
+1.  Small bug fix involving display of file/byte stats.
+2.  Recompiled with CNet v3.04 headers
+
+Changes from v7.1
+------------------
+1.  Can now be used in ANY CLI/Shell -> Caller info only displayed. No
+                                        system stats are yet available here.
+                                        No last caller data is updated.
+
+Changes from V7.0
+-----------------
+1.  Now PURE.  Both modules can be made resident.
+
+    Use "RESIDENT PFILES:LASTCALLERS PFILES:LASTCALLERS"
+    and "RESIDENT PFILES:LASTCALLERSUPDATE PFILES:LASTCALLERSUPDATE"
+    in your startups to make either of these programs resident.
+
+2.  It is Now possible to turn OFF/ON sysop account logging and
+    any other maint (SYSOP MAINTENANCE priviledge) user.
+    To use these options, create the file SYSDATA:LAST10.CFG and place
+    any of the following keywords in that file:
+
+      NOLOGSYSOP         -> Turns OFF (disbales) logging of account #1 to
+                            last 10.
+      LOGSYSOP           -> Turns ON (enables) logging of account #1 in last
+                            10.
+      NOLOGMAINTUSER     -> Turns OFF logging of any users with MAINT (except
+                            account #1).
+      LOGMAINTUSER       -> Turns ON logging of maint users (except account
+                            #1).
+
+   NOTE: any commented lines must BEGIN with a semi-colon (;).
+         an example LAST10.CFG has been provided.
+
+
+Changes from 6.0
+----------------
+1. Major changes (again) for this version.  You must (if they exist) delete:
+
+   SYSDATA:LAST10.DATA
+         &
+   SYSDATA:LAST10.STAT
+
+2. A few DAILY items are kept track of now also:
+
+   1:  Calls today.
+   2:  Upload Files Today.
+   3:  Upload KB Today.
+   4:  Dload Files Today.
+   5:  Dload KB Today.
+
+   All of these "daily" variables are reset each day, after midnight when
+   "LastCallersUpdate" is next ran.
+
+3. All text is still capable of being edited so I will leave you here.  Make sure
+   you read the "Changes from 5.0" below the sample output, if you are running
+   a version that doesn't include the LastCallersUpdate program.
+
+5. The display has been COMPLETELY reworked this time allowing more important
+   info to be displayed for each last caller.  Here is a sample output (sans
+   colour of course and using IBM GFX):
+---
+
+  <>*<>              C-Net LastCallers - Heavy Metal/NORML              <>*<>
+
+  P# Handle/Name           Actions Bd  From                 Min   UpK   DnK
+  컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴� 
+   1 Juan Epstein          [----N]  96 Windsor, ON            1     0     0
+   1 Dr.doom               [M---N] 144 Windsor Ontario        7     0     0
+   1 Black Light           [----N] 144 Windsor,Ontario       14     0     0
+   2 Eric                  [----N]  24 Aburg, ON              1     0     0
+   1 Supreme Wizard        [---DN] 144 Windsor, ON           47     0  4406
+   1 Maxcon                [----N] 144 Windsor, ON            0     0     0
+   1 The Urscumug          [M---N]  24 Windsor, ON            7     0     0
+   1 Outlaw                [M---N]  96 Windsor, ON            9     0     0
+   1 Foxx/norml            [----N] 144 Windsor, ON            2     0     0
+   3 Baroness              [-P---]  96 Windsor, ON           12     0     0
+  컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+     [M]sg Left                                             [C]arrier Lost
+     [P]aged Sysop          [U]L'ed           [D]L'ed       [N]ormal Off
+
+                              Calls   ULf    UpK     DLf    DnK
+                      Today:      0     0      0       0      0
+                      ToTal:  42715  1711   455K   10863  2662K
+---
+
+
+Changes from 5.0
+----------------
+ 1.   Almost all text is now external, in two files:
+
+                          systext:lastcallerstext
+                                     &
+                          systext:lastcallers.msg
+
+      "lastcallers.msg" is just a menu type TEXT file that explains what the
+    "action" flags mean.
+
+      "lastcallerstext" is the file which contains the actual graphics
+    and text/C formatting that is seen when LastCallers is viewed.  Edit this
+    file if you wish to customize the Last callers display.  There are
+    graphics sections for 40/80 column ASCII, 40/80 column C64 GFX, and 40/80
+    column IBM GFX.  The first is IBM, 2nd is CBM and the last but not least,
+    ASCII.
+
+ 2.   The action flags - These are a set of 9 letters which stand for the 
+    following things which a user has done while online:
+
+                           D = Downloaded
+                           U = Uploaded
+                           M = Left a message (Mail, Post, Response)
+                           P = Paged Sysop
+                           C = Lost Carrier
+                           N = Normal Logoff
+ 
+ 3.   The main display is updated at login, so that the user appears in
+    the lastcallers display, in the correct order of logins.  To facilitate
+    the updating of the caller display, and to incorporate any actions that
+    a user performs while online, the program "LastCallersUpdate" has been
+    written.  This C-Net Pfile must be configured to run when a user logs off.
+    To do this, add the following command to line 99 of BBSTEXT:
+
+    #2pfiles:LastCallersUpdate}
+
+    ^
+    |
+    CTRL-Q
+
+
+Operation:
+----------
+   The display is nicely formatted and displays correctly for all terminal types
+and graphics settings of C-Net Amiga..  It is an all-in-one program where there
+is nothing for you to create.  Everything (creation of the data file, updating
+last 10 and displaying last 10) is done in a single program.
+
+Installation:
+-------------
+ 1.   Copy LastCallers & LastCallersUpdate to your Pfiles.
+ 2.   add the following text to your SYSTEM:SYS.WELCOME file or another location
+      where you would like it displayed..  possibly BBSTEXT but be careful
+      where you put it as in some areas of BBSTEXT, the user's handle is not
+      know and will show in the Top Ten as <Logon>.  If you put it in
+      sys.welcome, it is guaranteed to work FLAWLESSLY.
+
+         \#2pfiles:LastCallers\
+
+ 3.   Add the following text to line 99 of BBSTEXT:
+
+         #2pfiles:LastCallersUpdate}
+
+         ^
+         |
+         CTRL-Q
+
+ 3.   That's it.. When the file is run for the first time, it will create the
+      data file and keep it updated on succesive calls.
+
+ --------------------------------------------------------------------------
+   Call:  THE METAL SHOPPE BBS for more C-Net Pfiles by myself and others
+   (519) 256-0278 -- 2400-19200 Baud --           Windsor, Ontario Canada
+   (519) 255-7378 -- 1200-2400  Baud --       METAL SOFTWARE HEADQUARTERS
+ --------------------------------------------------------------------------

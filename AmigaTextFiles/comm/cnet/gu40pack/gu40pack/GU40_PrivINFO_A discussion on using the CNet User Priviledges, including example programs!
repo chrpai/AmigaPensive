@@ -1,0 +1,315 @@
+---------------------------------------------------------------------------
+      CNET GETUSERS 3.05c/4.26+ : CNET PRIVILEDGE FLAGS INFORMATION!
+---------------------------------------------------------------------------
+
+    Getting the CNet Priviledge Flags takes a bit more work than simply
+calling a getuser value and working directly with the returned value.
+
+    There is also, presently, no easy way of working with the Priviledge
+Flags through MCI Commands.
+
+    It is possible to work with the Priviledge Flags of both the current
+user, or ANY user through the Scratch Buffer. The Priviledge Flags may also
+be modified for ANY user, using either the PUTUSER (for current users), or
+the PUTSCRATCH (for other users) commands.
+
+    The actual locations of the "ABIT" Registers are the same for both
+CNet v3.05c and the new CNet v4.26+, and are listed below:
+
+                          Current User      Scratch User
+                          ~~~~~~~~~~~~      ~~~~~~~~~~~~
+           ABIT Block 0:    1400660           1401332
+
+           ABIT Block 1:    1400708           1401380
+
+    As was mentioned earlier, obtaining the ABIT Register Value is only the
+first step in finding the Priviledge Flag Info. As it happens, each ABIT
+Register contains up to 32 Priviledge Flags, so it will be necessary for you
+to specify WHICH of the 32 you are interested in.
+
+    First, though, the returned value from the getuser command is NOT in an
+EASY to work with format, so we must pass the result through a formula:
+
+                a = reverse( d2c( result , 4 ) )
+
+                A = REVERSE( D2C( RESULT , 4 ) )
+
+       (The above is listed in both cases, with additional spaces
+           added to aid in the readability of the formula used)
+
+    After the equation has been processed, we are now given a character we
+can use with the "bit" commands of ARexx. Using these "bit" commands, there
+are four powerful processes that can be performed to the bits, and will each
+be discussed below:
+
+BitTST()    <FORMAT>    priv=BitTST(a,b)                        [ Bit TEST ]
+~~~~~~~~
+    This is the command you will probably be using most, as it is this command
+that will simply tell us whether or not the user HAS this Priviledge or not.
+
+    The command is used as a variable initialization, where "priv" is the
+name of the variable we will be storing the 0/1 return value, "a" is the
+variable that holds the returned character from our equation above, and "b"
+is the bit number (0 thru 31) of the Priviledge we'll be testing for.
+
+    Eg:        z=BitTST(a,3)  /* Set "z" equal to the 3rd Priv in "a" */
+
+       InfByteC=BitTST(a,31)  /* Set "InfByteC" = the 31st Priv in "a" */
+                              /* Using GU 1400660 & the Formula First  */
+
+BitSET()    <FORMAT>    priv=BitSET(a,b)                      [ Bit ENABLE ]
+~~~~~~~~
+    This command is used to SET, or ENABLE the given bit, regardless of it's
+present value. This means 0 is set to 1, and 1 is set to 1.
+
+    The command is used as a variable initialization, where "priv" is a
+name of the variable we will be storing the newly changed character, "a" is
+the variable that holds the returned character from our equation above, and
+"b" is the bit number (0 thru 31) of the Priviledge we'll be setting.
+
+    Eg:     MCI1=BitSET(a,0)  /* Enable MCI Level 1 Commands.         */
+                              /* Using GU 1400660 & the Formula First */
+
+       InfFileC=BitSET(a,30)  /* Enable Infinite File Credits.        */
+                              /* Using GU 1400660 & the Formula First */
+
+
+BitCLR()    <FORMAT>    priv=BitCLR(a,b)                     [ Bit DISABLE ]
+~~~~~~~~
+    This command is used to CLEAR, or DISABLE the given bit, regardless of
+it's present value. This means 1 is set to 0, and 0 is set to 0.
+
+    The command is used as a variable initialization, where "priv" is a
+name of the variable we will be storing the newly changed character, "a" is
+the variable that holds the returned character from our equation above, and
+"b" is the bit number (0 thru 31) of the Priviledge we'll be clearing.
+
+    Eg:   NoConf=BitSET(a,15) /* Disable Conferencing for this User.  */
+                              /* Using GU 1400660 & the Formula First */
+
+        NoPfiles=BitSET(a,25) /* Disable Doors Use by this User.      */
+                              /* Using GU 1400660 & the Formula First */
+
+
+BitCHG()    <FORMAT>    priv=BitCHG(a,b)                     [ Bit TOGGLE ]
+~~~~~~~~
+    This command is used to CHANGE, or TOGGLE the given bit, regardless of
+it's present value. This means 1 is set to 0, and 0 is set to 1.
+
+    The command is used as a variable initialization, where "priv" is a
+name of the variable we will be storing the newly changed character, "a" is
+the variable that holds the returned character from our equation above, and
+"b" is the bit number (0 thru 31) of the Priviledge we'll be changing.
+
+    Eg: TogUrgent=BitSET(a,19) /* Toggles Ability to Send URGENT Mail. */
+                               /* Using GU 1400660 & the Formula First */
+
+        TogSysMnt=BitSET(a,28) /* Toggles System Maintenance Ability.  */
+                               /* Using GU 1400660 & the Formula First */
+
+----------------------------------------------------------------------------
+
+    There are some other ARexx Commands dealing with bits; BitAND(), BitOR(),
+BitXOR(), and BitCOMP(), but for our purposes, the above four should be more
+than adequate.
+
+    To SAVE changes made to the Priviledges, you will need to use either the
+PUTUSER or PUTSCRATCH commands, in conjunction with the SETOBJECT command.
+
+    Let's look at an example using the PUTUSER command. The following is a
+complete ARexx Program, and will function 100% if copied into a file of it's
+own. In this example, we'll be checking to see how many public messages(posts
+and responses) the user has written, and then if this number exceeds 100,
+we'll give the user MCI, Level 2 clearance as a reward for their hard work:
+
+            /* Enable MCI Level 2 Yet? */
+            options results
+ 1:         getuser 36 ; posts=results
+ 2:         mci2=0 ; if posts>100 then mci2=1
+ 3:         getuser 1400660
+ 4:         privs=reverse(d2c(result,4))
+ 5:         mci2priv=BitTST(privs,1)
+ 6:         if mci2priv=1 | mci2=0 then exit
+ 7:         privs=BitSET(privs,1)
+ 8:         privs=c2d(reverse(privs))
+ 9:         setobject privs ; putuser 1400660
+            /* All Done! */
+
+    Let's examine what each line does in this program:
+
+ 1:         getuser 36 ; posts=results
+  :
+  : Creates a "posts" variable holding how many posts/responses this user
+  : has ever written.
+
+ 2:         mci2=0 ; if posts>100 then mci2=1
+  :
+  : The "mci2" variable will determine whether or not this user will be
+  : given the MCI Level 2 clearance.
+
+ 3:         getuser 1400660
+  :
+  : Gets the "ABIT0" Block of Priviledges. (Where MCI2 Is Stored)
+
+ 4:         privs=reverse(d2c(result,4))
+  :
+  : Uses the given formula to convert the value to a character format.
+
+ 5:         mci2priv=BitTST(privs,1)
+  :
+  : The "mci2priv" variable will hold a "0" if this user does NOT already
+  : have MCI-2 clearance, or a "1" if the user ALREADY has MCI-2 Ability.
+
+ 6:         if mci2priv=1 | mci2=0 then exit
+  :
+  : If the user already has MCI-2 clearance OR if the user will NOT be
+  : getting MCI-2 clearance, then exit the program now.
+
+ 7:         privs=BitSET(privs,1)
+  :
+  : This command ENABLES the MCI-2 ability.
+
+ 8:         privs=c2d(reverse(privs))
+  :
+  : Change the character back into a decimal value.
+
+ 9:         setobject privs ; putuser 1400660
+  :
+  : Using the SETOBJECT command gets the value ready to be saved, while
+  : the PUTUSER will SAVE the "ABIT0" Block of Priviledges back to the 
+  : user's account.
+
+----------------------------------------------------------------------------
+
+    Alright, for our last example, we'll use the same idea the first program
+used, except this program will raise the MCI-Level clearance of ANYONE on
+the system who has posted more than 100 public messages. This program could
+be used through AMAINT to scan for possible upgrades each night, etc:
+
+            /* Who Should Receive MCI Level 2 Today? */
+            options results
+ 1:         getuser 2400088 ; total=result
+ 2:         do i=1 to total ; loadscratch i
+ 3:             getscratch 1 ; handle=result
+ 4:             if handle="!" then do
+                    savescratch (-i) ; iterate i ; end
+ 5:             getscratch 36 ; posts=result
+ 6:             mci2=0 ; if posts>100 then mci2=1
+ 7:             getscratch 1401332
+ 8:             privs=reverse(d2c(result,4))
+ 9:             mci2priv=BitTST(privs,1)
+10:             if mci2priv=1 | mci2=0 then do
+                    savescratch (-i) ; iterate i ; end
+11:             privs=BitSET(privs,1)
+12:             privs=c2d(reverse(privs))
+13:             setobject privs ; putscratch 1401332
+14:             savescratch i
+15:         end i
+            /* All Done! */
+
+    This program is a bit longer than the first one, but then again, it's
+doing a bit more. Here's what each line does:
+
+ 1:         getuser 2400088 ; total=result
+  :
+  : The "total" variable holds the total number of user accounts.
+
+ 2:         do i=1 to total ; loadscratch i
+  :
+  : This line starts the loop by loading the first accounts data into the
+  : CNet Scratch User Buffer.
+
+ 3:             getscratch 1 ; handle=result
+  :
+  : As a check for empty accounts, we read the HANDLE data from this account.
+
+ 4:             if handle='!' then do
+  :                 savescratch (-i) ; iterate i ; end
+  :
+  : If "handle" is an exclamation point, then this account is EMPTY, so we
+  : unlock the account(with the negative value), then read in the next user
+  : account.
+
+ 5:             getscratch 36 ; posts=result
+  :
+  : Fill "posts" with the number of public messages this user has written.
+
+ 6:             mci2=0 ; if posts>100 then mci2=1
+  :
+  : If "mci2" is equal to a 1, then this user is due a promotion.
+
+ 7:             getscratch 1401332
+  :
+  : This will load in the "ABIT0" block from the CNet Scratch Buffer.
+
+ 8:             privs=reverse(d2c(result,4))
+  :
+  : Convert the given value into a workable character value.
+
+ 9:             mci2priv=BitTST(privs,1)
+  :
+  : See if this user already has MCI-2 clearance or not.
+
+10:             if mci2priv=1 | mci2=0 then do
+  :                 savescratch (-i) ; iterate i ; end
+  :
+  : If they already do OR are not going to be getting a promotion, then we
+  : unlock the account (via -i), then read in the next account.
+
+11:             privs=BitSET(privs,1)
+  :
+  : This will SET the MCI-2 clearance flag in the character.
+
+12:             privs=c2d(reverse(privs))
+  :
+  : Change the character into a decimal value.
+
+13:             setobject privs ; putscratch 1401332
+  :
+  : Set and place the changed "ABIT0" block back into memory.
+
+15:             savescratch i
+  :
+  : Now we SAVE this data to disk using "i". (Not "-i")
+
+16:         end i
+  :
+  : Read in next account, or exit if last account.
+
+----------------------------------------------------------------------------
+
+    That's all there is to working with the Priviledge Flags through ARexx.
+I hope the above two examples were enough to show you what is needed when
+working from both sides of the Priviledges(Current vs. ANY).
+
+    Before closing our discussion on CNet Priviledge Flags, let's look at
+the little routine included in the GU40_Longs listing itself:
+
+    PRIV:;getuser 1400660+(44*Arg(1));a=reverse(d2c(result,4))
+      do i=2 to Arg();if ~BitTST(a,Arg(i)) then return 0;end i;return 1
+
+    By placing the above routine in a program of you're own, you'll have an
+easy way of determining if a user has specified priviledges or not. To use
+the routine, issue a command like the following:
+
+                    ok=PRIV(0,0,1,24)
+
+    You can use any variable name of your choosing in place of the "ok" I 
+used in the example above. The first number within parenthesis should either
+be a 0, or a 1, depending on WHICH of the PRIV blocks contains the flags 
+you're interested in testing. All additional numbers represent the positions 
+those flags are located in within the block of data. (Use the numbers on the 
+RIGHT side of the GU40_Longs listing to determine the position values). 
+Separate all your numbers with commas.
+
+    In the above example, if the user has MCI level 1 AND 2 clearance, AND
+is also able to send EMail, then the returned value of "ok" will be  "1",
+however if the user is LACKING ANY of the specified priviledges, then "ok"
+will hold a "0" value.
+
+    And THAT, my friends, is all there is to using CNet Priviledges! If you
+have ANY questions, comments, etc., feel free to contact either of us:
+
+---------------------------------------------------------------------------
+     Visit me on the web today>   http://www.bluemoon.net/~dotoran
+---------------------------------------------------------------------------

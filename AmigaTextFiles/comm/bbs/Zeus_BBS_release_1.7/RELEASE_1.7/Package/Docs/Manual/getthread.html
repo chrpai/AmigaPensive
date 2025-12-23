@@ -1,0 +1,100 @@
+<html>
+<head>
+  <title></title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="msg.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="getpointer.html"><img src="prev.gif" alt="PREV" border=0></a><a href="gettopic.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+<PRE>
+   NAME
+                GetThread -- Returns message number belonging to a thread.
+
+   SYNOPSIS
+                GetThread &#060;NEXT|PREV|ORIGINAL&#062;
+
+   FUNCTION
+                Returns information about the thread currently being read
+                by rexxMsgCommands/LoadMsg.
+
+                A thread is one or more messages linked together by topic.
+                They are physically linked using the ^MSGID kludge used
+                in FidoNet. Each message in a thread can have a previous
+                message, a next message and an original message. However,
+                the first message in a thread will not have a previous
+                reference, and the last message in a thread will not have
+                a next reference. The first message in the thread will
+                return itself using the &quot;ORIGINAL&quot; flag.
+
+                The message number will be returned in RESULT.
+
+   INPUTS
+                NEXT     - Return the next message in the thread.
+                PREV     - Return the previous message in the thread.
+                ORIGINAL - Return the first message in the thread.
+
+   RESULT
+                Message reference number.                
+
+   RC
+                 0 -- Data requested returned
+                 5 -- No message loaded
+                10 -- Bad arguments
+                20 -- Fatal error
+
+   EXAMPLE
+                /*
+                ** GetThread.zeus
+                */
+
+                Options Results
+                Parse Arg Line
+
+                GetPointer 'Low'
+                StartPtr = RESULT
+
+                loadfin = 0
+
+                do until loadfin = 1
+                        LoadMsg StartPtr 'NOTEXT'
+                        if RC = 0 then do
+
+                                Write '&quot;Thread starting at 'StartPtr': &quot;'
+
+                                fin = 0
+                                do until fin = 1
+                                        GetThread 'NEXT'
+                                        if RC = 0 then do
+                                                Next = RESULT
+                                                if Next ~= '0' then do
+                                                        LoadMsg Next 'NOTEXT'
+                                                        if RC ~= 0 then fin = 1
+                                                        else do
+                                                                Write '&quot;'Next' &quot;'
+                                                                end
+                                                        end
+                                                end
+                                        end
+
+                                /** This can go on a long time, so give the
+                                    option to quit **/
+
+                                 Write '&quot;n&quot;'
+                                if RC = -5 then loadfin = 1
+
+                                StartPtr = StartPtr + 1
+                                end
+                        else if RC = 2|RC &#062;= 10 then
+                                loadfin = 1
+                        end
+
+   NOTES
+                This command is not related to the &quot;topic&quot; system, which
+                uses the GetTopic and GetTopicThread commands.
+
+   SEE ALSO
+                rexxMsgCommands/LoadMsg, rexxMsgCommands/GetTopic
+
+</PRE><br></body>
+</html>

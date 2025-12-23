@@ -1,0 +1,398 @@
+
+
+        _____     _                  _     _              _    ___
+       |_   _|_ _(_) ___  _ __      | |__ | |__  ___     / |  / _ \
+         | | | '_| |/ _ \| '_ \     | '_ \| '_ \/ __|    | | | | | |
+         | | | | | | (_) | | | |    | |_) | |_) \__ \    | |_| |_| |
+         |_| |_| |_|\___/|_| |_|    |____/|____/|___/    |_(_)\___/
+
+                        © 1994/97 by Paul Spijkerman
+                             All Rights Reserved
+
+
+     Update from V1.00 -> V1.04
+
+     Well here is the fourth Update since the Version V1.0 archive.
+
+     It took a long time, because some things where going very
+     slowly. And I was doing a lot of things at the same time.
+     So this update is more or less the smaller things I
+     did between the bigger things.
+
+     I finally sold my Xenolink package I had laying on a shelf
+     almost sold it a number of times. But the people didn't
+     call back.
+
+     I was developping extensions for the GUI-lib, like 
+     requesters to show wat went wrong, and a View window
+     for the GUI of the mailer and a dynamic list where you
+     can select more then one item for the file and mail
+     editor. Not finished yet.
+
+     Checked a number of manuals and started to write a manual
+     for Trion (a disk based manual) but there are more holes
+     than text a this moment so it isn't included yet.
+
+     I have been working on RIPscrip graphics a bit, but still
+     havn't found out how the BGI stroked Font files from
+     Borland work.
+
+     I have been working on Blue Wave but noting more then
+     test code at this moment.
+
+     I have been experimenting with a GUI for the mailer,
+     but there where a number of problems I haven't worked
+     out yet. Like a GUI element to show what is coming
+     in on the serial port and what inlog text is printed.
+     During a problem with an IEMSI inlog the users has
+     to type his name but he is still in the mailer,
+     the problem is when to go from the GUI window to
+     the ANSI window. And there probably has to be a
+     separate file transfer window for BBS and mailer.
+
+     Stil studying on Internet books etc.
+
+
+
+     Utils:   BBS, TrionRM, tick, areafix, ViewPacket, Tmp, BBStext, Menu
+              FileEd, UserEd, Maintmod, Guimod, MailEd, KillOldUsers
+              LastCallers, ScanUserStats, ShowStats, TopDL
+     Docs:    Trion-Net.doc, rexxlist
+     Doors:   ReadNla.rexx
+
+
+
+   -Started with a GUI mail.cfg editor, but at this time it is
+    only a mail.cfg viewer because GUI code to select a number
+    of sections at a time wasn't ready yet.
+    But you can use it to check if all echomail sections are
+    in the mail.cfg.
+
+   -Fixed a little bug in the bounce netmail function of areafix,
+    it trashed a node number because a nodenumber copy command
+    worked just the oposit as i thought .. so it didn't always
+    send netmail.
+
+   -There was a little problem in the lastcallers program, when
+    there were more then 99 files transfered all text on the line
+    was shifted one character to the rigth. This was already
+    fixed in other programs like TrionRM.
+
+   -Changed the mailer a little bit, until now the first nodenumber
+    an incoming mailer presented was taken as his main node number.
+    Now it will look at all the numbers presented and it will pick
+    the first where the password is correct. If there isn't any
+    then it will take the first node number.
+    This is necessary for Zmodem transfers if there are no
+    files to send. In that case it will make an empty poll packet,
+    but if the password isn't correct for the first node that
+    packet was never sent.
+
+   -Fixed a little problem with the RIPscrip graphics function
+    that copies a piece of the screen to the buffer to save
+    it as an icon or to stamp it on an other place of the screen.
+    What happens is that the first 16 or 32 pixels on the
+    first line had the wrong color. This is Fixed by putting
+    a command to wait until the blitter is finished after the
+    blitter command that copies a piece of the screen to my
+    buffer bitmap in memory.
+
+    This code is like a "os-legal" chuncky to planer converter
+    code .. but it doesn't write in the bitmap of a screen it
+    writes in a custom bitmap and let's the blitter write it
+    in the bitmap of the screen. Tested how fast it actual is.
+    You can write 64x64 chuncky pixels more then 16 times a second
+    to the screen with 4 bitplanes.
+
+    So I probably will use this code to make the scheduler faster
+    and maybe to plot text in the RIPscrip mode with the RIP fonts.
+
+   -Fixed a little problem in the BBStext compiler, it didn't
+    worked exactly as advertised.
+
+    It should translate '_' (underscores) to spaces and '|'
+    to returns. Unless there was a '%' before the '_' and '|'
+    then it should print the character after the '%'.
+    But the BBStext programm translated all '_' and '|'
+    so the bbs program never found a '_' of '|' after
+    a '%' .. this is now fixed .. the BBStext util
+    doesn't translate characters after a '%'.
+    
+   -The BBS recognizes the "+FHS:nn" string as a Fax connect.  (nn = 01 ?)
+    Later changed it to a "no carrier" string, it seems to mean
+    something like not connected (Fax Hangup Status nn).
+
+   -Added a 'ScanWaitingMail' menu command.
+    There already was a 'ReadWaitingMail' command, but only
+    the messages which arrive on the system after the user
+    logs on for the first time are shown.
+
+    The reason of this is that the mail processor adds messages
+    to waiting mail files of users when new mail comes in.
+    So there is no timely scan needed when some logs in.
+    But new users don't get to see any waiting mail altough
+    messages to them may be in the message base.
+
+    With the new menu command you can make a messages file for
+    new users (or for yourself when deleted all waiting messages).
+    Just put the ScanWaitingMail for the line ReadWaitingMail in
+    the start menu with levels 0-4 or something like that.
+    The scan should be stopable with Ctrl-C
+
+   -Added a 'Continue' menu command.
+    With this command you can ask (confirm) the user if he really
+    wants to do something. Works a bit like the password command,
+    you put it before an other command, and if the users answers
+    no the executing of the command sequence is exited.
+
+    Confirm  "Do you really want to logoff (Y/n) ? "
+    Confirm  "Do you really want to scan for waiting mail (Y/n) ? "
+
+
+Cmd "?" , 0- 255
+   Confirm  "Do you really want to scan for waiting mail (Y/n) ? " 
+   ScanWaitingMail
+   More
+EndCmd
+
+
+
+   -Added a warning to TrionRM that complains when there is not a
+    Trion key file to be found. There wasn't one before so there
+    weren't any hints to the key code, but that is a bit silly.
+
+
+   -Added an Info button to the UserEditor, when you press the
+    button you get the last on date and the place name instead
+    of the alias of the user. Note that loading in this mode
+    is a lot slower. With an other click on the Info button you
+    get the alias back.
+
+    Made the UserEditor window 4 character wider and added levels.
+    The Usereditor also uses wildcards on aliases now.
+    Removed unused buttons with a few comment lines.
+
+    When you have edited a user the user list was reloaded,
+    this is now only done when fields of the user that are
+    displayed in the user list are changed to make things
+    speedier.
+
+
+   -Removed some buttons from the file editor by putting a handfull
+    comment lines in the source without challenging the functionality.
+    The double buttons (Forward/Backward etc.) didn't work always
+    as they should. One of them should be on and the other off.
+    But Whatever I tried, it didn't worked like it should.
+    The current version has full functionality and the window
+    needs less space.
+
+    Fixed a little problem in the File editor, when you click on
+    a fill it got the file from the list in the screen. It did this
+    by taking the text before the first space. This gave problems
+    with file names with spaces in them. So now it walks through
+    the file list it gets from TrionRM until it counted as much files
+    as the line it was on. This is only a fraction slower.
+
+    Added the upload date to the file list, so you can delete old
+    files easier.
+
+
+   -Written code to calculate the exact number of days between
+    two days for use in some programs.
+
+    Written a KillOldUsers program.
+    When you run it with a number on the command line it will
+    remove users that have not logged in for a number of days.
+    When you use -T on the command line it does not delete users
+    but just shows you what it would do if it was removing users.
+    So you can see if you have any users left after execution.
+    The program will only work with numbers greater then 30 to
+    protect the sysop against himself .. he can't delete his
+    own account that way :)
+    Maybe this is a good moment to make a copy of your Userbase.
+
+   -Added an option to the checkfilebase program to remove old
+    files. If the files are older then the number on the
+    command line it will tell you the file is old.
+
+
+   -Added a Groups button to GuiMod (Config edit gui)
+
+   -Had a real long think about how to do it RIGHT and implemented
+    more or less optional Group support. Groups (of mail or
+    file sections) could be easy if you have many sections.
+    It would be easier if a (sub) list of sections would fit
+    on one screen. Or why should an PC user see all the new
+    Amiga files (and vice versa).
+
+    From what I have seen from systems as RemoteAccess and FrontDoor
+    (MS-DOS programmas I toyed with more then half a decade ago)
+    every sections has a character (a-z) to indicate to which group
+    they belong.
+    Which has its drawbacks, I have to change all programms because
+    the way sections are dealt with are changed, and what if you have
+    a Fido-netmail section, do you add it to the net-mail group or
+    to the Fido (echomail) group ?? Well .. wouldn't both be nice.
+    Or what if you would make a group with all programming sections
+    of all the mail nets you get.
+    Or how about a group with ALL sections, which is also
+    usefull for people (users or sysops) who don't want to use groups.
+
+    So I added Group Support to TrionRM, programms that require
+    this option can get the information they need from TrionRM.
+    (Which is basically a couple of "Get Group Info" commands like:
+     GetFirstGroup, GetNextGroup, GetGroupOnNumber)
+
+    With this system, the support for groups is separated from the
+    support for file and message sections. So nothing has to be
+    changed to programms like the mail processor, Areafix (which
+    has its own group system) and Allfiles.
+
+    Also because of the way the BBS is written this system was
+    very easy to implement. Altough the code in the BBS programm
+    itself for messages and files is like 100KB+ C-code each.
+    The BBS programm uses a few functions to get the first
+    and next section to process. This is done because there
+    has to be checked if a user has access to a section.
+    For groups this access checking had to be extended with
+    group checking.
+
+    When you don't want to Use groups you don't have to change
+    a thing. When there isn't a "trion:cfg/groups.cfg" (or
+    when there isn't a file or msgs group in the cfg) the system
+    makes an "All" group with all sections and the system should
+    work as before.
+
+    Also you could use the system as before and use groups in
+    an other menu. If you have made ANSI screens to select
+    sections you probably don't need groups.
+
+
+    new MenuCommands
+
+    ListFileGroups         (like: ListFileAreas)
+    OtherFileGroup         (like: OtherFileArea)
+    ChangeFileGroup "n"    (like: ChangeFileArea)
+
+    ListMessageGroups      (like: ListMessageAreas)
+    OtherMessageGroup      (like: OtherMessageArea)
+    ChangeMessageGroup "n" (like: ChangeMessageArea)
+
+
+    new TildeCodes
+
+      ~350                  File Group number
+      ~351                  File Group name
+      ~352                  Messages Group number
+      ~353                  Messages Group name
+
+
+Cmd "G"
+   ClrScr
+   ListFileGroups
+   OtherFileGroup
+
+   ClrScr
+   ListFileAreas            ;Or PrintFile "trion:text/FileAreas.ansi"
+   OtherFileArea
+   LogMessage "Changed to file area: ~301."
+EndCmd
+
+Cmd "A"
+   ClrScr
+   ListFileAreas
+;   PrintFile "trion:text/FileAreas.ansi"
+   OtherFileArea
+   LogMessage "Changed to file area: ~301."
+EndCmd
+
+Cmd "O"
+;   ClrScr
+;   ListFileAreas
+   PrintFile "trion:text/FileAreas.ansi"
+   OtherFileArea
+   LogMessage "Changed to file area: ~301."
+EndCmd
+
+
+
+    When you want to use Groups you could add the ListFileGroups
+    and OtherFileGroup command to the "other area" command 
+    sequence in a menu. If you don't you get in the first group.
+
+    It's important to have the Group "All" as first in the group
+    list to have the system operating as before.
+
+    When you want to make groups optional you could make a new command
+    to change Groups and leave the Change area command as before.
+    When the user logs in he is in the "All" groups and doesn't
+    have to choose a group.
+
+    Or when you really want to annoy users you put the ListGroups
+    and OtherGroup command before the NewFileScan when a user logs
+    in. 
+
+    Have an upload area in every file group (which can of cause
+    be the same area in all groups).
+    Note that if you are in a group all the global commands, like
+    newfiles or readGlobalNew work only on the sections in the
+    current group but you can go to all sections with change
+    sections commands. So you can put the ListGroups and
+    OtherGroup command before the newfiles command and the
+    user only sees the files he is really interested in.
+
+
+    You probably also want a menu command to change area without
+    having to change the group. (which is basically a command
+    like you have in use now).
+
+    The "trion:cfg/groups.cfg" is very simple.
+
+    Just have a FILEGROUP or MAILGROUP line folowed with one
+    or more SECTIONS lines.
+    After a group line you put a group number and a group name
+    (separated with a comma !!!).
+    Check the suplied config for reference.
+
+
+
+FILEGROUP    1 , "All"
+SECTIONS     1 - 65535
+
+FILEGROUP    2,  "Amiga-files"
+SECTIONS     1 - 15 , 20 - 59
+
+FileGroup    3,  "PC-files"
+Sections     1 - 15 , 60 - 99
+
+
+
+MAILGROUP    2 , "Sections on programming"
+SECTIONS     11, 111, 211, 311, 411, 511
+SECTIONS     611, 711, 811
+
+
+   -Made the global new message scan and global new file scan
+    faster because now only the areas that a users has access to
+    and are in the current group are opend.
+
+   -When reading global new messages, it prints a line with
+    the section name currently scanned for new messages.
+
+   -Added some menu commands to make handling of messages from
+    the current user easier.
+
+    ScanToYou
+    ScanFromYou
+    ScanToOrFromYou
+    ScanReverseToYou
+    ScanReverseFromYou
+    ScanReverseToOrFromYou
+
+    ReadToYou
+    ReadFromYou
+    ReadToOrFromYou
+    ReadReverseToYou
+    ReadReverseFromYou
+    ReadReverseToOrFromYou
+

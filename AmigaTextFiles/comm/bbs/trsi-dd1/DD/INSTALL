@@ -1,0 +1,365 @@
+; Install-Script for DirDownloader by SieGeL (tRSi/F-iNNOVATiON)
+; $VER: Install_DD 0.1 (10.07.96)
+;
+; Installer and Installer project icon
+; (c) Copyright 1995-96 Escom AG.  All Rights Reserved.
+; Reproduced and distributed under license from Escom AG.
+;
+;================
+;= GERMAN TEXTS =
+;================
+;
+(if (= @language "deutsch")
+	(
+	(set default_lang 2)
+	(set #bad-kick							"\n\nSie benötigen Kickstart 2.0 oder höher, um DirDownloader zu benutzen !!!")
+	(set #bbstool	(cat          "\nDieses Skript installiert DirDownloader auf Ihrem System.\n\n"
+															"ACHTUNG: DirDownloader ist ein FAME Door (FIM) und benötigt\n"
+                              "zum Betrieb mindestens FAME V1.4 oder höher !"))
+	(set #no_fame (cat					"\nDer Installer war nicht in der Lage, ein installiertes\n"
+                              "FAME System zu finden ! Wenn Sie FAME installiert\n"
+															"haben, stellen Sie bitte sicher, daß das FAME:\n"
+															"Assign korrekt gesetzt ist und starten Sie dann\n"
+															"diese Installation erneut !"))
+	(set #askfordest						"Bitte Zielpfad für DirDownloader angeben:")
+	(set #askfordesthelp  (cat	"Sie werden aufgefordert anzugeben, wo DirDownloader\n"
+															"installiert werden soll. Ein neues Verzeichnis wird\n"
+															"nicht angelegt. Wenn Sie DirDownloader in einem eigenen\n"
+                              "Verzeichnis installiert haben möchten, dann müssen Sie\n"
+															"dieses Verzeichnis selbst anlegen.\n\n"))
+	(set #No_Destination 				"\nEs wurde kein Zielverzeichnis angegeben !")
+	(set #mychoices	(cat        "Bitte wählen Sie die Programmteile aus, die Sie\n"
+															"installiert haben möchten (siehe auch Hilfe...)"))
+  (set #mychoiceshelp (cat		"Sie können nun auswählen, welche Teile vom DirDownloader\n"
+                              "installiert werden sollen. Folgende Dinge können aus-\n"
+															"gewählt werden: \n\n"
+															"DirDownloader         - Das Hauptprogramm\n"
+															"DirDownloader.guide   - Die Anleitung (englisch!)\n"
+															"DirDownloader.history - Entstehungsgeschichte\n\n\n"))
+	(set #packerinstall 				"\nMöchten Sie die mitgelieferten Packer installieren ?")
+	(set #packerinstallhlp (cat "DirDownloader unterstützt LHA, LZX und ZIP zum Packen\n"
+															"der Dateilisten. Sollten Sie einen der Packer nicht\n"
+															"besitzen, dann können Sie den/die fehlenden Packer\n"
+															"nun installieren, beachten Sie jedoch, daß alle drei\n"
+															"Programme nur als frei kopierbare ShareWare Versionen\n"
+															"vorliegen !"))
+	(set #askfordest2						"Bitte Zielverzeichnis für die Packer angeben:")
+	(set #askfordesthelp2 (cat	"Sie werden aufgefordert anzugeben, in welchem\n"
+															"Verzeichnis die Packer installiert werden sollen.\n"
+															"Der Installer wird dann die von Ihnen angegebenen\n"
+															"Programme in dieses Verzeichnis kopieren."))
+	(set #mypackers 						"Bitte wählen Sie, welche Packer installiert werden sollen:")
+	(set #mypackershelp (cat    "Wählen Sie nun aus, welche der drei Packer installiert\n"
+															"werden sollen. Folgende Programme wurden mitgeliefert:\n\n"
+                              "LHA V1.38 - Letzte offizielle öffentliche Version.\n"
+                              "LZX V1.20 - Letzte offizielle öffentliche Version.\n"
+                              "ZIP V2.01 - Letzte offizielle öffentliche Version.\n"))
+	(set #copyfiles 						"Kopiere Datei...")
+	(set #createyes							"Erzeugen")
+	(set #createno							"Nicht erzeugen")
+	(set #createdoor	(cat			"\nSoll der Installer nun die DoorDefinition für FAME\n"
+                              "erzeugen, damit Sie DirDownloader sofort benutzen\n"
+															"können, oder möchten Sie die DoorDefinition selber\n"
+															"im SystemEditor eintragen ?"))
+	(set #createdoorhelp	(cat	"Wenn Sie mit 'Erzeugen' antworten, werden Sie\n"
+															"nach einigen Werten gefragt, die für das Erstellen\n"
+															"der DoorDefinition notwendig sind. Nach den Eingaben\n"
+                              "wird automatisch das notwendige Datenfile angelegt.\n"
+															"Wenn Sie diese Einstellungen jedoch lieber selber\n"
+                              "machen möchten, dann müssen Sie mit 'Nicht erzeugen'\n"
+															"antworten. In diesem Fall ist die Installation dann\n"
+															"abgeschlossen und Sie müssen dann nachträglich den\n"
+															"SystemEditor der FAME starten und im Door Menu einen\n"
+															"neuen Eintrag für DirDownloader erzeugen. Siehe auch\n"
+															"die Anleitung vom DirDownloader im Kapitel Instal-\n"
+															"lation -> manuelle Installation."))
+	(set #nameofdoor						"\nBitte geben Sie den BBS-Namen für DirDownloader an:")
+	(set #nameofdoorhelp (cat		"Dieser Name muss in der FAME eingeben werden, um\n"
+															"DirDownloader zu starten."))
+  (set #levelfordoor					"\nBitte geben Sie den benötigten Access-Level an:")
+  (set #levelfordoorhelp (cat	"Dieser Level wird vom User mindestens benötigt, um\n"
+															"DirDownloader aus der FAME zu starten."))
+	(set #commandtouse (cat			"Bitte wählen Sie aus, unter welchem Kommandotyp\n"
+															"DirDownloader installiert werden soll:"))
+	(set #commandtousehelp (cat	"Der Kommandotyp bestimmt, wie das Programm in Ihrer\n"
+															"BBS gestartet werden kann. Wählen Sie BBSCMD, damit\n"
+															"DirDownloader aus jeder Konferenz Ihrer BBS gestartet\n"
+															"werden kann. Soll DirDownloader nur in einer bestimmten\n"
+															"Konferenz laufen, wählen Sie bitte CONF<x>CMD an, Sie\n"
+                              "werden dann nach der Nummer der Konferenz gefragt."))
+	(set #enterconf             "\nBitte geben Sie die Konferenz-Nummer an:")
+	(set #enterconfhelp (cat		"Sie werden aufgefordert anzugeben, in welcher\n"
+															"Konferenz DirDownloader benutzt werden soll. Werte\n"
+															"kleiner als 1 sind nicht gestattet, der höchste Wert\n"
+															"ist von der Anzahl Ihrer Konferenzen abhängig."))
+))
+
+;=================
+;= ENGLISH TEXTS =
+;=================
+
+(if (= @language "english")
+	(
+	(set default_lang 4)
+ 	(set #bad-kick 							"\n\nYou must be using Kickstart 2.0 or higher to install Dir-Downloader !!!")
+	(set #bbstool (cat					"\nThis script installs DirDownloader to your System.\n\n"
+															"NOTE: DirDownloader is a FAME door (FIM) and requires\n"
+															"FAME V1.4 or higher to run !"))
+	(set #no_fame (cat					"\nInstaller was not able to find the FAME System !\n"
+                              "If you have installed FAME, make sure that the\n"
+															"FAME: assign is correctly set and restart this\n"
+															"Installation to install DirDownloader !"))
+	(set #askfordest						"Please choose destination for DirDownloader:")
+	(set #askfordesthelp	(cat	"You have to choose where you wish to install the\n"
+                              "DirDownloader door. A drawer won't be created, you\n"
+															"have to create yourself a new drawer if you wish\n"
+															"to install it in a seperate drawer.\n\n"))
+	(set #No_Destination 				"\nDestination path missing !")
+	(set #mychoices (cat      	"Please choose which parts you wish to install\n"
+															"from DirDownloader (see also Help...)"))
+	(set #mychoiceshelp (cat		"You could now choose which parts of DirDownloader\n"
+															"should be installed. The following parts are\n"
+															"available:\n\n"
+															"DirDownloader         - The main program\n"
+															"DirDownloader.guide   - The documentation (english!)\n"
+															"DirDownloader.history - The programhistory\n\n\n"))
+	(set #packerinstall					"Do you wish to install the archiver programs ?")
+	(set #packerinstallhlp (cat	"DirDownloader supports LHA, LZX and ZIP for packing\n"
+															"the filelistings. If you don't have one or more of\n"
+                              "these archivers, you may now install them, but remember\n"
+															"that all three archivers are free distributable\n"
+															"ShareWare versions !"))
+	(set #askfordest2 					"Please enter destination drawer for the archivers:")
+  (set #askfordesthelp2 (cat	"You where prompted to enter the destination for\n"
+															"the archivers. The Installer will then copy all\n"
+															"selected archivers to this drawer."))
+	(set #mypackers							"Please choose which programs you wish to install:")
+	(set #mypackershelp (cat		"Select now the programs you wish to install. The\n"
+															"following programs are included:\n\n"
+															"LHA V1.38 - Latest official public release.\n"
+															"LZX V1.20 - Latest official public release.\n"
+	                            "ZIP V2.01 - Latest official public release.\n"))
+	(set #copyfiles							"Copy file...")
+	(set #createyes							"Create")
+  (set #createno							"Do not create")
+	(set #createdoor  (cat			"\nShould the Installer now create the neccessary\n"
+															"Door definition for FAME to allow you to use \n"
+                              "DirDownloader immediatly or do you wish to create\n"
+															"this definition in the SystemEditor manually ?"))
+  (set #createdoorhelp (cat		"If you answer this question with 'Create', Installer\n"
+															"will ask you some questions about the DoorDefinition\n"
+															"to create this datafile. After these questions the\n"
+															"Installer will create the Datafile so you could use\n"
+															"DirDownloader just after the Installation. If you\n"
+															"want to create yourself this datafile via the\n"
+                              "SystemEditor, please answer with 'Don't create' and\n"
+															"the Installation will be finished. You have to start\n"
+															"then the SystemEditor and edit under menu Doors the\n"
+															"datas for DirDownloader. See also the Documentation of\n"
+                              "DirDownloader for further informations about the\n"
+															"manual installation."))
+  (set #nameofdoor 						"\nPlease enter the BBS-Name for DirDownloader:")
+	(set #nameofdoorhelp	(cat  "This name has to be entered in FAME when starting\n"
+															"DirDownloader. Defaults to DD."))
+	(set #levelfordoor					"\nPlease enter the access-level for DirDownloader:")
+  (set #levelfordoorhelp (cat	"This level is the minimum access-level a user must\n"
+                              "have to start DirDownloader."))
+	(set #commandtouse (cat			"Please choose which kind of commandtype you wish\n"
+															"to have installed for DirDownloader:"))
+	(set #commandtousehelp (cat	"The commandtype defines, how the users could start\n"
+															"DirDownloader. If you select BBSCMD, your users are\n"
+															"able to start DirDownloader in every conference of\n"
+															"your BBS. If you want to allow your users to use\n"
+															"DirDownloader only in a specific conference, select\n"
+															"CONF<x>CMD. The Installer will then ask you for the\n"
+															"conference number where DirDownloader should be used."))
+	(set #enterconf							"\nPlease enter the conference number to use:")
+	(set #enterconfhelp (cat		"You where prompted to enter the conference number\n"
+															"where DirDownloader should be started. Values lower\n"
+															"than 1 are not allowed. The maximum allowed value\n"
+															"depends on the number of conferences you have\n"
+															"installed in your System."))
+))
+
+;=========================
+;= START OF INSTALLATION =
+;=========================
+
+(complete 0)
+
+(if (< (/ (getversion) 65536) 37) (abort #bad-kick))
+
+(welcome)																			; Say hello to our user
+
+(complete 10)
+
+(message #bbstool)														; Show BBS Door info
+
+(set #fame_check (getassign "FAME"))					; Get FAME Assign
+
+(if (= #fame_check "") (abort #no_fame))			; No FAME, stop installation!
+
+(complete 20)
+
+(set #destdir																	; Select destination
+	(
+	(AskDir (prompt		#askfordest)
+					(help			#askfordesthelp)
+					(default	"FAME:Doors/"))
+	))
+
+(if (= #destdir "") (abort #No_Destination))	; No path to install, aborting.
+
+(complete 30)
+
+(set @default-dest #destdir)
+
+(set #myprogs																	; Show parts of program to install
+	(AskOptions	(prompt		#mychoices)
+							(help			#mychoiceshelp)
+							(choices	"DirDownloader          9kb"
+												"DirDownloader.guide   18kb"
+												"DirDownloader.history  1kb")))
+(complete 40)
+
+(set #askforpackers														; Check out if packers required
+	(AskBool		(prompt		#packerinstall)
+							(help			#packerinstallhlp)))
+
+(if (= #askforpackers 1)
+  (
+
+	(complete 50)
+
+	(set #packdir
+		(AskDir		(prompt 	#askfordest2)
+							(help 		#askfordesthelp2)
+							(default  "C:")))
+
+	(complete 55)
+
+	(set #packers																; Yep, so show what we have...
+		(AskOptions	(prompt		#mypackers)
+  	            (help			#mypackershelp)
+								(choices	"LHA V1.38 Evaluation  52kb"
+													"LZX V1.20 Evaluation  65kb"
+        	                "ZIP V2.0.1 Public     71kb")))
+	))
+
+(complete 60)
+
+(if (IN #myprogs 0)														; Copy main file
+
+(copyfiles  (prompt	#copyfiles)
+						(help   @copyfiles-help)
+						(source "bin/DirDownloader")
+						(dest		@default-dest)
+						(infos)))
+
+(complete 61)
+
+(if (IN #myprogs 1)														; Copy documentation
+
+(copyfiles  (prompt	#copyfiles)
+						(help   @copyfiles-help)
+						(source "bin/DirDownloader.guide")
+						(dest		@default-dest)
+						(infos)))
+
+(complete 63)
+
+(if (IN #myprogs 2)														; Copy history file
+
+(copyfiles  (prompt	#copyfiles)
+						(help   @copyfiles-help)
+						(source "bin/DirDownloader.history")
+						(dest		@default-dest)
+						(infos)))
+
+(complete 65)
+
+(if (IN #packers 0)														; Copy lha
+
+(copyfiles  (prompt	#copyfiles)
+						(help   @copyfiles-help)
+						(source "c/LHA")
+						(dest		#packdir)))
+
+(complete 67)
+
+(if (IN #packers 1)														; Copy lzx
+
+(copyfiles  (prompt	#copyfiles)
+						(help   @copyfiles-help)
+						(source "c/LZX")
+						(dest		#packdir)))
+
+(complete 69)
+
+(if (IN #packers 2)														; Copy zip
+
+(copyfiles  (prompt	#copyfiles)
+						(help   @copyfiles-help)
+						(source "c/ZIP")
+						(dest		#packdir)))
+
+;=================================================
+;= CREATE THE DOORDEFINITION IF THE USER WISH IT =
+;=================================================
+
+(complete 70)
+
+(set #yesno																		; Ask if we should create it
+	(AskBool 	(prompt		#createdoor)
+            (help			#createdoorhelp)
+						(choices 	#createyes
+											#createno)))
+(if (= #yesno 1)
+	(
+  (complete 80)
+
+	(set #doorname															; Ask for BBS-Door name
+		(AskString	(prompt		#nameofdoor)
+                (help			#nameofdoorhelp)
+                (default  "DD")))
+	(complete 82)
+
+	(set #level																	; Ask for User-Level
+		(AskNumber	(prompt		#levelfordoor)
+								(help			#levelfordoorhelp)
+                (default	50)))
+	(complete 84)
+
+	(set #cmdtype																; Ask for CommandType
+		(AskChoice 	(prompt		#commandtouse)
+								(help			#commandtousehelp)
+								(choices	"BBSCMD"
+													"CONF<x>CMD")))
+	(complete 86)
+
+	(if (= #cmdtype 1)													; CONF<x>CMD selected
+		(
+		(set #confnum															; Ask for conference
+			(AskNumber 	(prompt	#enterconf)
+                  (help		#enterconfhelp)
+									(default 1)))
+
+		(complete 88)
+		(set #desttype ("%ld" #confnum))					; Confnumber to use
+		)
+ 		(
+		(complete 88)
+    (set #desttype "B")												; Set type to BBSCMD
+		))
+
+	(complete 90)
+
+	(set #destpath @default-dest)
+	(set #destpath (tackon #destpath "DirDownloader"))
+	(set #mycmdline ("c/DoorHeader NAME=%s PATH=%s TYPE=%s LEVEL=%ld NR CF SR AR MULTINODE INTERFACE=FIM" #doorname #destpath #desttype #level))
+  (run #mycmdline	(prompt "Creating Datafile...")
+									(help		"DoorDefinition will be created."))
+))
+
+(complete 100)
+(exit)																				; Everything done, say bye...

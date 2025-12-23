@@ -1,0 +1,153 @@
+/*
+
+System-X FileCheck Door (designed for the Conference Based Version!)
+
+This source is public domain, do what you want with it!
+
+*/
+
+static const char __version[] = "\0$VER: FileCheck 1.0 ("__DATE__")";
+
+#include <time.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <proto/exec.h>
+#include <proto/dos.h>
+#include "sxstructs.h"
+
+struct MsgPort *bbsport;
+
+struct JHMessage
+{
+  struct Message Msg;
+  char String[200];
+  int Data;
+  int Command;
+} themsg;
+
+
+void PS(char * str);
+void XIMFunction(int func, long data, char * str);
+void FileCheck(char *fname);
+
+
+int main(int argc, char *argv[])
+{
+	char portname[16];
+
+	if(argv[1][0]==0)
+	{
+		PutStr("This program requires System-X BBS Software\n");
+	} else {
+		sprintf(portname, "AEDoorPort%s", argv[1]);
+		bbsport = FindPort(portname);
+		if(bbsport)
+		{
+			XIMFunction(1, 0, 0); 	/* function 1 = register */
+
+			FileCheck(argv[2]);
+
+			XIMFunction(2, 0, 0); 	/* function 2 = shutdown */
+		}
+	}
+}
+
+void PS(char * str)
+{
+	XIMFunction(1500, (long)str, 0);
+}
+
+void XIMFunction(int func, long data, char * str)
+{
+	struct MsgPort *replyport;
+
+	replyport = CreateMsgPort();
+	if(replyport)
+	{
+		themsg.Msg.mn_Length	= sizeof(struct JHMessage);
+		themsg.Msg.mn_ReplyPort	= replyport;
+		themsg.Data 		= data;
+		themsg.Command 		= func;
+		if(str && str[0]!=0) strcpy(themsg.String, str);
+		PutMsg(bbsport, (struct Message *)&themsg);
+		WaitPort(replyport);
+		DeleteMsgPort(replyport);
+	}
+}
+
+void FileCheck(char *fname)
+{
+	char buf[256];
+	BPTR lck, fh;
+
+/* NOTE: \033 is an escape code (ascii 27) */
+
+
+	/* == FIRST, LETS CHECK IF THE FILE EXISTS == */
+
+	lck = Lock(fname, SHARED_LOCK);
+	if(!lck) return;	/* == IF IT DOESN'T, EXIT QUIETLY == */
+	UnLock(lck);
+
+
+
+	/* == PRINT SOME CREDITS == */
+
+	PS("\033[0;33;44m\r\n FileCheck 1.0 for SYSTEM-X - Written By Zed^DC \033[0m\r\n\r\n");
+
+
+
+	/* == PRINT THE FILE INFORMATION */
+
+	sprintf(buf, "\033[32mChecking File: \033[33m%s\r\n", fname);
+	PS(buf);
+
+
+
+	/* == LETS DO A SIMPLE CONFERENCE DUPE CHECK == */
+
+	fh = Open("SX:Prefs/Confs.DAT", MODE_OLDFILE);
+
+	if(fh)
+	{
+		struct ConfStruct Conf;
+
+		while(1)
+		{
+
+			if(Read(fh, &Conf, sizeof(struct ConfStruct)))
+			{
+
+				/* == LET'S CHECK THIS CONFERENCE == */
+
+				sprintf(buf, "\r\n\033[32mCHECKING CONFERENCE: \033[36m%s .. ", Conf.name);
+				PS(buf);
+
+				if(Conf.filepath[0] == 0)
+					lck = 0;
+				else {
+					sprintf(buf, "%s%s", Conf.filepath, fname);
+					lck = Lock(buf, SHARED_LOCK);
+				}
+				if(lck)
+				{
+					UnLock(lck);
+/* == FILE IS DUP!! == */		PS("\033[31mDuplicate Found!\033[0m\r\n\r\nFile has been deleted!");
+					DeleteFile(fname);
+					Close(fh);
+					return;
+				} else
+/* == FILE IS OK! == */			PS("Ok!");
+	
+			} else
+				break;	/* == REECHED END OF FILE == */
+
+		}
+
+		Close(fh);
+
+	}
+
+	PS("\r\n");
+}

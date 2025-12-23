@@ -1,0 +1,63 @@
+/* Convert v6.3b(c) to v6.41 Script; Used by Installer (v2.0) */
+options results
+
+call open(f1,"pfiles:WoFortune.Config","r")
+  do 3;dfile=readln(f1);end
+  do i=1 to 10;co.i=readln(f1);end i
+call close(f1)
+
+address command 'setenv WOFPath "'strip(dfile)'"'
+address command "rename "dfile"Prizes "dfile"Graphics"
+address command "makedir "dfile"Guides"
+address command "delete "dfile"Graphics/#? all"
+address command "delete "dfile"WOF6.*"
+address command "delete "dfile"Notes*"
+address command "delete "dfile"Game.A*"
+address command "delete "dfile"Game.I*"
+address command "delete "dfile"Docs.A*"
+address command "delete "dfile"Docs.I*"
+address command "delete "dfile"Log.*"
+address command "delete "dfile"Fix*"
+address command "delete "dfile"GameData"
+address command "delete "dfile"LastPlayer"
+
+if exists(dfile"Reg.Key") then
+  address command "rename "dfile"PuzData "dfile"PuzData2000"
+
+if exists(dfile"Millionaires") then
+  address command "delete "dfile"Millionaires"
+
+if exists("pfiles:WoFortune.Loader") then
+  address command "delete pfiles:WoFortune.Loader"
+
+if exists("pfiles:WoFortune/WoFortune.Loader") then
+  address command "delete "dfile"WoFortune.Loader"
+
+call open(f1,"pfiles:WoFortune.Config","w")
+  call writeln(f1,"; v6.41 August 6, 1995")
+  call writeln(f1,";                               WOF CONFIG FILE, Supports ALL THREE Modules!")
+  call writeln(f1,dfile)
+  parse var co.1 v1'|'v2'|'v3'|'v4 ; call writeln(f1,v4)
+  do i=2 to 8 ; call writeln(f1,co.i) ; end i
+  parse var co.9 v1'|'v2'|'v3'|'v4'|'v5'|'v6'|'v7'|'v8'|'v9'|'v10'|'v11'|',
+                 v12'|'v13'|'v14'|'v15'|'v16'|'v17'|'v18'|'v19'|'v20'|',
+                 v21'|'v22'|'v23'|'v24'|'v25'|'v26'|'j
+  a='0|N/A|0|'v3'|'v4'|'v5'|'v6'|'v7'|'v10'|'v11'|'v12'|'v13'|15|15|15|10'
+  a=a'|'v14'|'v15'|'v16'|'v17'|'v18'|'v19'|'v21'|'v22'|'v23'|'v24'|'v25
+  a=a'|'v26'|x' ; call writeln(f1,a)
+  parse var co.10 v1'|'v2'|'v3'|'v4'|'v5'|'v6'|'v7'|'v8'|'v9'|'v10'|'v11'|',
+                  v12'|'v13'|'v14'|'v15'|'v16'|'v17'|'v18'|'v19'|'j
+  a=v1'|'v2'|'v3'|'v4'|'v5'|'v7'|'v8'|'v9'|'v10'|'v11'|'v12'|'v13'|'v14
+  a=a'|'v15'|'v16'|'v17'|'v18'|'v19'|x' ; call writeln(f1,a)
+call close(f1)
+
+call open(f1,dfile'Players','r')
+  do i=1 until eof(f1) ; pl.i=readln(f1) ; end i ; players=i-1
+call close(f1)
+
+call open(f1,dfile'Players','w')
+  do i=1 to players
+    parse var pl.i v1'|'v2'|'v3'|'v4'|'v5'|'v6'|'v7'|'v8'|'v9'|'v10'|'j
+    call writeln(f1,v1'|'v2'|'v3'|1|0|'v6'|'v7'|'v8'|'v9'|0|'v10'|x')
+  end i
+call close(f1)

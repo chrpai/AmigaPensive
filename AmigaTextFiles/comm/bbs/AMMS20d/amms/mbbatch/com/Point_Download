@@ -1,0 +1,164 @@
+;
+;	POINT DOWNLOAD
+;
+;	Scriptfile zum Download der neuen Nachrichten im Z-Netz-Format
+;	$VER: 1.12 / 29.01.1995
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die Befehle EXTERN und DISK DOWNLOAD zugreifen kann !
+;
+;	Aufruf durch User : POINT DOWNLOAD
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die folgende Befehle zugreifen kann !
+;
+;	CHECK FILE
+;	DISK DOWNLOAD
+;	ECHO
+;	EOD
+;	EXTERN
+;	GOTO
+;	IF
+;	MENU
+;	ON BREAK
+;	ON ERROR
+;	POINT MAKEFILE
+;	WAIT
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DELETE
+;
+;	Konstanten :
+;
+TMPDIR  = "mbmsg:point/'{port}'/"		; Dir fuer Tmp-Files
+NETDIR  = "mbmsg:point/netcall/"		; NET-Directory
+MAXKBYT = 2000					; Max. Filelaenge in KByte
+MSGFILE = "PUFFER"				; Name des Msg-Files
+NRFILE  = "msgnr"				; File fuer Msg-Nummern
+COPYFILE= "'{NAME}'.lha"			; Vorgabefile (Pack-Event)
+COPYNR  = "'{NAME}'.msgnr"			; File fuer Msg-Nummern
+PCKFILE = "called.lzh"				; Name des gepackten Files
+PACKER  = "lha -P-1 m ""'TMPDIR''PCKFILE'"" ""'TMPDIR''MSGFILE'"""
+						; Packen
+;
+;	Bei Abbruch oder Fehler verzweigen / Texte laden
+;
+
+_on error ERROR
+
+LANG={DEFLANGUAGE}
+_check file "mbbatch:com/'{ALANGUAGE}'/point_download.bat" GETTEXT
+LANG={ALANGUAGE}
+GETTEXT:
+_disk execute/keep "mbbatch:com/'LANG'/point_download.bat"
+
+_on break ABORT
+
+;
+;	Starttext ausgeben
+;
+
+_echo STARTTEXT
+
+;
+;	Vorgepackte Nachrichten senden ?
+;
+
+_check file "'NETDIR''COPYFILE'" QUESTION	; Existiert Sendefile ?
+_echo COPYTEXT
+_extern/q copy "'NETDIR''COPYFILE'" "'TMPDIR''PCKFILE'"	; Ja, vorgepackte
+_extern/q copy "'NETDIR''COPYNR'" "'TMPDIR''NRFILE'"	; Files kopieren
+_goto DOWNLOAD					; -> Download
+
+;
+;	Frage: Welche Messages exportieren & packen ?
+;
+QUESTION:
+_menu MENUTEXT -
+ KEY_MARK MARK -
+ KEY_NEW NEW -
+ KEY_ALL ALL -
+ KEY_ABORT ABORT
+
+MARK:
+Option="/mark"
+_goto EXPORT
+
+ALL:
+Option="/all"
+_goto EXPORT
+
+NEW:
+Option=""
+
+;
+;       Alte Files loeschen, neues File erzeugen und packen
+;
+EXPORT:
+_echo/nolf EXPORTTEXT
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_extern/q rename "'TMPDIR''PCKFILE'" "'TMPDIR''PCKFILE''{CALLNR}'"
+
+;
+;	Message exportieren
+;
+
+_on error ABORT
+_point makefile'Option' "'TMPDIR''MSGFILE'" 'MAXKBYT' "'TMPDIR''NRFILE'"
+_on error ERROR
+
+;
+;	Messages packen
+;
+
+_echo/nolf PACKTEXT
+_extern/q 'PACKER'
+_echo PACKENDTEXT
+
+;
+;       Gepacktes File Downloaden
+;
+DOWNLOAD:
+_echo/nolf DOWNTEXT
+_waitkey
+_echo
+
+_on error/ignore
+_disk download "'TMPDIR''PCKFILE'"
+_on error ERROR
+
+_menu RETRYTEXT -
+ KEY_RETRY DOWNLOAD -
+ KEY_OK OK
+
+OK:
+_menu MARKTEXT -
+ KEY_MARKMSGS SETNR -
+ KEY_UNMARK END
+
+;
+;       Die abgeholten Nachrichten markieren
+;
+SETNR:
+_point makefile/setnr "'TMPDIR''NRFILE'"
+_extern/q delete "'NETDIR''COPYFILE'" "'NETDIR''COPYNR'"
+
+;
+;       Ende
+;
+END:
+_echo/nolf DELTEXT
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_echo DELENDTEXT
+_eod
+
+;
+;       Wenn Abbruch oder Fehler
+;
+ERROR:
+_echo ERRORTEXT
+ABORT:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_eod

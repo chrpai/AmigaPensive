@@ -1,0 +1,1543 @@
+'
+' Polling Door
+'
+' By Peter Deane
+'
+' (c) 1994
+'
+' Allows users to vote on topics...
+'
+' |  |  |  (Okay! watch this space)
+' V  V  V
+'
+testingit!=FALSE
+ON ERROR GOSUB woops
+'
+timeon%=CINT(TIMER/200)
+'
+versnum$="$VER: Polling_Door 1.20 "
+versnum$="1.20"
+versdate$="12-Nov-94"
+doorname$="The Polling Door"
+'
+'
+MODE 1
+DIM ansi$(10)
+DIM cmd$(20,2)
+'
+' /\ (number of poll files possible. 20 is heaps!)
+'
+DIM votes%(20,20)
+'
+' /\ votes: 20 questions, 20 responses
+'
+DIM ans%(5)
+'
+' /\ for generating colour sequences pleasing to the eye
+'
+'
+cr$=CHR$(13)+CHR$(10)
+de$=CHR$(8)+" "+CHR$(8)
+esc$=CHR$(27)
+'
+' \/ Who's online and what's what?
+'
+IF EXIST("ram:userdata")
+  OPEN "I",#2,"RAM:USERDATA"
+  LINE INPUT #2,rtime$
+  LINE INPUT #2,uname$
+  LINE INPUT #2,id$
+  LINE INPUT #2,lev$
+  LINE INPUT #2,bd$
+  LINE INPUT #2,ring$
+  LINE INPUT #2,path$
+  CLOSE #2
+ELSE
+  ' setup dummy names, etc
+  rtime$="300"
+  uname$="PETER DEANE"
+  id$="1"
+  lev$="9"
+  bd$="19200"
+  ring$="0"
+  ansi%=1
+  path$=""
+ENDIF
+'
+' \/ What's our ansi setting?
+'
+IF EXIST("ram:doordata")
+  OPEN "I",#2,"Ram:doordata",1024
+  FOR k%=1 TO 7
+    LINE INPUT #2,temp$
+  NEXT k%
+  CLOSE #2
+  ansi%=VAL(temp$)
+ELSE
+  ansi%=99
+ENDIF
+'
+'
+' \/ Investigate our working environment from the config file...
+'
+'
+IF EXIST("S:Metro.cfg")
+  config$="S:Metro.cfg"
+ELSE IF EXIST("BBS:Metro.cfg")
+  config$="BBS:Metro.cfg"
+ELSE IF EXIST("Metro.cfg")
+  config$="Metro.cfg"
+ELSE
+  config$="XXX"
+ENDIF
+'
+' Defaults
+'
+bbsname$="The OzMetro BBS"
+sysopname$="Peter Deane"
+sfd$="BBS:"
+winw$="640"
+winh$="200"
+'
+IF config$<>"XXX"
+  '
+  OPEN "I",#2,config$,128
+  DO WHILE (NOT EOF(#2))
+    LINE INPUT #2,xx$
+    xx$=TRIM$(xx$)
+    xxu$=UPPER$(xx$)
+    '
+    IF xxu$="" OR LEFT$(xxu$,1)=";"
+      ' Do nothing
+    ELSE IF LEFT$(xxu$,7)="BBSNAME"
+      xx$=MID$(xx$,8,255)
+      xx$=TRIM$(xx$)
+      bbsname$=xx$
+    ELSE IF LEFT$(xxu$,9)="SYSOPNAME"
+      xx$=MID$(xx$,10,255)
+      xx$=TRIM$(xx$)
+      sysopname$=xx$
+    ELSE IF LEFT$(xxu$,11)="WINDOWWIDTH"
+      xx$=MID$(xx$,12,255)
+      xx$=TRIM$(xx$)
+      winw$=xx$
+    ELSE IF LEFT$(xxu$,12)="WINDOWHEIGHT"
+      xx$=MID$(xx$,13,255)
+      xx$=TRIM$(xx$)
+      winh$=xx$
+    ENDIF
+    '
+  LOOP UNTIL EOF(#2)
+  CLOSE #2
+ENDIF
+sw%=VAL(winw$)
+sh%=VAL(winh$)
+sx%=0
+sy%=0
+ww%=sw%
+wh%=sh%-12
+wx%=0
+wy%=11
+'
+'
+' \/ integer conversion for system variables
+'
+tpc%=VAL(rtime$)
+id%=VAL(id$)
+lev%=VAL(lev$)
+ring%=VAL(ring$)
+bd%=VAL(bd$)
+timeon%=CINT(TIMER/200)
+'
+OPENS 1,sx%,sy%,sw%,sh%,3,32768
+OPENW #1,wx%,wy%,ww%,wh%,0,4135,1
+'
+' Hack these settings if you like: format &Hxxx
+' the xxx is the HEX value of the RGB register
+' \/
+SETCOLOR 0,&H0
+SETCOLOR 1,&HF11
+SETCOLOR 2,&H1F1
+SETCOLOR 3,&HFF1
+SETCOLOR 4,&H11F
+SETCOLOR 5,&HF1F
+SETCOLOR 6,&H1FF
+SETCOLOR 7,&HFFF
+'
+title$="P_olling D_oor ID: "+id$+" ("+uname$+") Lev: "+lev$+" Baud: "
+IF ring%=0
+  title$=title$+"Local Login"
+ELSE
+  title$=title$+bd$
+ENDIF
+TITLEW #1,title$
+xx$="Written by PFD    V "+versnum$+"  Date "+versdate$
+TITLES #1,xx$
+'
+' modem need not be opened if it's a local login!
+' then you can test em standalone with the BBS running, among other things...
+' \/
+IF ring%<>0
+  GOSUB modem.o
+ENDIF
+'
+' \/  Figure out the page pause setting!
+'
+flnm$=sfd$+"BBSFILES/userlog"
+IF EXIST(flnm$)
+  GOSUB userlogprep
+  GET #3,id%
+  page%=VAL(dm2$)
+  CLOSE #3
+ELSE
+  page%=23
+ENDIF
+IF page%>5
+  scrnht%=page%-1
+ELSE
+  scrnht%=22
+ENDIF
+IF ring%=0
+  scrnht%=(wh%/8)-4
+ENDIF
+'
+'
+' ======================================================================
+'
+' We're in, hit em hard and good!
+'
+' reset terminal
+o$=esc$+"[0;40;37m"+CHR$(12)
+GOSUB 2
+o$=cr$+cr$+"   Polling Door by PFD"
+GOSUB 2
+o$=cr$+cr$+"   Version "+versnum$+" Date "+versdate$
+GOSUB 2
+o$=cr$+cr$+"   Written in GFA Basic - Comp V 3.51"
+GOSUB 2
+'
+'
+IF ansi%>2
+  GOSUB checkansi
+ELSE
+  GOSUB press
+  GOSUB 1
+  IF car%>0
+    GOTO finish
+  ENDIF
+ENDIF
+GOSUB setpagepause
+GOSUB setansi
+'
+' ======================================================================
+main:
+' ======================================================================
+'
+GOSUB cmdread
+'
+'
+IF errflag%=1
+  o$=ansi$(1)+"Configuration file error."
+  GOSUB 2
+  o$=cr$+ansi$(3)+"Last values read:"
+  GOSUB 2
+  FOR j%=1 TO 2
+    o$=cr$+cr$+ansi$(j%+5)+cmd$(k%,j%)
+  NEXT j%
+  GOSUB press
+  GOSUB 1
+  GOTO finish
+ENDIF
+'
+'
+gotone%=0
+in$=""
+GOSUB tchk
+IF car%>0
+  GOTO finish
+ENDIF
+'
+'
+' Print Menu
+k%=0
+o$=cr$+CHR$(12)
+GOSUB 2
+DO
+  INC k%
+  o$=cr$+ansi$(1)+"["+ansi$(7)+cmd$(k%,1)+ansi$(1)+"]"+ansi$(ans%((k% MOD 5)+1))+cmd$(k%,2)
+  GOSUB 2
+  GOSUB checkhotkey
+  IF goteone%=1
+    GOTO gotsel
+  ENDIF
+LOOP UNTIL k%>=pollsavail%
+o$=cr$+cr$+ansi$(1)+"["+ansi$(7)+"R"+ansi$(1)+"]"+ansi$(1)+"econfigure"
+GOSUB 2
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+o$=cr$+ansi$(1)+"["+ansi$(7)+"Q"+ansi$(1)+"]"+ansi$(1)+"uit!"
+GOSUB 2
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+IF lev%=9
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"*"+ansi$(1)+"]"+ansi$(1)+"Maintenance"
+  GOSUB 2
+ENDIF
+GOSUB tchk
+o$=cr$+cr$+ansi$(2)+"("+ansi$(3)+STR$(rtime%)+" min"+ansi$(2)+")"+ansi$(5)+" Cast Your Vote: "
+modout%=0
+gotone%=0
+in%=0
+il%=1
+GOSUB 1
+GOSUB tchk
+IF car%>0
+  GOTO finish
+ENDIF
+FOR k%=1 TO pollsavail%
+  IF cmd$(k%,1)=in$
+    cmd$(0,1)=cmd$(k%,1)
+    cmd$(0,2)=cmd$(k%,2)
+  ENDIF
+NEXT k%
+'
+gotsel:
+'
+' ======================================================================
+IF in$="Q" OR car%>0
+  GOTO finish
+  ' ======================================================================
+ELSE IF in$="R"
+  ' re-configure details
+  o$=CHR$(12)
+  GOSUB 2
+  GOSUB checkansi
+  GOSUB setansi
+  IF car%>0
+    GOTO finish
+  ENDIF
+  GOSUB setpagepause
+  IF car%>0
+    GOTO finish
+  ENDIF
+  in$=""
+  GOTO main
+  '
+  ' ======================================================================
+ELSE IF in$="*" AND lev%=9
+  ' Sysop
+  GOSUB sysopmaint
+  GOSUB press
+  GOSUB 1
+  IF car%>0
+    GOTO finish
+  ENDIF
+  in$=""
+  GOTO main
+ENDIF
+' ======================================================================
+'
+'
+' Not a 'reserved' command Q:uit R:econfigure *:Maintenance.
+' Must be a selected poll.
+'
+pollkey$=in$
+poll$=path$+"Poll."+pollkey$
+pollname$=cmd$(gotkey%,1)+cmd$(gotkey%,2)
+o$=cr$+CHR$(12)+ansi$(5)
+cs$=pollname$
+GOSUB center
+o$=o$+lcs$+cr$+cr$
+GOSUB 2
+'
+IF NOT EXIST(poll$)
+  o$=cr$+CHR$(12)
+  GOSUB 2
+  o$=ansi$(1)+"That Poll is not available today!"+cr$
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+  IF car%>0
+    GOTO finish
+  ENDIF
+  GOTO main
+ENDIF
+'
+' voted already or not????
+'
+file$=path$+"Voted."+pollkey$
+voted%=0
+'
+IF NOT EXIST(file$)
+  ' no-one's voted!
+  OPEN "O",#2,file$,1024
+  PRINT #2,uname$
+  CLOSE #2
+ELSE
+  ' wonder who's voted?
+  OPEN "I",#2,file$,1024
+  WHILE NOT EOF(#2)
+    LINE INPUT #2,check$
+    IF check$=uname$
+      voted%=1
+    ENDIF
+  WEND
+  CLOSE #2
+  ' THIS GUY hasn't voted, add to list now.
+  IF voted%<>1
+    OPEN "A",#2,file$,1024
+    PRINT #2,uname$
+    CLOSE #2
+  ENDIF
+  '
+ENDIF
+'
+IF voted%=1
+  o$=cr$+cr$+ansi$(3)+"You have already voted in this section."
+  GOSUB 2
+  o$=cr$+cr$+ansi$(2)+"Do you want to see the results (Y/n)? "+ansi$(6)
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF car%>0
+    GOTO finish
+  ENDIF
+  IF in$="YES"
+    voted%=1
+  ELSE
+    voted%=0
+  ENDIF
+  GOSUB tchk
+  IF car%>0
+    GOTO finish
+  ENDIF
+  IF voted%=0
+    GOTO main
+  ENDIF
+ENDIF
+' ======================================================================
+' Read in the number of voters already..
+file$=path$+"results."+pollkey$
+IF NOT EXIST(file$)
+  OPEN "O",#3,file$
+  FOR i%=1 TO 20
+    FOR j%=1 TO 19
+      PRINT #3,"0,";
+    NEXT j%
+    PRINT #3,"0"
+  NEXT i%
+ENDIF
+CLOSE #3
+'
+OPEN "I",#2,file$
+FOR i%=1 TO 20
+  FOR j%=1 TO 20
+    INPUT #2,votes%(i%,j%)
+  NEXT j%
+NEXT i%
+CLOSE #2
+'
+' ======================================================================
+'
+' Output the voting text, with results.
+'
+errflag%=0
+OPEN "I",#9,poll$,1024
+voterentrance:
+LINE INPUT #9,temp$
+IF LEFT$(temp$,2)<>"**"
+  errflag%=1
+  GOTO voterexit
+ENDIF
+LINE INPUT #9,temp$
+'
+quest%=0
+WHILE LEFT$(temp$,3)<>"END"
+  '
+  '
+  o$=cr$+CHR$(12)+ansi$(1)+" --==>> "+ansi$(6)+pollname$+ansi$(1)+" <<==-- "
+  GOSUB 2
+  o$=cr$+cr$+ansi$(7)+temp$+cr$
+  GOSUB 2
+  LINE INPUT #9,temp$
+  '
+  ' Here are the question lines.
+  '
+  WHILE LEFT$(temp$,2)<>"**"
+    o$=temp$+cr$
+    GOSUB 2
+    LINE INPUT #9,temp$
+  WEND
+  '
+  ' And the possible responses (with results)
+  '
+  count%=0
+  temp$=""
+  o$=cr$
+  GOSUB 2
+  LINE INPUT #9,temp$
+  INC quest%
+  WHILE LEFT$(temp$,2)<>"**"
+    INC count%
+    o$=cr$+ansi$(1)+"["+ansi$(7)+CHR$(64+count%)+ansi$(1)+"] "+ansi$(ans%(count% MOD 5+1))+temp$+ansi$(1)+" - ["+ansi$(7)+STR$(votes%(quest%,count%))+ansi$(1)+"]"
+    GOSUB 2
+    LINE INPUT #9,temp$
+  WEND
+  numques%=count%
+  '
+  IF EOF(#9)
+    errflag%=1
+    GOTO voterexit
+  ENDIF
+  LINE INPUT #9,temp$
+  '
+  IF voted%<>1
+    dumboans:
+    o$=cr$+cr$+ansi$(1)+"Your Vote ? "
+    in%=0
+    il%=1
+    GOSUB 1
+    IF car%>0
+      GOTO finish
+    ENDIF
+    keyin%=ASC(in$)
+    IF keyin%<65 OR keyin%>64+numques%
+      GOTO dumboans
+    ELSE
+      ans%=keyin%-64
+      INC votes%(quest%,ans%)
+    ENDIF
+    '
+  ELSE
+    o$=cr$+cr$+ansi$(2)+"Next (Y/n)? "+ansi$(1)
+    in%=3
+    il%=1
+    yes%=1
+    GOSUB 1
+    IF car%>0
+      GOTO finish
+    ELSE IF in$="NO"
+      voted%=1
+      ' /\ make sure ;-)
+      GOTO voterexit
+    ENDIF
+  ENDIF
+WEND
+voterexit:
+CLOSE #9
+IF errflag%=1
+  o$=cr$+cr$+ansi$(1)+"Config file error! Please inform your sysop."
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+  GOTO main
+ENDIF
+o$=cr$+cr$+ansi$(5)+"Casting your ballot..."
+GOSUB 2
+IF voted%<>1
+  file$=path$+"Results."+pollkey$
+  OPEN "O",#3,file$,1024
+  FOR i%=1 TO 20
+    o$=ansi$(ans%(i% MOD 5))+"."
+    GOSUB 2
+    FOR j%=1 TO 19
+      PRINT #3,votes%(i%,j%);",";
+    NEXT j%
+    PRINT #3,votes%(i%,20)
+  NEXT i%
+  CLOSE #3
+ENDIF
+IF voted%<>1
+  o$=ansi$(6)+"...done"
+  GOSUB 2
+ELSE
+  o$=ansi$(1)+"...not saved - no changes made."
+  GOSUB 2
+ENDIF
+' ======================================================================
+'
+' final check before looping.
+GOSUB tchk
+IF car%>0
+  GOTO finish
+ENDIF
+'
+in$=""
+GOTO main
+' ======================================================================
+'
+finish:
+o$=cr$+CHR$(12)
+GOSUB 2
+cs$="The Polling Door was written by Peter Deane."
+GOSUB center
+o$=screenclr$+cr$+ansi$(6)+lcs$+cr$
+GOSUB 2
+cs$="Brought to you on "+bbsname$
+GOSUB center
+o$=cr$+cr$+ansi$(2)+lcs$
+GOSUB 2
+cs$="by "+sysopname$
+GOSUB center
+o$=cr$+cr$+ansi$(5)+lcs$
+GOSUB 2
+cs$="See you next time, matey!"
+GOSUB center
+o$=cr$+cr$+ansi$(3)+lcs$+cr$
+GOSUB 2
+IF EXIST("ram:userdata")
+  KILL "RAM:USERDATA"
+ENDIF
+CLOSES 1
+GOSUB modem.c
+END
+'
+'
+'
+'         ***********
+PROCEDURE sysopmaint
+  '       ***********
+  '
+  sysopentrance:
+  ' do it once now
+  '
+  IF lev%<9 OR car%>0
+    GOTO sysopexit
+  ENDIF
+  '
+  ' okay, we're a sysop (level 9) and have carrier and time!
+  '
+  in%=9
+  il%=1
+  o$=cr$+CHR$(12)
+  GOSUB 2
+  o$=ansi$(6)+"Sysop Maintenance"+cr$
+  GOSUB 2
+  o$=ansi$(5)+"-----------------"+cr$
+  GOSUB 2
+  o$=cr$
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"U"+ansi$(1)+"]"+ansi$(ans%(1))+"nVote A User"
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"M"+ansi$(1)+"]"+ansi$(ans%(2))+"enu Functions"
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"P"+ansi$(1)+"]"+ansi$(ans%(3))+"oll Functions"
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"S"+ansi$(1)+"]"+ansi$(ans%(4))+"tats File"
+  GOSUB 2
+  o$=cr$+ansi$(1)+"["+ansi$(7)+"Q"+ansi$(1)+"]uit Maintenance"+cr$+cr$
+  GOSUB 2
+  in%=0
+  il%=1
+  GOSUB 3
+  IF in$="Q" OR car%>0
+    GOTO sysopexit
+  ENDIF
+  IF in$="U"
+    ' Unvote a user
+    o$=cr$+CHR$(12)
+    GOSUB 2
+    o$=ansi$(1)+"Un-Vote A User"+cr$+cr$
+    GOSUB 2
+    GOSUB cmdread
+    ' Print Menu
+    k%=0
+    GOSUB 2
+    DO
+      INC k%
+      o$=cr$+ansi$(1)+"["+ansi$(7)+cmd$(k%,1)+ansi$(1)+"]"+ansi$(ans%((k% MOD 5)+1))+cmd$(k%,2)
+      GOSUB 2
+      GOSUB checkhotkey
+      IF goteone%=1
+        GOTO gotunvote
+      ENDIF
+    LOOP UNTIL k%>=pollsavail%
+    '
+    gotunvote:
+    '
+    IF gotone%=1
+      pollkey$=keyin$
+    ELSE
+      in%=0
+      il%=1
+      GOSUB 3
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      pollkey$=in$
+    ENDIF
+    IF pollkey$=""
+      GOTO sysopentrance
+    ENDIF
+    o$=cr$+cr$+"Current Voters:"+cr$+cr$+cr$+ansi$(6)
+    GOSUB 2
+    file$=path$+"Voted."+pollkey$
+    IF EXIST(file$)
+      GOSUB seq.o
+      GOSUB press
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+    ELSE
+      o$=cr$+cr$+"-- No Voters at the moment"
+      GOSUB 2
+      GOSUB press
+      GOSUB 1
+      GOTO sysopentrance
+    ENDIF
+    o$=cr$+"Un-Vote which user? <rtn> to abort"
+    in%=2
+    il%=25
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    unvote$=in$
+    OPEN "I",#2,path$+"voted."+pollkey$
+    OPEN "O",#3,path$+"Voted."+pollkey$+".new"
+    WHILE NOT EOF(#2)
+      LINE INPUT #2,temp$
+      IF temp$<>unvote$
+        PRINT #3,temp$
+      ENDIF
+    WEND
+    CLOSE #2
+    CLOSE #3
+    KILL path$+"voted."+pollkey$
+    NAME path$+"Voted."+pollkey$+".new" AS path$+"Voted."+pollkey$
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    GOTO sysopentrance
+  ENDIF
+  IF in$="M"
+    ' Menu Maintenance - including Menu Writer:
+    o$=cr$+CHR$(12)+ansi$(6)+"Menu Maintenance System"
+    GOSUB 2
+    file$=path$+"Poll.menu"
+    IF EXIST(file$)
+      ' menu file already exists!!
+      '
+      o$=cr$+cr$+ansi$(1)+"'Poll.menu' already exists on the drive."+cr$+cr$+ansi$(2)
+      GOSUB 2
+      GOSUB seq.o
+      GOSUB press
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+    ENDIF
+    o$=cr$+CHR$(12)+ansi$(6)+"Menu-Maker!"+ansi$(1)+cr$+"~~~~~~~~~~~"+ansi$(7)+cr$
+    GOSUB 2
+    o$=cr$+ansi$(1)+"["+ansi$(2)+"E"+ansi$(1)+"]"+ansi$(3)+"dit A Menu"
+    GOSUB 2
+    o$=cr$+ansi$(1)+"["+ansi$(2)+"N"+ansi$(1)+"]"+ansi$(5)+"ew Menu Maker"
+    GOSUB 2
+    o$=cr$+ansi$(1)+"["+ansi$(2)+"A"+ansi$(1)+"]"+ansi$(7)+"ppending to a Menu"
+    GOSUB 2
+    o$=cr$+ansi$(1)+"["+ansi$(2)+"Q"+ansi$(1)+"]"+ansi$(1)+"uit to Maintenance"+cr$+cr$
+    GOSUB 2
+    o$=cr$+ansi$(1)+time1$+ansi$(2)+"  Yo?  "
+    in%=0
+    il%=1
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ELSE IF in$="Q"
+      GOTO sysopentrance
+    ENDIF
+    '
+    ' Okay, editing the file...
+    '
+    '
+    ' Generating a new blank file
+    IF EXIST(file$)
+      o$=cr$+cr$+ansi$(1)+"File alrady exists. Are you sure (y/N)? "
+      in%=3
+      il%=1
+      yes%=0
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ELSE IF in$="NO"
+        GOTO sysopentrance
+      ENDIF
+    ENDIF
+    '
+    ' we're sure we wanna edit it now
+    '
+    FOR k%=1 TO 20
+      cmd$(k%,1)=""
+      cmd$(k%,2)=""
+    NEXT k%
+    o$=cr$+CHR$(12)+ansi$(6)+"Menu File Maker"+cr$+ansi$(1)+"~~~~~~~~~~~~~~~"+cr$+cr$
+    GOSUB 2
+    o$=ansi$(3)+cr$+"The menu consists of two lines. 1 for the keypress,"
+    GOSUB 2
+    o$=ansi$(3)+cr$+"and 1 for the rest of the menu line."+cr$
+    GOSUB 2
+    o$=cr$+ansi$(2)+"You may add a single space in front of your second line to"
+    GOSUB 2
+    o$=cr$+ansi$(2)+"make it look like this"+cr$
+    GOSUB 2
+    o$=cr$+ansi$(1)+"["+ansi$(7)+"1"+ansi$(1)+"]"+ansi$(5)+" Example"
+    GOSUB 2
+    o$=cr$+cr$+ansi$(3)+"Or you can leave the space off to make it like this:"
+    GOSUB 2
+    o$=cr$+cr$+ansi$(1)+"["+ansi$(7)+"X"+ansi$(1)+"]"+ansi$(6)+"ample Item"+cr$+cr$
+    GOSUB 2
+    o$=cr$+cr$+ansi$(7)+"The second method is better for the users, the first easier for sysops!"
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    IF car%>0
+      GOTO sysopexit
+    ENDIF
+    o$=cr$+CHR$(12)
+    GOSUB 2
+    '
+    check$=""
+    '
+    WHILE LEFT$(UPPER$(check$),4)<>"DONE"
+      o$=cr$+cr$+ansi$(2)+"What's the Keypress? "
+      in%=2
+      il%=1
+      GOSUB 1
+      o$=cr$+CHR$(12)+ansi$(1)+"Enter 'DONE' to stop adding entries."
+      GOSUB 2
+      kp$=in$
+      check$=in$
+      IF car%>0
+        GOTO sysopexit
+      ELSE IF in$=""
+        GOTO sysopentrance
+      ENDIF
+      o$=cr$+cr$+ansi$(3)+"And the menu line ... "+cr$+cr$+ansi$(1)+"["+ansi$(7)+kp$+ansi$(1)+"]"+ansi$(5)
+      in%=1
+      il%=50
+      GOSUB 1
+      IF car%>0
+        GOTO sysopexit
+      ENDIF
+      check$=in$
+    WEND
+    '
+    '
+    ' appending to an existing one
+    '
+    '
+    '
+    '
+  ENDIF
+  IF in$="P"
+    ' Poll-Maker-Upperer
+    '
+    ' Make this a few subs, as it can be called by users..
+    '
+  ENDIF
+  '
+  '
+  IF car%=0
+    GOTO sysopentrance
+  ENDIF
+  '
+  sysopexit:
+RETURN
+'
+PROCEDURE 1
+  GOSUB 2
+  GOSUB 3
+RETURN
+'
+'
+PROCEDURE 2
+  '
+  IF ring%=1
+    PRINT #1,o$;
+  ENDIF
+  IF icon%=0
+    PRINT o$;
+  ENDIF
+  IF (modout%=1)
+    GOSUB 3
+  ENDIF
+  2.1:
+  o$=""
+RETURN
+'
+'
+PROCEDURE 3
+  idle%=CINT(TIMER/200)
+  key$=""
+  in$=""
+  in1$=""
+  a%=0
+  keyy%=0
+  b%=0
+  car%=0
+  DO
+    IF MOUSEK=3
+      SYSTEM
+    ENDIF
+    IF ring%=1
+      cd%=0
+      cd%=LPEEK(12570624)
+      cd%=cd% AND 8192
+      IF cd%<>0
+        car%=1
+        keyy%=1
+      ENDIF
+    ENDIF
+    key$=INKEY$
+    IF key$<>""
+      GOTO mod.in1
+    ENDIF
+    '
+    IF ring%=1
+      IF LOC(#1)>0
+        in1$=INPUT$(1,#1)
+        key$=in1$
+        in1$=""
+      ENDIF
+    ENDIF
+    '
+    mod.in1:
+    IF key$=CHR$(19)
+      pau$=""
+      hold%=CINT(TIMER/200)
+      WHILE CINT(TIMER/200)<hold%+45
+        pau$=INKEY$
+        IF pau$<>""
+          key$=""
+          pau$=""
+          GOTO mod.in1.1
+        ENDIF
+        IF ring%=1
+          IF LOC(#1)>0
+            key$=""
+            pau$=""
+            GOTO mod.in1.1
+          ENDIF
+        ENDIF
+      WEND
+      key$=""
+      pau$=""
+      GOTO mod.in1.1
+    ENDIF
+    '
+    mod.in1.1:
+    IF modout%=1 AND key$=""
+      keyy%=1
+    ENDIF
+    IF modout%=1 AND key$=CHR$(32)
+      abort%=1
+      GOTO 2.1
+    ENDIF
+    IF modout%=1 AND key$<>CHR$(32)
+      keyy%=1
+    ENDIF
+    IF key$=""
+      GOTO mod.in2
+    ENDIF
+    mod.in1.5:
+    a%=ASC(key$)
+    b%=LEN(in$)
+    IF a%=13
+      GOTO mod.in1.6
+    ENDIF
+    IF (a%=8 OR a%=127) AND LEN(in$)>=1
+      in$=LEFT$(in$,b%-1)
+      DEC b%
+      o$=de$
+      GOSUB 2
+    ENDIF
+    IF b%=il%
+      GOTO mod.in2
+    ENDIF
+    IF in%=0
+      IF a%>31 AND a%<127
+        IF cmd%=1
+          cmdmenu%=0
+          dismsg%=0
+        ENDIF
+        key$=UPPER$(key$)
+        o$=key$+cr$
+        GOSUB 2
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in1.6:
+    IF in%=1 AND a%>31 AND a%<127
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=2 AND a%>31 AND a%<127
+      key$=UPPER$(key$)
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=3
+      IF a%=13 AND yes%=1
+        o$="YES"
+        GOSUB 2
+        in$="YES"
+        keyy%=1
+      ENDIF
+      IF a%=13 AND yes%=0
+        o$="NO"
+        GOSUB 2
+        in$="NO"
+        keyy%=1
+      ENDIF
+      IF a%=89 OR a%=121
+        o$="YES"+cr$
+        GOSUB 2
+        in$="YES"
+        keyy%=1
+      ENDIF
+      IF a%=78 OR a%=110
+        o$="NO"+cr$
+        GOSUB 2
+        in$="NO"
+        keyy%=1
+      ENDIF
+    ENDIF
+    IF in%=4 AND a%>47 AND a%<58
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=5
+      IF (a%=8 OR a%=127) AND LEN(ln$(ln%))>=1
+        ln$(ln%)=LEFT$(ln$(ln%),LEN(ln$(ln%))-1)
+        o$=de$
+        GOSUB 2
+        keyy%=1
+      ENDIF
+      IF a%=13
+        in$=key$
+        keyy%=1
+      ENDIF
+      IF a%=9
+        o$="     "
+        GOSUB 2
+        in$="     "
+        keyy%=1
+      ENDIF
+      IF a%>26 AND a%<127
+        o$=key$
+        GOSUB 2
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    '
+    ' new one: no echoing of input at all! Good for More (Y/n)? stuff, etc...
+    '
+    IF in%=9
+      IF a%>31 AND a%<127
+        key$=UPPER$(key$)
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    '
+    mod.in1.7:
+    IF a%=13
+      IF (in%<>5 AND in%<>7 AND in%<>9)
+        o$=cr$
+        GOSUB 2
+        keyy%=1
+      ENDIF
+      IF in%=9
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in2:
+    IF CINT(TIMER/200)>idle%+300
+      IF lev%>7 AND CINT(TIMER/200)>idle%+600
+        car%=1
+        keyy%=1
+      ENDIF
+      IF lev%<8
+        car%=1
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in2.0:
+  LOOP UNTIL keyy%=1
+  '
+  mod.in2.1:
+RETURN
+'
+'
+PROCEDURE checkhotkey
+  '
+  gotone%=0
+  modout%=1
+  GOSUB 3
+  '
+  IF in$=""
+    GOTO checkhotexit
+  ENDIF
+  '
+  IF in$="*" AND lev%=9
+    gotone%=1
+    GOTO checkhotexit
+  ENDIF
+  IF in$="Q" OR in$="R"
+    gotone%=1
+    GOTO checkhotexit
+  ENDIF
+  '
+  count%=0
+  '
+  DO
+    INC count%
+    IF cmd$(count%,1)=in$
+      gotone%=1
+      gotkey%=count%
+    ENDIF
+    EXIT IF gotone%=1
+  LOOP UNTIL count%>pollsavail%
+  '
+  checkhotexit:
+  modout%=0
+  '
+RETURN
+'
+'
+PROCEDURE seq.o
+  '
+  IF NOT EXIST(file$)
+    o$=cr$+cr$+ansi$(1)+"File Not Found..."+ansi$(7)
+    GOSUB 2
+    GOSUB press
+    GOSUB 1
+    GOTO seq.o9
+  ENDIF
+  lncount%=0
+  modout%=1
+  in%=9
+  il%=1
+  OPEN "I",#2,file$,4096
+  '
+  DO UNTIL EOF(#2)
+    LINE INPUT #2,text$
+    INC lncount%
+    o$=text$+cr$
+    GOSUB 2
+    IF contin%=0
+      IF lncount%>=scrnht%
+        GOSUB pagepause
+      ENDIF
+    ENDIF
+    IF car%>0
+      GOTO seq.o9
+    ENDIF
+    IF abort%=1
+      abort%=0
+      GOTO seq.o9
+    ENDIF
+  LOOP
+  seq.o9:
+  CLOSE #2
+  modout%=0
+  contin%=0
+  o$=ansi$(0)
+  GOSUB 2
+RETURN
+'
+'
+PROCEDURE center
+  lcs%=LEN(cs$)
+  lcs$=SPACE$(38-lcs%/2)+cs$
+RETURN
+'
+PROCEDURE press
+  o$=cr$+cr$+ansi$(0)+"[Any_Key]"
+  in%=0
+  il%=1
+RETURN
+'
+'
+PROCEDURE pagepause
+  modout%=0
+  o$="More (Y/n/c)?"
+  GOSUB 2
+  in%=9
+  il%=1
+  GOSUB 3
+  IF car%>0
+    GOTO pagepause9
+  ENDIF
+  o$=de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$
+  GOSUB 2
+  IF in$=" " OR in$="N"
+    abort%=1
+  ENDIF
+  IF in$="C"
+    contin%=1
+  ENDIF
+  lncount%=0
+  modout%=1
+  pagepause9:
+RETURN
+'
+PROCEDURE time1
+  t.t%=FRE(0)
+  time1$=TIME$
+  t.t%=VAL(LEFT$(time1$,2))
+  IF t.t%>11
+    a$=" PM"
+  ELSE
+    a$=" AM"
+  ENDIF
+  IF t.t%=0
+    t.t%=12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%<10
+    time1$=RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ELSE IF t.t%>21
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%>12
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ENDIF
+  GOSUB dateconv
+  pd.time$=time1$+a$
+  time1$=pd.time$+"  "+pd.date$
+RETURN
+'
+PROCEDURE tchk
+  GOSUB time1
+  timenow%=CINT(TIMER/200)
+  ctime%=(timenow%-timeon%)
+  ctime%=CINT(ctime%/60)
+  rtime%=tpc%-ctime%-depsnow%+withsnow%+winnings%
+  IF rtime%<=0
+    o$=cr$+cr$+"Sorry, Time Limit Exceeded!"
+    GOSUB 2
+    DELAY 2
+    car%=2
+  ENDIF
+RETURN
+'
+PROCEDURE modem.c
+  CLOSE #1
+RETURN
+'
+PROCEDURE modem.o
+  OPEN "",#1,"COM1:"+bd$+",n,8,1",4096
+RETURN
+'
+'
+PROCEDURE userlogprep
+  ' open and field the userlog.
+  '
+  OPEN "R",#3,flnm$,125
+  FIELD #3,25 AS un$,10 AS pa$,1 AS le$,25 AS fr$,12 AS ph$,10 AS dl$,6 AS lm$,6 AS lf$,10 AS ind$,3 AS tc$,3 AS td$,1 AS sw$,1 AS pr$,1 AS mo$,5 AS cn$,4 AS dm1$,2 AS dm2$
+RETURN
+'
+'
+PROCEDURE setpagepause
+  oldscrnht%=scrnht%
+  o$=cr$+cr$+ansi$(2)+"Current Screen Height: "+ansi$(5)+STR$(oldscrnht%)
+  GOSUB 2
+  o$=cr$+cr$+ansi$(3)+"Change Screen Height (y/N)? "
+  in%=3
+  il%=1
+  yes%=0
+  GOSUB 1
+  IF in$="NO" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  o$=cr$+ansi$(2)+"New Screen Height: "+ansi$(1)
+  in%=4
+  il%=2
+  GOSUB 1
+  IF in$="" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=VAL(in$)
+  o$=cr$+ansi$(3)+"Are "+ansi$(1)+STR$(scrnht%)+ansi$(3)+" lines okay (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF in$="YES" OR car%>0
+    GOTO pauseexit
+  ENDIF
+  scrnht%=oldscrnht%
+  o$=cr$+cr$+ansi$(1)+"No Change"
+  GOSUB 2
+  GOSUB press
+  GOSUB 1
+  '
+  pauseexit:
+RETURN
+'
+'
+PROCEDURE checkansi
+  '
+  o$=cr$+cr$+"Do you want ANSI (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF car%>0
+    GOTO checkansiexit
+  ENDIF
+  '
+  IF in$="YES"
+    ansi%=1
+  ELSE
+    ansi%=0
+  ENDIF
+  checkansiexit:
+  '
+RETURN
+'
+PROCEDURE setansi
+  '
+  ans%(1)=1
+  ans%(2)=2
+  ans%(3)=3
+  ans%(4)=5
+  ans%(5)=6
+  '
+  IF ansi%=1
+    ansi$(1)=esc$+"[31m"
+    ansi$(2)=esc$+"[32m"
+    ansi$(3)=esc$+"[33m"
+    ansi$(4)=esc$+"[34m"
+    ansi$(5)=esc$+"[35m"
+    ansi$(6)=esc$+"[36m"
+    ansi$(7)=esc$+"[37m"
+    ansi$(8)=esc$+"[1m"
+    ansi$(9)=esc$+"[3m"
+    ansi$(10)=esc$+"[4m"
+  ELSE
+    FOR kk%=1 TO 10
+      ansi$(kk%)=""
+    NEXT kk%
+  ENDIF
+  ' regardless of setting, this is needed for safety!
+  ansi$(0)=esc$+"[0;37;40m"
+  o$=ansi$(0)
+  GOSUB 2
+RETURN
+'
+PROCEDURE cmdread
+  ' Read in Menu File
+  ' array   =   cmd$(x,2)
+  ' cmd$(x,1) = Keypress
+  ' cmd$(x,2) = Menu Text (after the []s)
+  '
+  IF NOT EXIST(path$+"Poll.menu") OR car%>0
+    errflag%=1
+    GOTO cmdreadexit
+  ENDIF
+  OPEN "I",#2,path$+"Poll.menu",1024
+  errflag%=0
+  k%=0
+  WHILE NOT EOF(#2)
+    INC k%
+    '
+    ' The keypress
+    LINE INPUT #2,cmd$(k%,1)
+    cmd$(k%,1)=TRIM$(cmd$(k%,1))
+    IF (LEN(cmd$(k%,1))>1)
+      errflag%=1
+    ENDIF
+    EXIT IF (LEN(cmd$(k%,1))>1) OR (EOF(#2))
+    '
+    LINE INPUT #2,cmd$(k%,2)
+    IF LEN(cmd$(k%,2))<2
+      errflag%=1
+    ENDIF
+    EXIT IF (LEN(cmd$(k%,2))<2) OR (EOF(#2))
+  WEND
+  pollsavail%=k%
+  cmdreadexit:
+  CLOSE #2
+RETURN
+'   **************
+PROCEDURE dateconv
+  ' **************
+  ' converts date to Fido style DD-Mmm-YY
+  ' string to use is pd.date$
+  pd.temp$=DATE$
+  pd.date1$=LEFT$(pd.temp$,2)
+  pd.date2$=MID$(pd.temp$,4,2)
+  pd.date3$=RIGHT$(pd.temp$,2)
+  pd.month%=VAL(pd.date1$)
+  pd.month$="Xxx"
+  IF pd.month%=1
+    pd.month$="Jan"
+  ELSE IF pd.month%=2
+    pd.month$="Feb"
+  ELSE IF pd.month%=3
+    pd.month$="Mar"
+  ELSE IF pd.month%=4
+    pd.month$="Apr"
+  ELSE IF pd.month%=5
+    pd.month$="May"
+  ELSE IF pd.month%=6
+    pd.month$="Jun"
+  ELSE IF pd.month%=7
+    pd.month$="Jul"
+  ELSE IF pd.month%=8
+    pd.month$="Aug"
+  ELSE IF pd.month%=9
+    pd.month$="Sep"
+  ELSE IF pd.month%=10
+    pd.month$="Oct"
+  ELSE IF pd.month%=11
+    pd.month$="Nov"
+  ELSE IF pd.month%=12
+    pd.month$="Dec"
+  ENDIF
+  pd.date$=pd.date2$+"-"+pd.month$+"-"+pd.date3$
+RETURN
+'
+'
+'
+'
+PROCEDURE timeconv
+  ' Pd.time$ is always 'HH:MM:SS xM' (ie 11 chars long) a leading 0 if needed
+  '
+  LOCAL t.t%
+  '
+  time1$=TIME$
+  t.t%=VAL(LEFT$(time1$,2))
+  IF t.t%>11
+    a$=" PM"
+  ELSE
+    a$=" AM"
+  ENDIF
+  '
+  IF t.t%=0
+    t.t%=12
+    time1$=STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%<10
+    time1$="0"+STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%>21
+    t.t%=t.t%-12
+    time1$=STR$(t.t%)+RIGHT$(time1$,6)
+  ELSE IF t.t%>12
+    t.t%=t.t%-12
+    time1$="0"+STR$(t.t%)+RIGHT$(time1$,6)
+  ENDIF
+  pd.time$=time1$+a$
+  '
+RETURN
+'
+'
+'
+PROCEDURE beepthree
+  @msend(CHR$(7))
+  PAUSE 5
+  @msend(CHR$(7))
+  PAUSE 5
+  @msend(CHR$(7))
+  PAUSE 5
+RETURN
+'
+PROCEDURE lowercase(ucase$)
+  '
+  LOCAL ad%,ad2%
+  ad%=0
+  ad2%=0
+  '
+  lcase$=ucase$
+  IF LEN(ucase$)<1 OR LEN(ucase$)>56
+    GOTO noworkjump
+  ENDIF
+  '
+  ad%=AllocMem(60,0)
+  IF ad%=0
+    GOTO noworkjump
+  ENDIF
+  ad2%=AllocMem(60,0)
+  IF ad2%=0
+    GOTO noworkjump
+  ENDIF
+  '
+  FOR k%=0 TO 59
+    POKE ad%+k%,0
+    POKE ad2%+k%,0
+  NEXT k%
+  '
+  FOR k%=1 TO LEN(ucase$)
+    POKE ad%+(k%-1),ASC(MID$(ucase$,k%,1))
+    POKE ad2%+(k%-1),ASC(MID$(ucase$,k%,1))
+  NEXT k%
+  '
+  FOR k%=1 TO 60
+    ' start at second char. Leave first one alone!
+    temp|=PEEK(ad%+k%)
+    IF temp|>64 AND temp|<91
+      IF PEEK(ad%+k%-1)>64 AND PEEK(ad%+k%-1)<91
+        temp|=BSET(temp|,5)
+        POKE ad2%+k%,temp|
+      ENDIF
+    ENDIF
+  NEXT k%
+  '
+  lcase$=CHAR{ad2%}
+  lcase$=TRIM$(lcase$)
+  '
+  noworkjump:
+  IF ad%>0
+    ~FreeMem(ad%,60)
+  ENDIF
+  IF ad2%>0
+    ~FreeMem(ad2%,60)
+  ENDIF
+  '
+RETURN
+'
+'
+PROCEDURE main_window
+  OPENW #2,0,11,sw%,sh%-20,0,2304,1
+  IF icon!=TRUE
+    PRINT
+    PRINT
+    PRINT ansi4$+"                        Now running in ICONISED mode"
+    PRINT
+    PRINT ansi3$+"                           NO local console output"
+    PRINT
+    PRINT ansi5$+"                       Press F3 to un-iconise the door"
+  ENDIF
+  '
+  xx$=doorname$+" V"+versnum$+"    ID#:"+STR$(id%)+" Lev:"+STR$(lev%)+" ["+uname$+"]  "
+  IF ring!=TRUE
+    xx$=xx$+"Remote"
+  ELSE
+    xx$=xx$+"Local"
+  ENDIF
+  TITLEW #1,"",xx$
+  TITLEW #2,"",xx$
+  TITLES #1,xx$
+  ~ActivateWindow(WINDOW(2))
+  '
+RETURN
+'
+'
+PROCEDURE woops
+  '
+  RESUME finish
+  '
+RETURN
+'

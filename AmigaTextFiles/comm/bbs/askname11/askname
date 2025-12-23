@@ -1,0 +1,77 @@
+/* Ask Name */
+
+options results
+signal on error
+signal on IOERR
+signal on halt
+signal on syntax
+getuser 23;port=result
+getuser 12;ti=right(result,6)
+time=left(ti,2)
+
+tr=transmit
+ss=sendstring
+ak=ADDKEYS
+dc=dropcarrier
+Flag=0
+
+/* tr = Transmit (raccourci)
+   ss = sendstring (raccourci)
+   ak = ADDKEYS (raccourci)
+   Flag = 1 = Reserve 0 = Libre
+   name = Nom pour reserve
+   number = Numero du nom a reserve
+   port = port de l'appelle
+   portnum = port reserver
+   ti = Temps (juste Heure Minute)
+   time = Temps de l'appel (juste l'heure)
+   stime = debut du temps a reserve
+   etime = fin du temps a reserve
+*/
+
+file="pfiles:Restricted"
+if exists(file) then do
+	call open(fi,file,'r')
+	name=readln(fi)
+	number=readln(fi)
+	portnum=readln(fi)
+	stime=readln(fi)
+	etime=readln(fi)
+	call close(fi)
+	if port=portnum then do
+		if time>=stime&time<=etime then Flag=1
+	end
+end
+
+Main:
+if Flag=1 then do
+	tr "\b2\c1Sorry!\c4 But the BBS his currently reserved to \c7"name"(#"number")\c4"
+	tr "Hang Up now if it's not your name! Otherwise it's the BBS who will!"
+	tr "do it... try recall after "etime" or after this guy have call!"
+end
+tr "Enter HANDLE or account# you use on this System."
+ss "\c6:\c2                     .\<f\<6"
+bufferflush
+receive
+ans=result
+if upper(result)="###PANIC" then signal QUIT
+if upper(result)="NEW" then signal OK
+
+ok:
+if Flag=1 then do
+	if upper(ans)~=upper(name)&ans~=number then do
+		tr "\n1\c1Soory but the BBS is currently reserved to \c3"name"(#"number")\c1!"
+		tr "Please try after "etime" because at soon the guy call the BBS"
+		tr "will open his port to everybody!"
+		dc
+	exit
+	end
+	else do
+		tr "\$0delete pfiles:restricted\\^1"
+		Flag=0
+	end
+end
+ss "\^1\c7:\c2"
+ak ans||d2c(13)
+Quit:
+exit

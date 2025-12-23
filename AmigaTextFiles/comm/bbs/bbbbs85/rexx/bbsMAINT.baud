@@ -1,0 +1,222 @@
+/* $VER: bbsMAINT.baud 7.3 (17.5.94) copyright 1990-94 Richard Lee Stockton
+FREELY DISTRIBUTABLE
+ 
+this will check all message dirs for oldest messages, (that don't
+have '!!' as the first characters), and delete a few (1%) of them
+This macro is called after logout IF the grand total of messages
+exceeds the maximum set in the CONFIG.BBS file. Note that as of 4.0
+messages are copied to the sysop's email drawer before deletion.
+V5.9: a minimum of 10 messages are left in each conference.
+V7.1: deletes old EMail BBBBS_ archives if BBBBS_DAYS_OLD>0.
+V7.2: Appends to report called BBBBS.0 in sysop's email.
+V7.3: deletes old EMail QUICK_ archives if BBBBS_DAY_OLD>0
+
+dat.conf.0=lowest
+dat.conf.1=highest
+dat.conf.2=oldest
+dat.conf.3=seqdate of oldest
+*/
+
+BBBBS_DAYS_OLD=0  /* set >0 to delete BBBBS. archives older than this */
+
+bbspath=GETCLIP('BBS_path')
+msgpath=GETCLIP('BBS_msgpath')
+
+ARG SYSTEM_MSG_LIMIT sysop .
+
+arg=bbspath'Email/'sysop'/BBBBS.0'
+IF EXISTS(arg) THEN ot='A'
+ELSE ot='W'
+CALL CLOSE(STDOUT)
+CALL OPEN(STDOUT,arg,ot)
+SAY CENTER(' REPORT ',75,'=')
+SAY STRIP(SUBSTR(SOURCELINE(1),10))
+SAY DATE('W') DATE() TIME('C')
+
+IF BBBBS_DAYS_OLD>0 THEN
+  DO
+    SAY 'Checking BBBBS archives...'
+    idate=DATE('I')-BBBBS_DAYS_OLD
+    users=SHOWDIR(bbspath'EmailFiles','D')
+    tot=0
+    DO i=1 TO WORDS(users)
+      user=WORD(users,i)
+      IF user=sysop THEN ITERATE i
+      bbf.=''
+      IF FileList(bbspath'EmailFiles/'user'/*',bbf)>0 THEN
+        DO j=1 TO bbf.0
+          finfo=STATEF(bbf.j)
+          IF WORD(finfo,5)>idate THEN ITERATE j
+          size=WORD(finfo,2)
+          IF POS('BBBBS_',bbf.j)=0 & POS('QUICK_',bbf.j)=0 THEN
+            DO
+              SAY RIGHT(size,7) SPACE(DATE(,WORD(finfo,5),'I')) bbf.j 'NOT deleted.'
+              ITERATE j
+            END
+          tot=tot+size
+          IF DELETE(bbf.j) THEN
+            SAY RIGHT(size,7) SPACE(DATE(,WORD(finfo,5),'I')) bbf.j 'deleted.'
+          IF UPPER(RIGHT(bbf.j,4))='.LHA' THEN
+            DO
+              fnum=SUBSTR(bbf.j,LASTPOS('_',bbf.j)+1)
+              fnum=LEFT(fnum,LENGTH(fnum)-4)
+              mail=bbspath'Email/'user'/BBBBS.'fnum
+              finfo=STATEF(mail)
+              size=WORD(finfo,2)
+              IF DATATYPE(size,'N') THEN tot=tot+size
+              IF DELETE(mail) THEN
+                SAY RIGHT(size,7) SPACE(DATE(,WORD(finfo,5),'I')) mail 'deleted'
+            END
+        END
+    END
+    SAY '  'tot 'bytes purged.  Completed at' TIME('C')
+    SAY
+  END
+
+dat.=''
+dat.0.1=0
+totmsgs=0
+DO conf=1 TO 99
+  dat.conf.2=0
+  temp=WORDS(SHOWDIR(msgpath'MSG'conf))
+  IF temp=0 THEN
+    DO
+      dat.conf.1=0
+      ITERATE conf
+    END
+  totmsgs=totmsgs+temp
+END
+IF totmsgs<SYSTEM_MSG_LIMIT THEN EXIT
+
+tot2kill=SYSTEM_MSG_LIMIT%100
+IF tot2kill<1 THEN tot2kill=1
+tot2kill=tot2kill+totmsgs-SYSTEM_MSG_LIMIT
+killed=0
+SAY 'Purging' tot2kill 'public messages.'
+
+DO conf=1 TO 99
+  IF dat.conf.1=0 THEN ITERATE conf
+  dat.conf.0=countcheck('FirstMessage'conf)
+  dat.conf.1=countcheck('LastMessage'conf)
+  dat.conf.2=dat.conf.0-1
+  CALL get_next()
+END
+
+DO k=1 TO tot2kill
+  conf=which()
+  temp=dat.conf.2
+  IF temp>0 THEN
+    IF kill_one(temp) THEN
+      killed=killed+1
+END
+SAY
+EXIT
+
+
+
+which:
+oldest=99999999
+oldnum=0
+DO i=1 TO 99
+  IF dat.i.1=0 | dat.i.3='' THEN ITERATE i
+  IF dat.i.3<oldest THEN
+    DO
+      oldest=dat.i.3
+      oldnum=i
+    END
+END
+RETURN oldnum
+
+
+get_next:
+IF dat.conf.1=0 | dat.conf.1=dat.conf.2 THEN RETURN
+thisconf=msgpath'MSG'conf
+msglist=SHOWDIR(thisconf)
+IF WORDS(msglist)<11 THEN
+  DO
+    dat.conf.1=0
+    RETURN
+  END
+dat.conf.3=''
+DO msgnum=dat.conf.2+1 TO dat.conf.1-1
+  IF FIND(msglist,msgnum)=0 THEN ITERATE msgnum
+  dat.conf.3=get_date(msgnum)
+  IF dat.conf.3~='' THEN LEAVE msgnum
+END
+dat.conf.2=msgnum
+IF msgnum=dat.conf.1 THEN dat.conf.1=0
+RETURN
+
+
+get_date:
+ARG msg .
+x=OPEN(f,thisconf'/'msg,'R')
+IF x=0 THEN RETURN ''
+line=READLN(f)
+IF LEFT(line,2)='!!' THEN
+  DO
+    CALL CLOSE(f)
+    RETURN ''
+  END
+line=READLN(f)
+line=READLN(f)
+line=READLN(f)
+line=READLN(f)
+CALL CLOSE(f)
+dateline=SPACE(WORD(line,3) WORD(line,4) WORD(line,5),1)
+seqdate=norm2seq(dateline)
+RETURN seqdate
+
+
+kill_one:
+ARG killnum .
+x=OPEN(f,msgpath'MSG'conf'/'killnum,'R')
+IF x=0 THEN RETURN 0
+data=READCH(f,65000)
+CALL CLOSE(f)
+CALL DELAY(28)
+mailname='MSG'conf'.'killnum
+x=OPEN(f,bbspath'Email/'sysop'/'mailname,'W')
+IF x=0 THEN RETURN 0
+CALL WRITECH(f,data)
+CALL CLOSE(f)
+CALL DELETE(msgpath'MSG'conf'/'killnum)
+CALL get_next()
+RETURN 1
+
+
+countcheck:
+PARSE ARG filename
+IF filename='' THEN RETURN 0
+filename=bbspath'Numbers/'filename
+x=OPEN(f,filename,'R')
+IF x=0 THEN RETURN 0
+cc=READLN(f)
+CALL CLOSE(f)
+RETURN cc
+
+
+norm2seq:     /* takes '3 Jan 1990' and turns it into '19900103' */
+ARG da' 'mo' 'yr .
+da=da/1
+mo=STRIP(mo)
+yr=yr/1
+IF da<10 THEN da='0'da
+SELECT
+  WHEN mo='JAN' THEN mo='01'
+  WHEN mo='FEB' THEN mo='02'
+  WHEN mo='MAR' THEN mo='03'
+  WHEN mo='APR' THEN mo='04'
+  WHEN mo='MAY' THEN mo='05'
+  WHEN mo='JUN' THEN mo='06'
+  WHEN mo='JUL' THEN mo='07'
+  WHEN mo='AUG' THEN mo='08'
+  WHEN mo='SEP' THEN mo='09'
+  WHEN mo='OCT' THEN mo='10'
+  WHEN mo='NOV' THEN mo='11'
+  WHEN mo='DEC' THEN mo='12'
+  OTHERWISE RETURN(-1);
+END
+RETURN yr||mo||da
+
+/* bbsMAINT.baud */

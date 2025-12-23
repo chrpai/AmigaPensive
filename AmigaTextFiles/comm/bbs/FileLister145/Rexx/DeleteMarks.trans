@@ -1,0 +1,192 @@
+/*                                                        */
+/* Markierte Files loeschen                               */
+/*                                                        */
+/* Geschrieben von Mathias Supp                           */
+/*                                                        */
+
+options results
+
+userpath='USER:'
+
+userinfo a ; uname=result
+systeminfo m ; restzeit=result
+systeminfo r ; baudrate=result
+
+print ''
+
+if ~exists(userpath||'send-'||uname) then call nixfile
+if ~exists(userpath||'length-'||uname) then call nixfile
+
+open('files',userpath||'send-'||uname,'R')
+open('filelength',userpath||'length-'||uname,'R')
+gesla=readln('filelength')
+gesamtlaenge=value('gesla')
+
+cls
+
+print
+print 'Du hast folgende Files markiert :'
+print '----------------------------------'
+
+i=1
+do while ~eof('files')
+  file.i=readln('files')
+  name.i=readln('files')
+  laenge.i=readln('files');
+  if file.i='' then
+    i=i-1
+  else
+    print right(i,3)||'. '||left('"'||name.i||'"',22)||' ('||right(laenge.i,7)||' Bytes) ['||right(trunc(laenge.i/60/(baudrate/11)+0.5),2)||'min]'
+  i=i+1
+end
+i=i-1
+
+close('files')
+close('filelength')
+
+print '----------------------------------'
+print 'Gesamtlaenge : '||right(gesamtlaenge,8)||' / Files : 'i
+print ' '
+
+maxfiles=i
+num=i
+call deletefiles
+i=num
+
+if num>0 then do
+
+  if maxfiles~=i then do
+
+    open('files',userpath||'send-'||uname,'W')
+    open('filelength',userpath||'length-'||uname,'W')
+    writeln('filelength',gesamtlaenge)
+    close('filelength')
+
+    do j=1 to i
+      writeln('files',file.j)
+      writeln('files',name.j)
+      writeln('files',laenge.j);
+    end
+
+    close('files')
+
+    print ''
+    print 'Neue Gesamtlaenge : '||right(gesamtlaenge,8)||' / Files : '||i
+  end
+
+  print ''
+  approxtime=trunc(gesamtlaenge/60/(baudrate/11)+0.5)
+  print 'Vorraussichtliche Zeit fuer das Download : '||approxtime||' min'
+  if restzeit-approxtime<0 then do
+    print ''
+    print 'Du hast leider nicht genuegend Online-Zeit !!'
+    print 'Dir fehlen ca. '||restzeit-approxtime||' Minuten'
+  end
+  else
+    print 'Du hast nach dem Download noch '||restzeit-approxtime||' Minuten uebrig !'
+
+  print
+  continue
+
+end
+exit 0
+
+nixfile:
+
+  print 'Es wurden keine Files markiert !'
+
+  exit 0
+
+/* ---------------------------------------------------------------- */
+
+deletefiles:
+
+
+print
+
+file='****'
+
+do while (file~='RESULT')&(num>0)
+
+  query 'Zu loeschendes File ("*" fuer alle) : ' ; file=result
+  if file='*' then
+    num=0
+
+  if (file~='RESULT')&(num>0) then do
+
+    i1=1
+    delnum=0
+    deleted.delnum=0
+    do while i1<=length(file)
+
+      i2=pos(',',file,i1)
+      if i2=0 then
+        i2=length(file)+1
+
+      partfile=substr(file,i1,i2-i1)
+      i1=i2+1
+
+      if datatype(partfile)='NUM' then do
+        if (delnum~=0)|(deleted.delnum~=0) then do
+          do k=0 to delnum
+            if (partfile>deleted.k)&(deleted.k~=0) then
+              partfile=partfile-1
+          end
+        end
+        if (partfile>0)&(partfile<num+1) then
+          partfile=name.partfile
+      end
+
+      do j=1 to num while partfile~=name.j
+      end
+
+      if partfile=name.j then do
+        deleted.delnum=j
+        delnum=delnum+1
+        deleted.delnum=0
+        gesamtlaenge=gesamtlaenge-laenge.j
+        print 'File '||left('"'||partfile||'"',22)||' ('||right(laenge.j,7)||' Bytes) wurde geloescht. (Gesamt : '||right(gesamtlaenge,8)||')'
+        do k=j to num-1
+          k1=k+1
+          file.k=file.k1
+          name.k=name.k1
+          laenge.k=laenge.k1
+        end
+        num=num-1
+      end
+      else
+        print 'File '||left('"'||partfile||'"',22)||' konnte nicht geloescht werden !'
+
+    end
+    print
+    continue
+    if num>0 then
+      call showfiles
+  end
+end
+if num=0 then do
+  address command 'delete > nil: "'||userpath||'send-'||uname||'"'
+  address command 'delete > nil: "'||userpath||'length-'||uname||'"'
+end
+
+
+return
+
+showfiles:
+
+cls
+
+print
+print 'Du hast nun noch folgende Files markiert :'
+print '------------------------------------------'
+
+q=1
+do q=1 to num
+    print right(q,3)||'. '||left('"'||name.q||'"',22)||' ('||right(laenge.q,7)||' Bytes) ['||right(trunc(laenge.q/60/(baudrate/11)+0.5),2)||'min]'
+end
+
+print '------------------------------------------'
+print 'Gesamtlaenge : '||right(gesamtlaenge,8)||' / Files : 'num
+print ' '
+
+return

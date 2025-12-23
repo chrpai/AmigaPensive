@@ -1,0 +1,208 @@
+@Database DOOR_FrontEnd
+
+@Node Main "FrontEnd"
+
+  FrontEnd Written by Hydra/cP!
+
+  @{" Description          " link Description}
+  @{" Installation         " link Installation}
+  @{" System Options       " link SystemOptions}
+  @{" Command Line Options " link CmdLineOptions}
+  @{" Screens Displayed    " link ScreensDisplayed}
+  @{" Doors Called         " link DoorsCalled}
+  @{" Returns              " link Returns}
+  @{" Config Files         " link ConfigFiles}
+  @{" ToDo                 " link ToDo}
+  @{" History              " link History}
+
+@EndNode
+
+@Node Description "Description"
+
+  Description
+  ===========
+
+    Frontend is first door called that the user sees.  It is called by @{"AwaitConnect" link HBBS:Docs/Doors/AwaitConnect.guide/MAIN}
+
+    The door does this:
+
+    * Asks for system and node password and display PrivateSystem and
+      PrivateNode special screens as appropriate.
+
+    * To ask user for their Handle
+
+    * Check the user name is in the userdatabase
+      - if not then call new user door
+
+    * Ask user for their password.
+
+    * Check password is correct.
+      - if not then call hack door
+
+    * Fill in N_ND->User with the correct data.
+
+    * Check if user is allowed to logon
+      - Access Level >= N_ND->AccessRequired ?
+      - Allowed at this time ?
+
+    * Reset user->TimeUsed to 0 if last called date is not the same
+      as today's date.
+
+    * return one of the following strings.
+      - LOGGEDIN
+      - HACK
+      - FAILED
+
+    * Check to see if there is an access level the same as the user, if not
+      flag the sysop and downgrade the user's access level to the next lowest one.
+
+@EndNode
+
+
+@Node Installation "Installation"
+
+  Installation
+  ============
+
+    Included as part of the default HBBS setup.
+
+@EndNode
+
+@Node SystemOptions "SystemOptions"
+
+  System Options
+  ==============
+
+    None
+
+@EndNode
+
+@Node CmdLineOptions "CmdLineOptions"
+
+  Command Line Options
+  ====================
+
+    None
+
+@EndNode
+
+@Node ScreensDisplayed "Screens Displayed"
+
+  Screens Displayed
+  =================
+
+    PrivateSystem - Before the user sees anything else.
+                    If this screen is present then the user will be prompted
+                    for a system password defined in the NodeLocal/NodeGlobal
+                    config files.
+
+    PrivateNode   - If this is displayed the user is asked for a Node password
+                    defined in NodeLocal/NodeGlobal
+
+    Speed_<Baud>  - Just after node password
+
+    BBStitle      - Just before the login prompt.
+
+@EndNode
+
+@Node DoorsCalled "Doors Called"
+
+  Doors Called
+  ============
+
+    System Doors:
+
+    NEWUSER <Username>
+    HACK [TIME|PSWD|LOCK]
+
+@EndNode
+
+@Node Returns "Returns"
+
+  Returned Values (in N_ND->DoorReturn)
+  =====================================
+
+    LOGGEDIN - If user is correctly logged in.
+    HACK     - If a hack attempt was made.
+    FAILED   - Otherwise (e.g. carrier loss)
+
+@EndNode
+
+
+@Node ConfigFiles "ConfigFiles"
+
+  Config Files
+  ============
+
+    Progdir:FrontEnd.CFG
+    --------------------
+
+      HandleToShortMsg    - Message displayed to user on short handle entry
+      NameCorrectMsg      - Message displayed to user verification of
+                            correctly entered name if account is not present.
+      InvalidHandleMsg    - Message displayed upon invalid handle
+      HangupCommand       - if the user types this command at the name prompt
+                            a hangup will be forced.
+      PromptTimeout       - determines the amount of time that's waited for a
+                            username or password to be entered before they are
+                            prompted again.
+      MaxAttempts         - determines the amount of attempts a user gets at
+                            entering a handle.
+      AlreadyLoggedInMsg  - Message displayed to user if they're already
+                            logged in
+      NamesNotAllowed_XX  - List of handles that arenot allowed.
+                            Defaults To:
+
+                              NamesNotAllowed_1=SYSOP
+
+                            Further examples:
+
+                              NamesNotAllowed_1=SYSOP
+                              NamesNotAllowed_2=ALL
+                              NamesNotAllowed_3=EALL
+                              NamesNotAllowed_4=Everybody
+                              NamesNotAllowed_5=Wanker
+
+      HandleNotAllowedMsg - Displayed when the user enters an handle that
+                            appears in the NamesNotAllowed list
+
+      UseSpecialScreens   - Use SpecialScreen files instead of text messages
+                            for errors.
+
+                            e.g. say you set HandleToShortMsg=HTSHORT the
+                            special screen HTSHORT will be displayed instead
+                            of a message.
+
+                            This allows complete customization of the frontend
+                            door!
+
+@EndNode
+
+@Node ToDo "ToDo"
+
+  ToDo
+  ====
+
+    put max password and username attempts in config file.
+    put min/max username/password lengths in config file.
+
+
+    NamesNotAllowed to have an to retry, e.g.
+
+    NamesNotAllowed_1=ALL
+    RetryNameAllowed_1=YES
+    NamesNotAllowed_2=SUNNY
+    RetryNameAllowed_2=NO :-)
+
+@EndNode
+
+@Node History "History"
+
+  History
+  =======
+
+    V1.0 - First Version
+
+@EndNode
+
+

@@ -1,0 +1,212 @@
+
+
+Start an arexx door with :
+
+    RexxDoor  "doors:rexxtest/download.rexx"
+
+
+
+Use these lines at the start of your arexx script so it knows
+where to talk to:
+
+
+Arg node_number                         /* find out node we were run from */
+Host = 'TRONREXX.'node_number           /* the Trion Arexx port */
+Options results                         /* this is how Trion answers */
+Address value host
+options failat 15
+
+
+
+
+Available commands in the ArexxDoor interface:
+
+
+Cls                           - Clears the screen.
+Print                         - Prints a line on screen incl. newline (\r\n)
+NewLine                       - Display a newline
+Send                          - Prints text to the screen.
+SendFile/DisplayFile          - Print a file to the screen.
+SendFileNoPause               - as SendFile, but no "more" lines when screen full
+Sample                        - Plays an audio sample from disc.
+Carrier                       - Checks if carrier still available.
+More                          - Asks for a 'more' response.
+GetChar                       - Wait for a character
+MayGetChar                    - Check for a character and return immediatly
+GetLine                       - Gets a line of text
+Download                      - Download a file
+Hangup                        - Hangup on exit of the door
+ModemCommand                  - Force modem temporarily in command mode
+SysopLog                      - Write a line to the log
+Upload                        - Receive a file
+
+
+(Arexx commands which do the same as same Menu commands:)
+
+ChangeFileArea     <area>
+ChangeMessageArea  <area>
+ReadNew
+
+
+
+
+===( Carrier  )===  Check if carrrier is present
+
+
+Carrier
+if result = "0" then do
+   exit                      /* carrier is dropped , exit script */
+end
+else do
+   print "Carrier still present"
+end
+
+
+===( GetChar )===  Wait for a character
+
+
+send "Press a key"
+GetCharacter
+char = result                /* char = rc */
+print ""
+print "input was : "char
+
+
+===( MayGetChar )===  Check for a character and return immediatly
+
+
+MayGetCharacter
+char = result                /* char = rc */
+if char = "" then do
+   print "no input"
+end
+else do
+   if char = "w" then    print "input was : w"
+end
+
+
+===( GetLine )===  Gets a line of text
+
+
+print "Type a line (quit = end)"
+send ">"
+GetLine
+line = result
+print "input was : '"line"'"
+print "input was : >"line
+if line = "quit" then do
+   print "Bye bye."
+   exit 0
+end
+
+
+
+    GetLine                  Gives a line of maximum 79 characters
+    GetLine NOYES            Asks a hotkeyed Yes/no question
+    GetLine NOYES 'Text'     As above, but prints text befor the question
+    GetLine 5                Gives a line of maximum  N characters
+    GetLine 5 NORMAL         Same a above
+    GetLine 5 NORMAL 'Text'  As above, but prints text befor the question
+    GetLine 5 HIDDEN         Gets a hidden line (for passwords)
+    GetLine 5 HIDDEN 'Text'  As above, but prints text befor the question
+
+
+
+===( Download )===  Download a file
+
+
+download( "ram:downloadfile" )
+
+Outfile = "ram:downloadfile"
+download Outfile
+
+
+
+
+===( Upload )===  Receive a file
+
+
+Upload
+file = result
+
+/* file = 0  ..  No file                    */
+/* file = 1  ..  Error (partially received  */
+/* file = 2  ..  File received !            */
+
+
+
+
+
+===( ChangeFileArea )===  Go to an other file section
+
+ChangeFileArea     <area>
+
+/* result = 0  ..  Section does not exist or no access to section */
+/* result = 1  ..  Changed to the section */
+
+
+===( ChangeMessageArea )===  Go to an other message section
+
+
+ChangeMessageArea  <area>
+
+/* result = 0  ..  Section does not exist or no access to section */
+/* result = 1  ..  Changed to the section */
+
+
+===( ReadNew )===  Read new messages in the current message section
+
+
+ReadNew
+
+/* result = 0  ..  User read all new messages */
+/* result = 1  ..  User terminated reading messages in the current section */
+
+
+A little example door:
+
+/* RexxDoor "doors:rexxtest/ReadNLA.rexx"                        */
+/* start with    RexxDoor  "doors:rexxtest/ReadNLA.rexx"         */
+
+
+Arg node_number                         /* node we were run from */
+Host = 'TRONREXX.'node_number           /* the Trion Arexx port */
+/* Host = 'TRONREXX.'node_number'1' */  /* the Trion Arexx port */
+/* Host = 'TRONREXX.01'  */             /* the Trion Arexx port */
+Options results                         /* this is how Trion answers */
+Address value host
+options failat 15
+
+ESCSEQ   = '1b'x||'['
+YELLOW   = ESCSEQ'1;33m'
+
+
+quit = 0
+
+/* Read new messages in NLA-net , sections 100 - 150 */
+
+do n = 100 to 150 by 1
+   Carrier
+   if result = "1" & quit = 0 then do     /* if carrier present and not stopt */
+      ChangeMessageArea n
+      if result = "1" then do
+         ReadNew
+         quit = result                    /* is 1 when User quits reading */
+
+         if quit = 1 then do
+            /* print YELLOW"User terminated" */
+         end
+
+      end
+      else do
+         /* print YELLOW"There is no msg area "n" !" */
+      end
+   end
+end
+
+
+exit 0                         /* einde programma */
+
+
+
+

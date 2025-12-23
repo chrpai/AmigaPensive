@@ -1,0 +1,49 @@
+/**/
+options results;parse arg ar1'|'ar2;call pragma('P',-5)
+
+/* == Place your code here! "AR1" is the path/file, "AR2" is the temp file == */
+
+/*              Product-Info Loader Module - Made for FPDiz
+
+                                    V1.01
+
+     If you find any bugs in this please report them to mUb@912:1000/0.0,
+               Chris Brundell@2:2502/12.0 or mub@reliant.psu.edu             */
+
+call open(pifile,ar1,R)
+piname=''
+piver=''
+piauth=''
+pidate=''
+do until eof(pifile)
+	piinfo=strip(readln(pifile))
+	if piinfo~='' then do
+		Select
+			when upper(piinfo)='.DATE' then pidate=' - 'strip(readln(pifile))
+			when upper(piinfo)='.NAME' then piname=strip(readln(pifile))
+			when upper(piinfo)='.VERSION' then pivers=' v'strip(readln(pifile))
+			when upper(piinfo)='.AUTHOR' then piauth=' by 'strip(readln(pifile))
+			otherwise nop
+			end
+		end
+	end
+call close(pifile)
+call open(pifile,ar1,R)
+do until eof(pifile)
+	piinfo=strip(readln(pifile))
+	if upper(piinfo)='.DESCRIPTION' then do
+		pii=strip(readln(pifile))
+		pidesc=' - '
+		do until left(pii,1)='.'
+			pidesc=pidesc' 'pii
+			pii=strip(readln(pifile))
+			end
+		end
+	end
+call close(pifile)
+desc=piname||pivers||piauth||pidate||pidesc
+
+/* ============== Writes the "DESC" variable to the temp file. ============== */
+
+call open(fp,ar2,'W');call writeln(fp,desc);call close(fp)
+exit

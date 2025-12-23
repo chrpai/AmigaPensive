@@ -1,0 +1,269 @@
+       *******************************************************************
+
+                 TransAmiga v1.1 Technical Specifications
+                 ----------------------------------------
+                             By Timothy Aston
+
+
+       *******************************************************************
+
+          * Introduction:
+
+         This document is intended to those developping tools and
+         utilities for use TransAmiga v1.1.  It provides the various
+         specifications necessary, that are not provided in TransAmiga's
+         main manual or the transamiga.library docs.
+
+
+          * User Files:
+
+         TransAmiga stores user files in the Users directory as specified
+         when the user sets up with TransCfg.  Each user that joins the
+         BBS gets their own seperate file, which is placed in this
+         directory with a filename exactly the same as their user name on
+         the BBS.  As with almost all files used by TransAmiga, this is in
+         an ASCII text format, even numerical values, with one piece of
+         data per line.  Here is the format, line by line:
+
+          1: The user's street
+          2: City
+          3: Province (or state, or territory, whichever)
+          4: Phone number
+          5: Computer type
+          6: Birthdate (YYMMDD)
+          7: Postal code
+          8: Handle
+          9: Date of last call (YYMMDD)
+         10: Password (10 chars. max.)
+         11: Total kilobytes downloaded
+         12: Total number of files downloaded
+         13: Total kilobytes uploaded
+         14: Total number of files uploaded
+         15: Messages posted
+         16: Number of calls to the system
+         17: Screen length
+         18: File ratio
+         19: Daily time limit
+         20: Time unused today
+         21: Command entry mode (0=command-stacking, 1=hot-keys)
+         22: Graphics mode (0=ASCII, 1=ANSI)
+         23: Editor type (0=line, 1=full-screen)
+         24: Access level
+         25: Netmail credit
+         26: Flags (see below for how flags are stored)
+         27: Help level (0=novice, 1=expert)
+         28: User number (do not alter)
+         29-39: Blank lines for padding.
+
+         The user directory also contains a file called Users.BBS, which
+         is the high user number.  This is kept track of so that new users
+         can be given a unique user number.  Never alter this file.
+         
+         If a user has a handle, then a file will also appear in the Users
+         directory with the handle as the filename, but prepended by an @.
+         This file contains one single line holding the user's real name.
+
+
+          * File Listing:
+
+         For each file area setup, TransAmiga keeps a file called
+         Files.BBS, which is also a text file, and contains the name,
+         size, upload date, and description, of each file in that area.
+         The format of this file is to have one file entry per line, with
+         the following fields.  Gaps are padded with spaces.
+
+          * filename - 24 characters
+          * a space
+          * file size - 7 characters
+          * a space
+          * upload date (YYMMDD) - 6 characters
+          * a space
+          * file short description - 40 characters or less
+
+         Additionally, each file in the file area should have an
+         accompanying <filename>.Desc file, which contains the uploader's
+         name on the first line, with each additional line being the
+         long-description.
+
+
+          * Message Pointers:
+
+         TransAmiga requires two files to hold message pointers for each
+         message area.  One for the high and low message numbers
+         (Message.BBS) and one for user last read pointers (LastRead.BBS).
+         Message.BBS merely contains the ASCII values of the low and high
+         message number for a FidoNet area, and for local areas, it stores
+         the low and high message numbers, and the message limit in that
+         area.  In both files, each value appears on consecutive lines.
+
+         The last read pointers file is a little different than most
+         TransAmiga data files, in that the values are storred in binary
+         form.  It is a simple relative file, with one record per user of
+         the BBS.  Each record is made up of a signed 16-bit integer,
+         which represents the users' last read message in that area,
+         or a value of -1 if the user has that area masked out.  Which
+         record a user's last read pointer goes in is determined by the
+         user's user number (this is if you are referring to the first
+         record as number 1 and not 0).
+
+
+          * TrNode Output:
+
+         TransAmiga can be setup to work with any nodelist format by
+         simply writing a replacement for TrNode.  TransAmiga passes the
+         address to look up along with the nodelist directory to TrNode,
+         eg:
+
+           TrNode 1:247/192.0 NodeList:
+         
+         Then TransAmiga looks for the output that TrNode sends to STDIO. 
+         The output should look like this:
+
+           SysOp
+           Cost to send message
+           System name
+           City it is located in
+
+         If an error of any sort occurred, TrNode should set the return
+         code to at least 10, and generate NO OUTPUT.
+
+
+          * Master Configuration:
+
+         This file can actually be called anything, and can be located
+         anywhere.  It is an ASCII text file, even numeric values are
+         stored in ASCII representations.  Each line of the file contains
+         a single piece of data.  Here is the line by line format:
+
+          1: System path
+          2: Configuration files path
+          3: User files path
+          4: Text path
+          5: Bulletin path
+          6: Extras path
+          7: ARexx path
+          8: Maximum baud rate
+          9: Modem initialization string
+         10: Modem exit string
+         11: Modem local logon string
+         12: Modem local logoff string
+         13: Name of serial device
+         14: Serial device unit
+         15: New user time limit
+         16: New user ratio
+         17: New user access
+         18: New user flags
+         19: Privileged access
+         20: Idle time length (seconds)
+         21: Name of the BBS
+         22: SysOp name
+         23: Screen type (0=Workbench, 1=Custom, 2=Interlaced custom)
+         24: Number of bitplanes for custom screen
+         25: Open blue backdrop window (0=No, 1=Yes)
+         26: Custom screen width (0=WB screen width)
+         27: Custom screen height (0=WB screen height)
+         28: X co-ordinate of top left corner of terminal window
+         29: Y co-ordinate of top left corner of terminal window
+         30: Terminal window width
+         31: Terminal window height
+         32: Name of font to use for terminal window
+         33: Point size of font
+         34: Input colour number
+         35: Prompt colour number
+         36: Trim colour number
+         37: Minimum baud rate
+         38: Sizing gadget on terminal window (0=No, 1=Yes)
+         39,40,41,42: Blank lines for padding
+
+
+          * Message Configuration:
+
+         This file is always called Message.Cfg and kept in the
+         configuration directory.  It follows the same ASCII format as
+         other configuration files.  Here is the format, line by line:
+
+          1: Number of FidoNet addresses
+             For each address:
+              1: Zone
+              2: Net
+              3: Node
+              4: Point
+              5: Pointnet
+              6: Domain
+          2: Inbound directory
+          3: Outbound directory
+          4: Nodelist directory
+          5: User name that feedback gets sent to
+          6: Conference number to put feedback in
+          7: Remote ANSI full-screen editor command
+          8: Local editor command
+          9: Allow use of handles (0=No, 1=Yes)
+         10: Automatically switch to next message conference (0=No, 1=Yes)
+         11, 12: Blank lines for padding
+         13: Number of message conferences
+             For each conference:
+              1: Name of conference
+              2: Path to conference
+              3: Conference type (0=Privileged, 1=Local, 2=Matrix, 3=Echo)
+              4: Allow handles in this conference (0=No, 1=Yes)
+              5: Read access
+              6: Write access
+              7: Conference access
+              8: Conference flags
+              9: Origin line (left blank for non-echo type areas)
+             10: Quote lead-in line
+             11: FidoNet address number to use
+             12: Blank line for padding
+
+
+          * File Configuration:
+
+         This file is always called File.Cfg and lives in the
+         configuration directory.  It follows the same type of ASCII
+         format as the other configuration files.  Here is the format,
+         line by line:
+
+          1: Minimum number of free kilobytes to allow uploads
+          2, 3: Blank lines for padding
+          4: Number of file libraries
+             For each library:
+              1: Library name
+              2: Path to library
+              3: Read access
+              4: Write access
+              5: Library access
+              6: Library flags
+              7, 8: Blank lines for padding
+          5: Number of archiving methods to support
+             For each method:
+              1: Archiver name
+              2: Archiver suffix
+              3: View archive command
+          6: Number of transfer protocols to support
+             For each protocol:
+              1: Protocol name
+              2: Protocol type (0=Normal, 1=Batch)
+              3: Send file command
+              4: Receive file command
+
+
+          * Bulletin Configuration:
+
+         This file is always called Bulletin.Cfg and lives in the
+         configuration directory.  It follows the same type of ASCII
+         format as the other configuration files.  Here is the format,
+         line by line:
+
+          1: Number of bulletins
+             For each bulletin:
+             1: File name of bulletin (always in Bulletins directory)
+
+
+          * Flags in Data Files:
+
+         Instead of storing flags in an interpreted form (eg. X--XX--X) in
+         data files, TransAmiga stores them in a packed integer form.
+         Each flag is considered to be a bit, with bit 0 starting at the
+         left, and ending in bit 7 at the right.  An X is treated as
+         "True" and a - as "False".  Therefore, TransAmiga will store
+         X--XX-X- as 1+0+0+8+16+0+64+0=89.

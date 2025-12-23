@@ -1,0 +1,511 @@
+/*
+**  $VER: CL-Pointuser.clrexx 2.3 (14 Feb 1996)
+**
+**        © 1995-96 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-Pointuser.clrexx
+**
+**  FUNCTION:
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl_rexx.library © 1995 Mathias Mischler
+**
+**      Erlaubt, Onlineusern auf ihren Point und auf Maps zuzugreifen.
+**
+**      Aufruf: CL-PointUser.clrexx <port> [d]
+**                  d = NoDelete (User kann Puffer nicht löschen)
+**
+**  $HISTORY:
+**
+**   0.1  - Erste lauffähige Version
+**   0.2  - Interrupt-Überwachung bzgl. eines Abbruch durch den User
+**          Veröffentlichungsreife Beta-Version
+**   1.0  - Korrektes Öffnen der cl_rexx.library
+**   1.1  - Pointeintrag implementiert, Betastatus
+**   1.11 - Bei Pointantrag wird Mapszugriff erteilt, Autoeintrag ge-
+**          sperrt
+**   1.12 - Bugfix: Copy&Paste-Fehler sorgte dafür, daß anstelle des
+**          Pufferbackups der vorgepackte Puffer übertragen wurde
+**   1.13 - Optionale Unterstützung von deletepuffer() und maps()
+**          Testversion
+**   1.14 - Unterstützung von CLGET_PathSpool()
+**          $VER: korrigiert <schluck>
+**   1.15 - Bug beseitigt: Uploaden des Puffers brachte Fehlermeldung
+**   1.16 - Bug beseitigt, unmatched quote
+**          Spoolpfad wird auf letztes Zeichen geprüft
+**   2.0  - Kein unsicheres Generieren von Mapsnachrichten mehr, statt-
+**          dessen Auslegung auf clrexx-Module
+**        - kompletter Rewrite
+**   2.1  - Funktion 'Puffer löschen' umgebastelt. Gelöscht wird nur
+**          noch, wenn es sich bei den Packern um LHA und LZX handelt,
+**          und auch dann nur öffentliche Nachrichten
+**          Sysopmodus integriert
+**   2.2  - Beim Löschen der öffentlichen Teilpuffer wird vorher al-
+**          les herumliegende noch hinzugepackt, um alles bis aufs
+**          letzte Bit zu beseitigen
+**   2.3  - INDEX und HOLD zur Abwechslung auch mal asynchron *seufz*
+*/
+
+
+/* Libraries öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then do
+        say 'Inkorrekt installiert!'
+        end
+    end
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then do
+        say 'Inkorrekt installiert!'
+        end
+    end
+
+port=word(arg(1),1)
+delflag=word(arg(1),2)
+if upper(delflag)='D' then delflag='0'
+
+address command
+
+start:
+
+skip=false
+new=false
+end=false
+sysop=false
+prefix=''
+redirection='>NIL:'
+mapsmod='CONNECTLINE:Rexx/Modules/maps.clrexxmod'
+stdiomod='CONNECTLINE:Rexx/Modules/stdio.clrexxmod'
+
+if ~CLONL_ClearScreen() then exit
+user=CLGET_PortUsername(port)
+terminal=CLGET_PortTerminal(port)
+system=CLGET_OwnSystemAddress()
+IF (CLIS_UserPoint(user))&(CLGET_UserPriority(user)<99) then do
+    point=CLGET_UserPointname(user)
+    netz=CLGET_SystemNet(point)
+    end
+else do
+    if CLGET_UserPriority(user)<99 then do
+        new=true
+        netz='JANUS'
+        end
+    else do
+        sysop=true
+        point=CLGET_UserPointname(user)
+        netz='JANUS'
+        end
+    end
+
+start2:
+
+select
+    when netz='JANUS' then systempfad=CLGET_PathJANUS()
+    when netz='ZERBERUS' then systempfad=CLGET_PathZERBERUS()
+    otherwise skip=true
+    end
+
+opfad=systempfad
+systempfad=systempfad||point'/'
+spoolpfad=CLGET_PathSpool()
+if right(spoolpfad,1)~='/' then spoolpfad=spoolpfad'/'
+menu1:
+if exists(systempfad||point||'.PRE') then suffix='.PRE'
+else suffix='.MBX'
+call CLONL_BlueMode()
+say 'CL-Pointuser 2.3  ©1995-96 Ralf Ramge                                         '
+call CLONL_Normal()
+if skip=false then call readsizes
+call CLONL_GotoXY(1,10)
+if (skip=false)&(new=true) then taste=CLONL_ShortMenuVertical('Pointantrag stellen','Ende')
+if (skip=false)&(new=false)&(delflag~='0')&(sysop=false) then taste=CLONL_ShortMenuVertical('1 Download des Puffers','2 Upload des Puffers (ungepackt)','3 Backup downloaden','4 Mapsnachricht','E Ende')
+if (skip=false)&(new=false)&(delflag='0')&(sysop=false) then taste=CLONL_ShortMenuVertical('1 Download des Puffers','2 Upload des Puffers (ungepackt)','3 Backup downloaden','4 Mapsnachricht','5 Puffer löschen','E Ende')
+if sysop=true then do
+    skip=false
+    new=false
+    delflag='0'
+    taste=CLONL_ShortMenuVertical('1 Download des Puffers','2 Upload des Puffers (ungepackt)','3 Backup downloaden','4 Mapsnachricht','5 Puffer löschen','6 Point wechseln','E Ende')
+    end
+call key
+ende:
+exit
+
+key:
+select
+    when taste='-1' then call ende
+    when (taste='1')&(skip=false) then call download
+    when (taste='2')&(skip=false) then call upload
+    when (taste='3')&(skip=false) then call backupdl
+    when (taste='5')&(skip=false)&(delflag='0') then call deletepuffer
+    when (taste='6')&(sysop=true) then call changesystem
+    when (taste='P')&(new=true) then do
+        call newpoint
+        call start
+        exit
+        end
+    when (taste='4')&(skip=false) then call maps
+    when taste='E' then return
+    otherwise nop
+    end
+call CLONL_ClearScreen()
+call menu1
+
+readsizes:
+
+packed=word(statef(systempfad||point||'.PRE'),2)
+unpacked=word(statef(systempfad||point||'.MBX'),2)
+unpprivate=word(statef(systempfad||point||'.MBP'),2)
+backup=word(statef(systempfad||point||'.Outgoing-Bak'),2)
+if packed='' then packed='0'
+if unpacked='' then unpacked='0'
+if unpprivate='' then unpprivate='0'
+if backup='' then backup='0'
+call CLONL_GotoXY(1,2)
+say 'Pointname :'point
+say '------------------------------------------------------------------------------'
+say 'bereits gepackter Puffer: 'packed' Bytes'
+say 'ungepackte Nachrichten  : 'unpacked' Bytes'
+say 'ungepackte Mail         : 'unpprivate' Bytes'
+say 'Pufferbackup            : 'backup' Bytes'
+say '------------------------------------------------------------------------------'
+return
+
+download:
+
+if (packed+unpacked+unpprivate=0) then return
+say 'Packe Puffer ...'
+if CLGET_SystemPackerOut(point)~='' then address command 'connectline:c/batch >NIL: '||point
+if (CLONL_Transfer(systempfad||point||suffix)) then do
+    call delete(systempfad||point||'.Outgoing-Bak')
+    if CLGET_SystemPackerOut(point)~='' then call rename(systempfad||point||suffix,systempfad||point||.'Outgoing-Bak')
+    end
+call CLONL_ClearScreen()
+call menu1
+return
+
+backupdl:
+
+if backup=0 then return
+call CLONL_Transfer(systempfad||point||'.Outgoing-Bak')
+return
+
+upload:
+
+files=CLONL_Receive(port)
+if files~='' then do
+    do x=1 to words(files)
+        rename(word(files,x),spoolpfad||point||'.'compress(time(),':'))
+        end
+    end
+address command 'run >NIL: CONNECTLINE:Modules/CLMSortin'
+say ''
+say 'Die empfangenen Files werden einsortiert.'
+call CLONL_Wait
+call CLONL_GotoXY(1,17)
+call CLONL_DeleteEOL()
+call CLONL_ClearScreen()
+call menu1
+
+key2:
+
+select
+    when taste='-1' then call ende
+    when taste='1' then do
+                    betreff='ADD'
+                    action=''
+                    call bestellen
+                    call maps
+                    end
+    when taste='2' then do
+                    betreff='DEL'
+                    action=''
+                    call bestellen
+                    call maps
+                    end
+    when taste='3' then do
+                    betreff='LIST'
+                    prefix='run >NIL: '
+                    redirection='>NIL: '
+                    action='Die Brettliste wurde angefordert.'
+                    'setenv mapsmod -1'
+                    call mapscommand
+                    prefix=''
+                    redirection=''
+                    end
+    when taste='4' then do
+                    betreff='INDEX'
+                    prefix='run >NIL: '
+                    redirection='>NIL: '
+                    action='Die Indizes wurden angefordert.'
+                    'setenv mapsmod -1'
+                    call bestellen
+                    prefix=''
+                    call maps
+                    end
+    when taste='5' then do
+                    betreff='HOLDON'
+                    prefix='run >NIL: '
+                    redirection='>NIL: '
+                    action='Die Bretter wurden temporär abbestellt.'
+                    'setenv mapsmod -1'
+                    call mapscommand
+                    prefix=''
+                    call maps
+                    end
+    when taste='6' then do
+                    betreff='HOLDOFF'
+                    prefix=''
+                    redirection=''
+                    action='Die Bretter wurden wieder bestellt.'
+                    call mapscommand
+                    prefix=''
+                    call maps
+                    end
+    when taste='E' then do
+        end=true
+        return
+        end
+    otherwise nop
+    end
+call menu2
+
+maps:
+
+call CLONL_ClearScreen()
+call CLONL_BlueMode()
+say 'CL-Pointuser 2.3  ©1995-96 Ralf Ramge                                         '
+call CLONL_Normal()
+say ''
+
+menu2:
+
+taste=CLONL_ShortMenuVertical('1 Bretter bestellen','2 Bretter abbestellen','3 Brettliste anfordern','4 Index anfordern','5 Bretter auf Hold','6 Hold deaktivieren','E Ende')
+call key2
+if end=true then do
+    call CLONL_ClearScreen()
+    call menu1
+    end
+return
+
+bestellen:
+
+filename='T:clpucommand.'point||port
+'CONNECTLINE:Modules/CLEditor 'filename
+prefix||' rx 'redirection' 'mapsmod' 'betreff' 'point' 'filename
+'delete >NIL: 'filename
+'run >NIL: CONNECTLINE:Modules/CL-CLMSortin'
+say action
+'rx 'stdiomod' CURSORON'
+call CLONL_Wait
+return
+
+mapscommand:
+'rx 'stdiomod' CURSOROFF'
+prefix||'rx 'redirection' 'mapsmod' 'betreff','point
+say ''
+say action
+'rx 'stdiomod' CURSORON'
+call CLONL_Wait()
+call CLONL_GotoXY(1,11)
+call CLONL_DeleteEOL()
+call CLONL_GotoXY(1,12)
+call CLONL_DeleteEOL()
+call CLONL_GotoXY(1,10)
+call CLONL_DeleteEOL()
+call CLONL_GotoXY(1,3)
+return
+
+deletepuffer:
+
+call CLONL_ClearScreen()
+say 'Wollen Sie alle öffentlichen Nachrichten aus Ihrem Puffer löschen?'
+say ''
+wahl=CLONL_ShortMenu('Ja','Nein, auf gar keinen Fall!')
+if wahl~='J' then do
+    say ''
+    say 'Die Operation wurde abgebrochen!'
+    say ''
+    call CLONL_Wait()
+    end
+else do
+    notdeleted=FALSE
+    outpack=CLGET_SystemPackerOut(point)
+    select
+        when left(outpack,3)='LHA' then do
+            say ''
+            call CL_PutStr('Packe vor ...')
+            address command 'batch >NIL: 'point
+            say 'Lege Sicherheitskopie an ...'
+            address command 'copy >NIL: 'systempfad||point||suffix' 'systempfad||point'.Outgoing-BAK'
+            call CL_PutStr('Puffer wird gelocked ...')
+            address command 'locksysdata 'point' lock'
+            call CL_PutStr('Lösche Teilpuffer ...')
+            address command 'lha >NIL: d 'systempfad||point||suffix' *.BRT'
+            say 'Puffer wird wieder freigeben. Fertig.'
+            address command 'locksysdata 'point' unlock'
+            end
+        when left(outpack,3)='LZX' then do
+            say ''
+            call CL_PutStr('Packe vor ...')
+            address command 'batch >NIL: 'point
+            say 'Lege Sicherheitskopie an ...'
+            address command 'copy >NIL: 'systempfad||point||suffix' 'systempfad||point'.Outgoing-BAK'
+            call CL_PutStr('Puffer wird gelocked ...')
+            address command 'locksysdata 'point' lock'
+            call CL_PutStr('Lösche Teilpuffer ...')
+            address command 'lzx >NIL: d 'systempfad||point||suffix' *.BRT'
+            say 'Puffer wird wieder freigeben. Fertig.'
+            address command 'locksysdata 'point' unlock'
+            end
+        otherwise notdeleted=TRUE
+        end
+    if notdeleted=FALSE then say 'Alle öffentlichen Nachrichten wurden gelöscht!'
+    else say 'Wegen eventuellem Mailverlust nicht gelöscht, bitte LHA oder LZX benutzen!'
+    say ''
+    call CLONL_Wait()
+    end
+call CLONL_ClearScreen()
+call menu1
+return
+
+newpoint:
+
+if exists('CONNECTLINE:online/'sprache'/Pointuser.antrag') then do
+    call CLONL_ClearScreen()
+    call CLONL_BlueMode()
+    say 'CL-Pointuser 2.3  ©1995-96 Ralf Ramge                                       '
+    call CLONL_Normal()
+    say ''
+    call CLONL_PrintFile('CONNECTLINE:online/'sprache'/Pointuser.antrag')
+    call CLONL_Wait()
+    end
+
+call CLONL_ClearScreen()
+call CLONL_BlueMode()
+say 'CL-Pointuser 2.3  ©1995-96 Ralf Ramge                                         '
+call CLONL_Normal()
+say ''
+
+ctr=0
+pointanz=0
+sysanz=CLGET_SystemNumberOf()
+
+say 'Einen Moment, bitte ...'
+'rx 'stdiomod' CURSOROFF'
+call writech(STDOUT,' ')
+
+do g=1 to sysanz
+    system=CLGET_SystemName(g)
+    if CLGET_SystemPointuser(system)~='' then pointanz=pointanz+1
+    ctr=ctr+1
+    if ctr//5=0 then do
+        if terminal~='TTY' then do
+            select
+                when ctr//4=1 then call writech(STDOUT,'-')
+                when ctr//4=2 then call writech(STDOUT,'\')
+                when ctr//4=3 then call writech(STDOUT,'|')
+                otherwise call writech(STDOUT,'/')
+                end
+            end
+        else call writech(STDOUT,'+')
+        end
+    end
+
+if terminal='TTY' then say ''
+
+call CLONL_GotoXY(1,3)
+call CLONL_DeleteEOL()
+call CLONL_GotoXY(1,4)
+call CLONL_DeleteEOL()
+'rx 'stdiomod' CURSORON'
+pointeingabe:
+call CLONL_GotoXY(1,5)
+call CL_PutStr('Pointname        : '); point=CLONL_BlueRead(8,'P'||pointanz+1)
+if CLIS_SystemExists(point) then do
+    say 'Es gibt schon ein System mit diesem Namen!'
+    call CLONL_Wait()
+    call CLONL_GotoXY(1,6)
+    call CLONL_DeleteEOL()
+    call CLONL_GotoXY(1,7)
+    call CLONL_DeleteEOL()
+    call pointeingabe
+    end
+call CLONL_GotoXY(1,6)
+call CL_PutStr('Passwort         : '); pw=CLONL_BlueRead(8)
+call CLONL_GotoXY(1,9)
+taste=CLONL_ShortMenu('Point beantragen','Abbrechen      ')
+select
+    when taste='A' then do
+        point=''
+        pw=''
+        return
+        end
+    when taste='P' then nop
+    otherwise nop
+    end
+
+say 'Der Point wird eingerichtet.'
+
+system=CLGET_OwnSystemAddress()
+call CL_SystemNew(point)
+call CLSET_SystemPassword(point,pw)
+call CLSET_SystemDomain(point,system)
+call CLSET_SystemRoute(point,point)
+call CLSET_SystemNet(point,'JANUS')
+call CLSET_SystemProtocol(point,'ZMODEM')
+call CLSET_SystemPackerIn(point,'LHA')
+call CLSET_SystemPackerOut(point,'LHA')
+call CLSET_SystemPointuser(point,user)
+call CLSET_SystemPriority(point,'0')
+call CLSET_SystemMapsAccess(point,1)
+call CLSET_SystemAutoEntry(point,0)
+call CLSET_UserCopyTo(user,user||'@'||point)
+call CL_SystemSaveList()
+
+say 'Ich schicke eine Testnachricht mit ihren Pointeinstellungen zu Ihnen.'
+if ~open('test','T:NewPoint.'user'.'port,'W') then say 'Testmail kann nicht erstellt werden !'
+else do
+    call writeln 'test','Pointname        : '||point
+    call writeln 'test','Pointpasswort    : '||pw
+    call writeln 'test','Ihr Username     : '||user
+    call writeln 'test','Ihre Domain      : .'||right(system,length(system)-pos('.',system))
+    call writeln 'test','Netzprotokoll    : JANUS'
+    call writeln 'test','Transferprotokoll: ZMODEM'
+    call writeln 'test','Packer           : LHA'
+    call writeln 'test',''
+    call close 'test'
+    call CLONL_Sendmail('Pointuser',user,'Ihre Pointeinstellungen','T:NewPoint.'user'.'port)
+    call CLONL_Sendmail('Pointuser','root','#Pointantrag','T:NewPoint.'user'.'port)
+    call delete('T:NewPoint.'user'.'port)
+    end
+say 'Fertig.'
+say 'Es wurden einige Defaulteinstellungen getroffen, eine Liste der Daten'
+say 'finden Sie in Kürze in ihrem Postfach. Wünschen sie hier noch Änderungen,'
+say 'setzten Sie sich bitte mit der Systembetreuung in Verbindung, damit die'
+say 'gewünschten Änderungen getroffen werden können.'
+say 'Des weiteren hat ihr Point bis durch Bestätigung durch die Systembetreu-'
+say 'ung nur limitierte Zugriffsrechte.'
+say ''
+call CLONL_Wait()
+call start
+exit
+
+changesystem:
+
+say ''
+call CL_PutStr('Name des Points:')
+point2=CLONL_BlueRead(8,point)
+if CLGET_SystemPointuser(point2)='' then do
+    say 'Bei diesem System handelt es sich nicht um einen Point!'
+    call CLONL_Wait()
+    end
+else do
+    point=point2
+    netz=CLGET_SystemNet(point)
+    end
+call CLONL_Normal()
+call CLONL_ClearScreen()
+call start2
+return

@@ -1,0 +1,128 @@
+<html>
+<head>
+  <title></title>
+  <meta name="Generator" content="GuideML V1.6">
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+<body>
+<a href="msg.html"><img src="toc.gif" alt="CONTENTS" border=0></a><a href="main.html"><img src="index.gif" alt="INDEX" border=0></a><a href="givetemplates.html"><img src="prev.gif" alt="PREV" border=0></a><a href="updatemsgpointer.html"><img src="next.gif" alt="NEXT" border=0></a>
+<hr>
+<PRE>
+   NAME
+                SetMsgData -- Sets information about a message to be saved by WriteMsg.
+
+   SYNOPSIS
+                SetMsgData [TO &#060;Addresse&#062;] [FROM &#060;Sender&#062;] [SUBJECT &#060;String&#062;]
+                                          [FILEATTACH] [ANON] [DELRECV] [PRIVATE] [CRASH] [HOLD]
+                                          [DIRECT] [DESTADDRESS &#060;FidoNet Address&#062;] [CROSSREPLY]
+                                          [FORWARD &#060;Area Number&#062; &#060;Message Number&#062; &#060;File Name&#062;]
+                                          [ROUTE &#060;FidoNet Address&#062;] [FROMADDRESS &#060;FidoNet Address&#062;]
+                                          [REPLY &#060;Message Number&#062; &#060;FileName&#062;] [AREA &#060;Area Number&#062;]
+                                          [CLEAR]
+
+   FUNCTION
+                Affects the message header of a new message. When starting
+                a new message this function should be called with
+                the 'CLEAR' argument only- to initialise the message
+                structure and make it ready for use.
+
+                Once the message structure has been fully initialised,
+                rexxMsgCommands/WriteMsg will write it out to the message
+                database.
+
+                SetMsgData 'CLEAR' sets the following defaults:
+
+                    FROM        - Name/Alias (depending on message base
+                                  type) of online user.
+                    AREA        - Current message area.
+                    PRIVATE     - On if current message base is
+                                  &quot;Private&quot;
+                    FROMADDRESS - Network bases only. The address
+                                  defined in the message area structure.
+
+   INPUTS
+                CLEAR       - Initialise the message structure to default
+                              values.
+
+                TO          - Addresse of this message.
+                FROM        - The author of this message.
+                SUBJECT     - The topic this message relates to.
+                FILEATTACH  - One or more files are attached to this
+                              message (names on subject line).
+                ANON        - Sender of message wishes to remain anonymous.
+                DELRECV     - Message should be deleted after the
+                              addresse of the message receives it.
+                PRIVATE     - Message is private.
+                CRASH       - Netmail bases only. This message should be
+                              sent &quot;Crashmail&quot;.
+                HOLD        - Netmail bases only. This message should be
+                              sent &quot;Holdmail&quot;.
+                DIRECT      - Netmail bases only. This message should be
+                              sent &quot;Directmail&quot;.
+                DESTADDRESS - The destination FidoNet address of this
+                              message. 
+                CROSSREPLY  - This message is a reply to a message posted
+                              in a different message base.
+                FORWARD     - This message is a forward from another
+                              message in this area. This argument takes
+                              another two values. These values can be
+                              omitted if you wish to use the currently
+                              loaded message as the message to forward.
+                              In this case, a successful call to
+                              rexxMsgCommands/LoadMsg should have been
+                              made.
+                        AREA   - The message area the message to forward can
+                                 be found.
+                        NUMBER - The number of the message in this base to
+                                 forward.
+                ROUTE       - Netmail bases only. The FidoNet address to
+                              route this message via.
+                FROMADDRESS - Netmail bases only. The address this message
+                              originated from.
+                REPLY       - This message is a reply to &#060;Message Number&#062; in
+                              the current base and the quotes, if the
+                              message area to write in is a &quot;Quoting&quot; base,
+                              should be output to &#060;FileName&#062;
+                AREA        - This message should be written in message area
+                              &#060;AreaNumber&#062;
+                             
+
+   RESULT
+                None.
+
+   RC
+                 0 -- Data changed
+                 2 -- Bad FidoNet address
+                 5 -- Bad arguments
+                10 -- Error quoting message
+                20 -- Fatal error
+
+   EXAMPLE
+                SetMsgData 'Clear'
+                call delete( 'T:MsgText.'Line )
+
+                SetMsgData 'To'      '&quot;Bill Frompkins&quot;'
+                SetMsgData 'Subject' '&quot;Your spleen operation!&quot;'
+
+                /* Don't want just anyone hearing about it! */
+
+                SetMsgData 'Private'
+
+                GetEditor 'Tag' 'Msg'
+                Interpret RESULT
+
+                Write '&quot;&#027;[32mSend Message? &quot;'
+                GetYesNo Yes
+                if RC = 0 then do
+                        WriteMsg 'T:MsgText.'Line        
+                        end
+                else
+                        Write '&quot;Aborted!n&quot;'
+
+   NOTES
+
+   SEE ALSO
+                rexxMsgCommands/LoadMsg
+
+</PRE><br></body>
+</html>

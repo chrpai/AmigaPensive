@@ -1,0 +1,242 @@
+
+
+
+
+                       Falcon CBCS UserPurge V1.15
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                   (c) David Dustin / ECLIPSE Software
+
+
+                             6 December, 1992
+
+
+
+
+Preface
+~~~~~~~
+  The programs and files in this distribution are freely distributable,
+but are also Copyright (c) David Dustin.  They may be freely distributed
+as long as no more than a minimum fee is charged to cover time and copying
+costs.  Permission is given for this distribution archive to be placed
+into Public-Domain collections such as the Amiga Library run by Fred Fish.
+
+  If you do decide to make use of UserPurge, you are suggested to send any
+form of donation or gift as payment.  This will get you the latest version
+of UserPurge, and also any other programs I have released.
+
+  Written in 100% pure assembly using Devpac 3.02.  The source code is
+enclosed in this archive.  If you make any changes, and decide to release
+a version to the general public, please at least send me a copy, so I know
+not to use the same revision number.
+
+
+
+  If you do have any suggestions, bug notes or ideas about this program,
+or if you would like to donate something, please let me know.
+
+
+    Write to me at the following address:
+
+                               David Dustin
+                             30 Richmond Ave
+                             Palmerston North
+                               NEW ZEALAND
+
+
+    Or I can be contacted via:
+                         dave@dogbox.acme.gen.nz
+
+
+
+
+Contents
+~~~~~~~~
+    1.     An introduction
+    2.     Usage
+    2a     Excluding users
+    2b     Blacklisting users
+    3.     History
+    4.     Credits / Copyrights
+
+
+
+1.  An Introduction
+~~~~~~~~~~~~~~~~~~~
+  Userpurge was written because I was sick and tired of people only
+logging in once, and then never calling again.  This led to the system
+slowing down, as it had to try and find a space for a new user in a
+database of 130+ users.  I was sick of having to go into Falcon, do a list
+of the users, write down when they last called, and then kill the inactive
+users.
+
+  As of version 1.12, UserPurge only works with Kickstart V37+, and may be
+used from the CLI/Shell or from the Workbench.
+
+
+
+2.  Usage
+~~~~~~~~~
+  UserInfo can be used either from the CLI or from the Workbench.  From
+the CLI, there is only one option, but if you run UserPurge from the
+Workbench, there are two possible tooltypes that you have available.
+
+
+  The main argument allows you to specify the number of days to make the
+cut-off date.  This defaults to 30, but can be anything upto 128 days.  0
+days is illegal, so it will not do anything.  From CLI, simply place the
+number of days after the program name (eg.  UserPurge 60)
+
+  From Workbench, the equivlent tooltype to be placed in the program icon
+is:  DAYS=<number>
+Where <number> is the number of days that the cut-off is.
+
+
+  Also if you run UserPurge from Workbench, you have a secondary ToolType
+available to you, which tells UserPurge where to find the User.BBS
+datafile.  This is:  USERBASE=<path/filename>
+
+
+  The only real requirement is that you should be in the directory
+containing the User.BBS datafile.  This is normally the root directory of
+your BBS, so you should already be in this directory to run the BBS.
+
+  If UserPurge cannot find the User.BBS file, it will then try to open
+your Falcon.CFG file, and try to track it down from there.  If the file
+cannot still be found, then UserPurge will exit without doing anything.
+
+
+  An entry will be made into your Log.BBS file if you are using one.  The
+will give you some general information about the outcome of running
+UserPurge.  This will tell you the total number of users that have been
+removed from the User.BBS file.
+
+  UserPurge also maintains it's own log, called UserPurge.log, which
+contains the names of the people as they are deleted from the User.BBS.
+
+  You cannot currently turn the logging off, but I will add the option if
+someone wants it.
+
+
+  As of v1.14, if you maintain a AppFile, when a user is deleted, their
+information will also be removed from the AppFile.  This speeds things up
+(esp.  if you are using UserInfo V2.08), and also allows you to keep a
+better track of your users.
+
+
+  Because the User.BBS file (and optionaly the AppFile) are modified, a
+backup is made of them before they are changed.  This is done by Renaming
+the file (adding on a .BAK).  If (God forbid) something should go wrong
+while using UserPurge, you can be safe in knowning that your files will
+still be intact(ish :)
+
+
+  The most common way of making use of UserPurge would be to run it via
+some-sort of Cron program, which will execute it at a certain time each
+day.  One thing that I would like to stress, is to try and make sure that
+the BBS is NOT in use at the time of running UserPurge.  Because of the
+way that it works, users can be shuffled round in the file, and if a user
+is on-line at the same time, it will probably corrupt their account, and
+most likely several others at the same time.
+
+
+
+2a. Excluding Users
+~~~~~~~~~~~~~~~~~~~
+  Thanks to an idea by Renze, you can now choose to exclude users from the
+purge.  This allows you to keep users that you know only call once in a
+blue-moon active on the BBS.
+
+  To make use of this, simply make a text file called UserPurge.Exclude
+and place it in either the current directory where you run UserPurge from;
+your S:  directory; or in the ENV:  directory.
+
+  Just place the name of each user that you want to keep on a seperate
+line.  Comments can be placed after the name of each user without
+up-setting anything.  This way, you can make a note so you know why they
+are in the file.
+
+
+2b. Blacklisting Users
+~~~~~~~~~~~~~~~~~~~~~~
+  Once again, Renze came up with another good idea.  He was fed up with a
+certain user (no names :) abusing him, and his BBS, that he asked me to
+implement a Black-List function of somesort.  So here we have it.
+
+  You have a file similar to the Exclude file, but it is called
+UserPurge.BAD, and can be placed in the directory as the Exclude file
+(Current, S:  or ENV:).
+
+  On each line, you simply put the name of the users that you NEVER want
+to have on the BBS for more than one day (if you run UserPurge everyday).
+It simply checks the list and if a user has the same name as is in the
+list, they will be deleted as if they hadn't called in 30days.
+
+  This is about the best that I could do, due to the limitations of
+Falcon.  If anyone can think of a better way to implent Bad-Users lists,
+then please tell me (I have a few that I want to keep off as well)
+
+
+
+3.  History
+~~~~~~~~~~~
+V1.00
+    * First release.
+
+V1.01
+    * Added LogTag Comment
+    * Now makes use of my Eclipse.Library
+
+V1.04
+    * Updated LogTag comment to include the number of users removed
+
+V1.05
+    * Added Comandline info (UserPurge ?)
+    * Checks for 0 day cut-off.  Now ignores it, and defualts to 30
+
+V1.10
+    * Added full workbench support (DAYS, USERBASE)
+
+V1.11    10 October
+    * Fixed LogTag comment.  Wasn't taking into account users that had
+      been removed using the BBS
+    * Removed Commandline Usage
+
+V1.12    22 November
+    * Added UserPurge.log
+    * Added option to exclude users from the purge (Thanks Renze :)
+    * Now requires V37+ dos.library
+    * Released seperatly away from my ECLIPSE.library beta test archive
+
+V1.13    25 November
+    * Added a black-list (always kill) function
+    * Removed bug. Would probably crash if there was no Exclude file
+
+V1.14    26 November
+    * Removes AppFile entry when user is deleted
+    * Fixed error with PurgeLog. If a user had been deleted using Falcon,
+      the log file would have an incorrect entry.
+    * Log now reports the number of users killed each day (same as Log.BBS)
+
+V1.15    6 December
+    * Modified Purge log entry slightly
+
+
+28-Jan-1996
+    Released into the public domain by the author Dave Dustin
+
+    
+
+4.  Credits / Copyrights
+~~~~~~~~~~~~~~~~~~~~~~~~
+    Main code                   - David Dustin
+    Ideas/Bug testing           - Renze de Ruiter
+                                - Dave Hassall
+                                - Paul Dunlop
+                                - Karl Mottram
+    Workbench Icon              - Karl Mottram
+
+
+    UserInfo                    - (c) 1992 David Dustin
+    Falcon CBCS                 - (c) 1988-91 Brian Fehdrau
+    Devpac 3.02                 - (c) 1991 HiSoft
+    Kickstart/Workbench         - (c) 1985-91 Commodore-Amiga, Inc.

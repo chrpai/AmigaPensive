@@ -1,0 +1,1218 @@
+
+Saturday 15-May-93 18:47:26
+
+--950--
+
+Ken, any plans on having CNet display AmigaGuide files online?
+
+CNet's HELP cmd (and others) could reverse the colors on keywords.
+User's with ANSI-mouse turned ON in their accts, could click on these keywords
+for more info about that keyword.
+
+Or instead of ANSI-mouse, a new VDE "type" offering.
+
+It would really only need to support 2 of AmigaGuide's features.
+
+1) Mark keywords.
+2) Mark labels.
+
+For more info see @{ " RANGE " LINK RangeInfo }  (This marks/inverts this
+keyword.)
+
+@node RangeInfo   (This label specifies the block of text to display.)
+
+    This block is only displayed if user picked "RANGE".
+
+@endnode
+
+AmigaGuide has been available for more than 2 years now.  I'm finally
+starting to see a LARGE # of AmigaGuide files available.  I am quickly
+becoming addicted.
+
+--951--
+
+On Thu 13-May-1993  2:40a, Mario Bonelli wrote:
+MB> CNET: BETTER CRASH RECOVERY NEEDED!!!
+
+MB> I had a crash the other day on one of my hard drives, after backing
+MB> everything up re formatting and copying everything back, Iw as having
+MB> major
+MB> problems with cnet. Users were logging on, and the system would crash(just
+MB> lock up) I would go to delete someone or auto maint would, and CRASH.
+MB> I figured it out that about 15-20 user accounts had bad/corrupted _buser3
+MB> files or their directory wa smissing alltogether which caused the lock
+MB> ups.
+
+Just for future reference (in case this happens to me), just how did
+you determine which _buser3's were bad/corrupted?
+
+MB> It was not easy to find, took me most of the day to figure out. Cnet needs
+MB> better crash recovery, or some kind of mechanism to test integrity or
+MB> whatever of files before they are run. If they appear to be bad the file
+MB> should be restarted and placed in the log what the problem is.
+
+MB> I dont know the if ands and whats and how tos. IM just saying there is a
+MB> need fo rbetter crash recovery. Ciao!
+
+There are several things Ken could do:
+
+1) Check the size of each data file before CNet loads them, if they
+aren't what CNet expects for that structure size, then report/abort/
+rebuild/re-create/etc.  It's a quick, simple 100% effective check to
+catch ALL data files that got chopped or lengthened due to corruption.
+
+2) Pepper the data structures with CheckSum values.  These variables
+must always remain set to $FF values.  If 1 isn't, then report/abort/
+rebuild/re-create/etc that data file.  It's a quick, simple way to
+catch a very large percentage of corruption problems.
+
+Ken already did this for 1-2 of CNet's structures.
+
+(I think he checks for a value of $00 instead of $FF.  But in a sample
+13888 byte _buser3 file, that I just looked at, I count 10571 $00s,
+and NO $FFs.  $00 just occurs "naturally" (string terminators,
+cleared-values, etc) too often to make it a good choice for a check-
+value.)
+
+It is well worth the VERY few bytes of HD space it costs, compared to
+the protection it provides.  (Since it is a good idea to pad
+structures to the nearest 4 bytes anyway, often these checksum values
+make the structures "0" bytes bigger.)
+
+I hope you don't mind that I'm forwarding your comments and mine
+directly to Ken.
+
+--952--
+
+Another case:
+
+Does this sound correct?
+When looking at "AM"'s output:
+A) while online, the "last-caller" is really "current-caller" (you).
+B) without anyone on that port (ie. the idle-screen display),
+   then "last-caller" is truly "the previous caller".
+
+>                      Last   Setup  Period   Total Current
+> ...
+> ...
+> ...
+> Minutes use            0      17     258     841
+> Minutes idle           0       8      27      42K
+> Charges                0      10     217     505
+
+EXCEPT the last 3 values of "LAST" during "A" are always 0.
+(I'm not sure why these also don't reflect actual values.)
+My pfile is trying to use these values, but it's always getting 0.
+
+Even if "AC" reports:
+   > Item                  Charge    Session
+   > -------------------- -------- ----------
+   > Per call charge      $0.0200  $  0.0200
+   (As it should.)
+
+After I log-off and look at "B", then those last 3 lines ARE correct,
+but only sometimes.
+
+I tried this:
+
+1) I log-in.
+2) AC reports:
+   > Item                  Charge    Session
+   > -------------------- -------- ----------
+   > Per call charge      $0.0200  $  0.0200
+   (As it should.)
+3) I log-off and log back on the same port.
+4) I run "AM" thinking that the "last-caller" column (me) should now read
+   "2".  It reads zero instead.
+
+Another case:
+I do #1 and #2.
+3) I run "AM" while online.
+   See "last-caller" now means "current-caller", me.
+   (Which is OK.)
+4) I read 1 gfile.  "AM reports "last-caller" read 1 gfile.
+5) The "2" charges that "AC" reports still is shown by "AM" as 0.
+
+Aside from whether either of the above cases are "bugs" or "my
+misunderstanding", I still need some info for a pfile I'm writing...
+
+Where does "AM" get its info for the 70 values it shows when:
+A)  displayed on an idle-screen without anyone online.
+B)  displayed when someone executes it online.
+
+C) MainPort's SAM[5][15] or
+D) UserPort's SAMNow[20].
+
+>                        1       2       3       4       5
+>                      Last   Setup  Period   Total Current
+> Feedback               0       0      11      16      10
+> Mail sent              0       0     180     202      37
+> Mail to #1             0       0     123     140      13
+
+Is it something like:
+If "A" then 1-5 is obtained from "C".
+If "B" then 2-5 is obtained from "C", and 1 is obtained from "D"
+The last 3 lines of "AM"'s output is obtained from  _______ ???
+
+Are the last 3 lines effected by "local" VS "remote" calls?
+"SysOp access" VS "non-SysOp access"?
+Or some other user-acct flag that I have set some place?
+
+--953--
+
+Under CONFIG's ACCOUNTING I have:
+ >          Charge                    Units        Value
+1> Each use of Re-logon command       .01c          100
+2> Per minute of connect time         .01c          900
+(Both are in 1/100ths of 1 cent.)
+
+Online, "AC" shows:
+ >    Item               Charge   Session
+1> Re-logon command     $1.0000  $  0.0000
+2> Connect time         $0.0900  $  0.0900
+
+The CONFIG setting has #1 set much lower than #2.
+Online "AC" is showing #1 is higher than #2.
+
+(Something is/isn't being divided/multiplied by 100, as it should be.)
+
+--954--
+
+ W> Amiga i recieve about 100 to 150 messages a day  amigasale is now
+ W> amiga_sale and is active.
+
+ Yikes!
+
+ What do you set your 'amaint inactive days' setting to?
+
+ If I want to keep 100-200 items, and about 300-500 responses online, I'd have
+ to set it to *1 DAY*?  Kind of tight.  And if nothing comes in one day, the
+ sub clears itself to 0 items, 0 responses.  Drastic.
+
+ There's many different ideas going around in the CNet Echo about dealing with
+ this.
+
+ Maybe amaint should obey a new "min # of items" value.  (Don't continue to
+ purge msgs if the sub is already down to x items.)
+
+ Or, "roll-over limits in real-time".
+ Keep exactly x items in this sub at all times.
+ Purge 1 old msg, for each 1 new msg.
+
+ Or, make "max # of items" a per-sub value, instead of a per-BBS system-wide
+ value.
+
+ Or...?
+
+--955--
+
+item: 1 of subboard C programming help/answers
+subj: Wanted: FIFO.LIBRARY
+from: Big Brother  (Ken Pletzer)
+orgz: Perspective Software
+on  : Tue 18-May-1993  1:48a
+
+ Would someone kindly upload the FIFO.LIBRARY archive?  I believe it's a publid
+ domain Matt Dillon piece.
+
+ Thanks!
+ ken
+
+#1/2 from: Big Brother  (Ken Pletzer)
+     orgz: Perspective Software
+     on  : Tue 18-May-1993  2:12p
+
+ Thanks for uploading the library ... any one have the COMPLETE archive?  With
+ docs, examples, etc.
+ Ken
+
+#2/2 from: Bill Allen
+     to  : Big Brother  (Ken Pletzer)
+     on  : Tue 18-May-1993  7:01p
+
+ Just so happens, oddly enough, I have:
+ FIFO374.lha                51834 ----rwed 07-Jan-92 13:11:08
+ : Lib to access Dillon's FIFO pipe v37.4 07Dec91
+
+ I won't be able to UL until later today.
+
+ Does anyone have a newer release?
+
+--956--
+
+In Mail Scans displays...
+
+Would anyone like to see the 'weekday' and 'century' dropped?
+And the 'size of that piece of mail' added?
+(It will NOT increase the size of the output lines.)
+
+OLD> NC 11 Sun 16-May-1993  4:04p Bill Beogelein       Questions About CNet
+OLD> NC 12 Mon 17-May-1993  5:14p Jim Nasium           Questions About CNet
+OLD> NC 13 Tue 18-May-1993  6:52p Phil Adelfia         Questions About CNet
+OLD> NC 14 Wed 19-May-1993  7:30p Mike Hunt            Questions About CNet
+
+NEW> NC 11 16-May-93  4:04p  13K Bill Beogelein       Questions About CNet
+NEW> NC 12 17-May-93  5:14p   2K Jim Nasium           Questions About CNet
+NEW> NC 13 18-May-93  6:52p   8K Phil Adelfia         Questions About CNet
+NEW> NC 14 19-May-93  7:30p   1K Mike Hunt            Questions About CNet
+
+For new mail, I could see which letters are most likely small/quick
+comments and which are lengthy items.  (Which do I have time to read/
+answer right now?)
+
+For old mail, I could see which letters are taking up the most space,
+putting me dangerously close to my mbox-size-limit.  (Or just plain
+wasting the largest amounts of HD space.)
+
+--957--
+
+DM> Bill why don't you actualy get involved with fido before you start trying
+DM> to suggest and tell people how things should be done..  I am not even
+DM> going to attempt to explain to you exactly why this is a waste of time..
+DM> You having never run a fido based BBS would not be able to understand why
+DM> this would work.. and honestly you are not worth the effort..
+
+I've run Fidonet for many years on many different BBS packages.
+As of today, I have 2676 items and 7680 responses on my CNet setup.
+(99.99% are Fidonet)
+
+I really don't know the reasoning behind posting msgs that say, "Bill, I know
+the answer to your problem/question, but I'm not going to tell you what it
+is."
+
+DM> Suficce it to say, if you do not have enough harddrive space to support
+DM> multible messages bases, then you do not need to run a bbs.
+
+So we shouldn't have better control over msg purging?  Just close our BBSes
+instead?  Great idea.
+
+DM> Any idiot
+DM> knows (present company excepted) that you can not keep a 10meg message
+DM> base system on a 5meg system..
+
+No one (other than you) stated anything about keeping a 10meg msg base on a
+5meg system.  (Although other BBSes will being doing exactly that through
+msg-compression.  Ever notice how CNet's _Text files can be compressed 75%?
+Hint, hint, hint.)
+
+I just feel there are better ways then CNet's current ONLY method.
+"All items (and all their attached responses) in this base are purged after x
+days without additional responses."
+
+That statement remains in effect regardless of 5/10/100/500meg HD sizes.
+Regardless of 1/50/500 msg bases.
+Regardless of how many days the post has been online overall.
+
+And for those of us that mix posts and files in the same sub, even entire file
+catalogs can be wiped out by CNet's current method.  Just because we are
+trying to keep a lid on the # of msgs online.
+
+Please consider starting a separate item regarding insults.  This 1 is for
+Cnet discussions only.
+
+--958--
+
+
+Running "CNet 2.75 >>ALPHA 3.0<<"
+
+If I run cnet:control and exit control, all is fine.
+If I run cnet:control, load cnet:bbs, and exit control, GURU 100% of the time.
+(Just after CONTROL closes.)
+I tried both versions of v2.75 "load".
+
+I can "AT47" to edit the attributes of item n from the subboard prompt.
+But "AT" from any item's "respond/pass" prompt, does nothing.
+
+Shawn, I too have a few scrambled msg bases.
+Did you notice if it started occurring ONLY after you ran repair_sub?
+Not before?
+
+Now that CNet is using Fifo, how do I get rid of all the "New Shell process 12"
+strings that the callers see every time it is called?
+
+--959--
+
+Ken, please consider having the days listed as Sun->Sat like a calendar, not
+Sat->Fri.  And a new toggle-all-days ON/OFF gadget would save me 7 gadget
+clicks each time I define an "all-days" events.
+
+--960--
+
+TB> Look for "From " (The capital F is important, as is the space as opposed
+TB> to
+TB> the colon).  This has worked reliably for me for years, as with MANY other
+
+Would it be feasible to give CONFIG a new variable?
+> UUCP Keyword Starter: From
+
+TB> Other than that 2.75 looks great, exect for not being able to edit your
+TB> bbsevents once you've made them.
+
+I can create/delete/load/save events fine.
+Exactly how, step-by-step, are you trying this?
+Docs are needed.
+
+TB> That, and it would be nice to at some
+TB> point be able to move the spell-checker files over to the hard drive at
+TB> the Sysop's own decision to hamper the speed.
+
+A new CONFIG/PATH variable.  Or share 1 of the existing ones.  Or add a
+"miscellaneous path" for this and all future needs.
+
+--961--
+
+HH> I have mine set for ID "10".
+
+What happens when JL is so popular that everyone is doing it?  "I had ID #10"
+"No, you had it last time, I get it."  "ID #x is already in use by another
+system."  "I want to use ID #1 all the time."  "I want to use ID #49 to avoid
+conflicts, but then you have to allow 1-49 systems to JL with you."
+
+Can't the ID # be made just an generic value?  We could use the last 4 digits
+of our phone #.  Or our node #.  Or have CNet just assign me "the next
+available ID #, at time of JL connection".
+
+
+HH> well how about the systems serial number!
+
+Fine with me.  Anything that is guaranteed to be 100% unique.
+
+Right now very few systems seem to be JL'ing, but in x months/years, who knows
+how wide-spread this great feature will be.
+
+Allowing each system to pick, at random, their own (hopefully) unique own ID
+#, will be like allowing each BBS to pick their own Fidonet net/node #.  Not the
+best way to do it.
+
+Plan for the future.
+
+--962--
+
+D> Now, Bill, why not have it simply assume ALL days if NONE of the GADGETS,
+D> including the string gadget, is filled in.
+
+Is this a suggestion or the way it currently works?
+(I didn't see this mentioned in the ReadMe.)
+
+> Sun=Sun
+> Mon=Mon
+> Tue=Tue
+> None=All
+
+I don't know how clear that will be for users.
+"None=None" would be clearer to me.
+
+And I was hoping that we could quickly disable/enable certain events
+just by setting them to "None/No-Days".  WITHOUT a need to remove them
+entirely and then re-enter all the data back in.
+
+Also, the readme calls it "duration", the CONFIG calls it "Valid For", is this
+the "exact # of mins" or an "end HHMM time"?  The ReadMe JoinLink example
+(#224) shows it means both.
+"45" might mean "45 mins", it might mean "0045am".
+"2300" might mean "2300 mins", it might mean "2300pm".
+
+I would much rather enter start and end times, (1020-1455), than to count on
+my fingers and toes the exact min length or hr+min length.
+
+Also, for multiple events that need to cover a range of times, back to back.
+Which is clearer:
+1> 0300-0445 0446-0730 0731-0900
+2> 0300-0145 0446-0244 0731-0129
+
+#1 shows "no gaps" at a glance.
+
+--963--
+
+P> BA> Shawn, I too have a few scrambled msg bases.
+P> BA> Did you notice if it started occurring ONLY after you ran repair_sub?
+P> BA> Not before?
+
+P> Well I may have created my own problem, a few weeks ago, i added a new
+P> hd..
+
+I don't think it is anything you or I are doing wrong.  (Althought it could
+be.)  I've managed to duplicate this bug on demand.
+
+I read item #11 and its 47 responses.
+All is fine.
+I run RR to rebuilt that sub.
+I read item #11 and its 47 responses.  Chopped/lengthened/chars added/etc to
+many of the responses.
+
+Backup first, and give it a try.
+
+This is with "repair_sub CNet 2.72 >>ALPHA 3.0<<" that came with "CNet 2.75
+>>ALPHA 3.0<<".
+
+If RR is the problem, I hope we can:
+1)  Get RR fixed
+2)  Have it repair the scrambled subs.
+
+I don't think this 'msg clipping' is the fault of x/ifido.  I'm
+getting it in fido and non-fido subs.  Getting it in msgs posted pre-
+275 and under 275.
+
+1) Try this test.
+2) Creat a dummy sub.
+3) Post 1 item, post a few responses to it.
+4) See that they are 100% readable.
+5) Run RR.
+6) See clippage and random chars at the start of each msg.
+
+I just re-verified this again today, Sunday 6PM.
+
+Ken, can we get a quickie repair_sub replacement?
+
+Or am I doing something wrong with steps 1-6?
+
+--964--
+
+F> Gee I would like to make it happen, but I can't seem to download this file
+F> for some reason... It keeps telling me that I've downloaded my file limit
+F> for the day... NOT!
+
+Ken (and MANY CNet's around the world) still have a few subs that are
+accidently charging 100x many more file-credits than they should for DLs.
+
+> # Title            Size   Credits Description
+> ---------------------------------------------------------------
+> 1 Ami-Mud.LHA      341K 100/ 341K MUD U*IX and Amiga C sources
+
+The bug was fixed long ago, but the erroneous settings remain.
+
+Ken, please warning users about this in the Readme (and/or other
+highly-visible areas) and instruct them to "EL ALL".
+
+--965--
+
+>AO
+>Adopt from which partition [0]? [RETURN]
+>Please select a valid partition.
+
+Could this be made to assume a default of a VALID partition instead of
+an INVALID one?  (A default of the 1st value in my partition-range
+would be a perfect choice.)  Maybe even show me the partition list,
+too.
+
+Something like:
+>Adopt from which partition 4,6-9 [4]?
+
+--966--
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+I've always successfully executed a DOS script at log-off by
+replacing #1 with #2 in BBSTEXT.
+
+1>@ Logoff complete
+2>@ Logoff complete {#4 Execute Pfiles:TrackRec.dos %23 %39}
+
+It now places every caller at the DOS prompt, giving him full
+access to DOS.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+--967--
+
+I have 6,100 files I need to place online immediately.
+
+All have complete, very detailed AmigaDOS filenotes.
+
+When trying "AO4" or even "AO4!" CNet still calls the full-screen
+editor 6,100 times.
+
+Also,
+
+Online, when I "AO" 9 files and try and use AmigaDOS date/time stamps,
+here's what I get:
+
+   AmigaDOS             Online
+   --------            --------
+1) 04-Dec-91           3-Aug-87
+2) 15-Nov-91          18-Feb-89
+3) 07-Jun-89          21-Feb-87
+4) 06-Apr-89           4-Dec-91
+5) 18-Feb-89           6-Apr-89
+6) 22-Jan-89          15-Nov-91
+7) 19-Dec-87          22-May-93
+8) 03-Aug-87          19-Dec-87
+9) 21-Feb-87          22-Jan-89
+
+Correct dates, but not for the matching files.
+
+I REALLY need these 2 features before I can go online.
+
+--968--
+
+> The Yank command has also been added to the "respond or pass"
+> prompt while reading in a subboard.  The ENTIRE item (including
+> all responses) will be Yanked.
+
+Please consider changing this slightly...
+
+From a "respond or pass" prompt:
+1) "Y" will always yank the current response.
+2) "Y47" will yank just response #47.
+3) "Y ALL" will yank that 1 item and all its responses.
+4) "Y 3-10" will yank that just those responses.
+
+This will allow:
+1) Consistency with "ed#", "scan#", "respond#" etc, that already
+   work this way.
+2) Yank just the responses you need.  No need to yank 134 responses
+   if you just need #84.
+   (Big gathering time, compressing time, DLing time, etc.)
+3) Doesn't prevent the current "yank item and all responses".
+
+--969--
+
+
+I have NOT played with load/scratch/locking.
+
+I'm hoping my C code or Arexx scripts would just be able to determine Y/N, is
+data currently locked?  And then let ME decide to "wait until it's unlocked",
+or "try again in x secs", or "exit and inform the user", etc.
+
+--970--
+
+Not counting its several new, handy features, did we lose 1 feature
+that used to be available under CNet v2.63?
+
+OLD> We could specify a start-date, start-time, end-date, end-time.
+NEW> We can specify a start-date, start-time, end-time, but no end-date.
+
+How would I do something like this with the new events scheduler:
+
+CHARGE-TABLE #0 from 10May-21Sep.
+CHARGE-TABLE #1 the rest of the year.
+
+And don't say "specify the days 1-by-1 with separate events".  :-)
+
+--971--
+
+I have 4 different l:fifo-handler's.  None have versions #s so I'm not
+sure which is which any more.  PLEASE stick some kind of version # or
+date in them.
+
+--972--
+
+This is regarding v2.75 bugfixes.lha...
+
+Then I use the Control-Panel's (CP) pulldown menu to "close port" the port
+closes and unloads from memory, but the CP display still shows those
+non-existing ports as being "idle"...
+
+> 1     (no one)          0         0                         Idle
+> 4     (no one)          0         0                         Idle
+
+The last 2 versions of CP both had the same version #s
+"CNet 2.75 >>ALPHA 3.0 <<", so I don't know how to accurately report
+bugs.   The bytesize was 32864.
+
+CP/SysInfo also reports "Next event: -1048.0 mins (on port 0)".
+Should a negative mins value be here?
+
+--973--
+
+I love the new "AO Which partition default [4]" prompt.
+
+The same smart-default-prompt is needed when [MO]ving a file from 1
+sub to another.  Or ANYTIME a partition is asked for.
+
+--974--
+
+Ken, all of my eariler "AO!" DOS-dates/call-editor/partition-prompt
+problems have be remedied.  THANKS!!!
+
+But I now get:
+> Upload list full!
+> Upload list full!
+> Upload list full!
+> Upload list full!
+> Upload list full!
+
+I have my CONFIG/LIMITS "max UL per batch" set at 15.
+
+I feel that this 'limit' should be ignored when doing "AO" and only be
+obeyed for true-UL'ing purposes.  NOT applied to "AO" which would
+pertain to files already on my HD, already in the correct partitions,
+correct dirs, etc.
+
+Trying to alter "CONFIG/LIMITS max UL per batch"...
+
+When I call CONFIG from the control-panel, edit CONFIG/LIMITS max/
+batch, hit SAVE, my change is ignored.  If I close everything down,
+run CONFIG, edit, re-run CNet, I can get it to convert to my "999"
+setting.  Then again close everything down, run config, change back to
+"15", save, etc.  I have to do this EACH time I need to AO more files
+than I wish callers to be allowed to batch UL.  Any way to make it
+pick-up the changes immediately?
+
+It would also be very handy to get "AO!" to report some stats after
+it is done.
+> Adopted 291 files at 4783 Kbytes, skipped 34 files.
+
+I hate to make such a big deal over all this "AO" stuff, but everyone
+that converts to CNet from other BBS software is most likely going to
+need powerful, bug-free, well thought out "AO" stuff.  (As well as any
+SysOp that needs to bulk-import a large # of files for whatever reason.)
+
+The easier/faster it is to switch to CNet, the more likely people will.
+
+I would love to tell future CNet SysOps that 1000s of files can be
+placed online as simple as "AO!".
+
+--975--
+
+When I run amaint online, on a sub that has:
+1) 'adopt orphans' ON
+2) 'immediate transform' OFF,
+3) 'ARCSs transformable' NONE
+
+I still sometimes see:
+
+> No transformation script found!
+> No transformation script found!
+> No transformation script found!
+
+when that sub is reached.
+
+Shouldn't CNet NOT even be looking for any transformation script if #3
+is set to NONE?
+
+Also, it would be handy if we could get amaint to report:
+> Can't find transformation script s:foo2fii.
+So we know exactly what is missing.
+
+--976--
+
+Ken, when I send NetMail, is there a method which would allow me
+to keep a copy for my own purposes?
+
+(NOT just a ascii .PUT'ed file, kept offline, with the text in it.
+But a true, CNet msg/mail format, online, date/time stamped, full TO/
+FROM/header/info etc.)
+
+Something like local-mail's:
+> Return original message also [No]?
+
+But just:
+> Keep duplicate copy [No]?
+
+What I would REALLY like to do is setup a "netmail sub".
+Everything posted there is sent out as netmail.
+
+Full CNet msg/mail format, online, date/time stamped, full TO/FROM/
+header/info, scan, browse, Z, search, auto-purge, etc.
+
+Currently, I feel all the netmail I write is instantly lost forever
+(my copy anyway) as soon as it is sent out.
+
+--977--
+
+Regarding CONFIG/ACCOUNTING...
+
+> Per NetMail sent       (rate 1-2-3)
+> Credits for NETMAIL    (rate 1-2-3)
+
+What is the difference between those two items?
+
+I thought all the values in CONFIG/ACCOUNTING could be debits or
+credits based on whether + or - cost-values were specified.
+
+--978--
+
+Enter the gfile menu here at FW (or my BBS).
+Use FIND.
+Use EXAMINE on 1 of the files found.
+
+Afterwords, you'll see:
+
+> FIND: Again, Download, *, Examine, Grab, Quit, [Pass]
+> Enter item#, Scan, Quit, ?=Menu
+> #!)##!),#-) (#!#-#!) #-) #-#*/#!+#L# >
+
+or other random chars and BBSTEXT chars in the prompt.
+
+--979--
+
+If you attempt to edit your user dictionary with the FSE, but decide
+to ABORT the save, "_edbuff0" isn't deleted.
+
+If you later OA, your user-dictionary will be the long filenote for
+100s of adopted files.
+
+(Do I find the oddest things, or what?)
+
+--980--
+
+Ken, please consider having the Control-Panel show MODEM-0 and
+MODEM-2 instead of "IDLE" during MODEM-0 and MODEM-2 events and arexx
+scripts.
+
+--981--
+
+What would cause TrapDoor to re-initialize my modem every 15 mins,
+hour after hour?  No calls or other activity during these periods.
+
+> 29-May-93 02:52:32  Initializing modem
+> 29-May-93 02:52:34  Waiting for call
+> 29-May-93 03:07:34  Initializing modem
+> 29-May-93 03:07:37  Waiting for call
+> 29-May-93 03:22:37  Initializing modem
+> 29-May-93 03:22:41  Waiting for call
+> 29-May-93 03:37:41  Initializing modem
+> 29-May-93 03:37:44  Waiting for call
+> 29-May-93 03:52:44  Initializing modem
+> 29-May-93 03:52:47  Waiting for call
+
+--982--
+
+When moving an uploaded file from 1 sub to another, could CNet 1st attempt
+to do a RENAME, and failing that, then do a full copy and delete?
+
+RENAME should work as long as you're not trying to move across partition
+boundries.
+
+You can RENAME 100 100K files in seconds, even on the slowest of HDs.
+COPY takes longer.
+
+--983--
+
+S>         Just wondering how many other sysops call ld, just to have to
+S> waste time on someone putting up another 1-10 vote topics on stuff that
+
+There have been a few suggestions for new features to control this WITHOUT
+forcing all SysOps to remove VOTE-ADD access from all callers.  And WITHOUT
+forcing all SysOps to remove GO-TO-VOTE-AT-LOGIN.  (I rather like having
+both.)
+
+What would you (or anyone) like to see?  I feel it could all be handled nicely
+with just 1 addition...
+
+The poster of the new vote-topic should also be asked:
+> Force all to vote [No]?
+
+(Of course, the SysOp could remove that line from BBSTEXT and make ALL new
+vote topics non-force.)
+
+No SysOp would have to forbid new vote-topics.
+No SysOp would have to remove GO-TO-VOTE-AT-LOGIN.
+No caller would be forced to vote on any/all topics.
+
+--984--
+
+> Terminal A=ANSI, C=CBM, I=IBM, S=Sky, [NONE]:
+
+I have NO use for it either.  But haven't found a way to remove it entirely.
+
+If Ken would make it:
+> Terminal A=ANSI, C=CBM, I=IBM, S=Sky, [NONE]: \g0
+like a bazillion other prompts that we can already remove, it too would be
+fully removable.
+
+Another way to address this problem would be to give CNet a new EP choice.
+Each user could set his individual preferences:
+1 ANSI
+2 CBM
+3 IBM
+4 SKY
+5 NONE
+6 ASK AT EACH LOG-IN
+
+It would be interesting to see how many people would specifically set
+it to #6.  I'm guessing 0%-10%.  Which tells us a lot about how
+necessary/unnecessary CNet's current method is.  (Ask 100% of the
+users, 100% of the time, on every single call they make, to every
+CNet, and forbid the SysOps from ever removing this prompt or altering
+the default in any way.)
+
+> More...
+> Removing terminal question at log-in...
+This would require that Ken (not us) change BBSTEXT from #1 into #2:
+1) Terminal A=ANSI, C=CBM, I=IBM, S=Sky, [NONE]:
+2) Terminal A=ANSI, C=CBM, I=IBM, S=Sky, [NONE]: {G0}
+
+which would allow us (not Ken) to change #2 into:
+3) (nothing)
+
+Too, too simple, to NOT have Ken do it.
+
+--985--
+
+ S>         Just wondering how many other sysops call ld, just to have to
+ S> waste time on someone putting up another 1-10 vote topics on stuff that
+
+ There have been a few suggestions for new features to control this WITHOUT
+ forcing all SysOps to remove VOTE-ADD access from all callers.  And WITHOUT
+ forcing all SysOps to remove GO-TO-VOTE-AT-LOGIN.  (I rather like having
+ both.)
+
+ What would you (or anyone) like to see?  I feel it could all be handled nicely
+ with just 1 addition...
+
+ The poster of the new vote-topic should also be asked:
+ > Force all to vote [No]?
+
+ (Of course, the SysOp could remove that line from BBSTEXT and make ALL new
+ vote topics non-force.)
+
+ No SysOp would have to forbid new vote-topics.
+ No SysOp would have to remove GO-TO-VOTE-AT-LOGIN.
+ No caller would be forced to vote on any/all topics.
+
+As always, the SysOp could later edit that flag and make any previous
+no-force topics into force-topics.  (If he felt they were that important.)
+
+Or later make any force-topics into no-force.  (If he felt they were too
+frivolous to warrant 100% required answering.)
+
+--986--
+
+>Auto-purging BBSLIST entries...
+
+If Ken isn't considering adding this, perhaps he could:
+1)  Offer us the C header file used in "!!!00000000000000".
+2)  Write the 'post-date' to "!!!00000000000000".
+
+I'm sure someone will write a 'purge-after-x-days' program.
+
+(I'd really like to see better filenames used like "BBSLIST.DAT"
+instead of "!!!00000000000000".)
+
+D> which essentially meant, "This bbs was still in operation on this date."
+D> Now, the poster has the option of editing any of the info, including this
+D> validation date, so I'm assuming that program was set to delete any entry
+D> that was outdated.
+
+D> By allowing the date as part of the ADD a Number portion, all the SysOp
+D> would have to be worried about would be the timeframe between this date
+D> and the purge date, be it 3 months, 3years, 3weeks, etc.
+
+I like this idea a lot.
+I hope I'm understanding this correctly...
+
+1)  The SysOp sets a default BBSLIST purge field to x days.
+    (Just 1.  NOT 1 for each entry in the BBS List.)
+2)  Users add BBSes to the list.
+3)  Each entry is deleted every x days UNLESS 1 or more of the following
+    occurs:
+    a) The original poster edits any field of that BBS's info.
+    b) The poster 'touches' that BBS's post-date, bringing the post-date
+       upto today's-date.
+    c) The SysOp turns on an individual "no-purge flag" for that 1 BBS.
+
+(3a:  Automatically does a "3b", too.)
+(3b:  No need to re-enter all of that BBS's info, every x days.)
+(3c:  For 'long-term' systems.)
+
+--987--
+
+D> If you want the OLD / command back, simply swap the / and : lines in your
+D> BBSMENU file. That way, the / will act as the : and vice-versa.
+
+I feel that will just confuse callers more and more.  I'd like to see CNet use
+an EXACT DOS-like style, not its current ALMOST DOS-like style.
+
+: gets you root
+/ gets you back 1 level
+// gets you back 2 levels
+/// gets you back 3 levels
+//3 gets you back 2 levels and into dir #3
+:4/3/6
+etc, etc, etc...
+Support them all.
+
+D> As for DMS files, you can't EXTRACT a DMS file. You CAN, however, list the
+D> compression info, which is how I have MY DMS's set up. Listing info
+D> includes start and end tracks, compression mode, etc. A whole screenful of
+D> neat info.
+
+This is what I've done to my system.
+
+I highly recommend it.  ANY DMS info is better than "unknown archive type".
+I wonder how many callers say to themselves, "The VERY popular DMS format is
+totally unknown to CNET???"  Not knowing it can be very simply added, but very
+rarely is.
+
+If anyone wants to add it, just edit CONFIG/ARCHIVERS/DMS/VIEW to show:
+> dms >%s VIEW "%s"
+Too simple.
+
+Ken, please make it the default on the master CNet disks.
+
+--988--
+
+ GK>  o  The FIDO handler seems to be adding an extra carriage return on all
+ GK>     of its output.  That is, each line is suffixed with ^M^M^J where it
+ GK>     should be ^M^J - can this be fixed?
+
+ I feel FIFO should add ABSOLUTELY nothing in any way.  FIFO should
+ give the user exactly what it is given.  If you need extra linefeeds
+ you can always add them via \n yourself.  But if FIFO adds them (1 or
+ 2) automatically, I have no way to ever remove them.
+
+ GK>  o  Is there a way to set how maintenance sets the dates for adopted
+ GK>     files?  A subboard flag of using the file date or today's date would
+ GK>     be handy.
+
+ I'd be happy with 1 global CONFIG setting, instead of 215 (in my case), 1 per
+ sub.
+
+ GK>     file with the same number but has characters appended on it (i.e.
+ GK>     bbsport1 and bbsport1.backup), the second one will also appear in the
+ GK>     config list.  I changed my bbsport1.backup to old.bbsport1.backup
+ GK>     and the duplicates disappeared.
+
+ I had a whole list of bbsport1.263 bbsport1.275 files.
+ CNet should just check/use bbsport0 - bbsport99, and ignore the rest.
+
+--989--
+
+Also, Ken, when I try and YANK this item with "Y" from the respond/pass
+prompt, i get:
+> No messages were yanked
+from CNet
+
+I have no other yanks running.
+No other yanked files waiting for DL.
+
+--990--
+
+Inside "CNet/3 JOIN conference", I Hit YES at "Do you want to list
+all of the noise prototypes?"
+
+The more prompt becomes...
+
+> More[Y,n,c]\q3
+
+With old-style MCI codes.
+
+--991--
+
+Xfido, version "CNet 2.76 >>ALPHA 3.0<<" is definitely exporting
+killed msgs.
+
+Try this:
+1) Post a Fidonet msg.
+2) Kill it.
+3) Verify that it is gone.
+4) Run Xfido.
+5) Watch it go out via Fidonet.
+
+--992--
+
+My concerns with DrawEd are "how do we limit/control its use/abuse":
+
+1 Which callers, or levels, can be allowed/forbidden access to it?
+2 How do I remove DrawEd entirely?
+3 Which local/Fidonet/UUCP subs allow ANSI dancing?
+4 How do I limit the proposed 'delay-per-char' saves?  (Users could
+  insert giant delays between each char.)
+
+I hate to sound like The Wet Blanket, Party Pooper here, but with such power,
+comes such abuse, and therefore needs for control/limitations.
+
+But things are going to get unnecessarily complex if we have to add more flags
+to each user's acct, or subs, just for DrawEd.
+
+I just see DrawEd as a toy/kid's game.
+
+--993--
+
+Would it be worth having Ken add a gadget to CONFIG/EVENTS marked "TEST".
+
+Hitting it would run the currently selected event, NOW.
+
+I've been playing with many events, and my system clock, trying
+to demo each event while I watch.
+
+Sure would be handy to just click "TEST" instead.
+
+--994--
+
+D> And what is this 5% that can be gotten by using the quotes?
+
+Filenames with spaces or whatever other chars will make 'quotes' mandatory.
+
+Also,
+I haven't checked the last few CNet releases, but the 10 updates before that,
+CNet's s:xfoo2foo scripts also fail miserably under certain filenames.
+
+Do you want these to work 100% of the time or 99.999%?
+
+Use double quotes everywhere.
+Makedir dirs that are guaranteed to be unique.
+Allow for extracting/deleting filenames that may have the 'protect-bit' set.
+Check for available space before extracting.
+Extract to different dirs for multi-lined systems.
+Allow for archivers that extract to full sub/sub/sub/subdir names.
+Check that makedir isn't trying to make a dir that already exists.
+Delete all the extracted files even if the caller drops carrier.
+Shut off archiver-options that prompt the user "overwrite this file?".
+Don't use archivers that crash/GURU on badly corrupted files.
+
+Any 1 of 10-20 things can cause TRANSFORM to fail.
+And folks will wonder why.
+
+D> BA> Check that makedir isn't trying to make a dir that already exists.
+
+D> Ah yes, here it is(hehe), what would happen if you DID tell MAKEDIR to
+D> make a directory that already existed? I thought it would simply abort
+D> when it saw an existing driectory was found?
+
+Most likely:
+> makedir failed returncode 10
+
+(Of course, the user online won't know what happened.  CNet doesn't display
+the error text.  I feel it should.  Without it, it can be EXTREMELY hard to
+find the bugs in your scripts.  You just see "Transformation completed!" no
+matter what.)
+
+D> I thought it would simply abort...
+Do you *WANT* your transform-scripts to abort/fail 1/2 way through?  The point
+is to make it work.  Make it transform.
+
+--995--
+
+I'm not sure how this works, but this is how I feel it SHOULD work:
+
+1) The ULer only gets credit for the AFTER-TRANSFORMED size.
+   (No point in giving users MORE credits for ULing .txt non-compressed files
+   instead of .lha compressed ones.)
+2) Online, all users should see the AFTER-TRANSFORMED size.
+   (Immediately, not 12-24hrs later during amaint.)
+3) All DLers should be charged the AFTER-TRANSFORMED size.
+   (After all, that's the file's size now.)
+
+--996--
+
+Ken, when trying to YANK the current item from the respond/pass prompt,
+I get:
+
+> **** System Message
+>  Too many yank tasks are already running.  Try again later.
+
+I really don't want to move from that item's prompt, because I
+just know I won't be able to find it again later.
+
+Would it be possible to allow x yank-tasks to be running (as
+config'ed), and an additional 5 (or whatever) to be queued in line,
+waiting their turn next?  Only when x+5 yanks are running will users
+ever see the "Try again later" text.
+
+LH> I usually post offline... Also I think CNet needs to queue yank tasks into
+LH> an order and just execute them one at a time in that order. That way we
+LH> would never see the message "Too many Yank tasks running" again.
+
+Definitely.  I made this suggestion to Ken a few days ago.
+(I think he's stopped reading my "random Q&A" item.)
+
+Should we have an 'unlimited' # in the queue?
+
+A fixed limit of 5-10?
+
+A 2nd config variable?
+> Max # of yask-tasks:
+> max # of yank-queues:
+
+A limit of x tasks+queues per user?  (It could still be a global variable in
+CONFIG.)
+> Max # of tasks+queues per user:
+(That's my favorite.  Overall you could have 100s, but not more than x per any
+1 user.  It would stop any 1 user from getting 17 yanks going (running or
+queued) and STILL making all the other users get the "Too many Yank tasks
+running/queued" msg.)
+
+--997--
+
+On a related matter, I always wanted to see the "private Y/N" prompt
+come BEFORE the question itself.  Like...
+
+> Do you wish to keep your address private?
+> Enter your address:
+
+> Do you wish to keep your phone # private?
+> Enter your phone #:
+
+You'll probably get different (more accurate) answers to questions
+if callers know that they have the power to show/hide certain data.
+
+Currently they might give a dummy phone #, and AFTERWARDS find out
+that they could have given their real phone #, and just opt'ed to keep
+it confidential.  (But they didn't know that at the time.)
+(And they aren't going to bother to correct it later.)
+
+Callers that have memorized CNet's new-user questions & privacy-flags
+won't have this problem.  But what about the rest of the folks?
+
+As a 'somewhat fix', you could change your new-user questions into:
+
+> You will later be asked if you wish to keep your address private.
+> Enter your address:
+> Do you wish to keep your address private?
+
+> You will later be asked if you wish to keep your phone # private.
+> Enter your phone #:
+> Do you wish to keep your phone # private?
+
+Unfortunately making the new-user procedure LONGER, and kind of odd,
+though.
+
+--998--
+
+I did it, I did it!  Searching for this 1 was driving me crazy.
+
+1)  Go into the root msg BASE.
+2)  Hit NF  (2a. Make sure there are some new-file 'finds'.)
+3)  Enter a msg subdir.
+4)  SnoopDOS is reportedly looking for:
+    UDBase0:main/tt0.exit 
+    UDBase0:main/sys.exit 
+    UDBase0:11.0/tt0.entry
+    UDBase0:11.0/sys.entry
+(Files in "UDBase0:" instead of the correct "Base0:...." dirs.)
+
+If I skip step #2 or #2a, all is fine.
+
+--999--
+
+BB> BA> Is this the recommended/best way to do this?
+BB> BA> Isn't the origin zone/net/node stored in the Fidonet msg format some
+BB> BA> place?
+
+BB> There IS one in the msg structure, but as it turns out, that is used to
+BB> store the system's address that LAST TOSSED the message!
+
+So each system that msgs pass through become the 'origin'?
+With no record keeping of the REAL origin, other than the origin-line?
+
+Are all IBM/Amiga BBSes parsing the origin-line then, for this info?
+I've seen some wildly, er ah, unique, origin-lines.
+
+>zone/net/node in origin-line...
+Does Fidonet policy state "it must be present" or "it must be present in a
+certain form/place/style/size/etc"?
+
+CNet needs to do some VERY clever parsing, then.
+
+> item: 1 (of 1)
+> subj: AreaMgr Receipt
+> from: Gecho  (Gecho@1:2410/297.0)
+> on  : Tue  8-Jun-1993  3:13a
+> 
+> (text deleted)
+> 
+> --- GEcho 1.00+
+>  * Use %HELP for instructions
+
+I hope CNet isn't looking too hard for a return address in my feed's
+origin line.
+
+--EOF--
+
+Sunday 06-Jun-93 23:57:31
+
+-Bill "Mr. BBS" Beogelein, 810-473-2020, 2-line HST 14.4k USR DS, 1:2410/207
+

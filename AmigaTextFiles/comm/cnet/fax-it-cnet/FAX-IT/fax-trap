@@ -1,0 +1,35 @@
+/* First.Start is to be called from the same script file you call Excelsior
+ * from. It should be called just after your assign and path commands.
+ */
+ 
+options results
+
+StartFAX = "05:00:00"
+StartTD  = "18:55:00"
+Doors    = "Doors:"
+
+Now      = Time(Normal)
+
+if show(Ports,'TERM')=1 then exit
+
+if Now >= StartFAX  &  Now < StartTD then do
+	do while show(Ports,'TrapDoor')=1
+		address 'TrapDoor'
+		quit
+		Shell Command 'wait 5'
+		if show(ports,'TrapDoor')=1 then Shell Command 'wait 60'
+	end
+	if show(Ports,'REXX_GPFAX')=1 then exit
+	Shell Command 'Execute 'doors'Fax-IT/Start.FAX'
+	exit
+end
+
+do while show(Ports,'REXX_GPFAX')=1
+	address REXX_GPFAX
+	quit
+	Shell Command 'wait 5'
+	if show(ports,'REXX_GPFAX')=1 then Shell Command 'wait 60'
+end
+if show(Ports,'TrapDoor')=1 then exit
+Shell Command 'Execute 'doors'Fax-IT/Start.TD'
+exit

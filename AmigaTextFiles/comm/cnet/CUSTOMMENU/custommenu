@@ -1,0 +1,85 @@
+/* CustomMenu v1.5 */
+options results
+bufferflush
+getuser 17; sys = result
+getuser 12; date = result
+open(log,'system:log.cm','A')
+open(defaults,'ram:cm.def','R');currentmenu=readln(defaults);name=readln(defaults);close(defaults)
+onscrn = 0
+call loadmenu
+call CMain
+CMAIN:
+        if onscrn = 0 then call showmenu
+        sendstring prompt; receive; cmd = upper(result)
+        do i = 1 to totalcommands
+                if cmd = keypress.i then do; c = i; validcmd = 1; leave; end
+                end
+        if validcmd = 1 then call whattype
+        if cmd = '?' then call showmenu
+        if cmd = 'Q' then do; writeln(log,'\cd'date'\c6: \ca'name' exits the Custom Menu'); exit; end
+        if cmd = '/CHAT' then call chat
+        if cmd = '###PANIC' then do;writeln(log,'\ca'date': DROPPED CARRIER!');exit;end
+        call CMain
+WHATTYPE:
+        call ismaint; if x ~= 0 then return
+        if type.c = 'TXT' then call loadtext
+        if type.c = 'PRG' then call loadprg
+        if type.c = 'MNU' then do; currentmenu = file.c; call loadmenu; end
+        return
+LOADTEXT:
+        writeln(log,'\cd'date'\c6: \caRead 'file.c)
+        sendfile file.c
+        c = 0
+        validcmd = 0
+        return
+LOADPRG:
+        writeln(log,'\cd'date'\c6: \caExecuted command program 'file.c)
+        spawn file.c; exit
+LOADMENU:
+        writeln(log,'\cd'date'\c6: \caEntered 'currentmenu' menu')
+        open(menu,'menu:'currentmenu'.dat','R')
+        TotalCommands = readln(menu)
+        MenuTitle = readln(menu)
+        Prompt = readln(menu)
+        Custom = readln(menu)
+        do i = 1 to TotalCommands
+                Keypress.i = readln(menu)
+                descript.i = readln(menu)
+                type.i = readln(menu)
+                maint.i = readln(menu)
+                file.i = readln(menu)
+                end
+        close(menu)
+        onscrn = 0
+        validcmd = 0; c = 0
+        return
+SHOWMENU:
+        if custom = 1 then do; sendfile 'menu:'currentmenu'.mnu'; onscrn = 1; return; end
+        transmit MenuTitle
+        do i = 1 to totalcommands
+                call ismaint
+                if x = 0 then transmit '\ce(\cf'keypress.i'\ce) \cb'descript.i
+                x = 0; end
+        transmit '\ce(\cfQ\ce) \cbQuit to BBS'
+        transmit '\ce(\cf?\ce) \cbThis menu\n1'
+        onscrn = 1
+        return
+ISMAINT:
+        if maint.i = 1 then do; x = sys - maint.i; end
+                else x = 0
+        return
+CHAT:
+        writeln(log,'\cd'date'\c6: \caSysop entered chat. (Stored in chat.log)')
+        Transmit 'Yep, I am here, what about it?'
+        do until endchat = 1
+                x = x + 1; receive; log.x = result
+                if log.x = '/Q' then leave
+                if log.x = '###PANIC' then leave
+                end
+        open(chatlog,'system:chat.log','A')
+        writeln(chatlog,'Log of chat with 'name':')
+        do i = 1 to x
+                writeln(chatlog,log.i)
+                end
+        close(chatlog)
+        return

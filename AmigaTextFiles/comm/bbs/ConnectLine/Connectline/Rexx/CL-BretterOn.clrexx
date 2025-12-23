@@ -1,0 +1,105 @@
+/*
+**  $VER: CL-BretterOn.rexx 2.1 (05 Feb 1995)
+**
+**        © 1995 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      CL-BretterOn.rexx
+**
+**  FUNCTION:
+**      Demonstrations-Skript zur cl_rexx.library, Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl_rexx.library © 1995 Mathias Mischler
+**
+**      Dieses Skript trägt ein System wieder in die Verteiler ein,
+**      die vom Script CL-BretterOff.rexx verändert wurden.
+**      Siehe CL-BretterOff.rexx.
+**
+**  $HISTORY:
+**      0.01 - Erste Alpha-Version
+**      0.02 - Datenfiles aus CONNECTLINE:Data erwartet
+**             Einbindung ins ARexx-Menü des Servers
+**             CL_SaveBoardList() wurde vergessen
+**      1.0  - Datenfiles aus CONNECTLINE:Rexx/Data
+**             Veröffentlichungsreife Version
+**      1.1  - font-sensitiv
+**      1.11 - Logfileeintrag
+**      1.12 - Anpassung auf cl_rexx.library 1.20
+**      1.13 - Anpassung an Aufruf durch CL-PointUser.clrexx
+**      1.14 - Bei übergebenem Systemnamen wird kein <Return>-
+**             prompt am Ende des Durchlaufs aufgerufen
+**      1.15 - Saudämlicher Bug beim öffnen der rexxlib
+**      2.0  - Hauptroutine in clrexx-Modul ausgelagert (HOLD OFF)
+**      2.1  - kleinere kosmetische Fixes
+*/
+
+system=upper(arg(1))    /* Parameter einlesen */
+ctr=0
+if system~='' then nowindow=true
+else nowindow=false
+mapsmod='CONNECTLINE:Rexx/Modules/maps.clrexxmod'
+iomod='CONNECTLINE:Rexx/Modules/stdio.clrexxmod'
+
+/* rexxsupport.library öffnen */
+
+if ~show('L','rexxsupport.library') then do
+    if ~addlib('rexxsupport.library',0,-30,0) then do
+        exit 10
+        end
+    end
+
+if nowindow=false then do
+
+    /* Fontsize ermitteln */
+
+    gfxbase=showlist(l,'graphics.library',0,a)
+    call forbid
+    FontAddress=next(gfxbase,154)
+    Fontsize=c2d(IMPORT(offset(FontAddress,20),2))
+    call permit
+    windowwidth=Fontsize*40
+    windowheight=Fontsize*15
+    windowY=Fontsize+1
+    WindowX=Fontsize
+
+
+
+    /* Standard-IO umleiten */
+
+    if ~show('L','cl_rexx.library') then do
+        if ~addlib('cl_rexx.library',0,-30,0) then exit 10
+        end
+
+    screen=CLGET_FrontScreenName()
+    call close STDOUT
+    if ~open(STDOUT,'CON:'windowX'/'windowY'/'windowwidth'/'windowheight'/CL-BretterOn/SCREEN'screen,'W') then
+        exit 20
+    else do
+        call close STDIN
+        call open STDIN,'*',R
+        call pragma '*'
+        end
+    end
+
+/* Hauptprogramm */
+
+address command
+
+if system='' then do
+    options prompt "Systemname :"
+    pull system
+    end
+
+if system='' then exit
+
+'rx 'iomod' CURSOROFF'
+'rx 'mapsmod' HOLDOFF 'system
+
+if nowindow=false then do
+    options prompt "<Bitte drücken Sie RETURN>"
+    pull dummy
+    end
+
+'rx 'iomod' CURSORON'
+exit

@@ -1,0 +1,557 @@
+
+
+   =====( Areafix V1.10 )============================================
+
+
+        Trion areafix Utility.
+
+        (c) Copyright Paul Spijkerman, '95-'98. All rights reserved.
+
+        Written escpecially for use with the Trion BBS package.
+
+
+   ===================================================================
+
+
+   Trion Areafix is a program that lets a User control the echomail
+   sections and tick file sections he is connected to.
+   By writing netmail to the areafix program he can connect
+   sections, disconnect sections and ask a list with the sections
+   he has access to.
+
+
+
+      Features:
+
+    -Connect or Disconnect echomail and tick (file) sections.
+
+    -Commands to connect or disconnect 'All' sections or all
+     echomail or all file (tick) sections.
+
+    -Produce 'short' or 'long' lists of echomail or tick sections.
+     List can be of All sections, echomail sections, file sections,
+     linked or unlinked sections.
+
+    -Connect or Disconnect all sections temporarily with
+     %Pause and %Resume commands.
+
+    -Changing the compression methode for mail compression.
+
+    -Changing the Areafix, Tick or mail and session password.
+
+    -Echomail sections can be 'locked' with the obligatory flag
+     in the mailareas.cfg so they can't be disconnect.
+     Which is usefull is a BBS has a 'point' section to inform
+     points about changes in access and new services.
+
+    -Bounce netmail for unknown nodes.
+
+
+
+
+   A user has to write a netmail to the netmail address of
+   his boss (the netmail number of the net the wants access to)
+   with name Areafix or Filefix in the 'To Name' field and the
+   correct password on the subject line.
+   In the Message itself the user will place the command's he
+   want to send to AreaFix.
+
+
+   Areafix will process the message, do the fixes and sends
+   a message back with the changes it has made.
+   What areafix does during fixes is change the mail.cfg so that
+   a nodenumber is added or removed from the list under a 
+   section TagName.   
+   If there is no Tagname found in the mail.cfg for the section a
+   user wants to connect, it will be added with the nodenumber
+   of this user.
+   Areafix will set the Received flag of the messages it acted
+   on so it knows which netmail it has processed when it is
+   started later.
+   If areafix will receive a message with a wrong password it
+   will send an errormessage back but will no attempt to
+   interpret the message.
+
+
+
+
+
+
+
+      Note: To be compatible with other program's and to be able to
+      act on replies of messages from areafix Trion Areafix
+      will react on the folowing names (in Upper or lower case):
+      "AreaFix", "AreaMgr", "AreaLink", "EchoMgr", "NewEcho",
+      "Tron AreaFix" and "Trion AreaFix".
+
+
+
+    Available commands are (maybe used in upper and lowercase):
+
+
+    %+ALL                 Connect all available sections
+    %-ALL                 Disconnect all available sections
+    %LIST                 Send a list of all available sections with status
+    %LINKED               Send a list of all connected sections
+    %UNLINKED             Send a list of all disconnected sections
+    %HELP                 Send a message with help text
+    +AreaTagName          Connect section with name "AreaTagName"
+    -AreaTagName          Disconnect section with name "AreaTagName"
+
+
+
+
+
+    %HELP                 For this text.
+
+    %+ALL                 To Connect all sections for this nodenumber.
+    %-ALL                 To Disconnect all sections for this nodenumber.
+    %+MSGS                To Connect all message sections.
+    %-MSGS                To Disconnect all message sections.
+    %+FILES               To Connect all file sections.
+    %-FILES               To Disconnect all file sections.
+    %PAUSE                Put all sections on hold.
+    %RESUME               Resume all sections paused before.
+
+    %COMPRESSION=arc      Change compression methode (LHA, LZX, ARJ).
+    %PASSWORD=pass        Change Areafix password.
+    %FILEPASSWORD=pass    Change Tick password.
+    %ECHOPASSWORD=pass    Change echomail and session password.
+
+    %SHORT                Switch to short list mode.
+    %LONG                 Switch to long list mode.
+
+    %LIST                 For a list of all sections for this nodenumber.
+    %MSGS                 For a list of all message sections.
+    %FILES                For a list of all file sections.
+    %LINKED               For a list of all connected sections.
+    %UNLINKED             For a list of all disconnected sections.
+
+    TagName               To Connect section 'TagName'.
+    +TagName              To Connect section 'TagName'.
+    -TagName              To Disconnect section 'TagName'.
+
+
+
+
+    Remote use:
+    ===========
+
+
+    Making the connection:
+    ----------------------
+
+    Sections can be connected by just putting their name in
+    a message on an empty line. (with or without a leading '+'
+    character.
+
+    Sections can be disconnected by putting their name on an
+    empty line with a leading '-' in front of them !!
+
+    Also multiple sections can be connected by using the
+    +ALL, +FILES or +MSGS commands.
+
+
+    When Areafix receives A message to connect or disconnect
+    echomail sections it will make changes to the mail.cfg file in
+    the configuration directory.
+
+    File sections will be changed in the filenet.cfg
+
+    When an echomail section didn't exist in mail.cfg when a user tried
+    to connect it it will be generated.
+
+    Note that you have to put comment lines in the mail.cfg
+    on empty lines, because if areafix has to change a line
+    the comments on that line are lost.
+
+
+    Lists
+    -----
+
+    Areafix has a short and long list mode.
+    The description of a section now can be 79 characters which
+    can scramble the whole list.
+    Also newsgroup names can be very long.
+
+    The short list is like the list in the previous version.
+
+    TagName                      "Description"              Connected
+    TagName                      "Description"              Connected
+
+    The long list puts the description on a separate line
+
+    Area: TagName                                           Connected
+    Desc: "Description of this echomail message section."
+
+    Area: TagName                                           Connected
+    Desc: "Description of this echomail message section."
+
+
+    Default the program will startup in shortlist mode, unless it
+    was started with the -L flag, then it will produce long lists.
+
+    But this can be overruled with commands in the fix messages.
+
+    %SHORT       Switch to short list mode.
+    %LONG        Switch to long list mode.
+
+
+    Pause and Resume:
+    -----------------
+
+    Areafix has %PAUSE and %RESUME commands, so a 'user'
+    can temporary disconnect hisself.
+
+    When a %PAUSE command is received a file with a list
+    of all currently connected sections will be made,
+    and then all sections will be disconnected.
+
+    When a %RESUME command is received the file with the list
+    will be read and all sections in the list will be connected.
+
+    The list file will be placed in the trion:users/
+    directory and will have the 4 numerical fields of
+    a nodenumber in the name separated with points and
+    .fix as extension.
+
+    If for instance node 14:103/300 would send a %PAUSE command
+    a file called 14.103.300.0.fix would be created.
+
+
+
+    Changing passwords and compression methode:
+    -------------------------------------------
+
+    Areafix has options to change the compression methode and
+    mail/session, tick or areafix password.
+
+
+    %COMPRESSION=arc    Change compression methode (LHA, LZX, ARJ).
+    %ECHOPASSWORD=pass  Change echomail and session password.
+
+    The Compression and Echopassword commands will change the
+    systems.cfg
+
+
+    %FILEPASSWORD=pass      Change file password.
+
+    This command will change the filenodes.cfg
+
+
+    %PASSWORD=pass          Change Areafix password.
+
+    This command will change the areafix.cfg
+
+
+    %COMPRESSION, %ECHOPASSWORD and %FILEPASSWORD are smart(ish)
+    if there was no entry in the configs for the node one will
+    be added.
+
+
+    Note that you should NOT end node lines in the systems.cfg with comments
+    because if something in that line is changed the comment is gone.
+    Also the line would change in length.
+    (this note is valid for all cfgs that are changed by programs)
+
+    So don't use comments like this:
+    
+350:1001/0    LHA   XXXXXX     ;My boss
+
+    If you want to use comments do it on separate line like this:
+
+;===(  Node #1, User so and so  )===
+
+350:1002/100.2  LHA  XXXX
+350:1002/2      LHA  XXXX
+350:1002/200    LHA  XXXX
+
+;===(  Node #2, Yet another user  )===
+
+14:103/300.3    LHA  XXXXXX
+39:155/300.3    LHA  XXXXXX
+350:1002/100.3  LHA  XXXXXX
+55:1100/1111.3  LHA  XXXXXX
+210:1010/300.3  LHA  XXXXXX
+606:3150/101.3  LHA  XXXXXX
+
+;===(  My big boss  )===  Fido, Trion, AMY, NLA, AGA, F1
+
+2:283/326     LHA   XXXXXX
+350:1001/0    LHA   XXXXXX
+350:1001/1    LHA   XXXXXX
+350:1001/100  LHA   XXXXXX
+39:155/0      LHA   XXXXXX
+39:155/100    LHA   XXXXXX
+14:103/0      LHA   XXXXXX
+14:103/1      LHA   XXXXXX
+14:103/100    LHA   XXXXXX
+171:109/0     LHA   XXXXXX
+171:109/1     LHA   XXXXXX
+171:109/100   LHA   XXXXXX
+606:3150/0    LHA   XXXXXX
+606:3150/1    LHA   XXXXXX
+606:3150/100  LHA   XXXXXX
+
+
+
+    Obligatory echomail sections:
+    -----------------------------
+
+    You can create echomail message sections that users can't
+    disconnect with Areafix.
+
+    This is usefull if you have an echomail section to inform
+    your points of all sort of matters around the BBS.
+    If you have such an echo to tell users that you for
+    instance will change the phone number of the BBS,
+    you don't want everybody to disconnect.
+
+    If you have such a section you can add the "O" flag
+    for "Obligatory" in the mailareas.cfg
+
+    If a user get's a list with sections it now will
+    say "obligatory" where it says "connected" with normail
+    sections.
+
+    The section can no longer be disconnected with a command
+    to DISconnect a section of disconnect all sections.
+    (new sysop curse)
+
+    If a user writes a MESSAGE to areafix all the obligatory
+    sections will be connected if they were not connected before.
+
+
+
+    Use by the sysop:
+    =================
+
+    For areafix to process the messages from your points and nodes
+    it has to be started now and then, this could be done in
+    the 'Mail' script with is probably started after mail calls
+    or log offs .. the default mail script will start Areafix
+    after the mail processor was started in Unpack mode and if
+    there was mail in the inbound directory.
+
+    Start Areafix with the F (fix) command to just process
+    incoming netmail from nodes and points.
+
+    Areafix has a few other options which are interesting
+    for the sysop.
+
+
+       F  = fix.                           (areafix F           )
+       S  = send notices.                  (areafix S           )
+       N  = send notice to 1 node.         (areafix N NODENUMBER)
+       C  = same as N and connect all.     (areafix C NODENUMBER)
+       R  = same as N and disconnect all.  (areafix R NODENUMBER)
+
+
+    With the S (send notices) command he can send netmail
+    to all nodes with contains a list of all available
+    sections with their status (connected/disconnected).
+
+    Note that this options only sends netmail to the points/nodes
+    who have a SEND flag in the areafix.config.
+
+    The N option does almost the same but for 1 node, this can be
+    usefull when you want to tell a new node that he is connected
+    to the system, and give him a list of the sections which are
+    available to him.
+
+    The C and R options also send a Notice netmail to a point/node
+    be also connect or disconnect all available sections to this
+    point/node.
+
+
+    Note that if areafix is given the command to send notices it
+    will search for the Sysop Name of points and nodes in the
+    pointlist or nodelists, if no name is found the messages will
+    be directed to "Sysop" .. and probably don't attract the
+    attention of the sysop, so keep your nodelist and/or pointlist
+    uptodate when connecting new nodes/points.
+
+
+    Note that a (Trion) pointlist has a different format as a
+    nodelist, a pointlist has no hierarchic structure but only
+    lines like:
+
+    Point,14:103/300.1,BBS_Name,City,Name,Tel_Number,baud,flags
+
+    Where the "Point," field is fixed but all other fields has
+    to be edited with the information of the node/point.
+    "14:103/300.1" is a demonstration point number and also
+    has to be replaced. You can add all nodes and points that
+    are not in a nodelist to the pointlist, so you can also
+    add the number of your boss and you don't need a nodelist
+    note that you have to use the word "Point" in the first
+    field.
+
+
+    If areafix replies to a message it uses the name from the
+    original message, so no pointlist or nodelist is needed in
+    this case.
+
+
+
+    A new user of areafix has to be added to the areafix configuration
+    file (trion:cfg/areafix.cfg).
+
+    The areafix.cfg has the folowing format:
+
+
+
+ADDRESSES
+zz:nnn/nnn.pp
+zz:nnn/nnn.pp
+zz:nnn/nnn.pp
+#
+
+
+GROUPS
+group_name1   nnn - nnn , nnn - nnn
+group_name2   nnn - nnn , nnn
+group_name3   nnn - nnn
+#
+
+
+NODES
+NodeNumber1  Password  SEND/NOSEND   OrigNodeNumber   [group(s)]
+NodeNumber2  Password  SEND/NOSEND   OrigNodeNumber   [group(s)]
+NodeNumber3  Password  SEND/NOSEND   OrigNodeNumber   [group(s)]
+#
+
+
+
+
+    The areafix.cfg exists of four groups, the first group is the
+    Addresses list where you put (all) your netmail addresses.
+    These addresses are used be areafix to check if the netmail
+    to areafix is directed to the correct system.
+    This part of the config can look something like this:    
+
+
+
+;  the adressess which AreaFix needs to check if a message
+;  is adressed to him.
+
+ADDRESSES
+14:103/3              ; NLA
+14:103/300
+
+39:155/3.0            ; AMY
+39:155/300.0
+
+350:1002/0            ; Trion-net
+350:1002/1
+350:1002/100
+
+55:1100/0             ; DAN
+55:1100/1
+55:1100/1111
+#
+
+
+    The second group of lines is the list of echomail group definitions.
+    A group definition is a group name plus the ranges of
+    areanumber who are part of the group.
+    You probably want to make groups for each net you carry and
+    make different ones for points, nodes and donaters for instance.
+    A point probably doesn't have access to sysop sections so he get's
+    fewer sections as a node.
+    The sections of a group are listed as ranges after the groupname,
+    so   aaa - bbb , ccc  would mean that the group consists of
+    sections aaa until bbb and section ccc.
+    This part of the config can look something like this:    
+
+
+
+;   Defines groups of sections (nets to certain people)
+;   by lists of ranges of the message sections
+
+MAIL GROUPS
+TRON_SYSOP    51-99
+TRON_BETA     50-99
+
+NLA_POINT     100 - 109 , 111 - 115 , 117 - 118 , 120 - 199
+NLA_NODE      100 - 109 , 111 - 118 , 120 - 199
+NLA_MODERATOR 100 - 109 , 111 - 199
+NLA_HUB       100 - 199
+#    ;END-OFF-MAIL-GROUPS
+
+
+
+
+    The third group of is the list of file (tick) group definitions.
+    Which works like the mail groups definitions
+    but revers to the ranges in the filenet.cfg
+
+    Note that the FN_ part means file net and is especially done
+    to see the difference with the mail net names .. but you can use
+    every name you want.
+
+
+
+FILE GROUPS
+
+FN_TRION     100-199
+FN_NLA       200-299
+FN_AMY       300-399
+FN_NUN       400-499
+
+#    ;END-OFF-FILE-GROUPS
+
+
+
+
+    The fourth group of lines is the list of nodes.
+    Each line starts with the nodenumber and is folowed
+    with a number of fields who relate to this nodenumber.
+    The first field is the password the user needs to use in
+    his message so areafix will process them.
+    The second field is a SEND/NOSEND flag which is used
+    when sending notices to determine is this node will
+    receive a notice (see earlier in this doc).
+    The third field is the Origin node number used in
+    netmail areafix will write to this node.
+    The last fields of this line is a list of group names
+    this node has access to.
+    This part of the config can look something like this:    
+
+
+
+
+
+;    NodeNumber  Password  SEND/NOSEND   OrigNodeNumber   [group(s)]
+
+;    Here you config all your points/nodes/hubs/hosts.
+
+;    if a node has a SEND flag , a message will be send if AreaFix
+;    is started in 'send notices' mode.
+
+;    OrigNodeNumber is Used as the 'origin node number' in replies
+;    from areafix.
+
+NODES
+350:1002/101  PASSWORD    SEND    350:1002/1  TRION_BETA  FN_TRION
+350:1002/102  PASSWORD  NOSEND    350:1002/1  TRION_BETA  FN_TRION
+350:1002/199  PASSWORD    SEND    350:1002/1  TRION_BETA
+#
+
+
+
+
+
+
+
+    Note that areafix has an (optional) bounce netmail function.
+    If during the scanning of netmail a message which is not meant
+    for your system is found .. and if the destination node number
+    is not in a nodelist of pointlist it while send a netmail
+    back. But only if the system from which the system originates
+    is in a nodelist (or if it is a point.. if the Boss of the
+    point is in a nodelist) .. because else if both nodes are
+    not in a list Areafix is probably going to write a lot of
+    messages to itself (I think).
+
+

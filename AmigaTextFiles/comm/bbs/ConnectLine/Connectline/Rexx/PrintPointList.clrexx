@@ -1,0 +1,99 @@
+/*
+**  $VER: PrintPointList.clrexx 1.02 (26 Nov 1995)
+**
+**        © 1995 Ralf Ramge
+**
+**  PROGRAMNAME:
+**      PrintPointList.clrexx
+**
+**  FUNCTION:
+**
+**      Demonstrationsskript zur cl_rexx.library, Connectline 5.0
+**
+**      Connectline © 1986-1995 Oliver Wagner, Mathias Mischler
+**      cl-rexx.library © 1995 Mathias Mischler
+**
+**      Dieses Skript erstellt eine aufsteigend sortierte Liste aller
+**      Points und gibt sie direkt auf dem Drucker aus.
+**
+**  $HISTORY:
+**
+**      1.0  - Erstes Release
+**      1.01 - diverse kosmetische Fixes ;)
+**      1.02 - Es wurde nicht nach Pointname sortiert *schluck*
+*/
+
+/* cl_rexx.library öffnen */
+
+if ~show('L','cl_rexx.library') then do
+    if ~addlib('cl_rexx.library',0,-30,0) then do
+        address command 'ASSIGN LIBS: CONNECTLINE:Libs ADD'
+        if ~addlib('connectline:libs/cl_rexx.library',0,-30,0) then exit 10
+        end
+    end
+
+
+anzahl=CLGET_UserNumberOf()
+ctr=0
+
+/* Liste aller Pointuser erstellen */
+
+do x=1 to anzahl
+    user=CLGET_Username(x)
+    point=CLGET_UserPointname(user)
+    if point~='' then do                        /* User zwischenspeichern */
+        ctr=ctr+1
+        pointuser.ctr=user
+        pointname.ctr=point
+        end
+    end
+
+/* Liste nach Pointnamen sortieren (Bubblesort) */
+
+hvuser=''
+hvpoint=''
+
+do x=1 to ctr
+    do y=1 to ctr-1
+        temp=y+1
+        if pointname.y>pointname.temp then do
+            hvuser=pointuser.temp
+            hvpoint=pointname.temp
+            pointuser.temp=pointuser.y
+            pointname.temp=pointname.y
+            pointuser.y=hvuser
+            pointname.y=hvpoint
+            end
+        end
+    end
+
+
+/* Tabelle erstellen und ausdrucken */
+
+userbreite=20
+pointbreite=12
+uanrufbreite=21
+panrufbreite=21
+
+call print(center('Username',userbreite)||center('Letzter Anruf',uanrufbreite)||center('Pointname',pointbreite)||center('Letzter Netcall',panrufbreite)||'0a'x)
+call print (copies('-',userbreite-1) copies('-',uanrufbreite-1) copies('-',pointbreite-1) copies('-',panrufbreite-1)||'0a'x)
+
+do x=1 to ctr
+    call print(left(pointuser.x,userbreite)||left(CLGET_UserLastCall(pointuser.x),uanrufbreite)||left(pointname.x,pointbreite)||left(CLGET_SystemLastCall(pointname.x),panrufbreite)'0a'x)
+    end
+
+call print('0a'x)
+call print('Gesamtzahl der Points: 'ctr'0a'x)
+exit
+
+/* die eigentliche Druckroutine */
+
+print:
+parse arg druckzeile
+if ~show('F','Printer') then do
+    if ~open('Printer','PRT:') then do
+        return 'ERROR'
+        end
+    end
+return writech('Printer',druckzeile)
+

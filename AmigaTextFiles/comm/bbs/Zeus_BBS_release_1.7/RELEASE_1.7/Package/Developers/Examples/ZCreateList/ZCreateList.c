@@ -1,0 +1,286 @@
+
+#include <exec/types.h>
+#include <exec/memory.h>
+#include <exec/semaphores.h>
+#include <exec/nodes.h>
+#include <exec/lists.h>
+#include <proto/exec.h>
+#include <proto/dos.h>
+#include <proto/intuition.h>
+#include <dos/dos.h>
+#include <dos/rdargs.h>
+#include <dos/dosextens.h>
+//#include <proto/pipeline.h>
+#include <clib/exec_protos.h>
+#include <clib/dos_protos.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <proto/pipeline.h>
+#include <proto/pipeutil.h>
+//#include <libraries/pipeutil.h>
+#include <nodes.h>
+
+#define NUMARGS     10
+
+#define AREA        0
+#define LASTCALL    1
+#define CURRENT     2
+#define NODE        3
+#define ANSI        4
+#define ALPHA       5
+#define CHRONO      6
+#define SIZE        7
+#define FORWARDS    8
+#define BACKWARDS   9
+
+struct  RDArgs  *Args;
+long         args[NUMARGS];
+
+struct  Library *PipelineBase;
+struct  Library *PipeUtilBase;
+
+void
+Usage ( void )
+{
+	PutStr ( "ZCreateList v1.0. Copyright (c) 1995 Nick Loman.\n\n" ) ;
+	PutStr ( "Usage: AREA/A/N,LASTCALL/A,CURRENT/A,NODE/A/N,ANSI/A/N,ALPHA/S,CHRONO/S,SIZE/S,FORWARDS/S,BACKWARDS/S\n\n" ) ;
+	PutStr ( "  Area        -- Area Number.\n" ) ;
+	PutStr ( "  LastCall    -- Last Call (YYMMDD).\n" ) ;
+	PutStr ( "  Current     -- Current date (YYMMDD).\n" ) ;
+	PutStr ( "  ANSI        -- Boolean, ANSI enabled?\n" ) ;
+	PutStr ( "  Alpha       -- Sort Alphabetically (dflt.)\n" ) ;
+	PutStr ( "  Chrono      -- Sort Chronologically\n" ) ;
+	PutStr ( "  Size        -- Sort by Size\n" ) ;
+	PutStr ( "  Forwards    -- Sort forwards (dflt.)\n" ) ;
+	PutStr ( "  Backwards   -- Reverse list\n" ) ;
+
+}
+
+void
+Skip ( UBYTE *tx )
+{
+	while ( *tx != '\0' )
+	{
+		if ( *tx == '\n' || *tx == '\r' )
+		{
+			*tx = ' ';
+		}
+		tx++;
+	}
+}
+
+struct  MyNode
+{
+	struct  Node         node;
+	struct  fullFile     fl;
+	ULONG            desc;
+} ;
+
+signed int
+__saveds
+ForwardSort ( struct MyNode *one, struct MyNode *two )
+{
+	return ( (int) (one->fl.ff_file->FileSize - two->fl.ff_file->FileSize) ) ;
+}
+
+signed int
+__saveds
+BackwardSort ( struct MyNode *one, struct MyNode *two )
+{
+	return ( (int) (two->fl.ff_file->FileSize - one->fl.ff_file->FileSize) ) ;
+}
+
+void
+ListInfos ( LONG num, LONG files )
+{
+	char    Buff[256];
+	BPTR    fh;
+
+	sprintf ( Buff, "T:ListInfos%ld", num ) ;
+
+	if ( fh = Open ( Buff, MODE_NEWFILE ) )
+	{
+		FPrintf ( fh, "%ld\n0\n%ld", files, files ) ;
+
+		Close ( fh ) ;
+	}
+}
+
+void
+Outputln ( struct fullFile *fl, BPTR fh, LONG ansi )
+{
+	struct  tm  timer;
+	char        Date[20];
+
+	GMTime ( fl->ff_file->UploadDate, &timer ) ;
+	strftime ( Date, 10, "%d %b %y", &timer ) ;
+
+	Skip ( fl->ff_text ) ;
+	if ( ansi )
+		FPrintf ( fh, "[37m%-20s[36m %4.4ldK [33m%s [31m%4.4ld [36m%.37s\n", fl->ff_file->FileName, (fl->ff_file->FileSize / 1000), Date, fl->ff_file->NumberOfDownloads, fl->ff_text ) ;
+	else
+		FPrintf ( fh, "%-20s %4.4ldK %s %4.4ld %.37s\n", fl->ff_file->FileName, (fl->ff_file->FileSize / 1000), Date, fl->ff_file->NumberOfDownloads, fl->ff_text ) ;
+}
+
+BOOL
+SizeSort ( LONG area, UBYTE *last, UBYTE *current, LONG num, LONG ansi )
+{
+	struct  ScanInfo     si;
+	BPTR             fh;
+	APTR             key;
+	ULONG            desc;
+	struct  List         list;
+	struct  MyNode      *node;
+	struct  fullFile     fl;
+	int          files = 0;
+	char             Buff[256];
+
+	si.ScanFlag     = SA_CHRONO;
+	si.Direction    = SA_FORWARDS;
+	si.Buffer   = 64;
+	si.Area     = area;
+	si.StartNumber  = 0;
+
+	NewList ( &list ) ;
+
+	sprintf ( Buff, "T:FileList%ld", num ) ;
+
+	if ( fh = Open ( Buff, MODE_NEWFILE ) )
+	{
+		if ( key = InitFileScanKey ( &si ) )
+		{
+			while ( desc = ScanFiles ( key, &fl ) )
+			{
+				++files;
+				if ( node = (struct MyNode *) AllocMem ( sizeof ( struct MyNode ), MEMF_ANY ) )
+				{
+					node->fl.ff_file = fl.ff_file;
+					node->fl.ff_text = fl.ff_text;
+					node->desc       = desc;
+
+					AddTail ( &list, (struct Node *) node ) ;
+				}
+			}
+			CloseFileScanKey ( key ) ;
+
+			if ( args[FORWARDS] )
+				MySort ( &list, ForwardSort ) ;
+			else
+				MySort ( &list, BackwardSort ) ;
+
+			while ( node = (struct MyNode *) RemHead ( &list ) )
+			{
+				Outputln ( &node->fl, fh, ansi ) ;
+
+				FreeMem ( node->fl.ff_text, node->desc ) ;
+				FreeMem ( node->fl.ff_file, sizeof ( struct file ) ) ;
+				FreeMem ( node, sizeof ( struct MyNode ) ) ;
+			}
+		}
+		Close ( fh ) ;
+	}
+
+	ListInfos ( num, files ) ;
+	return ( TRUE ) ;
+}
+
+BOOL
+ListFiles ( LONG area, UBYTE *last, UBYTE *current, LONG num, LONG ansi )
+{
+	BPTR            fh;
+	char            Buff[256];
+	struct  ScanInfo    si;
+	struct  fullFile    fl;
+	APTR            key;
+	ULONG           desc;
+	int         files = 0;
+
+	if ( args[ALPHA] )
+		si.ScanFlag     = SA_ALPHA;
+	else
+		si.ScanFlag     = SA_CHRONO;
+
+	if ( args[FORWARDS] || ! args[BACKWARDS] )
+		si.Direction    = SA_FORWARDS;
+	else
+		si.Direction    = SA_BACKWARDS;
+
+	si.Buffer   = 64;
+	si.Area     = area;
+	si.StartNumber  = 0;
+
+	sprintf ( Buff, "T:FileList%ld", num ) ;
+
+	if ( fh = Open ( Buff, MODE_NEWFILE ) )
+	{
+		if ( key = InitFileScanKey ( &si ) )
+		{
+			while ( desc = ScanFiles ( key, &fl ) )
+			{
+				Outputln ( &fl, fh, ansi ) ;
+
+				++files;
+
+				FreeMem ( fl.ff_file, sizeof ( struct file ) ) ;
+				FreeMem ( fl.ff_text, desc ) ;
+			}
+			CloseFileScanKey ( key ) ;
+		}
+		Close ( fh ) ;
+	}
+	else
+		return ( FALSE ) ;
+
+	ListInfos ( num, files ) ;
+	return ( TRUE ) ;
+}
+
+void
+main ( int argc, char **argv )
+{
+	int         i;
+
+	for ( i = 0; i < NUMARGS; i ++ )
+		args[i] = NULL;
+
+	if ( PipelineBase = OpenLibrary ( "zeus.library", 0L ) )
+	{
+		if ( PipeUtilBase = OpenLibrary ( "zmf.library", 0L ) )
+		{
+			if ( IsPlFileThere ( ) )
+			{
+				if ( Args = ReadArgs ( "AREA/A/N,LASTCALL/A,CURRENT/A,NODE/A/N,ANSI/A/N,ALPHA/S,CHRONO/S,SIZE/S,FORWARDS/S,BACKWARDS/S", args, NULL ) )
+				{
+					Printf ( "Listing files... " ) ;
+					if ( args[SIZE] )
+					{
+						if ( SizeSort ( *(LONG *) args[AREA], (UBYTE *) args[LASTCALL], (UBYTE *) args[CURRENT], *(LONG *) args[NODE], *(LONG *) args[ANSI] ) )
+						{
+							Printf ( "done.\n" ) ;
+						}
+					}
+					else
+					{
+						if ( ListFiles ( *(LONG *) args[AREA], (UBYTE *) args[LASTCALL], (UBYTE *) args[CURRENT], *(LONG *) args[NODE], *(LONG *) args[ANSI] ) )
+						{
+							Printf ( "done.\n" ) ;
+						}
+					}
+				}
+				else
+					Usage ( ) ;
+			}
+			else
+				Printf ( "PlFile is not running!\n" ) ;
+
+			CloseLibrary ( PipeUtilBase ) ;
+		}
+		else
+			Printf ( "Can't open pipeutil.library!\n" ) ;
+		CloseLibrary ( PipelineBase ) ;
+	}
+	else
+		Printf ( "Can't open pipeline library!\n" ) ;
+}

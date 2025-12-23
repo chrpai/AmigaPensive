@@ -1,0 +1,177 @@
+/* BBSList.trans (c) '91 by Georg 'Gio' Magschok                             */
+/*                                                                           */
+/* 17.08.91 began programming, finished v0.1                                 */
+/* 18.08.91 add bbs function now editable if changes have to be made         */
+/* 24.01.92 after using it for a long while, I think I can release it now    */
+/*                                                                           */
+/* just put this prog into one of your .rx files and place the textfiles     */
+/* in the text-dir of TransAmiga. Be sure, all paths in the constant         */
+/* declarations of this script are correct!                                  */
+
+options results
+signal on error
+
+version      ='v1.0'				/* my version for the script */
+listname     ='bbs:bulletins/bbslist'           /* path & name of the data   */
+bbsname.1    ="Gio's home"                      /* name of defaultbbs        */
+bbsnumber.1  ='+49-7202-2386'                   /* number of defaultbbs      */
+bbssettings.1='2400 8n1 24h'                    /* settings of defaultbbs    */
+bbssysop.1   ="Georg 'Gio' Magschok"            /* sysop of defaultbbs       */
+bbsextra.1   ="ONLY Amiga, 1500+files, TransAmiga" /* extra for defaultbbs   */
+bbspass.1    ="BEISPIEL"                        /* password for defaultbbs   */
+
+transmit ''
+transmit " Gio's home BBSList "
+transmit ' using BBSList.trans '||version||" (c) '92 by Georg 'Gio' Magschok."
+transmit
+
+if open('list',listname,'R') then do
+ i=0
+ do until eof('list')
+  i=i+1
+  bbsname.i=readln('list')
+  bbsnumber.i=readln('list')
+  bbssettings.i=readln('list')
+  bbssysop.i=readln('list')
+  bbsextra.i=readln('list')
+  bbspass.i=readln('list')
+ end
+ numbbs=i-1
+ call close('list')
+ end
+else do
+ numbbs=1
+end
+
+userinfo 1 ; xpert=upper(result)
+
+do until cmd='+'
+ if xpert='NOVICE' then sendmenu 'bbslistmenu'
+ systeminfo m ; time=result
+ getcmd '[BBSList - T: '||time||', C: ? + L G A E ]' ; cmd=upper(result)
+ select
+  when cmd='?' then sendmenu 'bbslistmenu'
+  when cmd='+' then transmit
+  when cmd='L' then call listbbs
+  when cmd='G' then call listverbose
+  when cmd='A' then call appendbbs
+  when cmd='E' then call editbbs
+  otherwise transmit "Unknown command, press '?' for menu!"
+ end
+end
+
+if open('list',listname,"W") then do
+ do i=1 to numbbs
+  call writeln('list',bbsname.i)
+  call writeln('list',bbsnumber.i)
+  call writeln('list',bbssettings.i)
+  call writeln('list',bbssysop.i)
+  call writeln('list',bbsextra.i)
+  call writeln('list',bbspass.i)
+ end
+ call close('list')
+ end
+else
+ transmit 'severe problems with the bbslist, please inform sysop!'
+
+shutdown
+exit
+
+appendbbs:
+ i=numbbs+1
+ transmit 'Bitte beantworte die folgenden Fragen ueber die einzutragende Mailbox!'
+ transmit
+ ans='N'
+ bbsname.i=''
+ bbsnumber.i=''
+ bbssettings.i=''
+ bbssysop.i=''
+ bbsextras.i=''
+ bbspass.i=''
+ do until upper(ans)='Y'
+  correct=0
+  do until correct
+   query 'Name der Box : \\'||bbsname.i ; name=result
+   correct=1
+   do j=1 to numbbs
+    if upper(trim(name))=upper(trim(bbsname.j)) & j~=i then do
+     transmit 'diese Box ist bereits erfasst!!!'
+     correct=0
+    end
+   end
+  end
+  bbsname.i=name
+  query 'Telefonnummer(n) : \\'||bbsnumber.i ; bbsnumber.i=result
+  query 'Modem/Onlinezeit : \\'||bbssettings.i ; bbssettings.i=result
+  query 'Name des Sysops : \\'||bbssysop.i ; bbssysop.i=result
+  query 'Ergaenzungen, Kommentar : \\'||bbsextra.i ; bbsextra.i=result
+  transmit
+  transmit 'Nun noch ein Passwort, das notwendig ist, damit niemand'
+  query 'boeswillig den BBS-Eintrag veraendert : ' ; bbspass.i=upper(result)
+  transmit
+  queryy 'Sind alle Eingaben korrekt' ; ans=result
+ end
+ queryy 'Soll die Mailbox in die Liste aufgenommen werden' ; ans=result
+ if upper(ans)='Y' then numbbs=numbbs+1
+ return
+
+listbbs:
+ transmit "Kurz-BBS-Liste von Gio's home vom "||date()||" um "||time()||" !!"
+ do i=1 to numbbs
+  transmit right(i,3,' ')||'. : '||left(bbsname.i,30,' ')||bbsnumber.i
+ end
+ continue
+ return
+
+listverbose:
+ transmit "Ausfuehrliche BBS-Liste von Gio's home vom "||date()||" um "||time()||" !!"
+ do i=1 to numbbs
+  transmit
+  transmit "Name   : "||bbsname.i
+  transmit "Nummer : "||bbsnumber.i
+  transmit "Info   : "||bbssettings.i
+  transmit "SysOp  : "||bbssysop.i
+  transmit "Extra  : "||bbsextra.i
+ end
+ continue
+ return
+
+editbbs:
+ query 'Name der zu editierenden Box : ' ; name=result
+ found=0
+ do i=1 to numbbs
+  if upper(trim(name))=upper(trim(bbsname.i)) then found=i
+ end
+ if found~=0 then do
+  i=found
+  query 'Box gefunden! Gib bitte das Passwort ein : ' ; pw=result
+  if upper(trim(pw))=upper(trim(bbspass.i)) then do
+   transmit
+   ans='N'
+   do until upper(ans)='Y'
+    correct=0
+    do until correct
+     query 'Name der Box : \\'||bbsname.i ; name=result
+     correct=1
+     do j=1 to numbbs
+      if upper(trim(name))=upper(trim(bbsname.j)) & j~=i then do
+       transmit 'diese Box ist bereits erfasst!!!'
+       correct=0
+      end
+     end
+    end
+    bbsname.i=name
+    query 'Telefonnummer(n) : \\'||bbsnumber.i ; bbsnumber.i=result
+    query 'Modem/Onlinezeit : \\'||bbssettings.i ; bbssettings.i=result
+    query 'Name des Sysops : \\'||bbssysop.i ; bbssysop.i=result
+    query 'Ergaenzungen, Kommentar : \\'||bbsextra.i ; bbsextra.i=result
+    transmit
+    queryy 'Sind alle Eingaben korrekt' ; ans=result
+   end
+  end
+  else
+   transmit 'sorry, aber dieses Passwort ist falsch!!!'
+ end
+ else
+  transmit 'eine Box dieses Namens gibt es nicht in der Liste!'
+ return

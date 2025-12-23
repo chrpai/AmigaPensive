@@ -1,0 +1,192 @@
+
+; AmyBW v2.14 Installation Script. $VER: Install 1.1 (21.10.94)
+
+.bra {
+.ket }
+
+Echo "*E[2mAmyBW v2.14 Installation Script*E[0m"
+Echo ""
+
+Echo "This script will install AmyBW v2.14 on your harddrive."
+Echo "If you are upgrading from a previous version it will only"
+Echo "copy the neccesary files. Your names, tagline and keyword"
+Echo "files will be not be changed."
+Echo ""
+Ask "Continue with installation? (Y/N)"
+
+If NOT WARN
+	Skip abort
+	Quit
+EndIf
+
+Echo ""
+
+;	/*** Get the destination directory ***/
+
+Echo "Enter a directory to install AmyBW in. If it doesn't"
+Echo "exist a new directory will be created. If you are"
+Echo "upgrading simply enter the AmyBW assignment (AmyBW:)"
+Echo ""
+Echo "Enter directory: " NOLINE
+
+Set >NIL: destdir ?
+If $destdir EQ ""
+	Skip abort
+EndIf
+
+If NOT EXISTS $destdir
+	MakeDir $destdir
+	IF WARN
+		Echo "Couldn't create directory!"
+		Skip abort
+	EndIf
+	Copy "/AmyBW.info" $destdir.info
+EndIf
+
+Echo ""
+
+
+; 	/*** Copy the files... ***/
+
+
+Echo "*E[2mCopying files to" $destdir "...*E[0m"
+
+Echo "       AmyBW..." NOLINE
+Copy "AmyBW" $destdir
+Echo "Done"
+
+Echo " AmyBW.guide..." NOLINE
+Copy "AmyBW.guide" $destdir
+Echo "Done"
+
+Echo "   AmyBWSave..." NOLINE
+Copy "AmyBWSave" $destdir
+Echo "Done"
+
+Echo "      README..." NOLINE
+Copy "README" $destdir
+Copy "README.info" $destdir
+Echo "Done"
+
+
+;	/*** The next files must never be overwritten! ***/
+
+
+Assign AmyBW_CD: ""
+CD $destdir
+
+If NOT EXISTS Taglines.txt
+	Echo "Taglines.txt..." NOLINE
+	Copy AmyBW_CD:Taglines.txt ""
+	Echo "Done"
+EndIF
+
+If NOT EXISTS Keywords.txt
+	Echo "Keywords.txt..." NOLINE
+	Copy AmyBW_CD:Keywords.txt ""
+	Echo "Done"
+EndIF
+
+If NOT EXISTS AmyBW.names
+	Echo " AmyBW.names..." NOLINE
+	Copy AmyBW_CD:AmyBW.names ""
+	Echo "Done"
+EndIF
+
+If NOT EXISTS Sample.iff
+	Echo "  Sample.iff..." NOLINE
+	Copy AmyBW_CD:Sample.iff ""
+	Echo "Done"
+EndIF
+
+If NOT EXISTS Rot13.rexx
+	Echo "  Rot13.rexx..." NOLINE
+	Copy AmyBW_CD:Rot13.rexx ""
+	Echo "Done"
+EndIF
+
+If NOT EXISTS AmyBW.info
+	Copy AmyBW_CD:AmyBW.info ""
+EndIF
+
+If NOT EXISTS AmyBW.guide.info
+	Copy AmyBW_CD:AmyBW.guide.info ""
+EndIF
+
+Echo ""
+
+CD AmyBW_CD:
+Assign AmyBW_CD:
+
+
+; 	/*** Now copy the EAGUI.library... ***/
+
+
+Echo "*E[2mChecking libraries...*E[0m"
+Echo ""
+
+Echo "   `EAGUI.library'... " NOLINE
+Version >NIL: Libs:EAGUI.library VERSION 2 REVISION 2
+
+If WARN
+	Echo "Copying..." NOLINE
+	Copy Libs/EAGUI.library Libs:
+	Echo "Done."
+Else
+	Echo "already installed."
+EndIf
+
+Echo "`reqtools.library'... " NOLINE
+Version >NIL: Libs:reqtools.library VERSION 38
+If WARN
+	Echo "You need the reqtools.library v38 or higher!"
+Else
+	Echo "Ok"
+EndIF
+
+
+Echo "`diskfont.library'... " NOLINE
+Version >NIL: Libs:diskfont.library VERSION 36
+If WARN
+	Echo "You need the diskfont.library v36 or higher!"
+Else
+	Echo "Ok"
+EndIF
+
+Echo ""
+
+
+;	/*** Setup the "AmyBW:" assignment, if it doesn't already exist ***/
+
+
+Search >NIL: S:User-Startup "AmyBW:"
+
+If WARN
+	Echo "AmyBW needs the assignment `AmyBW:' to run. Would you like"
+	Echo "the following line to be added to your `User-Startup' file?"
+	Echo ""
+	Echo "*E[2mAssign AmyBW: " $destdir "*E[0m"
+	Echo ""
+	Ask "Add to User-Startup? (Y/N)"
+	If WARN
+		Echo >>S:User-Startup ";BEGIN AmyBW" 
+		Echo >>S:User-Startup "Assign AmyBW: " $destdir
+		Echo >>S:User-Startup ";End AmyBW" 
+	EndIf
+EndIf
+
+Assign AmyBW: $destdir
+
+
+;	/*** All done. ***/
+
+
+Echo ""
+Echo "Installation complete, close window." NOLINE
+Skip End
+
+Lab abort
+	Echo ""
+	Echo "Installation aborted, close window." NOLINE
+
+lab End

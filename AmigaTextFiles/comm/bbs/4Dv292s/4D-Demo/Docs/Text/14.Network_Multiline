@@ -1,0 +1,85 @@
+Chapter 14:    Networking and Multi-Line
+
+
+
+
+14.1 Overview
+
+	4D-BBS has the ability to handle multiple callers at the same time.
+This is accomplished by running multiple copies of the program, each
+servicing a specific line.  These can be dedicated null modem, normal dial
+up modem, or local.  Following is information on the specifics needed to
+run multiple copies of 4D-BBS.
+
+14.2 Start Up
+
+	When you start up each copy for multi-line operation, you must specify
+different serial devices to use for each invocation of 4D-BBS.  If you run
+two copies of 4D-BBS with the same serial device, they will confuse each
+other, and neither of them will be able to use the serial device.
+
+	To specify an alternative serial device, use the "-s" and "-u" command
+line parameters.  For example, if you have a A2232 multi-serial board, you
+can start two lines by using the following example.
+
+	run 4D-BBS <NIL:  >CON:12/382/700/50/4D-BBS0_Window/INACTIVE"
+	run 4D-BBS -u2 <NIL:  >CON:12/432/700/50/4D-BBS1_Window/INACTIVE"
+
+	The first line does NOT need the "-u" CLP and will be using the
+internal serial port.  The second line specifies serial.device unit 2
+should be used.  Both of these when run will open up a window on the
+workbench to display their status.  This is not necessary, but can come in
+handy for problem solving when used with the verbose CLP.
+
+14.3 Data File Conflicts
+
+	4D-BBS will try up to 30 times to open a file when a DOS error of 202
+(file is in use) occurs.  4D-BBS was written to only have a file lock open
+for as short a time as possible, but errors can still arise.  We are still
+addressing this problem, and could handle this situation different in the
+future.
+
+14.4 Running a Local Only Copy of 4D-BBS
+
+	Using the "-os" command line parameter, you can run a local onetime
+copy of 4D-BBS.  This will NOT open any serial devices, and terminate after
+the local user logs off.  This command can be run while another user is on
+the BBS without disturbing the on-line user.
+
+14.5 Communications and scripts
+
+	When someone logs onto 4D-BBS, the BBS itself will look to see if any
+other copies of the BBS are running WITH THE SAME BASE AREXX PORT NAME AS
+ITSELF.  This is a very important concept to understand.  When you want to
+run multi-line, and have each line aware of the other, you MUST use the
+same ARexx name when staring up each copy.  4D-BBS itself will handle
+changing the ARexx port names so each BBS has a unique ARexx port name.
+Failure to do this will result in each copy of 4D-BBS not recognizing
+another copy.
+
+	If you want to log on locally without a user knowing, you can change
+your ARexx port name to something different, and the user will not be
+notified of your actions.
+
+	Below is a list of actions which will trigger the BBS to send out
+commands to other copies of the BBS running concurrently.
+
+	Action Command
+
+	Posting a message Update high pointer for that sub-board
+
+	User Logs On Announce user's logon
+
+	Update system call information
+
+14.5.1 Scripts
+
+	Certain functions automatically execute a specific ARexx script
+whenever that function is successfully completed.  Currently this list is
+small, but new functions and scripts will be added on demand.
+
+	Function ARexx Script Name
+
+	Posting a message 4DAfterPost.Rexx
+	Chat Request 4DChatReq.Rexx
+

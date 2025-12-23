@@ -1,0 +1,301 @@
+                            ADD DESCRIPT V1.1
+                            -----------------
+
+                   Written by Ray Akey (AKA Heavy Metal)
+                         Distributed by MetalSoft
+                       Written for CNet Amiga v2.96+
+
+Changes v1.1
+-------------
+   *  FILE_ID.DIZ support added - READ ENTIRE VERSION 1.1 CHANGES info!!
+
+   1. AddDescript has been made fully MULTI-PORT compatible and relies on
+      environment variables to control it's port activity.  "ENV:" must be
+      assigned, as should "T:" if you do not specify a WORKDIR in
+      SYSDATA:ADDDESCRIPT.CFG.
+
+   2. Added FILE-ID.DIZ support.
+      Using the <DIZ> keyword overrides LONG, SHORT and EXT keywords.
+      AddDescript will decide whether to add to the SHORT or LONG
+      (response 0) description based on your "SHORTLEN" setting in the
+      configuration file.  Any file_id.diz file containing more than SHORTLEN
+      characters will be treated as a LONG description, otherwise, it will be
+      added as a SHORT description.
+      Packer types and their associated decompression commands are located
+      in sysdata:AddDescript.cfg, as is the temporary WORKDIR setting.  If
+      a "WORKDIR" is specified, AddDescript will use that directory as it's
+      processing directory for decompression, etc,..
+      If using the <DIZ> keyword, you MUST have "sysdata:AddDescript.cfg"
+      configured to your system specifics as noted in that file. A typical
+      command string in your xscript (ie. xlha2lha - sample enclosed in this
+      package) would be:
+
+              ;Add FILE-ID.DIZ as descript if existent.
+              runback pfiles:adddescript DIZ UDBase0: {PATHF}
+
+      NOTE: To use in scripts converting to different compression types
+            (ie. xzip2lha), the {PATHF} in the above example should be
+            replaced with {NEWN} .
+  
+      ALSO: for some reason CNet won't let AddDescript alter the SHORT
+            response unless AddDescript is RUNBACK'd.  I'm sure there will be
+            a fix for this once I find out if CNet is indeed keeping a "LOCK"
+            on the short descriptions, which I hope Ken Pletzer will remove.
+            As long as RUNBACK is used for AddDescript when working with DIZ
+            files, the process is flawless.  This doesn't seem to be a problem
+            unless the <DIZ> option is enabled.  Also note that since
+            runback is used, your TRANSFORM will NOT be completed when CNet
+            says it is.  You must give AddDescript time to process
+            FILE_ID.DIZ and add it to the short description.  Go on about
+            your business, the process is flawless provided the same file is
+            not transformed twice at the SAME TIME (which is impossible if
+            CNet's "already transformed" protection is in working order).
+
+
+
+Changes v1.03
+-------------
+1. Fixed small bug with the default ".txt" extension.
+
+Changes v1.02
+-------------
+1. Added FIRST keyword.
+
+   Using the FIRST keyword causes the textfile to always REPLACE the FIRST
+   response regardless of how many responses are present.
+
+2. Added the DESC keyword.
+
+   Using the DESC keyword causes the argument supplied to be used as the
+   DESC filename.
+
+       ie.  AddDescript DESC ram:my.txt DIR UDBase0:filestuff udbase1:files/MyFile.lha
+
+       This example will take the file "ram:My.txt" and add its text as the
+       first response to the item "MyFile.lha" in your "Files" subboard whos
+       DATA directory is in "UDBase0:filestuff".
+
+3. Added the DEV keyword.
+
+   Using the DEV keyword causes the argument supplied to be used as the
+   VOLUME part of the directory/path for the DATA directory files
+   _items3, _Text, etc,...
+
+
+       ie.  AddDescript LONG FIRST EXT .tic  DEV UDBase0: udbase1:files/MyFile.lha
+                                                 |     |  |     |
+                                                  -----    -----
+                                                    |        |
+                                               volume        original
+                                          replacement        volume
+
+       This example will take the file "UDBase1:files/MyFile.tic" and add its
+       text as the first response to the item "UDBase1:files/MyFile.lha" whos
+       DATA directory is in "UDBase0:files".
+
+
+4. Added the DEL keyword.
+
+   Using the DEL keyword causes the DESCRIPTION file (the text file)
+   to be deleted after adding it to the response.
+
+
+
+Changes v1.01
+-------------
+1. Added SHORT and LONG keywords.
+
+   SHORT:  Using the SHORT keyword cases the text file to be added to the
+           item's short description.
+
+	LONG:   The opposite of the SHORT keyword.  Causes the text file to be
+           added to the LONG description (still replaces the last reponse
+           made).
+
+	DEFAULT is "LONG"
+
+	100% Tested with "RR" and no problems whatsoever!
+
+** NOTE:  When adding text using the SHORT keyword, you must exit and
+          re-enter the subboard to see any changes made.  This is not
+          a problem with the LONG keyword.
+ 
+          ie.  Go into aother sub (or main) and then enter the sub where text
+               was added to an item.
+
+
+
+What is it?
+-----------
+   AddDescript is a program that will add a text file to the long or short
+description of a file being adopted, transformed or uploaded.
+
+   It was mainly created at the request of Gregory Hopkins for the purpose
+of using it in a .TIC-type transformation script.
+
+   It can be used at any time.  See the NOTE below though.
+
+   NOTE: If ANY responses exist to the item the text is being added to, the
+         LAST existing response will be replaced with the text in the "DESC"
+         file.  For this reason, AddDescript should be used IMMEDIATELY after
+         a file has been uploaded or adopted.
+
+
+
+SYNTAX/ARGUMENTS
+----------------
+AddDescript accepts quite a few arguments as follows:
+
+1.	<POSTNAME>
+
+      MUST EXIST - This is the filename/itemname that your text file will be
+                   added to.  If a path is present, it will be used unless
+                   a [DIR] specifier/argument is used.
+
+         EXAMPLE:   AddDescript MyFile.lha
+
+
+2.	[EXT <EXTENSION>]
+
+      Optional - If existent, the text file to be assumed to have this
+                 extension.  If no EXT is specified, ".txt" is assumed as
+                 default.
+
+         ie.  AddDescript EXT .tic MyFile.lha
+
+         This would cause the description file "MyFile.tic" to be searched for
+         and added to the Item/post  "MyFile.lha".
+
+
+3. [DIR <DataDir>]
+
+      Optional - The DataDir is the directory where your SUBBOARD "DATA"
+                 directory exists.
+
+                 This argument should be used if you use more than one
+                 UDBase partition.
+
+                 If not existent, the DIR to be used will be extracted from
+                 the argument passed as "PostName".  If no drive/path is
+                 present in the post name, the current directory will be
+                 assumed.
+
+         ie.  AddDescript EXT .tic DIR UDBase0:files udbase1:files/MyFile.lha
+
+               This causes the text file "UDBASE1:files/MyFile.tic" to be
+               added to the description of the item "MyFile.lha", who's data
+               files exist in "UDBASE0:files/data"
+
+4. SHORT:  Using the SHORT keyword cases the text file to be added to the
+           item's short description.
+
+5.	LONG:   The opposite of the SHORT keyword.  Causes the text file to be
+           added to the LONG description (still replaces the last reponse
+           made).
+
+           DEFAULT is "LONG"
+
+6  FIRST:  Using the FIRST keyword causes the textfile to always REPLACE the
+           FIRST response regardless of how many responses are present.
+
+7. DESC:   Using the DESC keyword causes the argument supplied to be used as
+           the DESC filename.
+
+       ie.  AddDescript DESC ram:my.txt DIR UDBase0:filestuff udbase1:files/MyFile.lha
+
+       This example will take the file "ram:My.txt" and add its text as the
+       first response to the item "MyFile.lha" in your "Files" subboard whos
+       DATA directory is in "UDBase0:filestuff".
+
+8. DEV:    Using the DEV keyword causes the argument supplied to be used as
+           the VOLUME part of the directory/path for the DATA directory files
+           _items3, _Text, etc,...
+
+
+       ie.  AddDescript LONG FIRST EXT .tic  DEV UDBase0: udbase1:files/MyFile.lha
+                                                 |     |  |     |
+                                                  -----    -----
+                                                    |        |
+                                               volume        original
+                                          replacement        volume
+
+       This example will take the file "UDBase1:files/MyFile.tic" and add its
+       text as the first response to the item "UDBase1:files/MyFile.lha" whos
+       DATA directory is in "UDBase0:files".
+
+
+9. DEL:    Using the DEL keyword causes the DESCRIPTION file (the text file)
+           to be deleted after adding it to the response.
+
+10. DIZ:   Using the <DIZ> keyword overrides LONG, SHORT and EXT keywords.
+           AddDescript will decide whether to add to the SHORT or LONG
+           (response 0) description based on your "SHORTLEN" setting in the
+           configuration file.  Any file_id.diz file containing more than
+           SHORTLEN characters will be treated as a LONG description,
+           otherwise, it will be added as a SHORT description. Packer types
+           and their associated decompression commands are located in
+           sysdata:AddDescript.cfg, as is the temporary WORKDIR setting.  If
+           a "WORKDIR" is specified, AddDescript will use that directory as
+           it's processing directory for decompression, etc,..  If using the
+           <DIZ> keyword, you MUST have "sysdata:AddDescript.cfg" configured
+           to your system specifics as noted in that file. A typical command
+           string in your xscript (ie. xlha2lha - sample enclosed in this
+           package) would be:
+
+              ;sample line from example xscript 
+              runback pfiles:adddescript DIZ UDBase0: {PATHF}
+
+      NOTE: To use in scripts converting to different compression types
+            (ie. xzip2lha), the {PATHF} in the above example should be
+            replaced with {NEWN} .
+  
+      BUG:  for some reason CNet won't let AddDescript alter the SHORT
+            response unless AddDescript is RUNBACK'd.  I'm sure there will be
+            a fix for this once I find out if CNet is indeed keeping a "LOCK"
+            on the short descriptions, which I hope Ken Pletzer will remove.
+            As long as RUNBACK is used for AddDescript when working with DIZ
+            files, the process is flawless.  This doesn't seem to be a problem
+            unless the <DIZ> option is enabled.  Also note that since
+            runback is used, your TRANSFORM will NOT be completed when CNet
+            says it is.  You must give AddDescript time to process
+            FILE_ID.DIZ and add it to the short description.  Go on about
+            your business, the process is flawless provided the same file is
+            not transformed twice at the SAME TIME (which is impossible if
+            CNet's "already transformed" protection is in working order).
+
+
+
+
+INSTALLATION
+------------
+   There are several ways in which this utility can be used, but the most
+obvious one - and the only one I will deal with here - is to use it in a CNet
+"XSCRIPT" as follows:
+
+   An xlha2lha script is included in this package and will be used as an
+   example below:
+
+               AddDescript DIR UDBase0:files EXT .tic {NEWN}
+
+         UDBase0:files -is where all the /DATA directories exist (default)
+         .tic          -is the extension that all description files will have.
+         {NEWN}        -is the title (including path) that CNet passes as the
+                       -transformed item's filename.
+
+
+
+Disclaimer
+----------
+   I'm sure this will be a VERY useful utility to many CNet BBS' involved
+in networking.  I make no claims that it will be easy to install as it
+is a utility that only experienced CNet SysOps will use anyway.
+
+   For this reason, I present it as a gift to ALL CNET SYSOPS
+as FREEWARE.  Please let me know if you use this utility so I may continue
+development.
+
+   Also, Please feel free to distribute this product through the networks
+and/or in any disk compilations you know of, such as Fish, etc,..
+
+
+--- Ray Akey/Heavy Metal - MetalSoft

@@ -1,0 +1,125 @@
+Feb 13, 1994
+Hints and Tips for setting up TrapDoor with CNet 3.05c+
+by Jim Selleck
+
+I.  FIDONET OVERVIEW  (a simplifed sketch)
+
+  Okay... setting up FidoNet can be confusing and difficult at first.  Those
+of us who have done it can attest to that.  However, once you have it GOING,
+Fido can be very simple, straighforward, and even largely self-maintaining,
+if you want to write AREXX script files to do the ongoing work for you.
+
+  Here are a few fundamentals I wish that I had known at the start.  Those of
+you who already HAVE Fido running and just wish to know about the CHANGES
+made in version 3.05c, should skip this section.
+
+1.  Fido messages come in two types:  "NetMail" is private email between users
+    of different BBS's on the network.  "EchoMail" is public posts and
+    responses which appear on the various bulletin board areas of Fido.  Each
+    bulletin board area is called an "Echo".  Any node (individual BBS) on the
+    network may take any number of the echoes.
+
+2.  Each Fido echo has a "tagname" which is used to route echomail correctly.
+    Once you are assigned a node number, you will be sending an "AREAFIX"
+    message to your "boss" node (you get your Fido feed from your boss).
+    Inside the AREAFIX message you will list the tagnames of all of the echoes
+    that you wish to take on your BBS.  Typically, AREAFIX can also be used
+    to request a LIST of the tagnames available through your boss.
+
+3.  To administer Fido activity, you need two pieces of software: a "mailer"
+    and a "tosser".  TrapDoor is a mailer.  Its function is to send messages
+    out (export) to other systems, and to bring messages in (import) to your
+    computer.  The tosser software takes the incoming message packets and
+    handles them in a variety of ways.  You could think of the "tossing"
+    process as being like a clerk in a post office sorting out envelopes
+    and literally tossing them into the correct boxes and bins before him.
+    CNet's TOSS program is a full-functioned Tosser/Packer which unpacks the
+    incoming mail packets, which are typically received in "archived" form
+    such as LhA or ZIP, and then imports messages into private mail boxes
+    (NETMAIL) or into the bulletin board "echo" areas (ECHOMAIL).  Messages
+    may also be tossed and repacked into your OUTBOUND storage area so they
+    can be exported (by the mailer software) to other Fido systems.
+
+4.  Basically, TOSS needs to be run BEFORE TrapDoor sessions occur, in order
+    to pack any outgoing mail.  And again AFTER any TrapDoor session, in order
+    to unpack and import incoming mail, and/or toss and pack mail which is
+    being routed or tossed THROUGH your node to others.  EchoMail messages may
+    be imported into your message bases, or may be simply tossed and repacked
+    into your outbound directory to be routed to another node, or BOTH.
+
+5.  You are required to keep on your system an up-to-date listing of all of
+    nodes in FidoNet.  This is called the nodelist, and it is updated every
+    week in a special file called a "nodediff" which you will receive from
+    your boss.  TrapDoor comes with a special program called "TrapList" which
+    updates your nodelist and creates quick search files.  Whenever a user on
+    your BBS attempts to send NetMail to a user on another Fido system, the
+    nodelist is automatically searched to make sure that the address is to a
+    valid and currently active node system.
+
+6.  TrapDoor's instructions are long and intimidating.  What they DON'T tell
+    you right at the beginning is this:  All you need to get TrapDoor running
+    is to create a text file called "trapdoor.cfg" which you usually place
+    in your "mail:" area.  The trapdoor.cfg file will contain information like
+    your Fido node number and the names of the system and system operator.
+    Those are all sent out for identification at the start of Fido mail
+    sessions.  You also include complete instructions for how TrapDoor should
+    talk to your modem, including the serial device name, unit number, and
+    all the correct modem initialization and command strings, just as you
+    would have to set up inside any terminal program.  You must specify the
+    actions TrapDoor will take when connecting with an incoming caller, and
+    the command TrapDoor will use to transfer control to CNet when necessary.
+    There are example TrapDoor.cfg files both on your TrapDoor disk and in
+    your CNet disk's SUPPORT area.
+
+II. CHANGES TO CNET/TRAPDOOR OPERATIONS FOR CNET VERSION 3.05C
+
+   There are now THREE different ways to set up CNet/3 and TrapDoor together.
+You must choose which of those 3 suits your system needs best.
+
+1.  TrapDoor runs all the time and SPAWNS a CNet port for BBS calls.
+2.  TrapDoor AND the CNet port BOTH run concurrently, TrapDoor answers calls,
+    and transfers control of the serial port to CNet for BBS calls.
+3.  CNet runs all the time and SPAWNS TrapDoor for Fido calls.
+
+   Confused yet?  Method 1 is the "traditional" way to run a BBS system with
+TrapDoor.  TrapDoor answers ALL calls in to its port, and SPAWNS a CNet port
+if the caller is seeking access to the BBS.  At the conclusion of the BBS call,
+the CNet port is closed and control of the modem is transferred BACK to
+TrapDoor.  A special argument "TRAP" is placed in the command that spawns
+the CNet port to make it close itself at the conclusion of the BBS session.
+
+   Method 2 is similar to 1, except that BOTH the CNet port and TrapDoor run
+simultaneously.  The CNet port must be set to default to "OFFLINE" mode, which
+means the CNet port remains running, but releases control of the serial port.
+This allows TrapDoor to answer all calls.  BBS calls are then TRANSFERRED over
+to the CNet port using a CNet program called "BBSWAKE".  At the conclusion of
+BBS calls, the CNet port goes offline and control is transferred back to
+TrapDoor.
+
+NOTE:  Method 2 was the standard recommended for use with CNet 3.04.  The
+       program then called "trapwake" has been RENAMED "bbswake" for version
+       3.05c.  If you are updating and wish to continue using method 2, you
+       will need to CHANGE the reference to "trapwake" to "bbswake" in your
+       trapdoor.cfg file!
+
+   Method 3 is the new kid on the block.  It was noted that on the average
+BBS, about 98% of your calls will be for the BBS and only the remaining few
+would be Fido mail exchanges.  Therefore a method was developed to allow
+CNet to answer ALL calls, and automatically detect Fido calls, SPAWNING
+TrapDoor when needed.  This is the inverse of the traditional method 1.  At
+the time of this writing, we are using method 3 on the CNet service BBS,
+Future World, with complete success.  However, there are situations where
+this method is NOT recommended at this time:  If you are expecting Fido calls
+from ONLY TrapDoor equipped Amigas, you should be fine, however if you will
+have mail sessions with older IBM systems running early version Fido software,
+you may find that the TIME it takes to transfer control from CNet to TrapDoor
+will cause the handshaking to FAIL.  In that case you will need to revert to
+methods 1 or 2 which allow TrapDoor to answer the line at all times.
+
+  In addition, method 3 requires that you modify any AREXX scripts you might
+be using to make TrapDoor call out to "poll" your boss for mail.  Commands
+must be sent to the CNet port to make it give up control of the serial port
+before the session and then take control back at the end of the session.  And
+of course TrapDoor itself must be started up in order to make the call, and
+then killed at the end of the session.  Some example method 3 scripts are
+included in the CNet disks SUPPORT directory.

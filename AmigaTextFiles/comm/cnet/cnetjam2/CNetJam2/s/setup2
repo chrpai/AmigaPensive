@@ -1,0 +1,24 @@
+failat 9999999
+changetaskpri 0
+
+rx "exit show('p','JAMMAIL1')"
+if ${RC} eq 1
+  echo "Killing Current Running Line 1!"
+  rx >nil: "Address 'JAMMAIL1' 'Abort'"
+endif
+rx "exit show('p','LOGPROC')"
+if ${RC} eq 0
+  run <NIL: >nil: logproc
+  wait 2
+  echo "Waiting for LogProc"
+  waitforport LOGPROC
+  rx "Address 'LOGPROC' 'OpenLog jammailfile f Logs:JamMail'"
+  rx "Address 'LOGPROC' 'OpenLog jammailwind w RAW:0/11/617/30/JamMail Log Window/inactive'"
+  rx "Address 'LOGPROC' 'AddLogGroup JMLOGS jammailwind jammailfile'"
+else
+  Echo "Logging system already active"
+endif
+echo "Launching JAMMAIL"
+
+newshell window=RAW:0/214/356/70/Setup/inactive from s:setup.cli
+

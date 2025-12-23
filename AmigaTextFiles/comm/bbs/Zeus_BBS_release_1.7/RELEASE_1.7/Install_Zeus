@@ -1,0 +1,242 @@
+; $VER: ZeusInstaller 2.0 (08.02.2009)
+; Neil Williams 2007-2009
+
+; Application name, set by CLI/Icon args.
+(set @app-name "Zeus Professional Bulletin Board System")
+(set @min "Zeus Professional Bulletin Board System")
+; In Icon Args: APPNAME="Zeus Professional Bulletin Board System" MINUSER=EXPERT.
+
+; Copyright
+(set #copyright "Copyright ©2007-9 Zeus Developments, written by Neil Williams")
+
+; Minimum OS version required for installation
+(set #min_os_version 37)	; 2.04+
+(set #min_os_revision 0)
+
+; The version of Zeus this is designed to install.
+(set #zeus_version 1)
+(set #zeus_revision 7)
+
+
+(
+	(set #vernum (getversion ("libs:version.library")))
+	(set #ver (/ #vernum 65536))
+	(set #rev (- #vernum (* #ver 65536)))
+
+	;(debug "Version " #ver " revision " #rev )
+
+    ; Start check
+    ; sets #result to 1 if OS is okay, 0 otherwise
+    (set #result 1)
+	(if (< #ver #min_os_version)
+    	(set #result 0)
+        (if (< #rev #min_os_revision)
+        	(set #result 0)
+        )
+    )
+	; End check
+
+	(if (= #result 0)
+	    (abort (cat "Zeus requires AmigaOS 2.04 (v37) or equivilent at minimum, "
+        		"this has not been detected (detected was " #ver "." #rev "). "
+                "If you belive this is incorrect, check that version.library "
+                "is correctly installed."))
+   	)
+
+	; See if Zeus is installed or not.
+    ; If it is, do an upgrade, else a full install.
+	(set #upgrade 0)
+    (if (exists "Zeus:" (noreq))
+    	;zeus installed
+        (
+        	(debug "Zeus installed")
+			(set #zeuspath (getassign "Zeus") )
+        	(set #continue (askbool
+            	(prompt (cat "A Zeus BBS installation has been found in " #zeuspath ". Is this a correctly installed working version of Zeus 1.5 or higher?"))
+                (help "This question confirms that this is Zeus BBS and determines whether the installer is capable of upgrading this version.")
+                (default 1)
+                )
+            )
+            (if (= #continue 0)
+            	(abort (cat "This installer can only upgrade Zeus 1.5 installations. You can upgrade manually following the instructions in the ReadMe file. Alternatively if you remove the Zeus: assign and backup your old installation, this installer can install a fresh Zeus " #zeus_version "." #zeus_revision " install which you can then customise."))
+            )
+            (if (= #continue 1)
+            	(set #upgrade 1)
+            )
+        )
+
+        ; else Zeus not installed
+        (debug "Zeus not installed")
+	)
+
+	; Begin the installation.
+
+    ; Request location to place Zeus directory.
+
+	(if (= #upgrade 0)
+		(set #default_dir @default-dest)
+		(set #default_dir (expandpath "Zeus:/") )
+    )
+
+	(debug "default_dir " #default_dir)
+
+	(set ZeusDir
+		(askdir
+			(prompt
+				"Select the directory in which you would "
+				"like the Zeus installed.\n"
+                "A directory named Zeus will be created.")
+			(help
+				"Zeus will be installed into a new directory Zeus, which will contain all Zeus program files.")
+        	(default #default_dir)
+		)
+	)
+	(set ZeusDir (tackon ZeusDir "Zeus") )
+
+	; Ask if we should install the door pack.
+    (set #doorpack 0)
+    (if (= #upgrade 0)
+		(if (askbool
+        		(prompt "Would you like to install the large door pack? "
+                		"The demo scripts use these doors in places such "
+                        "as their games menus. You can manually install "
+                        "them later if you wish.\n\n'Doors' are programs "
+                        "external to the BBS which you can make available "
+                        "to your users online." )
+                (choices "Yes" "No")
+                (default 1)
+                (help "")
+            )
+			(
+			    (set #doorpack 1)
+			)
+	    )
+    )
+
+	; Get confirmation for directory.
+	(if (askbool (prompt "Confirm: Install into " ZeusDir "?\n\nInstallation will begin immediately after you click 'Yes'.\n\nClick 'Abort' in case of any doubt." ) (choices "Yes" "Abort") (default 1) (help "Please check that this directory is correct. Zeus will be installed into a new directory called Zeus in this location."))
+		(
+        	(cat "")
+		)
+		(
+			(abort "Aborted install due to incorrect direcory")
+		)
+    )
+
+	; Create the directory
+	(if (<> (exists ZeusDir) 2) (makedir ZeusDir (infos)))
+
+    ; Install individual components to Zeus:
+
+	(set install_message "Installing Base Files")
+    (if (= #upgrade 1)
+    	(cat install_message "\n\nUpgrade only: Doors, Rexx, Scripts, Text and Configuration will not be altered")
+    )
+	(working install_message)
+
+    ; Main Zeus binary and misc root files.
+    (copyfiles (source "Package") (dest ZeusDir) (choices "Zeus" "ClickForColours") (infos) (files) (nogauge))
+    ; Icons
+    (copyfiles (source "Package") (pattern "#?.info") (dest ZeusDir) (files))
+
+	(if (<> (exists (tackon ZeusDir "Logs")) 2)
+    	(makedir (tackon ZeusDir "Logs") )
+    )
+    (if (= #upgrade 0)
+		(if (<> (exists (tackon ZeusDir "Mail")) 2)
+    		(makedir (tackon ZeusDir "Mail") )
+	    )
+	)
+
+	(copyfiles (source "Package/Bin") (dest (tackon ZeusDir "Bin")) (all))
+	(copyfiles (source "Package/Conversion") (dest (tackon ZeusDir "Conversion")) (all))
+	(copyfiles (source "Package/Developers") (dest (tackon ZeusDir "Developers")) (all))
+	(copyfiles (source "Package/Devs") (dest (tackon ZeusDir "Devs")) (all))
+	(copyfiles (source "Package/Docs") (dest (tackon ZeusDir "Docs")) (all))
+	(if (= #upgrade 0) (copyfiles (source "Package/Doors") (dest (tackon ZeusDir "Doors")) (all)))
+	(copyfiles (source "Package/FileTypes") (dest (tackon ZeusDir "FileTypes")) (all))
+	(copyfiles (source "Package/Fonts") (dest (tackon ZeusDir "Fonts")) (all))
+	(copyfiles (source "Package/libs") (dest (tackon ZeusDir "libs")) (all))
+	(copyfiles (source "Package/Prefs") (dest (tackon ZeusDir "Prefs")) (all))
+	(if (= #upgrade 0) (copyfiles (source "Package/Rexx") (dest (tackon ZeusDir "Rexx")) (all)))
+	(copyfiles (source "Package/RIP") (dest (tackon ZeusDir "RIP")) (all))
+	(if (= #upgrade 0) (copyfiles (source "Package/Scripts") (dest (tackon ZeusDir "Scripts")) (all)))
+	(copyfiles (source "Package/ShortCuts") (dest (tackon ZeusDir "ShortCuts")) (all))
+	(if (= #upgrade 0) (copyfiles (source "Package/Text") (dest (tackon ZeusDir "Text")) (all)))
+	(copyfiles (source "Package/Utils") (dest (tackon ZeusDir "Utils")) (all))
+
+    (if (= #upgrade 0)
+		(if (= #doorpack 1)
+			(copyfiles (source "Doors_Extra") (dest (tackon ZeusDir "Doors")) (all))
+	    )
+    )
+
+    ; If not an upgrade, install default configuration.
+	(if (= #upgrade 0)
+
+    	(copyfiles (source "Package/Config") (dest (tackon ZeusDir "Config")) (all))
+
+    	; Else, if an upgrade: some files in config are actually data files and must be updated.
+		(
+        	(copyfiles (source "Package/Config") (dest (tackon ZeusDir "Config")) (choices "ZeusLogo.iff") (files))
+			(copyfiles (source "Package/Config/Zeus") (dest (tackon (tackon ZeusDir "Config") "Zeus") ) (choices "Logo.dat") (files))
+
+        	; Run update scripts if required.
+        )
+    )
+
+    ; Modify S:User-startup
+
+	(startup "Zeus Professional Bulletin Board System"
+		(prompt "Adding assigns to your \"s:user-startup\" file.")
+		(help "")
+
+    	(command (cat "Assign Zeus: \"" ZeusDir "\"\n") )
+    	(command "Assign RIPICONS: \"Zeus:RIP/Icons\"\n")
+	    (command "Assign RIPFONTS: \"Zeus:RIP/Fonts\"\n")
+    	(command "Assign Logs: \"Zeus:Logs\"\n")
+	    (command "Assign Doors: \"Zeus:Doors\"\n")
+    	(command "Assign Libs: \"Zeus:Libs\" ADD\n")
+	    (command "Assign Devs: \"Zeus:Devs\" ADD\n")
+    	(command "Assign Texts: \"Zeus:Texts\"\n")
+    	(command "Assign Scripts: \"Zeus:Scripts\"\n")
+	    (command "Assign DLGCONFIG: \"Zeus:Config/DLG\"\n")
+
+        (if (= #upgrade 0)
+    	    (if (= #doorpack 1)
+            	(command "Assign DeepSpace: \"Zeus:Doors/DeepSpace\"\n")
+        	)
+        )
+
+        (command "Path \"Zeus:Bin\" ADD\n\n")
+
+        (command ";RUN <>NIL: Zeus:Zeus\n")
+        (command ";RUN <>NIL: Zeus:Bin/cRon CRONTAB Zeus:Config/cRonTab LOGFILE Logs:cRon.log\n" )
+    )
+
+	; Run the command so the user can start Zeus immediately.
+    (if (= #upgrade 0)
+		(
+    	(run (cat "Assign Zeus: \"" ZeusDir "\"\n") )
+    	(run "Assign RIPICONS: \"Zeus:RIP/Icons\"")
+	    (run "Assign RIPFONTS: \"Zeus:RIP/Fonts\"")
+    	(run "Assign Logs: \"Zeus:Logs\"")
+	    (run "Assign Doors: \"Zeus:Doors\"")
+    	(run "Assign Libs: \"Zeus:Libs\" ADD")
+	    (run "Assign Devs: \"Zeus:Devs\" ADD")
+    	(run "Assign Texts: \"Zeus:Texts\"")
+    	(run "Assign Scripts: \"Zeus:Scripts\"")
+	    (run "Assign DLGCONFIG: \"Zeus:Config/DLG\"")
+
+    	(if (= #doorpack 1)
+    		(run "Assign DeepSpace: \"Zeus:Doors/DeepSpace\"")
+        )
+
+	    (run "Path \"Zeus:Bin\" ADD")
+        )
+    )
+
+	; Done.
+	(exit "Zeus BBS has been installed. You can now double click the Zeus icon in your choosen destination directory to launch Zeus.")
+)
+

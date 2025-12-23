@@ -1,0 +1,355 @@
+Using file functions in wwbbs.library
+---
+To access a file database, you must first open the database with the
+function:
+
+     APTR OpenFileGroup(BYTE *path,BYTE *name,LONG type)
+
+For the path and name fields, put in the path and name of the file base you
+wish to access, prepending the path with "FileBases", and optionally
+including a slash.  For the type field, this will be either SHARED_LOCK or
+EXCLUSIVE_LOCK, which is defined in one of the dos header files.
+SHARED_LOCK means that you only want to read data from the database, while
+EXCLUSIVE_LOCK means that you want to read and/or write data from the
+database.  You must not try to write to a group that you only have a
+SHARED_LOCK on.  The functions returns a pointer to the group which you
+will use when calling the other functions.
+
+Some examples:
+
+     If you wish to open the file area "Games" with a shared lock, use:
+
+          APTR group;
+          group=OpenFileGroup("FileBases","Games",SHARED_LOCK);
+
+     If you wish to open the file area "Utilities/Disk" with an exclusive
+     lock use:
+
+          APTR group;
+          group=OpenFileGroup("FileBases/Utilities","Disk",EXCLUSIVE_LOCK);
+
+Just to be on the safe side, you should only open one group at a time in a
+program.
+
+After you are done with a database, call the function:
+
+     void CloseFileGroup(APTR group);
+
+For example, "CloseFileGroup(group);".
+
+---
+
+To get the actual directory name on disk of a database, use the function:
+
+     BOOL GetFileGroupDirectory(APTR group,BYTE *buffer,LONG len);
+
+Where group is the group you opened with OpenFileGroup, where buffer is a
+buffer you have allocated yourself, and len is the length of that buffer in
+characters.
+
+For example,
+
+     {
+       APTR group;
+       if(group=OpenFileGroup("FileBases","Games",SHARED_LOCK))
+         {
+           BYTE directory_name[256];
+           if(GetFileGroupDirectory(group,directory_name,255))
+             printf("directory_name: %s\n",directory_name);
+           CloseFileGroup(group);
+         }
+     }
+
+---
+
+After opening a database, there are four functions you can call to access
+the information in the database.  They are tag based:
+
+     ULONG GetFileTags(APTR group,Tag tag,...); /* gets file information */
+     ULONG SetFileTags(APTR group,Tag tag,...); /* sets file information */
+     ULONG AddFileTags(APTR group,Tag tag,...); /* add a new file record */
+     BOOL RemFileTags(APTR group,Tag tag,...); /* removes a file record */
+
+Note that a companion function exists for each of these:
+
+     ULONG GetFile(APTR group,struct TagItem *tags);
+     ULONG SetFile(APTR group,struct TagItem *tags);
+     ULONG AddFile(APTR group,struct TagItem *tags);
+     BOOL RemFile(APTR group,struct TagItem *tags);
+
+Each file record in a database has a unique ID number which is a ULONG.
+
+---
+
+ULONG GetFileTags(APTR group,Tag tag,...); /* gets file information */
+
+GetFile() gets file information.  It returns the number of tags that were
+successfully processed.
+
+These are the tags you can use:
+
+     FILTAG_ID
+          This tag must be present.  Here you specify the file id number of
+          the file you want to get information about.
+     FILTAG_Exists
+          Use this tag when you want to know whether a file record exists
+          for the FILTAG_ID that you specify, and when this is the only tag
+          you want to specify.  You must set it to TRUE.
+     FILTAG_Name
+          Use this tag to get the file name.  Pass a (BYTE **), a pointer
+          to a string.  You get a null-terminated string with a maximum of
+          32 chars.  The pointer you get back is valid until you call
+          CloseFileGroup().
+     FILTAG_Uploader
+          Use this tag to get the name of the uploader.  Usage is the same
+          as FILTAG_Name.
+     FILTAG_Size
+          Use this tag to get the size of the file in bytes.  Pass a
+          pointer to a ULONG.
+     FILTAG_Date
+          Use this tag to get the upload date of the file.  Pass a (struct
+          DateStamp **), a pointer to a pointer of a struct DateStamp.  The
+          pointer you get back is valid until you call CloseFileGroup().
+     FILTAG_Downloads
+          Use this tag to get the number of downloads on the file.  Pass a
+          pointer to a UWORD.
+     FILTAG_LastDownloadDate
+          Use this tag to get the date of the last download on the file.
+          Usage is the same as FILTAG_Date.
+     FILTAG_Description
+          Use this tag to get the description of the file.  Pass a (BYTE
+          **), a pointer to a string.  What you get is a pointer to a
+          string of the entire description, with lines being separated by
+          '\n', and the entire string terminated by a NULL.  You must not
+          write to this string, it is READ-ONLY, and it is valid until you
+          call CloseFileGroup().  If you get back a NULL, then that means
+          there is no description for the file.
+
+---
+
+ULONG SetFileTags(APTR group,Tag tag,...); /* sets file information */
+
+SetFile() sets file information.  It returns the number of tags that were
+successfully processed.
+
+These are the tags you can use:
+
+     FILTAG_ID
+          This tag must be present.  Here you specify the file id number of
+          the file you want to "set".
+     FILTAG_ForceSave
+          Use this tag when you want to force the system to save the
+          current database to file.  Note that whenever a change is made to
+          a database file, it is automatically saved to disk, so when you
+          use this tag it should be the only one present.  You must set it
+          to TRUE.
+     FILTAG_DontSave
+          Use this tag when you want to postpone saving of the current
+          database.  You would want to do this if you are performing
+          several changes to a database, and instead of saving after each
+          action, it would be better to wait until you are done and then
+          "force a save" with FILTAG_ForceSave.  You must set it to TRUE.
+     FILTAG_Name
+          Use this tag to set the file name of the file.  Pass a
+          null-terminated string, maximum 32 chars long.
+     FILTAG_Uploader
+          Use this tag to set the uploader's name.  Pass a null-terminated
+          string, maximum 32 chars long.
+     FILTAG_Size
+          Use this tag to set the file's size in bytes.  Pass a plain-old
+          ULONG.
+     FILTAG_Date     
+          Use this tag to set the file's upload date.  You should not need
+          to use this tag, as the file's upload date is automatically set
+          when a file is added with AddFile().  But in case you do, pass a
+          (struct DateStamp *), a pointer to a struct DateStamp.
+     FILTAG_Downloads     
+          Use this tag to set the number of downloads on the file.  Pass a
+          UWORD.  You can also pass a ULONG (or any other integer type) as
+          long as it's in the range of 0-65535.  Otherwise you will not get
+          what you expect.
+     FILTAG_LastDownloadDate     
+          Use this tag to set the date of the last download of the file.
+          Usage is the same as FILTAG_Date.
+     FILTAG_Description     
+          Use this tag to set the description of the file.  Pass a (BYTE
+          *), a null-terminated string.  In that string, you can separate
+          lines with a '\n'.
+
+---
+
+ULONG AddFileTags(APTR group,Tag tag,...); /* add a new file record */
+
+AddFile() adds a new file record.  It returns the file id number so you can
+make a subsequent call to SetFileTags() and easily pass along the id in
+FILTAG_ID.
+
+Note that when a new file record is added, the FILTAG_Date is set to the
+current date and everything else is set to NULL.
+
+These are the tags you can use:
+
+     FILTAG_DontSave
+          Use this tag when to want to postpone saving of the current
+          database.  You would want to do this if you are performing
+          several changes to a database, and instead of saving after each
+          action, it would be better to wait until you are done and then
+          "force a save" with FILTAG_ForceSave.  You must set it to TRUE.
+
+---
+
+BOOL RemFileTags(APTR group,Tag tag,...); /* removes a file record */
+
+RemFile() removes a file record.  It returns either TRUE or FALSE,
+depending on whether or not the operation was successful.
+
+These are the tags you can use:
+
+     FILTAG_ID
+          This must be present.  Here you specify the file id number.
+     FILTAG_DontSave     
+          Use this tag when to want to postpone saving of the current
+          database.  You would want to do this if you are performing
+          several changes to a database, and instead of saving after each
+          action, it would be better to wait until you are done and then
+          "force a save" with FILTAG_ForceSave.  You must set it to TRUE.
+
+---
+
+There are two more functions that you may find useful.  They are:
+
+ULONG GetNextFile(APTR group,ULONG file_id);
+ULONG GetPreviousFile(APTR group,ULONG file_id);
+
+Simply pass any number as file_id, and it will look for the next/previous
+file that exists, and it will return its file_id.  The file_id that you
+pass does not have to exist.
+
+For example,
+
+     To get the file id that comes after file #10:
+
+          {
+            ULONG id;
+            id=GetNextFile(group,10);
+          }
+
+     To get the id of the first file in the database:
+
+          {
+            ULONG id;
+            id=GetNextFile(group,0);
+          }
+
+     To get the id of the last file in the database:
+
+          {
+            ULONG id;
+            id=GetPreviousFile(group,~0);
+          }
+
+---
+
+Here is an example of how to use these crazy functions:
+
+#include <exec/types.h>
+#include <exec/exec.h>
+#include <dos/dos.h>
+#include <libraries/wwbbs.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <proto/dos.h>
+#include <proto/wwbbs.h>
+
+struct Library *WorldWideBase;
+
+void main()
+  {
+    if(!(WorldWideBase=OpenLibrary("wwbbs.library",0)))
+      exit(0);
+    /* open the database `Games/Arcade' */
+    {
+      APTR group;
+      if(group=OpenFileGroup("FileBases/Games","Arcade",EXCLUSIVE_LOCK))
+        {
+          /* add a file */
+          ULONG id;
+          if(id=AddFileTags(group,TAG_END))
+            {
+              /* set its attributes */
+              {
+                BYTE name[33],uploader[33],*description;
+                ULONG size;
+                struct DateStamp lastdownloaddate;
+                UWORD downloads;
+                if(description=AllocVec(1024,MEMF_CLEAR)) /* arbitrary size */
+                  {
+                    strcpy(name,"idontexist.lha");
+                    strcpy(uploader,"Crazy Anonymous Man");
+                    size=0;
+                    DateStamp(&lastdownloaddate);
+                    downloads=0;
+                    strcpy(description,"Enter long boring description.");
+                    if(SetFileTags(group,FILTAG_ID,id,
+                         FILTAG_Name,name,
+                         FILTAG_Uploader,uploader,
+                         FILTAG_Size,size,
+                         FILTAG_LastDownloadDate,&lastdownloaddate,
+                         FILTAG_Downloads,downloads,
+                         FILTAG_Description,description,
+                         TAG_END))
+                      {
+                        printf("SetFileTags() successful.\n");
+                      }
+                    else
+                      {
+                        printf("SetFileTags() failed.\n");
+                      }
+                    FreeVec(description);
+                  }
+              }
+              /* get its attributes */
+              {
+                BYTE *name,*uploader,*description;
+                ULONG size;
+                UWORD downloads;
+                struct DateStamp *date,*lastdownloaddate;
+                if(GetFileTags(group,FILTAG_ID,id,
+                     FILTAG_Name,&name,
+                     FILTAG_Uploader,&uploader,
+                     FILTAG_Size,&size,
+                     FILTAG_Downloads,&downloads,
+                     FILTAG_Date,&date,
+                     FILTAG_LastDownloadDate,&lastdownloaddate,
+                     FILTAG_Description,&description,
+                     TAG_END))
+                  {
+                    printf("Name: %s\n",name);
+                    printf("Uploader: %s\n",uploader);
+                    /* etc... */
+                    printf("Description: %s\n",description);
+                  }
+                else
+                  {
+                    printf("GetFile() failed.\n");
+                  }
+              } 
+              /* remove the file */
+              if(RemFileTags(group,FILTAG_ID,id,TAG_END))
+                printf("RemFileTags() succeeded.\n");
+              else
+                printf("RemFileTags() failed.\n");
+            }  
+          else
+            printf("AddFileTags() failed.\n");
+          CloseFileGroup(group);
+        }
+      else
+        printf("OpenFileGroup() failed.\n");
+    }
+    CloseLibrary(WorldWideBase);
+    exit(0);
+  }
+ 

@@ -1,0 +1,580 @@
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+ Proper Usage of GetUser & GetScratch commands in CNet Amiga! (3.05c/4.26b+)
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+    Before I explain how to use the GETUSERS as such, I'd like to remind you
+all that these values(both "short" and "long") can also be used with the MCI
+{V } command, whereby you specify a GETUSER value right after the "V", as in
+these examples:
+                    {v1} ---------> Print User's Handle.
+                    {v15} --------> The User's Access Group.
+                    {v1200016} ---> The User's Age In Years.
+                    {v1100468} ---> Number of ROWS on User's Screen.
+                    {v2400960} ---> Total Uploaded KiloBytes to the System.
+                    ^
+                Control-Q
+
+    Additionally, these values can be used with the {L }, {M }, and {T } MCI
+commands to LOAD, perform MATH, or TEST the contents of any getuser location.
+
+    Using these "short" GETUSER values, you can create files that can pull
+various pieces of information on the CURRENT user, however, if you wish to
+use these values to obtain information on OTHER users, you will have to use
+the GETSCRATCH command.
+
+    NOTE, however, that not ALL of these values can be used with GETSCRATCH.
+Only those marked with an "s" in the first column will return valid data. you
+will have to use the LONG, 7-Digit values to obtain any info NOT listed above
+as being flagged by an "s", or you will have to use the ADDRESS CNETREXX port
+command to extrapulate the info(using GETUSER), while the user is online. More
+info on these areas can be found in the other text files.
+
+    Before you can use the GETSCRATCH command, you have to load the user in
+question's information into a temporary buffer called the SCRATCH BUFFER.
+You do this by using the LOADSCRATCH command, which takes an ID Number for
+it's sole NEEDED argument, like this:
+
+LOADSCRATCH 5
+
+    The above command will load all pertinent information pertaining to the
+user using ID Number 5 on your system. You need to be aware that when you use
+the LOADSCRATCH command, you are putting a LOCK on the Account ID. What this
+means is that NO OTHER FILE, and NO OTHER USER may use this accounts data,
+INCLUDING the user which HOLDS that ID. If the user with this ID happens to
+be ONLINE when your program LOCKS the account, that user's port will seem to
+freeze up, until your program has finished doing what it needs to do. (This
+same kind of LOCK occurs when you use the EA command to edit a user's account
+while they are online as well).
+
+    After the account has been LOCKED, you can then use GETSCRATCH to obtain
+any values you wish, using either the "short" or the "long" values listed in 
+the included lists.
+
+    It is recommended that you use a SHORT getuser value whenever possible,
+because these commands are defined INTERNALLY by CNet itself, so will almost
+ALWAYS point to the correct data, while the Long, 7-digit values COULD change
+over time as Ray makes more and more modifications to the internal structures.
+
+    When you are FINISHED grabbing the info needed, you MUST remember to 
+UNLOCK the account using the SAVESCRATCH command. This will insure that any 
+other program that needs to get into that account CAN, and will also allow 
+that user to continue on with his/her business(if they were ONLINE), or that 
+they will be ABLE to LOGON the next time they DO call.
+
+    By FORGETTING to UNLOCK an account, you are releasing a veritable bomb
+into your system, because if either another program or THAT user tries to
+access the account, the port that attempted the access will be LOCKED UP!
+The only way to recover the port is through a complete System Reset, or by
+running a script similar to the following:
+
+                /* Unlock ALL User Accounts */
+                  options results
+                  getuser 2400088 ; accounts=result
+                  do i=1 to accounts
+                    savescratch (-i)
+                  end i
+                /* End */
+
+    The SAVESCRATCH command also takes a sole NEEDED argument, which should
+preferably be the SAME ID Number you used in the LOADSCRATCH command. If all
+you did was to READ data out of the account, then you can use a NEGATIVE ID
+Number value to simply REMOVE the LOCK on the account, like this:
+
+SAVESCRATCH (-5)
+
+    If, however, you made CHANGES to the data and wish these CHANGES to be
+SAVED to the account BEFORE it is UNLOCKED, then supply a POSITIVE value:
+
+SAVESCRATCH 5
+
+    Note that when NEGATIVE values are used, they should be given inside of
+parenthesis, else the UNLOCK'ing may NOT be successfull.
+
+    If your file will be executed by the CURRENTLY ONLINE user, then use the 
+PUTUSER command, in conjunction with the SETOBJECT command when you wish to 
+make CHANGES to their data, like this:
+
+SETOBJECT "His unlisted phone number is: 823-9892"
+
+PUTUSER 9
+
+    The above example places the text shown in the "SysOp Comment" for the
+current user online. 
+
+    If, however, your file will be run via AutoMaintenance, or by some OTHER
+user manually, you'd need to use the Scratch Buffer. Using the PUTSCRATCH and
+SETOBJECT commands, like this:
+
+LOADSCRATCH 5
+
+SETOBJECT "His unlisted phone number is: 823-9892"
+
+PUTSCRATCH 9
+
+SAVESCRATCH 5
+
+    Notice the use of PUTSCRATCH, instead of PUTUSER. Remember that when you
+are using the SCRATCH BUFFER, all pertinent commands should END in "SCRATCH"
+
+        LOADSCRATCH, GETSCRATCH, PUTSCRATCH, and SAVESCRATCH
+
+    The SETOBJECT command is the only command that is used for BOTH fields
+of operation: Current User versus Scratch User.
+
+    Lastly, what happens if you specify a DIFFERENT ID Number for SAVESCRATCH
+than you used in LOADSCRATCH?  Well, you'd be making a DUPLICATE copy of the
+SCRATCH BUFFER into the NEW ID Number. What?!? Look at this example:
+
+LOADSCRATCH 1
+SAVESCRATCH (-1)
+SAVESCRATCH 2
+SAVESCRATCH 3
+
+    If the above program was run, your first three Accounts would all hold
+IDENTICAL information to that shown in ID # 1's account. This is ONE way to
+EASILY make a NEW account. It saves having to sign on as a NEW user, when
+all you'd THEN have to do would be to EA the new account and change certain
+key pieces of info, notably: Serial ID Number, Handle, Real Name, and perhaps
+the Password.
+
+    When writing scripts to automatically update pieces of info in numerous
+accounts at once, try using the following technique:
+
+/**/;options results
+getuser 2400088 ; accounts=result
+do i=1 to accounts
+  loadscratch i ; status=result
+  getscratch 1  ; handle=result
+  if status=0 | handle="!" then do
+    savescratch (-i) ; iterate i ; end
+
+  /*                                  */
+  /*  Enter your work commands here.  */
+  /*                                  */
+
+  savescratch i
+end i
+/* END */
+
+    Using a DO-Loop allows you to process through ALL your user accounts. The
+2400088 value tells the script HOW MANY accounts you have to process. The
+"status" and "handle" variables allow you to perform a "pre-check" on the
+given account to make sure it's a valid account. "status" returns a "1" if
+the information was successfully loaded, or else a "0" if there was a problem
+loading the data. One possible problem might be if ANOTHER file was currently
+working on that account(ie, the account was locked already). If the "handle"
+variable contains a "!" (exclamation point), this means that that account has
+been KILLED (or DELETED) from the system. (Use my ReVive utility to attempt
+to reincarnate that account). If either "status=0", or "handle='!'", then the
+loop will SKIP OVER that account, but will UNLOCK the account using the "-i"
+value first. If "status=1" and "handle" equals something OTHER than "!", then
+the script continues to the "work" portion, which is supplied by you. After 
+your portion, the "savescratch i" command is used to both SAVE and UNLOCK the
+account, before proceeding to the next account.
+
+    Note that when the account is SAVED using SAVESCRATCH <id>, the ENTIRE
+account is saved back to disk and NOT just the info you changed. Being as the
+LOADSCRATCH command reads the userdata directly from disk, if a user signs on
+to the board, then makes a change to one or more of their personal infos, if
+a script is run that uses the SCRATCH commands, if the account is SAVED, it
+is possible that the changes made by the user when they logged on may NOT be
+saved to disk(as if the user never changed the info).
+
+    Your "work" portion would contain commands like GETSCRATCH, IF-THEN's,
+SETOBJECT's, and PUTSCRATCH commands. For instance, the following "work"
+portion could be used to copy ALL user's REAL NAMES into their HANDLE fields,
+in the event you ran a BBS that did NOT allow for the usage of aliases, or
+handles(Note that the following would have to be INSERTED into the above
+listed framework BEFORE being executed, else errors will occur):
+
+/* Work STARTS Here */
+  getscratch 1 ; handle=result
+  getscratch 3 ; realname=result
+  if handle=realname then do
+    savescratch (-i) ; iterate i ; end
+  setobject realname
+  putscratch 1
+/* Work ENDS Here */
+
+    The above uses GETSCRATCH to obtain both the real name and handle of the
+user account being processed. If the two contain identical information, then
+the account is UNLOCKED, and the loop proceeds to the next account...
+
+    If, however, the two differ, then the SETOBJECT and PUTSCRATCH commands
+are used to copy the REAL NAME into the HANDLE buffer. The SAVESCRATCH that
+is used in the "framework" coding above then SAVES and UNLOCKS that account
+before proceeding to the next account.
+
+    As one last example, the following coding could be used to DISABLE the
+"SuperUser" flag in any account where the Access Group was LESS than 30, while
+at the same time ENABLING the "SuperUser" flag if the Access Group EQUALS 30
+or 31. (The "SuperUser" flag will be used to control who has access to certain
+SysOp functions pertaining to upcoming Internet enhancements made by Ray):
+
+/* Work STARTS Here */
+  getscratch 15 ; access=result
+  getscratch 1401380 ; abit1=reverse(d2c(result,4))
+  superuser=bittst(abit1,0)
+  if (access<30 & superuser=0) | (access>29 & superuser=1) then do
+    savescratch (-i) ; iterate i ; end
+  if access<30 then abit1=bitclr(abit1,0)
+    else abit1=bitset(abit1,0)
+  setobject c2d(reverse(abit1),4)
+  putscratch 1401380
+/* Work ENDS Here */
+
+    Here, we grab the users Access group, then pull the second priviledge
+block and extrapolate the "SuperUser" flag, which will equal a 0 if they
+do NOT have the flag set, or a 1 if they DO have it set.
+
+    If their access is LOW and the flag is NOT set, or if their access is
+HIGH and they DO have the flag set, then no work is needed, so we UNLOCK the
+account and continue through the loop.
+
+    If changes are needed, we use the BitSET() function to ENABLE the flag if
+the user's Access is HIGHER than 29, else we use the BitCLR() function to
+DISABLE the flag if their Access is LOWER than 30. We finish the operation by
+reconstructing the priviledge block, then write it into memory by using the
+PUTSCRATCH command. The SAVESCRATCH given in the "framework" coding above is
+used to SAVE the info to disk as well as UNLOCKING the account before it
+continues to the next account ID Number.
+
+    Well, that concludes the basic usage of the GetUsers and Scratch Buffer
+of CNet Amiga. The remainder of this document is intended for SEASONED ARexx
+enthusiasts ONLY, and is NOT meant for amateurs. Please HEED this warning,
+else you could SERIOUSLY damage the system structures used on your bbs.
+
+/**************************************************************************/
+                            The End (For Now!)
+
+ o=======================================================================o
+ | !CAUTION!               -= SERIOUS WARNING =-               !CAUTION! |
+ |                                                                       |
+ |  The following is meant for EXPERIENCED ARexx Coders ONLY! If you do  |
+ | NOT have a FIRM grasp on ARexx, then please DO NOT ATTEMPT any of the |
+ |                    following programming examples!                    |
+ o=======================================================================o
+
+    Getuser values given in the examples below pertain to BOTH v3.05c AND
+v4.26b+ of CNet Amiga, unless specifically stated otherwise...
+
+    The value returned using the x6xxxxx getuser value is of no use to us if
+we're dealing with a STRUCTURE. We must read the value in as a x4xxxxx value
+instead. As an example, let's take a look at the SELECT BUFFER structure,
+which has a getuser value of 1601978. Here's a snip of what that structure
+looks like, as shown in the v4.26b "subs.h" file, as we'll need this info
+when we wish to work with any of the data WITHIN that structure:
+
+struct SelectType {         /* Select list */
+    long    Size;
+    char    Title   [32];
+    char    Location[96];   /* physical path to file */
+    short   Base;           /* physical subboard # */
+    UBYTE   SDownFiles;     /* Which accounting schedule ? */
+    UBYTE   SDownBytes;
+    UBYTE   temp_rem;       /* DS from DS list!! */
+    UBYTE   CDROM;          /* Copy to CDROMpath before download? */
+    BYTE    FreeStuff;
+    UBYTE   AutoKill;       /* 1==mark for amaint deletion when downloaded
+                               2==Yank, 3==DELETE when unselected */
+    long    ByteDownload;   /* credits to subtract when this */
+    short   FileDownload;   /* item is downloaded ... */
+                            /* makes * faster by being here */
+    struct  IsDate ADate;   /* utility ... AO adopt dates? */
+    ULONG   Number;         /* item number */
+};
+
+    The first thing we need to do is "map out" the structure, to find the
+LENGTH of each data item WITHIN this structure. Below is a table listing
+this info:
+
+            Name            Start   End     Type    Length
+           ------------------------------------------------
+            Size            1       4       long    4
+            Title           5       36      char    32
+            Location        37      132     char    96
+            Base            133     134     short   2
+            SDownFiles      135     135     UBYTE   1
+            SDownBytes      136     136     UBYTE   1
+            temp_rem        137     137     UBYTE   1
+            CDROM           138     138     UBYTE   1
+            FreeStuff       139     139     BYTE    1
+            AutoKill        140     140     UBYTE   1
+            ByteDownload    141     144     long    4
+            FileDownload    145     146     short   2
+            ADate           147     152     struct  6
+            Number          153     156     long    4
+           ------------------------------------------------
+
+    We use the info given previously in the Intro file to find the LENGTH of
+each data item. Note the "ADate" is a structure in itself, but it's a DATE 
+format structure, and from the Intro, we know ALL dates are 6 bytes in length, 
+which makes it even easier.
+
+    As a check to make sure we've constructed the table correctly, you can
+ADD all the values in the "Length" column. This value should MATCH the last
+value in the "End" column. This value determines the OVERALL LENGTH of the
+entire structure, which happens to be 156 bytes in this example.
+
+    After these steps have been completed, we're ready to start working with
+this information, and can now start the coding necessary. The first thing we
+need to do is change the 1601978 value into a x4xxxxx value: 1401978. That's
+the easy part. We then read in this value as a getuser, as shown below:
+
+         pb=null() ; getuser 1401978 ; start=offset(pb,result)
+
+    The "pb" variable is a starting point in memory we can use. It contains 
+the "null" address, which is "$00000000". Using the returned result of our 
+getuser, we can then use the OFFSET() function(which is located in the
+"rexxsupport.library") to create a "start" variable. This "start" variable 
+contains the starting memory location of the Download Select Buffer, in 
+character format. If we wanted to work with the second item in the select 
+list, we would add 156 to "result", so the line looked like this:
+
+         pb=null() ; getuser 1401978 ; start=offset(pb,result+156)
+
+    We could use a DO-Loop and work with each file in sequence, until we
+had completed whatever action we began. (Another getuser value, 1209644,
+tells us how many items are IN the select buffer).
+
+    We can now read in the entire 156 bytes into ONE variable, and then use
+the PARSE command to get the info we need:
+
+     struct=import(start,156)
+
+     parse var struct size 5 title 37 location 133 base 135 sdownfiles 136,
+                      sdownbytes 137 temp 138 cdrom 139 freestuff 140,
+                      autokill 141 bytedownload 145 filedownload 147,
+                      adate 153 number
+
+    In the above PARSE statement, the commas at the ENDS of each line are
+CONTINUATION markers, meaning what comes on the NEXT line is actually a
+CONTINUATION of the above line. Note the numbers that FOLLOW each variable
+name are the START values for the FOLLOWING variable, and are taken right
+out of that table we made above, so "title" starts at the 5th byte, while
+"location" starts at the 37th byte, etc.
+
+    Using the PARSE command is not the ONLY step involved. Each TEXT variable
+will ALSO have to be STRIP()'ed of any excess "00"x's that may have been used
+to pad out that data to the proper lengths. You will also need to use the
+C2D() function to CONVERT the CHARACTER values into DECIMAL values if the
+data is a NUMERIC value. Here's how the first six variables would look coded
+to be as "clean and neat" as possible:
+
+                      size=c2d(size,4)
+
+                     title=strip(title,,"00"x)
+
+                  location=strip(location,,"00"x)
+
+                      base=c2d(base,2)
+
+                sdownfiles=c2d(sdownfiles)
+
+                sdownbytes=c2d(sdownbytes)
+
+    Again, we use the table we made above to find the lengths of the NUMERIC
+data. When a numeric value is NOT given in the C2D() function, the default
+value of "1" will be used.
+
+-----------------------------------------------------------------------------
+
+    The following is given for EXPERT users, and makes your work a bit faster
+as well as taking up less code:
+
+     pb=null() ; getuser 1401978 ; struct=import(offset(pb,result),156)
+
+     parse var struct size 5 title"00"x 36 location"00"x 131 base 133,
+                      sdownfiles 134 sdownbytes 135 temp 136 cdrom 137,
+                      freestuff 138 autokill 139 bytedownload 143,
+                      filedownload 145 adate 151 number
+
+    Note the addition of the "00"x to both the "title" and "location" variable
+names. This way, we can do an automatic STRIP() NOW, without having to worry
+about it later. What makes this technique a bit more complicated is the fact
+that the NUMERIC values we use will DIFFER from those shown in the table we
+have been using. Note the "5" is the same, but we're using "36", instead of
+"37". This is because we are reading one "00"x, in ADDITION to the "title".
+Note that the "131" is two less than the stated value of "133". This is
+because the "00"x that we have following "location" makes the SECOND "00"x
+that is being read by the PARSE command, so we need to SUBTRACT TWO from
+every following value.
+
+    Simply put(if it CAN be simply put), the NUMERIC START VALUE will be
+the STATED START VALUE(from our table above), minus the number of "00"x's
+that PRECEED the variable name in the PARSE command. (We use 36, because 1
+"00"x appears BEFORE the "title", so 37 - 1 = 36. We use 131, because there
+are 2 "00"x's that appear before the "base" name, thus 133 - 2 = 131, etc.)
+
+    Again, the above is meant for EXPERT users, so don't be dismayed if you
+happen to be thoroughly LOST about now. Simply use the first method that was
+discussed above, followed by the individual STRIP()'ing and/or C2D()'ing
+that may be necessary.
+
+-----------------------------------------------------------------------------
+
+    Finally, let's take a look at some SPECIFIC values in the GetUser list:
+
+======================================================================
+   v3.05c   |   The START of the MainPort STRUCTURE      |  v4.26b+
+============|============================================|============
+   1601850  | Pointer to cnp, MainPort                   |  1601850
+------------+--------------------------------------------+------------
+            |    The START of the PortData STRUCTURE     |
+------------+--------------------------------------------+------------
+   2624286  | PortData; (*PortZ[100]) Struct - Port 0    |  2626974
+        +4  |                                            |       +4
+        |   | (Pointer in MEMORY where struct is stored) |       |
+        +4  |                                            |       +4
+   2624682  | PortData; (*PortZ[100]) Struct - Port 99   |  2627370
+======================================================================
+
+    These values can give us the needed START MEMORY addresses for ALL the
+getuser Values given in the "GU40_Longs" listing. The "MainPort" value can
+be used to grab any value shown as a 2xxxxxx getuser, while the "PortData"
+values govern all the 1xxxxxx getuser values.
+
+    The CNet Manual talks about using the "ADDRESS CNETREXXport" command to
+communicate with other CNet ports, either from another CNet Port, or from
+an external ARexx script. This command has it's uses, but also has some BIG
+drawbacks. If YOUR ARexx file tries to address another port that is ALREADY
+RUNNING an ARexx file, then YOUR application is PUT ON HOLD, until THEIR
+program has exited. What this means is YOUR port would be LOCKED OUT, until
+such a time as your file could get CONTROL of THEIR port. Another problem
+comes when your file tries to address a port that is in the middle of a file
+transfer(upload or download), as CNet places a LOCK on a port before it will
+initiate any file transfer. AGAIN, you'd be locked out, until the completion
+of the file transfer.
+
+    If all you WANT to do is READ a certain value from THEIR config data, the
+POINTERS above are what you really want to use. Let's say you're wondering if
+Port # 1 is HIDING from you(on Port # 0). [This DIFFERS from the WHO display,
+which only shows you which ports YOU are hiding from!] Here's all we have to
+do to find out this information:
+
+1: Hiding capability is part of the "PortData" structure, which means we
+   need to get the START value of Port # 1's "PortData", which the above
+   getuser list states is: 2626978(v4.26b), or 2624290(v3.05).
+
+2: We then need to find the HIDING getuser value, which by looking at the
+   getuser list, we find is: 1101630 (For Port # 0, because we want to know
+   if this port is hiding FROM port 0).
+
+3: To find the OFFSET value, simply DROP the first two numbers from this
+   value, along with any preceeding zeroes, and we get: 1630
+
+4: We then convert the x6xxxxx in step 1 to an x4xxxxx, and use THIS value
+   in a getuser:
+
+        pb=null() ; getuser 2426978 /* for CNet, v4.26b, or */
+        pb=null() ; getuser 2424290 /* for CNet, v3.05c BBS */
+
+        a=import(offset(pb,result+1630),1) ; hide=BitTST(a,0)
+
+5: The "hide" variable would equal a "0" if the user on Port # 1 was NOT
+   hiding from you, or a "1" if they WERE hiding from you.
+
+6: The beauty of this whole process is that it's IMMEDIATE, regardless of
+   what Port # 1 happens to be doing when you "spy" on them! hehe
+
+-----------------------------------------------------------------------------
+
+    Lastly, it is also possible to WRITE information directly to MEMORY by
+using the STORAGE() command. In fact, every time you use the EA, EG, EL, etc.
+commands to make changes to these areas, the changes are being made to the
+data in MEMORY, and aren't written to disk until AFTER the user has logged
+off. Be VERY, VERY careful when using the STORAGE() command, because using a
+wrong value within this command could seriously damage your data files, or
+even guru your machine. The STORAGE() command is NOT meant for the beginner.
+Anyone can play around with the IMPORT() command. You won't hurt anything by
+simply READING the MEMORY, but only WRITE to MEMORY if you KNOW WHAT YOU ARE
+DOING! OK, with that "warning" out of the way, here's an example of using
+the STORAGE() command:
+
+           Time Left This Call (Mins / by 10) ===> getuser 1200028
+
+    Using the above getuser value, here's a routine that could be run from
+any port to automatically give the user on Port # 2 ten extra minutes of
+OnLine time: 
+
+            1:  getuser 2426982  /* Use 2424294 on CNet, v3.05c */
+            2:  off=offset(null(),result+28)
+            3:  data=import(off,2)
+            4:  time=c2d(data)%10
+            5:  time=time+10
+            6:  time=d2c(time*10,2)
+            7:  data=storage(off,time,2)
+
+            1:  getuser 2426982  /* Use 2424294 on CNet, v3.05c */
+             :
+             :  Get START of "PortData" structure.
+
+            2:  off=offset(null(),result+28)
+             :
+             :  Create the proper OffSet Memory Location, per the given
+             :  1200028 getuser value.
+
+            3:  data=import(off,2)
+             :
+             :  Read in the 2 bytes stored at this location. (Remember, we
+             :  have 2 bytes, because it's an x2xxxxx getuser value!)
+
+            4:  time=c2d(data)%10
+             :
+             :  Convert this returned character to DECIMAL, then divide by
+             :  10 to get MINUTES left online.
+
+            5:  time=time+10
+             :
+             :  Now ADD the extra 10 minutes to current value.
+
+            6:  time=d2c(time*10,2)
+             :
+             :  Convert DECIMAL back into CHARACTER, but AFTER we multiply
+             :  by 10 to go back to TENTHS of MINUTES left online.
+
+            7:  data=storage(off,time,2)
+             :
+             :  Write the 2 bytes back to MEMORY. Note the likeness between
+             :  this command, which WRITES the data, and the import() we
+             :  used in line 3 above. Only difference is the inclusion of
+             :  the "time" variable, as THIS is the data to be WRITTEN to
+             :  memory.
+
+    The important thing to remember when using STORAGE() is to do things in
+the ABSOLUTE REVERSE of the way you IMPORT()'ed them. If you use C2D() to get
+a DECIMAL value to work with, make sure it goes BACK to a D2C(), etc. Using
+STORAGE(), instead of EXPORT() saves us from having to do TWO major jobs:
+having to repad text strings with "00"x's, and having to use the cryptic
+x2c() and d2x() commands to make the needed character value. Both are now
+unnecessary steps to the process! It can get a bit tricky, but if you TAKE
+YOUR TIME, and play around with the IMPORT() function FIRST, you can then
+MAKE SURE you are using the correct method to GET the value, BEFORE you try
+coding the STORAGE() which will then PUT the data(Remember, you won't hurt
+ANYTHING if you use IMPORT(), but you could do SEVERE damage with STORAGE(),
+unless you have a FIRM GRASP on these principles!)
+
+-----------------------------------------------------------------------------
+
+    Well, that'll put a cap on this discussion. I opted to store this info in
+it's own file, as it really only pertains to those interested in pursuing the
+ability to CODE, or PROGRAM, with these GetUser values.
+
+    If you'd like some further examples on using any of the above methods,
+you can drop me some feedback via any of the following channels and I'll see
+what I can do to help you out. I'd rather HELP an aspiring programmer get at
+the solution than having to code it out completely myself. It helps ME, as
+well as the rest of the CNet population, as hopefully, it'll result in the
+creation of ANOTHER CNet ARexx Programmer, and we NEED as many of these as
+we can get ahold of! ;-)
+
+    Via direct Internet EMail : dotoran@bluemoon.net
+       Via the World Wide Web : http://www.bluemoon.net/~dotoran/email.htm
+      Via the FidoNet Network : dotoran@1:260/121.0
+        Via the CLink Network : dotoran@911:6840/2.0
+     Via the ChipsNet Network : dotoran@546:7/1.0
+            Via Frontiers BBS : (716)/823-9892
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                This is the END, there "ain't" no more! ;-)
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

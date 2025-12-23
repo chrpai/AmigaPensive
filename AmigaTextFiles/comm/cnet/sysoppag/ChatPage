@@ -1,0 +1,38 @@
+/* SysopPager by David Prothero */
+
+options results
+
+runcmd = 'C:Runback'           /* Run command to use (Run >nil: works) */
+rxpath = 'REXX:'               /* Location of RX command. */
+
+ss = sendstring
+getuser 1 ; handle = result
+getuser 3 ; name = result
+getuser 7 ; time = result
+getuser 23 ; port = result
+user = name' ('handle')'
+
+ss '\n1Enter reason for paging.\n1: '
+receive ; reason = result
+
+x = getclip(avail)
+if x ~= '1' then do
+   call open('tmp','ram:ct.'port,'W')
+   call writeln('tmp',user)
+   call writeln('tmp',reason)
+   call close('tmp')
+
+   ss '\n1Now paging the SysOp....'
+
+   address command runcmd rxpath'rx pfiles:page.rexx' port
+
+   ss '\w3\n2The SysOp has been notified that you wish to chat.\n1'
+   ss 'The SysOp may or may not be around.  He will answer if he is available.\n2\cbONE\q1 page is ENOUGH.  A window telling the SysOp someone has paged stays on his screen.\n1'
+end
+else do
+   ss '\n1Sorry, the SysOp is not available.\n1'
+   bbscommand 'FEEDBACK'
+end
+ss '\n1Your reason: '
+addkeys strip(left(reason,30))||'`'
+exit

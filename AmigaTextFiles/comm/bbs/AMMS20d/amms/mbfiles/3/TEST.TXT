@@ -1,0 +1,111 @@
+Die Amiga-Dos-Batches stehen in die Directories
+MBBATCH:UPLOAD/			Fuer Upload
+MBBATCH:DOWNLOAD/		Fuer Download
+MBBATCH:FILECHECK/		Fuer File pruefen
+MBBATCH:FILELIST/		Fuer File/Archiv listen
+MBBATCH:FILEBATCH1/		Fuer Taste 1
+MBBATCH:FILEBATCH2/		Fuer Taste 2
+MBBATCH:FILEBATCH3/		Fuer Taste 3
+MBBATCH:FILEBATCH4/		Fuer Taste 4
+MBBATCH:FILEBATCH5/		Fuer Taste 5
+MBBATCH:FILEBATCH6/		Fuer Taste 6
+MBBATCH:FILEBATCH7/		Fuer Taste 7
+MBBATCH:FILEBATCH8/		Fuer Taste 8
+
+
+Der Name der Amiga-Dos-Batch muss der Endung des Filenamens entsprechen.
+Beispiel: GIF bei BILD.GIF
+
+
+Beispiel einer Amiga-Dos-Batch: Upload-Datei eines LHA-Archives
+---------------------------------------------------------------
+
+;	Amiga-Dos-Batch
+;
+;	Beeinflussung der Ein-/Ausgabe: sethflags <Flags>
+;	-------------------------------------------------
+;	Flags:	AN	AUS	Funktion
+;		     (Default)
+;		r1	r0	Raw-Eingabe
+;		o1	o0	Raw-Ausgabe
+;		m1	m0	More ein
+;		c1	c0	CTRL-C erlaubt
+;		x1	x0	CTRL-X erlaubt (entspricht CTRL-D im Amiga-Dos)
+;		e1	e0	Bei Fehler -> CTRL-C
+;		f1	f0	Bei Fehler -> CTRL-X
+;
+;	Beispiel: sethflags r1o1c0x0
+;
+;	
+;	Bekannte Variablen :
+;	--------------------
+;	${BOARD}	Brettname (leer, wenn kein Brett)
+;	${CLS}		AMMS-Sequence zum Loeschen des Screens (sethflags t1)
+;	${CON}		Port-Consolen-Status (0=keine Console,1=Console)
+;	${FILE}		Pfadname+Filename
+;	${FILEPART}	Filename
+;	${PATHPART}	Pfadname
+;	${LEVEL}	Level des Users
+;	${NAME}		Username
+;	${PORT}		Aktueller Portname
+;	${SYSOPACC}	Sysop-Zugriff auf File (0=kein Zugriff,1=Zugriff)
+;	${DOWNACC}	Download-Zugriff auf File (0=kein Zugriff,1=Zugriff)
+;	${UPACC}	Upload-Zugriff auf File (0=kein Zugriff,1=Zugriff)
+;	${DELACC}	Loesch-Zugriff auf File (0=kein Zugriff,1=Zugriff)
+;	${OWNER}	Uploader des File (0=nein,1=ja)
+;
+;
+;	Rueckgabewert : setreturn "[Parameter] [Parameter] [...]"
+;	---------------------------------------------------------
+;	CHANGEDAT	Filedaten wurden geaendert (z.B. Laenge)
+;	COMMENT=<Str>	Aendere Kurz-Kommentar zum angegebenen String
+;	DELETE		Loesche File
+;	ECOMMENT	Extra-Kommentar existiert (z.B. Vorgabe beim Upload)
+;	NOEDIT		Keine Extra-Kommentar-Eingabe beim Upload
+;	REFRESH		Screen muss wegen Ausgaben neu aufgebaut werden
+;	REFRESHLINE	Zeile wegen Datenaenderung neu aufbauen
+;	RENAME=<Name>	File in den angegebenen Namen umbenennen
+;	WAIT		Auf Taste warten (inc. Warte-Text)
+;
+;	Beispiel: setreturn WAIT REFRESH COMMENT="Ein Kommentar"
+
+set RETURN "REFRESH"
+setreturn ${RETURN}
+
+sethflags t1m1
+echo "${CLS}"
+sethflags t0
+
+lha <nil: >nil: -P-1 -imbtext:lharemove.txt d "${FILE}"
+
+if "${BOARD}" NOT EQ ""
+ delete >nil: "mbmsg:point/${PORT}/File_ID.diz"
+ lha <nil: >nil: -P-1 x "${FILE}" "mbmsg:point/${PORT}/" File_ID.diz
+ if exists "mbmsg:point/${PORT}/File_ID.diz"
+  echo "Using File_ID.diz from Archive."
+  copy >nil: "mbmsg:point/${PORT}/File_ID.diz" "${FILE}@HLP"
+  delete >nil: "mbmsg:point/${PORT}/File_ID.diz"
+  setreturn ${RETURN} ECOMMENT NOEDIT
+ endif
+endif
+
+
+Diese Batch exportiert das File FILE_ID.DIZ und macht es zum Extra-Kommentar.
+Falls diese Datei nicht existiert, so wird der User zur Eingabe eines
+Extra-Kommentars aufgefordert.
+
+Um weitere Informationen zum File-System zu erhalten, existieren verschiedene
+Hilfstexte.
+
+a) amms:dok/file.guide
+   Dieses Dokument ist auch ueber amms:dok/amms.guide zu erreichen
+b) amms> help FILES
+   Onlinehilfe zum Befehl FILES anzeigen, Aufruf geht in der Demo nur
+   aus der Befehlebene heraus, da die der Befehl HELP nicht im Menu
+   unterstuetzt wird.
+   Das Menu kann aber beliebig veraendert und erweitert werden, daher kann
+   diese Onlinehilfe auch im MENU eingebaut werden.
+c) weitere Dokumentationen in Arbeit
+
+
+Die Tastenbelegung des Files-Befehls kann man sich mit der Taste h anschauen !

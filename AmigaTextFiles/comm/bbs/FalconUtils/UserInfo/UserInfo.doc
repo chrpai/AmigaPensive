@@ -1,0 +1,366 @@
+
+
+
+
+                       Falcon CBCS UserInfo V2.22
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                   (c) David Dustin / ECLIPSE Software
+
+
+                            24 December, 1992
+
+
+
+
+Preface
+~~~~~~~
+  The programs and files in this distribution are freely distributable,
+but are also Copyright (c) David Dustin.  They may be freely distributed
+as long as no more than a minimum fee is charged to cover time and copying
+costs.  Permission is given for this distribution archive to be placed
+into Public-Domain collections such as the Amiga Library run by Fred Fish.
+
+  If you do decide to make use of UserInfo, you are suggested to send any
+form of donation or gift as payment.  This will get you the latest version
+of UserInfo, and also any other programs I have released.
+
+  Written in 100% pure assembly using Devpac 3.02.  The source code is
+enclosed in this archive.  If you make any changes, and decide to release
+a version to the general public, please at least send me a copy, so I know
+not to use the same revision number.
+
+
+
+  If you do have any suggestions, bug notes or ideas about this program,
+or if you would like to donate something, please let me know.
+
+
+    Write to me at the following address:
+
+                               David Dustin
+                             30 Richmond Ave
+                             Palmerston North
+                               NEW ZEALAND
+
+
+    Or I can be contacted via:
+                         dave@eclipse.acme.gen.nz
+
+
+
+
+Contents
+~~~~~~~~
+    1.     An introduction
+    2.     Usage
+    2a     Config File
+    2b     Comments
+    3.     History
+    4.     Credits / Copyrights
+
+
+
+1.  An Introduction
+~~~~~~~~~~~~~~~~~~~
+  This program was written after seeing the Finger option from the Waffle
+BBS software for the PC.  Falcon can provide some information, but it
+doesn't really tell the user anything interesting.
+
+  As of version 2.03, UserInfo only works with Kickstart V37+, and as of
+version 2.20 may be used from Workbench as long as ReqTools V38+ is
+available.
+
+
+
+2.  Usage
+~~~~~~~~~
+  UserInfo can mainly be used from the CLI.  It requires only one argument
+which is the partial (or full) name of the user that you which to examine.
+
+  If run from workbench, UserInfo will try to open reqtools.library, V38+,
+and make use of it.  If Reqtools isn't available, UserInfo can only be
+used from the Shell/CLI.
+
+
+  This utility would generally be used from within Falcon, so I have
+included an example Menus.BBS entry.
+
+
+R CON -- "UserInfo \"«GETSTACK»«Name (or part name) of user to view? »\""
+
+
+  This will either accept a command stack with the user name on it, or it
+will bring up a line asking the user for a name.  You may use any key that
+you like to run UserInfo, but seeing as the way Brian has done the menus,
+it makes it a little hard to find a useful one.
+
+  The reason that the quotes are needed is that if someone places a +
+character at the end of the name to check, it nicely drops the user into a
+shell.  It's not my fault, it has to do with the parsing in the shell.
+
+
+  The name search is case insensitive, and allows partial names.  You will
+be asked each time it finds a possible match.  If the name is not the one
+wanted, just enter N at the prompt, and UserInfo will search for another
+match.  If none are found then UserInfo will just exit out informing the
+user that a match could not be found.
+
+
+  Two entries will also be made into your Log.BBS file if you are using
+one.  The first is the text that is being scanned for, and if a successful
+match was found, the name of the user being scanned is entered into the
+log.  This is now optional.  See the config info for more details.
+
+
+  As of Version 2.20, I have included a kind of Graphic Interface via the
+usage of ReqTools requestors.  This means that you don't need a console
+window open somewhere.  This is what is used when run from Workbench.
+
+  This can be accessed via the CLI be placing the argument -r instead
+of the username to search for.
+
+
+There are three (four if using SysOp mode) requestors.
+
+  The first is a simple string gagdet into which you type the name (or
+part name) of the user you want to scan for.
+
+  The second requestor only appears if you have placed an ampersand in the
+search string.  If the approprate setting is selected in the config file,
+what ever you type into the string will be invisable.
+
+  The third requestor is the check requestor.  This simply comes up asking
+if the possible match UserInfo has found is the one that you wish to view.
+
+  The fourth requestor is simply the Info screen.  Please note that this
+generlly screws up the positioning when using a proportinal font :(
+
+
+
+2a. Config file
+~~~~~~~~~~~~~~~
+  As of V2.11 the format for the config file has changed (as well as it's
+name).  Older config files are not compatible.
+
+  The config is called UserInfo.prefs and should be placed in either the
+directory that you are calling UserInfo from, or in the ENV:  directory.
+
+  The file is standard ASCII with one option per line of the file.  The
+available options are:
+
+
+USERFILE=<path/filename>
+  The file name and path of the User.BBS file to get the information from.
+If this option is not included, then UserInfo is not usable.  I no longer
+try to track down the User.BBS file.  This should mean that it will work
+with all configurations.
+
+
+APPFILE=<path/filename>
+  This is the filename and path of the optional APP.BBS file.  If you are
+using this option in the BBS, then as much information as you want will be
+extracted from this file for the user to be scanned.
+
+  If you are not using this, or an entry cannot be found, then this extra
+data will not be displayed.
+
+
+COMMENTFILE=<path/filename>
+  This is a optional extra information filename/path.  See section 2b for
+more information about using this.
+
+
+DISPLAY=xxxx  <four switches>
+  This option allows you to select what extra (if any) information you
+want to be extracted from the APPFile.BBS.
+
+  The format for this entry is four letters.  They are basicly switches,
+with Y being on and N for off.  The defualts for all are N (off).  The
+four switches relate to the following information (in this order):
+                Address, Phone number, Age, Computer Type
+
+  The most common setting you would probably use would be to hide all of
+the information other than the computer type.  This would mean that your
+config file would have this in it:  NNNY
+
+
+PASSWORD=<password string>
+  This is for the SysOp's use only.  The sysop of each system can choose
+to view all of the available data about a user no matter what the setting
+in the DISPLAY option is.  This is only useful if you have the APPFILE
+option set, but I may expand this to include extra information other than
+that shown (depending upon demand)
+
+  To access this extra information, simply enter an ampersand (@) as the
+first letter of the string that you want to search for.  This will be
+removed from the search string, and the password will be asked of you.
+
+  The password is not case sensitive, and should be something that no-one
+else can guess.
+
+
+HIDEPASSWORD=<Yes/No>
+  When used in conjunction with the above function, passwords entered when
+running UserInfo will not be visable.  This means that if someone is
+looking over your shoulder they will not know what your password is.  The
+defualt is ON.
+
+
+NOLOG=<Yes/No>
+  If this is set to Yes (defualt) then UserInfo will try to make two
+entries into your Log.BBS file.  The first will be the name that was
+entered to scan for, and the second will be the user viewed (if one is
+selected).
+
+
+
+2b. Comments
+~~~~~~~~~~~~
+  As of 2.05, I have added the option for comments to be placed after the
+name of the user being scanned.  This was just to provide a little more
+information (say, the users real name if they are using an alias).
+
+  The file is a standard ASCII text file, which will be loaded from the
+entry provided in the configuration file.
+
+  There should be one line for each user that you want to have a comment
+for.  The line should look like you want it to appear when it is shown on
+screen.  The users name must be in full at the start of the line, but
+after that, you can have whatever you want.
+
+
+An example (taken from my system) is:
+
+David Dustin (The BOSS!)
+Renze Deruiter (The Renze)
+Polly Ester (Here kitty)
+
+
+  You do not have to have an entry for each user if you don't want.  If an
+entry cannot be found for the user being scanned, then nothing extra will
+be added :)
+
+
+
+
+3.  History
+~~~~~~~~~~~
+V1.00	10 August 1992
+    * First release.
+
+V1.01   12 August 1992
+    * Corrected a few errors
+    * Cleaned up output
+    * Added "Total Time OnLine"
+
+V1.10   15 August 1992
+    * Removed need for the full database to be loaded.  Now scans through
+      the file to find the user's information
+    * Cleaned up display/handling
+    * Added date of last call (finally worked out how Brian stored the date)
+
+V2.00   Never released
+    * Changed code a bit, and started to make use of my library
+
+V2.01   20 September
+    * Rewrote more code, and made full use of ECLIPSE.Library (mine)
+
+V2.02   21 September
+    * Changed search method.  You can now specify ANY part of the name
+      (even one letter), and it will scan properly
+
+V2.02b  23 September
+    * Changed method of checking for a keypress.  Now uses SetMode() to
+      change the console to a RAW window
+    * Now requires V37+ dos.library
+
+V2.03   7 November
+    * Added extra information from APPFILE data file (Thanks Dave :)
+    * Included a config to specify what data from the APPFILE is to be
+      shown
+    * Removed a couple of little annoying bugs
+
+V2.04   9 November
+    * Cleaned up code again
+    * Added a SysOp override of the config file.  If you put a '@' as the
+      first letter of the name to scan, it will provide all the information
+      that it can about the user (as long as there is an entry for them in
+      the APPFILE)
+
+V2.05   10 Novemeber
+    * Added comment feild and file to information.  Allows you to provide an
+      insight into what you think of the user :)
+    * Released seperatly away from my ECLIPSE.library beta test archive.
+
+V2.06   10 November (after I woke up again ;)
+    * Corrected an error that had popped up with my shuffling round of the
+      code.  The text that was being scanned for wasn't being entered into
+      the logfile
+
+V2.07   10 November (even later in the day)
+    * There was a bug if all of the APP options were not selected.  It would
+      not read the correct line from the file. (Thanks Karl)
+
+V2.08   10 November (Damn.  Too many bugs in one day)
+    * The SysOp mode wasn't working unless you ran it from the shell.
+
+V2.09   27 November
+    * Put in a password system on the SysOp info mode, to prevent
+      'illegal' usage of the funtion
+    * Added extra paths for comments file
+
+V2.09b  28 November
+    * Made same mistake as I had made with V2.05 (That'll teach me to update
+      and/or improve my code :)
+
+V2.10   15 December
+    * Re-wrote config file routine and format to make it easier to upgrade
+      and update.  Also added more options to the config, like the
+      paths/name of the various files, so that I don't have to try and
+      guess where the files are (it's all your fault Dave H.  :)
+
+V2.11   16 December
+    * Re-wrote text output routines.  Now uses RawDoFmt() so as to make it
+      easier to upgrade (I'm getting lazy)
+
+V2.20   18 December
+    * Added "GUI" using ReqTools V38
+    * Now usable via Workbench (using ReqTools)
+    * Password entry now optionaly invisable
+    * Log output optional
+    * Cleaned up code, and removed "possibly" fatal bug
+
+V2.21   19 December
+    * Finished major modifications and bug testing of V2.20
+    * Added backspace to Hidden password entry from console (should work
+      with all systems)
+
+V2.21b  19 December
+    * Fixed small error with single-key press read routine
+    * Optomized slightly (lost 20 bytes :)
+    * Fixed bug with error checking routines which caused ReqTools not
+      to be accessed properly.  This ment no requestors were being used.
+
+V2.22   24 December
+    * Corrected error with lengths of infomation
+
+
+28-Jan-1996
+    * Released into public domain by the author Dave Dustin
+
+
+
+4.  Credits / Copyrights
+~~~~~~~~~~~~~~~~~~~~~~~~
+    Main code                   - David Dustin
+    Ideas/Bug testing           - Renze de Ruiter
+                                - Dave Hassall
+                                - Paul Dunlop
+                                - Karl Mottram
+
+
+    UserInfo                    - (c) 1992-93 David Dustin
+    Falcon CBCS                 - (c) 1988-91 Brian Fehdrau
+    Devpac 3.02                 - (c) 1991 HiSoft
+    ReqTools                    - (c) 1991-93 Nico François
+    Kickstart/Workbench         - (c) 1985-91 Commodore-Amiga, Inc.

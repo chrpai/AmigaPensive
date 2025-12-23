@@ -1,0 +1,1139 @@
+/*   TradeWars (C-Net Amiga Version) 1.0
+        Written By Jim Holzknecht
+     TradeWars (C-Net Amiga Version) 2.0
+        Written by Chris Cowan
+     Original Concept By Chris Sherrick
+     The Danger Zone (502)/448-1155 (300-19.2k Baud)          */
+
+options results
+bufferflush
+getuser 1;name = result
+getuser 27;linelength = result
+getuser 41;serialn = result
+getuser 17;maint=result;maint = left(maint,1)
+PF = 'PFILES:TRADEWARS/'
+PFP = 'PFILES:TRADEWARS/players/'
+PFU = 'PFILES:TRADEWARS/universe/'
+PFT = 'PFILES:TRADEWARS/teams/'
+dir6 = "PFILES:TRADEWARS/text/"
+dir7 = "PFILES:TRADEWARS/messages/"
+dir8 = "RAM:tw/"
+space = '                                        '
+date = date('U')
+seed=random(1,100,time('s'))
+signal on error
+signal on syntax
+signal on ioerr
+if ~exists('ram:tw') then do;sendstring '\$0makedir "ram:tw"\';end
+if exists(dir8"Maint!") then do
+ transmit "\c1\f1\n1TradeWars Maintenance is currently running!  Try again later..."
+ exit
+end
+if exists(dir8"Player!") then do
+ transmit "\c1\f1\n1Another online user is currently playing!  Try again later..."
+ exit
+end
+call open(file, dir8"Player!", "W")
+an="In Use!"
+call writeln file, an
+call close(file)
+if linelength = 80 then do
+sendfile pf"_title.pic"
+end
+if linelength ~= 80 then do
+transmit "\f1\n1"
+transmit '         \c4\r1 T R A D E   W A R S \r0'
+end
+transmit '\n1\c3'
+an = 'Version 2.x'
+call cnter
+transmit "\c6"
+an = "Written by Chris Cowan"
+call cnter
+transmit "\c2"
+an = "(c) 1992 Outlaw Technology"
+call cnter
+an = "All rights reserved."
+call cnter
+transmit '\c5'
+an = 'The Danger Zone (502)/448-1155'
+call cnter
+transmit "\c1"
+an = "[ Version 1.0 by Jim Holzknecht ]"
+call cnter
+an = "[ Original concept by Chris Sherrick ]"
+call cnter
+sendstring "\n1\c4Hit a key..."
+if maint=1 then sendstring "  \c7**Sysop; hit 'E' for Player Editor!** :"
+getchar;an=upper(result)
+if an="E" & maint=1 then signal playereditor
+startup:
+mem = storage();if mem<900000 then do
+transmit 'Sorry, there is less than 900,000 bytes of memory!'
+transmit 'Try again later...'
+signal endit
+end
+call open(file, PF'_universe.data', 'R')
+ns=readln(file)
+cbs=readln(file)
+call close(file)
+call open file, (PF'_config.data'), 'R'
+am.1 = readln(file)
+am.2 = readln(file)
+am.3 = readln(file)
+am.4 = readln(file)
+am.5 = readln(file)
+am.6 = readln(file)
+am.7 = readln(file)
+am.8 = readln(file)
+am.9 = readln(file)
+am.10 = readln(file)
+am.11 = readln(file)
+call close file
+filen = PF'_rates.data'
+call open file, (filen), 'R'
+c.1 = readln(file)
+c.2 = readln(file)
+call close file
+
+yoopa:
+signal newuserroutines
+
+key:
+sendstring '\c4(\c7-*-\c4)\c6'
+getchar
+transmit '\h9'
+return
+
+checkdate:
+If exists(PF'_date.data') then do
+  call open file, (PF'_date.data'), 'R'
+  tt.1 = readln(file)
+  call close file
+  if tt.1 = date('U') then return
+end
+
+maint:
+transmit '\f1\n1\c4[\c7Now Doing Daily Maintenance\c4]\c6'
+
+dlete:
+transmit '\n1\c1Deleting Inactive Players...'
+call teloop
+ur = 0
+x = 0
+cop = 0
+yoop:
+x = x + 1
+if x > 40 then signal dlete2
+user = PFP'p' x
+call open file, (user), 'R'
+do y = 1 to 30
+pl.x.y = readln(file)
+end
+call close file
+signal yoop
+
+dlete2:
+cop = cop + 1
+if cop > 40 then signal interest
+bo = pl.cop.14
+if left(pl.cop.1,1) = '.' then bo = 0
+if bo = '' then bo = 0
+datc = date('c')
+temp = left(pl.cop.1,1)
+x = datc - bo
+if serialn=pl.cop.15 then signal dlete2
+if x > am.6  & temp ~= '.' then do
+  transmit 'Deleting '||trim(pl.cop.1)||'...'
+  a = '\c7'pl.cop.1
+  if pl.cop.2 > 0 then a=a||' \c2[\c7Team'pl.cop.2'\c2]'
+  a=a||' \c6was deleted for inactivity.'
+  call newspaperopen
+if exists(PFU'fighters') then do
+  call open file, (PFU'fighters'), 'R'
+  y=0
+  do until eof(file)
+  y=y+1
+  pd.y=readln(file)
+  if word(pd.y,1)=pl.cop.15 then do
+  i=y
+  call cc
+  end
+  end
+  call close file
+  call searchun
+end
+  pl.cop.3 = 0
+  pl.cop.4 = 0
+  pl.cop.7 = 0
+  pl.cop.15= 0
+  if pl.cop.2 > 0 then do
+    teamnumber = pl.cop.2
+    if tle.teamnumber = pl.cop.1 then do
+      call disband2
+    end
+  end   
+  pl.cop.1 = '..................'
+  pl.cop.2 = 0
+  x = cop
+  call saveuser
+  if exists(dir7''cop) then address command 'delete 'dir7''cop
+  if exists(dir7''cop'.msg') then address command 'delete 'dir7''cop'.msg'
+end  
+signal dlete2    
+
+interest:
+c.1 = 5
+if am.3 = 1 then do
+  transmit '\n1\c3Setting Today''s Interest Rate...'
+  c.1 = random(1,10,time('s'))
+end
+transmit 'Posting Interest...'
+cop = 0
+inter:
+cop = cop + 1
+if cop = 41 then signal interend
+if pl.cop.13 > 0 then do
+  x = pl.cop.13
+  temp = c.1 / 100
+  y = trunc(x*temp)
+  x = x + y
+  pl.cop.13 = x 
+  x = cop
+  call saveuser
+end
+signal inter
+interend:
+c.2 = 200
+if am.4 = 1 then do
+  transmit '\n1\c2Setting Today''s Klingon/Romulan Bounty...'
+  temp = random(1,100,time('s'))
+  c.2 = 150 + temp
+end
+fixnewspaper:  /* Crazy Cad gets credit here...*/
+xx = 30
+if xx = 0 then signal done 
+filen = dir6||'newspaper'
+if ~exists(filen) then signal done
+call open(short,filen, 'R');s=0
+do until eof(short)=1
+  s=s+1
+  line.s = readln(short)
+end
+s=s-1
+call close short
+if xx ~=0 & xx<s then do
+  transmit '\n1\c7Fixing Newspaper...'
+  signal off error
+  call open(short,filen,'W')
+  do i =(s-xx+1) to s
+    writeln(short,line.i)
+  end
+  call close short
+  signal on error
+end
+if exists(dir7'3ALL.msg') then do
+  address command 'delete 'dir7'3ALL.msg'
+end
+if exists(dir7'2ALL.msg') then do
+  address command 'rename 'dir7'2ALL.msg as 'dir7'3ALL.msg'
+end
+if exists(dir7'1ALL.msg') then do
+  address command 'rename 'dir7'1ALL.msg as 'dir7'2ALL.msg'
+end
+
+if exists(dir7'cabal') then do
+call open file, (dir7'cabal')
+z = readln(file)
+call close file
+a = '\c7'z' \c3Klingons \c6& \c3Romulans \c6were killed yesterday.'
+call newspaperopen
+address command 'delete 'dir7'cabal'
+end
+
+addklingons:
+b = date();a = "\c5Maintenance - "||b||":  --\n1";call sysoplog
+sendstring "\n1\c6Replenishing Klingons..."
+sector=220
+call opensector
+sd.9=98
+if sd.8 < 5000 then sd.8 = 5000
+a = sd.8;a = a + 100;sd.8 = a
+if sd.8 > 10000 then sd.8 = 10000
+call closesector
+sendstring "."
+sector=59
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=310
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=455
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=25
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=395
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=730
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=440
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=68
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=67
+call opensector
+if sd.9=0 | sd.9=98 then do
+ sd.9=98;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+
+moveklingons:
+sendstring "\n2\c3Moving Klingons..."
+counter=0
+mk2:
+counter=counter+1;if counter=6 then signal addromulans
+whoops=0
+mk3:
+whoops=whoops+1;if whoops>200 then do;a = "\c1Could not add Klingon group!";call sysoplog;signal addromulans;end
+sector=random(7,999)
+if ~exists(PFU'tws'sector) then signal mk3
+call opensector
+if sd.8 > 0 then signal mk3
+if sd.29=3 then signal mk3
+sd.9=98;sd.8=20
+call closesector
+a = "\c6Klingon group added at sector \c7"||sector||"\c6.";call sysoplog
+sendstring "."
+signal mk2
+
+addromulans:
+sendstring "\n2\c5Replenishing Romulans..."
+sector=560
+call opensector
+sd.9=99
+if sd.8 < 5000 then sd.8 = 5000
+a = sd.8;a = a + 100;sd.8 = a
+if sd.8 > 10000 then sd.8 = 10000
+call closesector
+sendstring "."
+sector=54
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=920
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=735
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=185
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=615
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=425
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=81
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=73
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=37
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=13
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=14
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=38
+call opensector
+if sd.9=0 | sd.9=99 then do
+ sd.9=99;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+
+moveromulans:
+sendstring "\n2\c4Moving Romulans..."
+counter=0
+mr2:
+counter=counter+1;if counter=6 then signal addfederation
+whoops=0
+mr3:
+whoops=whoops+1;if whoops>200 then do;a = "\c1Could not add Romulan group!";call sysoplog;signal addfederation;end
+sector=random(7,999)
+if ~exists(PFU'tws'sector) then signal mr3
+call opensector
+if sd.8 > 0 then signal mr3
+if sd.29=2 then signal mr3
+sd.9=99;sd.8=20
+call closesector
+a = "\c3Romulan group added at sector \c7"||sector||"\c3.";call sysoplog
+sendstring "."
+signal mr2
+
+addfederation:
+sendstring "\n2\c7Replenishing Federation ships..."
+sector=89
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=320
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=365
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=955
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=61
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=49
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=75
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=48
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=26
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=80
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=610
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+sector=890
+call opensector
+if sd.9=0 | sd.9=97 then do
+ sd.9=97;a = sd.8;a = a + 10;sd.8 = a;if sd.8 > 100 then sd.8 = 100;call closesector
+end
+sendstring "."
+
+moveborg:
+borgsector=0
+transmit "\n2\c1Moving the Borg..."
+if exists(PF'_borg.data') then do
+call open file, (PF'_borg.data'), 'R'
+borgsector = readln(file)
+call close file
+end
+moveborg2:
+var=random(7,999)
+if var=borgsector then signal moveborg2
+if ~exists(PFU'tws'var) then signal moveborg2
+call open file, (PF'_borg.data'), 'W'
+call writeln file, var
+call close file
+a = "\c2Borg moved to sector \c7"||var||"\c2.";call sysoplog
+
+moveq:
+qsector=0
+transmit "\n1\c2Moving Q..."
+if exists(PF'_q.data') then do
+call open file, (PF'_q.data'), 'R'
+qsector = readln(file)
+call close file
+end
+moveq2:
+var=random(7,999)
+if var=borgsector then signal moveq2
+if var=qsector then signal moveq2
+if ~exists(PFU'tws'var) then signal moveq2
+call open file, (PF'_q.data'), 'W'
+call writeln file, var
+call close file
+a = "\c4Q moved to sector \c7"||var||"\c4.";call sysoplog
+
+addasteroid:
+transmit "\n1\c7Adding Asteroids..."
+x=0;var=random(1,3)
+aa2:
+x=x+1;if x>var then signal checkcloaking
+whoops=0
+aa3:
+whoops=whoops+1;if whoops>200 then do;a = "\c1Could not add Asteroid!";call sysoplog;signal checkcloaking;end
+sector=random(7,999)
+if ~exists(PFU'tws'sector) then signal aa3
+call opensector
+if sd.30 > 0 then signal aa3
+sd.30=1
+call closesector
+a = "\c5Asteroid added at sector \c7"||sector||"\c5.";call sysoplog
+signal aa2
+
+checkcloaking:
+transmit "\n1\c6Checking for expired cloaking devices..."
+x=0
+checkcloak2:
+x=x+1;if x=41 then signal done
+user=PFP'p' x
+call open file, (user), 'R'
+do y=1 to 30
+pl.x.y=readln(file)
+end
+call close file
+if pl.x.18 > 0 then do
+ a=pl.x.18;a=a-1;pl.x.18=a
+ call saveuser
+ if pl.x.18=0 then transmit "\n1\c7The U.S.S. "||pl.x.16||" materializes!"
+end
+signal checkcloak2
+
+done:
+if exists(PF'_date.data') then address command 'delete 'PF'_date.data'
+fle = PF'_date.data'
+call open file, (fle), 'W'
+call writeln file, date('U')
+call close file
+if exists(PF'_rates.data') then address command 'delete 'PF'_rates.data'
+fle = PF'_rates.data'
+call open file, (fle), 'W'
+call writeln file, c.1
+call writeln file, c.2
+call close file
+endcheck:
+return
+
+opensector:
+call open(sctor,PFU'tws'sector, 'R')
+do yop=1 to 30
+sd.yop=readln(sctor)
+end
+call close(sctor)
+return
+
+closesector:
+call open(sctor,PFU'tws'sector, 'W')
+do yop=1 to 30
+call writeln(sctor, sd.yop)
+end
+call close(sctor)
+return
+
+error:
+transmit '\n1Error in Line #' SIGL
+signal endit
+syntax:
+a = SIGL
+transmit '\n1Syntax Error In Line #' a
+transmit 'Line Reads : >'sourceline(a)'<'
+signal endit
+ioerr:
+transmit '\n1I/O Error In Line #' SIGL
+signal endit
+
+saveuser:
+call open file, (PFP'p' x), 'W'
+do y = 1 to 30
+call writeln file, pl.x.y
+end
+call close file
+return
+
+cnter:
+sendstring center(an,linelength)
+return
+
+newspaperopen:
+if exists(dir6'newspaper') then do
+  call close file
+  call open file, (dir6'newspaper'), 'A'
+  call writeln file, a
+  call close file
+  return
+end
+call close file
+call open file, (dir6'newspaper'), 'W'
+call writeln file, a
+call close file
+return
+
+sysoplog:
+if exists(dir6'sysoplog') then do
+  call close file
+  call open file, (dir6'sysoplog'), 'A'
+  call writeln file, a
+  call close file
+  return
+end
+call close file
+call open file, (dir6'sysoplog'), 'W'
+call writeln file, a
+call close file
+return
+
+disband2:
+teamnumber = pl.cop.2
+transmit '\n1\c2Disbanding Team...'
+x = 0
+do x = 1 to 40
+if pl.x.2 = teamnumber then do
+pl.x.2 = 0
+call saveuser
+end
+end
+a = '\c7'tn.teamnumber' \c2disbanded due to the deletion of the captain.'
+call newspaperopen
+tn.teamnumber = '..'
+call saveteam
+
+teloop:
+x = 0
+teloop2:
+x=x+1
+if x>10 then return
+fle=PFT't' x
+call open file, (fle), 'R'
+tn.x = readln(file)
+tle.x = readln(file)
+tpd.x = readln(file)
+call close file
+signal teloop2
+
+saveteam:
+fle = PFT't 'teamnumber
+call open file, (fle), 'W'
+call writeln file, tn.teamnumber
+call writeln file, tle.teamnumber
+call writeln file, tpd.teamnumber
+call close file
+return
+
+searchun:
+i=0
+searchun2:
+i=i+1
+if i>y then return
+if word(pd.i,1)=pl.cop.15 then do
+call removef
+i=i-1
+end
+signal searchun2
+
+cc:
+sector=word(pd.i,2)
+call open(sctor,PFU'tws'sector, 'R')
+do yop=1 to 30
+sd.yop=readln(sctor)
+end
+call close(sctor)
+var=random(1,2)
+if var=1 then sd.9=98
+if var=2 then sd.9=99
+call open(sctor,PFU'tws'sector, 'W')
+do yop=1 to 30
+call writeln(sctor, sd.yop)
+end
+call close(sctor)
+return
+
+removef:
+z=0
+removef2:
+z=z+1
+temp=y+1
+if z=temp then signal removef3
+temp=i+z
+an=i+z-1
+pd.an=pd.temp
+signal removef2
+removef3:
+y=y-2
+call open file, (PFU'fighters'), 'W'
+do z=1 to y
+call writeln file, pd.z
+end
+call close file
+return
+
+newuserroutines:
+transmit "\f1\n1\c5Checking user files\c7..."
+ur=0
+x=0
+loop:
+x=x+1
+if x >40 then signal loopa
+user=PFP'p' x
+call open file, (user), 'R'
+do y=1 to 30
+pl.x.y=readln(file)
+end
+call close file
+signal loop 
+loopa:
+x=0
+usersearch:
+x=x+1
+if x=41 then do;ur=0;signal usersearcha;end
+if pl.x.15=serialn then do
+ur=x
+if pl.x.1 ~= name then do
+transmit '\c3\n1Name change noted...'
+pl.x.1=name
+end
+signal usersearcha
+end
+signal usersearch
+
+usersearcha:
+if ur=0 then signal twnew
+if pl.ur.4=0 & pl.ur.14=date('c') then do
+transmit '\n1\c1You just died today. You will get a new ship tomorrow.'
+signal endit
+end
+if pl.ur.4=0 then signal twnew
+signal loadmain
+
+twnew:
+brandnew=1
+if ur>0 then do
+ transmit "\n1\c2Your ship has been destroyed!\n1Building a new \c6U.S.S. "||pl.ur.16||" \c2for you\c7..."
+ brandnew=0
+ signal parta
+end
+ur=0
+x=0
+checklist:
+x=x+1
+if x>41 then do
+ur=0
+signal build
+end
+if left(pl.x.1,1)="." then do
+ur=x
+signal build
+end
+signal checklist
+build:
+if ur=0 then do
+transmit '\n1\c1There is no room for the likes of you.'
+transmit '(try again later)'
+signal endit
+end
+transmit '\f1';sendfile pf"_scenario1"
+pl.ur.1=name
+pl.ur.2='0'
+pl.ur.6='0'
+pl.ur.13=am.11
+pl.ur.21='0'
+pl.ur.22='0'
+pl.ur.28="10"
+if exists(PFP'p' ur'.map') then do
+  var=PFP'p' ur'.map'
+  transmit '\$0delete "'var'"\'
+end
+parta:
+pl.ur.3=am.9
+pl.ur.4='1'
+pl.ur.5=am.7
+pl.ur.7='10'
+pl.ur.8='0'
+pl.ur.9='0'
+pl.ur.10='0'
+pl.ur.11='0'
+pl.ur.12=am.10
+pl.ur.15=serialn
+pl.ur.17='0'
+pl.ur.18='0'
+pl.ur.19='1'
+pl.ur.20='1'
+pl.ur.23='1'
+pl.ur.24='1'
+pl.ur.25='350'
+pl.ur.26='0'
+pl.ur.27=am.8
+pl.ur.29='0'
+pl.ur.30='0'
+if brandnew=0 then signal build2
+pl.ur.26="1"
+pl.ur.30="1"
+nameship:
+aks='\n1\c1        "What name will you give your starship, Captain?"\n2\c6> \c7'
+call askq
+if an="" then signal nameship
+var=length(an);if var>20 then an=left(an,20)
+nameship2:
+sendstring "\n1\c6The U.S.S. "an"\n2\c3Correct? \c7";getchar;sna = result
+if sna = "###PANIC" then signal endit
+if sna = "N" then do;transmit "No!";signal nameship;end
+if sna ~="Y" then signal nameship2
+transmit "Yes!"
+pl.ur.16=an
+transmit "\f1";sendfile pf"_scenario2"
+build2:
+x=ur
+call saveuser
+
+loadmain:
+twstart:
+if ur=0 then signal endit
+pl.ur.15=serialn
+vis=0
+transmit '\n1\c3*** \c2'ns' sectors! GOOD LUCK! \c3***'
+transmit '\n1\c7Welcome 'name'!!!'
+transmit '\n1\c5The following happened to you since your last time on:\c6'
+number=ur
+if exists(dir7''number) then do
+sendfile dir7''number
+address command 'delete 'dir7''number
+signal twstarta
+end
+transmit 'Nothing...'
+twstarta:
+a='\c3'pl.ur.1
+if pl.ur.2 > 0 then a=a||' \c1[\c7Team'pl.ur.2'\c1]'
+a=a||' \c5Logged on: \c3'date' \c5/ \c3'time()
+call newspaperprint
+
+twstartc:
+if pl.ur.6=date then transmit '\n1\c1You have been on today.'
+turns=pl.ur.5
+if pl.ur.6 ~= date then do;turns=am.7;pl.ur.27=am.8;end
+transmit '\n1\c4You have \c7'turns' \c4impulse & \c7'pl.ur.27' \c4warp turns remaining.'
+if turns=0 then do
+transmit '\n1\c1Sorry, you have no turns!'
+signal endit
+end
+call twlotto 
+hom:
+transmit '\n1\c3Checking for messages sent to you\c7...\c6'
+x=0;var=0
+filen=dir7'1ALL.msg';call mesr
+filen=dir7'2ALL.msg';call mesr
+filen=dir7'3ALL.msg';call mesr
+filen=dir7''ur'.msg';x=1;call mesr
+if var=0 then transmit "\c7<<\c2None received\c7>>"
+transmit "\n1\c4Hit a key...\g1"
+sendstring "\n1\c5Loading\c7..."
+pl.ur.5=turns;x=ur;call saveuser
+spawn "pfiles:tradewars/twmain"
+exit
+
+mesr:
+if exists(filen) then do
+sendfile filen
+var=1
+if x=1 then do
+address command 'delete 'filen
+end
+end
+return
+
+newspaperprint:
+if exists(dir6'newspaper') then call open(file, dir6'newspaper', 'A')
+if ~exists(dir6'newspaper') then call open(file, dir6'newspaper', 'W')
+call writeln file, a
+call close(file)
+drop a
+return
+
+twlotto:
+if pl.ur.6=date then return
+twlotto2:
+transmit '\n1\c2Do you wish to play the intergalactic pick 4 lottery?'
+aks='\c5A ticket costs 10 credits (\c3Y\c5/\c3n\c5)? \c7'
+call askq
+upper an
+if an='N' then return
+if pl.ur.12<10 then do
+transmit '\n1\c1You do not have enough money!'
+return
+end
+pl.ur.12=pl.ur.12-10
+getlotnum:
+aks='\n1\c1What is your four digit number for the lottery computer? \c7'
+call askq
+if length(an)<4 then signal getlotnum
+an=left(an,4)
+transmit '\n1\c4Working\c7...'
+a=random(1,9,time('s'))
+bo=random(1,9,time('s'))
+c=random(1,9,time('s'))
+d=random(1,9,time('s'))
+transmit '\n1\c2The Galactic Lottery Computer picked \c3'a''bo''c''d'\c2.'
+x=0
+z=0
+
+fruitloop:
+z=z+1
+if z=5 then signal check
+y=substr(an,z,1)
+if y=a then do
+  x=x+1
+  a=99
+  signal fruitloop
+end
+if y=bo then do
+  x=x+1
+  bo=99
+  signal fruitloop
+end
+if y=c then do
+  x=x+1
+  c=99
+  signal fruitloop
+end
+if y=d then do
+  x=x+1
+  d=99
+  signal fruitloop
+end
+signal fruitloop
+
+check:
+transmit '\n1\c7You matched\c1' x '\c7digits.'
+if x=0 then y=0
+if x=1 then y=50
+if x=2 then y=5000
+if x=3 then y=15000
+if x=4 then y=50000
+pl.ur.12=pl.ur.12+y
+transmit '\n1\c6You won \c7'y' \c6credits giving you a total of \c7'pl.ur.12' \c6credits!'
+if y>50 then do
+a='\c7'pl.ur.1' \c6won \c7'y' \c6credits in the lottery.'
+call newspaperprint
+end
+x=ur;call saveuser
+drop a bo c d x y rn
+return
+
+askq:
+bufferflush
+query aks
+an=result
+an=strip(an)
+if an='###PANIC' then do
+ sendstring '\$0delete 'dir8'Player!\'
+ exit
+end
+return
+
+ttsetup:
+tt.1='Name         : '
+tt.2='Team #       : '
+tt.3='Fighters     : '
+tt.4='Sector       : '
+tt.5='Turns/impulse: '
+tt.6='Last Date    : '
+tt.7='Holds        : '
+tt.8='Ore          : '
+tt.9='Organics     : '
+tt.10='Equipment    : '
+tt.11='Mines        : '
+tt.12='Trade Credits: '
+tt.13='Bank Credits : '
+tt.14='Century LD   : '
+tt.15='Serial #     : '
+tt.16='Ship Name    : '
+tt.17='Tractor Beam : '
+tt.18='Cloak Energy : '
+tt.19='Ship Type    : '
+tt.20='Weapons Type : '
+tt.21='Klingon Flag : '
+tt.22='Romulan Flag : '
+tt.23='Radar Type   : '
+tt.24='Shields Type : '
+tt.25='Crew         : '
+tt.26='Genesis Probe: '
+tt.27="Turns/warp   : "
+tt.28="Approv Rating: "
+tt.29="Beacons      : "
+tt.30="unused       : "
+return
+
+edplayer:
+transmit left('\c1 1) '||tt.1||'\c7'||pl.player.1,45,' ')||'  \c1 2) '||tt.2||'\c7'||pl.player.2
+transmit left('\c1 3) '||tt.3||'\c7'||pl.player.3,45,' ')||'  \c1 4) '||tt.4||'\c7'||pl.player.4
+transmit left('\c1 5) '||tt.5||'\c7'||pl.player.5,45,' ')||'  \c1 6) '||tt.6||'\c7'||pl.player.6
+transmit left('\c1 7) '||tt.7||'\c7'||pl.player.7,45,' ')||'  \c1 8) '||tt.8||'\c7'||pl.player.8
+transmit left('\c1 9) '||tt.9||'\c7'||pl.player.9,45,' ')||'  \c110) '||tt.10||'\c7'||pl.player.10
+transmit left('\c111) '||tt.11||'\c7'||pl.player.11,45,' ')||'  \c112) '||tt.12||'\c7'||pl.player.12
+transmit left('\c113) '||tt.13||'\c7'||pl.player.13,45,' ')||'  \c114) '||tt.14||'\c7'||pl.player.14
+transmit left('\c115) '||tt.15||'\c7'||pl.player.15,45,' ')||'  \c116) '||tt.16||'\c7'||pl.player.16
+transmit left('\c117) '||tt.17||'\c7'||pl.player.17,45,' ')||'  \c118) '||tt.18||'\c7'||pl.player.18
+transmit left('\c119) '||tt.19||'\c7'||pl.player.19,45,' ')||'  \c120) '||tt.20||'\c7'||pl.player.20
+transmit left('\c121) '||tt.21||'\c7'||pl.player.21,45,' ')||'  \c122) '||tt.22||'\c7'||pl.player.22
+transmit left('\c123) '||tt.23||'\c7'||pl.player.23,45,' ')||'  \c124) '||tt.24||'\c7'||pl.player.24
+transmit left('\c125) '||tt.25||'\c7'||pl.player.25,45,' ')||'  \c126) '||tt.26||'\c7'||pl.player.26
+transmit left('\c127) '||tt.27||'\c7'||pl.player.27,45,' ')||'  \c128) '||tt.28||'\c7'||pl.player.28
+transmit left('\c129) '||tt.29||'\c7'||pl.player.29,45,' ')||'  \c130) '||tt.30||'\c7'||pl.player.30
+transmit '\n1\c1(\c7S\c1)\c7ave Player'
+transmit '\c1(\c7A\c1)\c7bort (don''t save)'
+query '\n1\c3Edit Which One: '
+pl=1;ab=0;x=0
+an=result
+if an='###PANIC' then do
+ sendstring '\$0delete 'dir8'Player!\'
+ exit
+end
+x = an
+if x>0 & x<31 then do
+ sendstring '\n1\c2'||tt.x
+ pl=0;nu=0
+ call rkey
+ if an='###PANIC' then signal endit
+ if an='.' then an='....................'
+ if an ~='' then pl.player.x=an
+end
+upper an
+if an='S' then do
+call open(file,pfp||'p '||player,"W")
+do i=1 to 30
+call writeln file, pl.player.i
+end
+call close file
+return
+end
+if an='A' then do
+ab=1
+return
+end
+transmit "\f1"
+signal edplayer
+
+rkey:
+query
+an=result
+if an='###PANIC' then do
+ sendstring '\$0delete 'dir8'Player!\'
+ exit
+end
+if pl=1 then upper an
+if nu=1 & datatype(an)~='NUM' then signal rkey
+pl=0;nu=0
+return
+
+playereditor:
+call ttsetup
+
+optmenu:
+ab=0;nu=0;pl=0
+transmit "\f1\n1\c6                            TradeWars! Player Editor"
+transmit '\n1\c7                     Q=Quit to TradeWars, P=Exit to Pfiles'
+transmit '\n2\c2Please enter the player number you wish to edit (1-40)'
+query '\n1\c2: \c3'
+an=upper(result)
+if an='' then signal optmenu
+if an='###PANIC' then do
+ sendstring '\$0delete 'dir8'Player!\'
+ exit
+end
+if an='Q' then signal startup
+if an='P' then signal endit
+player=an
+if player<1 | player>40 then signal optmenu
+call open(file,pfp||'p '||player,"R")
+do i=1 to 30
+pl.player.i=readln(file)
+end
+call close file
+transmit "\f1";call edplayer
+signal optmenu
+
+endit:
+sendstring '\$0delete 'dir8'Player!\'
+exit

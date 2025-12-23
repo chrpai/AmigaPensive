@@ -1,0 +1,59 @@
+;
+;	CVTALL : AMMS-Script zum Konvertieren von AMMS-Befehlstexten
+;
+;	$VER: 1.01 / 22.04.1994
+;
+;	Mit diesem Script werden alle Befehlstexte in den Sprache deutsch und
+;	englisch aus MBTEXT:<SPRACHEN>/COM nach MBCOM:<SPRACHEN> konvertiert.
+;
+;
+;       Das Script sollte so eingebunden werden, dass es ueber Level und
+;       Flags auf die folgende Befehle zugreifen kann :
+;
+;	CVT
+;	EOD
+;	EXTERN
+;	GOSUB
+;	PARSE
+;	RETURN
+;	SET LANGUAGE
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DELETE
+;	LIST
+;
+
+; Parameter auswerten
+
+_parse "CVTALL" p0			; Keine Parameter erlauben
+
+; TMP-Batchdatei mit allen Befehlsnamen erstellen
+
+_ex list >mbmsg:point/'{port}'/cvt mbtext:deutsch/com/#? lformat "_cvt %s"
+
+; Alle Text fuer deutsch und englisch konvertieren
+
+_set language/call/quiet "deutsch"	; Sprache deutsch einstellen
+_gosub CONVERT				; Befehlstexte konvertieren
+_set language/call/quiet "english"	; Sprache englisch einstellen
+_gosub CONVERT				; Befehlstexte konvertieren
+_set language/old/quiet			; Alte Sprache einstellen
+
+; TMP-File loeschen
+
+_ex delete mbmsg:point/'{port}'/cvt quiet
+
+; Ende
+
+_eod					; Ende
+
+;
+; Unterroutine zum Konvertieren aller Befehlstexte
+;
+CONVERT:
+_disk execute mbmsg:point/'{port}'/cvt	; Befehlstexte konvertieren
+; Befehlstexte aus MBCOM: nach AMMS:MBCOM kopieren
+_ex copy >nil: mbcom:'{alanguage}' amms:mbcom/'{alanguage}'
+_return					; Ende der Unterroutine

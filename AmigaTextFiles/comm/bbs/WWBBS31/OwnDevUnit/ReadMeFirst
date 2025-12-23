@@ -1,0 +1,200 @@
+                            OwnDevUnit.library
+
+                Copyright © 1991 by Christopher A. Wichura.
+                           All Rights Reserved.
+
+
+                                 Legalease
+
+OwnDevUnit.library is copyrighted by Christopher A. Wichura.  It is freely
+redistributable.  You are free to copy it, as long as no charge is placed
+on it (cost of media and/or shipping is acceptable).
+
+In using OwnDevUnit.library, you assume all responsibility for any loss of
+productivity and/or money that may occur during its use.  Mr. Wichura can
+not and will not be held accountable.
+
+                   What is it?  And why might I need it?
+
+To understand why OwnDevUnit.library was created, a little background
+information is needed.  For quite some time now, the Amiga community has
+had a number of programs that "sit on" a device/unit, waiting for it to do
+something.  An example of this is the program Getty, part of the AmigaUUCP
+distribution, which sits on a serial device waiting for a call to come in
+and then executing a program (usually uucico) after a login id has been
+established.  For quite a while, these programs were unfriendly to other
+programs wanting the device (such as a term program in the case of Getty).
+They provided no means for notifying them that another program wants the
+device/unit and more or less had to be killed and then restarted each time
+another program wanted to run.  Matt Dillon, the keeper of AmigaUUCP, has
+tried a couple of methods of implementing an extended locking mechanism
+whereby a program can ask Getty (or a similar program) to temporarily
+release the device it is looking at.  His original method, patching the
+OpenDevice() call, proved to be unstable, especially with serial devices
+other than the one built into an Amiga.  His second attempt works quite
+well.  However, it requires that programs that want to access the serial
+device either 1) be started by a wrapper program, LockSerial, that does the
+lock request or 2) compile and include Matt's locking code directly (to
+date, no program I know of uses this method).
+
+I created OwnDevUnit.library to make option two, above, much easier to
+implement.  By having a shared library with a well defined set of routines,
+making a terminal program aware of the extended locking mechanisms required
+by programs such as Getty is trivial.  Term programs could be started
+directly, instead of the user having to use LockSerial.  An added benifit
+is that term programs that allow the user to switch the serial device/unit
+on the fly would be able to proplerly handle extended locking, instead of
+requiring the user to quit the term program and re-run it with a new
+device/unit specification given to LockSerial.
+
+Unfortunately, Matt was not interested in my modifications, and currently I
+release modified executables of uucico, getty and lockserial that use
+OwnDevUnit.library's locking mechanism each time a new AmigaUUCP update
+comes out.  This is the reason I have not officially released any kind of
+programmer's kit for OwnDevUnit.library until now.  I figured, that if
+AmigaUUCP didn't support it, then what incentive was there for term program
+writers to support OwnDevUnit.library.  Recently, however, I have been
+contacted by the keeper of Amiga Welmat (Russel McOrmond,
+rwm@Atronx.OCUnix.On.Ca), another program which has a mode
+that works very much like Getty does, about the possibility of using
+OwnDevUnit.library and how this is an area where a couple different people
+are trying to solve essentially the same problem in different ways.
+Because of this, my interest in getting OwnDevUnit.library out and
+available has been rekindled and I have finally put together a developer's
+pack.
+
+                  What is included in this distribution?
+
+This distribution of OwnDevUnit.library contains the following files:
+
+    c/lockserial
+
+        My modified version of the LockSerial program from the AmigaUUCP
+        distribution that uses OwnDevUnit.library's locking mechanism.
+        Even if you don't plan to write any code that directly accesses
+        OwnDevUnit.library, you can use this program to provide locking
+        between programs used on your system.
+        
+        Usage is:
+        
+            LockSerial [-A] [-Ddevicename] [-Uunit] "command & args"
+        
+        The -A switch allows one to specify attempt mode, which will
+        fail and return the current owner's name if it refuses to
+        give up it's lock on the device.  If -A is not specified,
+        LockSerial will block indefinately waiting for the device
+        to become free.
+        
+        LockSerial defaults to serial.device unit 0.
+    
+    docs/OwnDevUnit.doc
+    
+        An ASCII format docfile for programming OwnDevUnit.library.  It
+        is in AutoDoc format, suitable for parsing by one of the various
+        AutoDoc hypertext scanners.
+    
+    docs/OwnDevUnit.tex
+    
+        The TeX version of OwnDevUnit.doc.  Note that this requires
+        AutoDoc.tex to be TeXified, a macro package I will not release
+        at this time.
+
+    docs/OwnDevUnit.dvi
+    
+        This is a .dvi file generated from OwnDevUnit.tex.  If you have
+        access to a dvi output system then it is recommened that this
+        be printed over OwnDevUnit.doc, as it is better formatted and
+        easier to read.
+
+    fd/OwnDevUnit.fd
+
+        This is a .fd file for OwnDevUnit.library.  Using this, even
+        AmigaBASIC should be able to access OwnDevUnit.library.
+
+    include/OwnDevUnit.h
+
+        This is a 'C' style include file for people programming
+        OwnDevUnit.library.  It is tailored a little towards SAS/Lattice C.
+        I have not tried it under Manx.  (I don't have Manx...)
+
+    lib/ODU.lib
+
+        Link library with stubs for calling functions in
+        OwnDevUnit.library.  Provided for those that don't have access
+        to #pragmas of one sort or another.  Uses relative base addressing.
+
+    lib/ODUnb.lib
+
+        Same as above, except that non base relative addressing mode is
+        used.
+
+    libs/OwnDevUnit.library
+
+        This is the shared library which provides the locking mechanism.
+        It should be copied to your LIBS: directory.
+
+    source/*
+
+	The source and makefile for rebuilding OwnDevUnit.library.  This
+	is very SAS specific code.  Compiling with debug mode on will
+	include lots of kprintf()s.  You have been warned...
+
+             Suggested use of OwnDevUnit.library in a program
+
+I wrote OwnDevUnit.library such that it should be easy to use if it is
+there and equally as easy to not use if it is not there.  This way, a term
+program does not have to require OwnDevUnit.library to be present to run.
+It is suggested that term programs look for OwnDevUnit.library and if it is
+present call either LockDevUnit() or AttemptDevUnit() before calling
+OpenDevice() (you MUST still check the error return from OpenDevice(),
+though!).
+
+It is recommended that term programs only use the AttemptDevUnit() call, as
+it is unfriendly to lock up the user's machine waiting for a device to
+become free.  The LockDevUnit() call is intended mainly for non-interactive
+applications (such as uucico) that periodically run in the background.
+
+If you are writing a program similar to Getty then, obviously,
+OwnDevUnit.library will have to be hardcoded into it.  In such cases, I am
+willing to allow distribution of OwnDevUnit.library with your program so
+long as you first send me mail asking permission.  This way, I can insure
+that you are distributing the latest version of the library, and that if
+newer versions are created, you can be informed of them and change your
+distribution accordingly.
+
+If you are someone who doesn't program at all then you can still use the
+LockSerial program to access OwnDevUnit.library, as was previously
+mentioned.  OwnDevUnit.library can also be added as an ARexx function host,
+using the rexx command
+
+	addlib("OwnDevUnit.library", 0, -60, 2)
+
+Note that to make full use of OwnDevUnit.library from ARexx, you will need
+to have an ARexx function host that gives you access to the exec.library
+functions AllocSignal() and Wait().  Without this, you __MUST__ specify
+zero in the NotifyBit argument of AttempDevUnit() and LockDevUnit().
+
+Also note that when calling functions in OwnDevUnit.library from ARexx, you
+can not specify an owner name (a default, "ARexx", is supplied for you).
+This is due to internal limitations and can not easily be corrected.
+Because of this, LockDevUnit() and AttemptDevUnit() only have three
+arguments when called from ARexx, instead of four.  The argument template
+for both of these functions is
+
+	return = function(device name, unit, notifybit)
+
+Also, NameDevUnit is not available from ARexx.
+
+Also note that when using ARexx, you should trap break (and other) signals
+and have a signal handler that will call FreeDevUnit() to release the lock
+on a device.  If you do not, and your program exits with a lock hanging,
+the __ONLY__ way to free that lock is to reboot the system.  (This warning
+also applies to people calling the library functions directly from C or ASM
+or whatever, too!)
+
+-=> CAW
+
+Christopher A. Wichura
+5450 East View Park
+Chicago, IL.  60615
+(312)/684-2941 (evenings only, please -- I'm in the central time zone)

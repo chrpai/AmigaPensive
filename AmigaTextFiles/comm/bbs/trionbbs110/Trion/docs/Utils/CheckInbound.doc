@@ -1,0 +1,102 @@
+
+
+
+   =====( CheckInbound V1.00 )=======================================
+
+
+        Trion 'CheckInbound' Utility.
+
+        (c) Copyright Paul Spijkerman, 1997. All rights reserved.
+
+        Written for use with the Trion BBS package.
+
+
+   ===================================================================
+
+
+   CheckInbound is a little Utility which will check if there
+   are files in the Inbound directory.
+   If there are no files it will return 5 (WARN) and if there are
+   files it will return 0.
+
+   Which is usefull in the mail script, with the information
+   this utility provides you know which programms have to
+   be run instead you have to run them all.
+
+   When there are no files you only have to run the
+   mail processor in the PACK mode because a user may have written
+   a message.
+   If there are files you have to run the Tick Processor to
+   check if there are tic files and to process them.
+   You have to start the mail processor in UNPACK mode,
+   then you have to start the areafix programm to check
+   if there is netmail to process and then you have
+   to start the mail processor in PACK mode.
+
+   If you only start the mail processor in unpack mode
+   if there are no files the mail script is finished
+   in a second or two and the log files grow a lot
+   slower because the programmas are only fired up
+   a few times a day instead of loads at every opertunity.
+
+
+
+   Use a -Q on the command line to run the util quite and
+   type the directory name of your inbound dir on the
+   command line if you don't use the default (Trion:inbound/)
+   inbound directory.
+
+   Use something like this in your mail script (compacted version):
+
+
+CheckInbound -q
+if WARN
+   ;mail processor in pack mode
+else
+   ;process ticks
+   ;unpack mail
+   ;areafix
+   ;pack mail
+endif
+
+
+
+
+    Here is the default Trion mail script (trion:scripts/mail)
+    as an example how it is used:
+
+
+
+
+;;;  Script to proces mail and .TIC files.
+
+wait 2
+
+avail flush >nil:
+
+trion  -max  "Mail processor is started, system can be a little slower"
+
+trion:utils/CheckInbound -q
+
+if WARN
+   trion:utils/tmp P -d
+else
+
+   ;;;  process  .TIC files
+
+   trion:utils/TrionTick  -p -b
+
+   ;CD trion:inbound       ;;; to enable unpacking ARC and ARJ archives
+
+   trion:utils/tmp  U -c -b -f -d
+
+   ;CD trion:              ;;; to enable unpacking ARC and ARJ archives
+
+   trion:utils/areafix   F -d
+
+   trion:utils/tmp  P    -d
+
+endif
+
+trion  -m -a -x  "Mail processor is Finished !"
+

@@ -1,0 +1,494 @@
+Current version : 2.40
+Last updated    : 25-October-1992
+
+--NEW FEATURES--
+Following is a list of new features added since the publication of the
+original spiral bound 2.0 manual:
+
+NOTE:	References to manual PAGE NUMBERS in the early parts of this file
+	are to the OLD spiral bound manual and will not apply to the revised
+	binder edition.  However, the new manual has been changed to reflect
+	those new features.  Changes beyond 2.20 will refer to page numbers
+	in the NEW manual in the binder.
+
+
+--- version 2.31  26-September-1992
+
+109.	The BBSLIST program was updated to include SEARCH ability.  Users
+	can select up to 5 keywords to search for in systems' names,
+	nations, locations or descriptions.  CNet will find a match if
+	any one of the keywords match for each search item for which
+	keywords were entered.
+
+110.	The AREXX interface received many new commands.  Following is
+	a run-down:
+
+	CALLEDITOR {s}		This invokes the user's default editor.
+				The current contents of the editor's
+				buffer are loaded, and the results are
+				re-saved.  "1" is returned if the temp
+				buffer is not empty ("0" otherwise).
+
+	CHANGEWHAT {s}		Set the user's COMMAND field in WHO
+				displays and the control panel.  This
+				feature may not yet be implemented.
+				The command is added for upward
+				compatibility.
+
+	CHANGEWHERE {s}		Set the user's ACTION field in WHO
+				displays and the control panel.
+
+	CLEAREDITOR		Clears the contents of the editor temp
+				file.  Use this before STARTEDITOR if
+				you do not use LOADEDITOR.
+
+	CLOSEDISPLAY		Close the port screen or workbench window.
+
+	FEEDBACK		This performs the standard FEEDBACK
+				command, allowing the user to leave a
+				message to the sysops.
+
+	FINDACCOUNT {s}		This function accepts either an account
+				number of a handle.  It performs the
+				familiar handle-search if necessary.  The
+				account number is returned if there is
+				no problem.  0 is returned otherwise.
+
+	GETSCRATCH {s}		Operates like GETUSER, but reads user
+				data from the internal "scratch" account
+				structure.  With LOADSCRATCH, this is
+				useful for examining user's accounts
+				other than the current user's.
+
+	LOADEDITOR {s}		This will read the filename given by
+				{s} into the editor temp buffer.
+
+	LOADSCRATCH {s}		This command should be performed before
+				GETSCRATCH's.  The argument must be a
+				valid account number.  RESULT will carry a
+				"1" if everything was loaded OK, "0"
+				otherwise.
+
+	OPENDISPLAY		Attempt to open the port's screen or
+				workbench window.  It may take a few
+				seconds for the display to open.
+
+	SAVEEDITOR {s}		Write the contents of the editor temp
+				buffer to the file specified by {s}.
+				If the file {s} already exists, it will
+				be overwritten. RESULT will carry a "1" if
+				everything was written OK, "0" otherwise.
+
+	SETMAILSUBJ {s}		This command should be performed before
+				EACH WRITEMAIL in order to set the SUBJECT
+				of the mail about to be sent.
+
+	SETMINFREE {s}		This command tells CNet when to STOP an
+				upload-in-progress due to critical disk
+				space.  {s} should be the lowest free-
+				BYTES on the hard drive.
+
+	SETPROTOCOL {s}		This command should be used before an
+				XUP or XDN.  {s} should be a SINGLE
+				character, matching a character in BBSPROTO
+				to designate a specific protocol.  If you
+				wish to allow the user to choose his own
+				protocol, send {s} as a NULL string.
+
+	XDN {s}			This command has been CHANGED so that it
+				now performs an XPR file download of the
+				specified file {s}.  The command SETPROTOCOL
+				must be used first.
+
+	XUP {s}			This command has also changed with XDOWN
+				in the same way.  If the transfer is a
+				batch protocol, it is OK to simply pass
+				the PATH here.
+
+	WRITEMAIL {s}		Write the contents of the editor temp
+				buffer to the user's mailbox specified
+				by {s}.  {s} must be a valid account
+				number.  RESULT will carry a "1" if
+				everything was sent OK, "0" otherwise.
+
+111.	The C program interface received XPR upload/download function
+	callbacks, operating identically to the AREXX counterparts.
+	Please consult the PROGRAMMING directory on disk 2 for details.
+
+112.	Several new BBSEVENT commands were added.  They are as follows:
+
+	command	  arguments     description
+	-------   ---------	-----------
+	SYSOPIN   0 or 1	This command, together with the next
+				three, control the pull-down menu
+				settings available from the CONTROL
+				panel.
+
+				This one controls whether or not the
+				system operator is avaiable for chat (C).
+
+	NONEW	  0 or 1	Whether or not to accept new users (NEW).
+
+	NOUD	  0 or 1	Whether or not to allow users into
+				the upload/download base (U).
+
+	NOPFILES  0 or 1	Whether or not to allow users into
+				the pfiles base (P).
+
+	RUND	  {path}	To complete the set of RUN commands, RUND
+				is added to the existing RUNA and RUNC.
+				RUND will execute a DOS program, channeling
+				I/O to the current port.
+
+				It is OK to include arguments for the file
+				following the filename.
+
+113.	If a user was reading his mail, and the system went down unexpectedly,
+	previous versions of CNet would LOSE the entire mail file being read.
+
+	This version will first check to see if a mail-read temp file exists
+	before reading from the regular mail file.
+
+114.	The NewScan at logon has been changed to more fully separate searches
+	for new files versus messages.
+
+	The browse for new files will still quickly locate all files
+	uploaded SINCE YOUR LAST CALL.
+
+	The read/yank/browse/scan for new messages will find all new
+	POSTS and RESPONSES (including responses to files) since last
+	SUBBOARD VISIT.  This scan will NO LONGER locate "new files."
+	This prevents the duplication of files problem, and will make it
+	easier for sysops to maintain more separate FILES versus MESSAGE
+	areas.
+
+	As a bonus, if you are using a QWK mail reader, CNet WILL assemble
+	the list of new uploads into the QWK file "newfiles.dat" which
+	some readers will allow you to read.
+
+	The standard YANK and YG commands (from subboard prompts) will
+	still pull files as well as messages.
+
+115.	For QWK bundling, CNet will recognize two new files, SYSTEXT:qwkstart
+	and SYSTEXT:qwkend, which will be bundled with a QWK packet to be
+	read to the user as the HELLO and GOODBYE files.
+
+--- version 2.35  3 October 1992
+
+116.	Paragon/Xenolink door support.  If you have any C "doors" from these
+	programs, CNet is now able to interpret them.  When adding a pfile
+	to a Pfiles list, select X as its type.
+
+117.	The Z and ZG search commands have been moved to an external program
+	(actually, they now use YANK-TASK).  This removes the long delays
+	the user once had to endure while waiting for the system to
+	search possibly thousands of messages.  Just as when yanking
+	messages, the system will OLM the user when the search is complete.
+
+	Yank-task will "mark" matching messages.  A new command "RM" was
+	added to allow users to read their marked messages.
+
+	In addition to "keywords" for a search, users may specify "filters."
+	Filters are words/phrases that PREVENT a message from being marked.
+
+	The Z command remains at the "respond or pass" prompt, working
+	just as it had before.  This allows users to quickly search THAT ONE
+	POST using the old method.
+
+118.	CNet now maintains a new format for the old "bbs.alpha" (alpha
+	ordering of users by handle).  Now, this primary key information
+	is actually sotred in MEMORY (as it should be), and handle searches
+	are now BLITZ fast.  No more waiting several seconds on large systems
+	just to have the system tell you an account you are mailing is not
+	there.
+
+	You must set the maximum number of user accounts possible from
+	the BBSCONFIG file.  In the past, CNet was internally limited to
+	2000 accounts.  This limit has been lifted, and now CNet allows
+	more than 32000 accounts.
+
+	Use the new "pointers" C pfile to create the new file "bbs.ukeys."
+	You may then delete bbs.alpha, as it will no longer be used.
+
+	Plans exist for adding other keys to this file ... possibly real
+	name, and data phone number.  This would allow FAST ifido operation,
+	and FAST checks for use of duplicate phone numbers.
+
+119.	The "Set keywords/filters/subboards?" prompt from the NewScan at
+	logon's Yank option is now complete!  After you select Yank from
+	the NewScan prompt, answering YES to the above question will take
+	you to ANOTHER prompt, allowing you to set keywords/filters
+	(which operate the SAME as when doing a global search), to set
+	which subboards these keywords/filters will be used on, and to
+	set which subboards will actually be yanked.
+
+	A menu "sys.menu.yank" exists for this prompt, and there are
+	additions to BBSMENU.
+
+120.	Additional AREXX commands, to conform to ABBEREXX standard.
+
+	BBSIDENTIFY {arg}
+
+		{arg}		  returns
+		ABBEREXX	: "1.0"
+		BBS		: "2.35" or current CNet version
+		EMULATION	: "ASCII" or  "ANSI"
+		NAME		: Your BBS's name   (bbstext line 9)
+		SYSOP		: Sysop's name	    (bbstext line 10)
+		TERM		: <baud> <columns> <rows> <line>
+		USER		: "<username>" "<callingfrom>" <access>
+				  <access> is returned as GUEST for
+				  new users, MEMBER for other users,
+				  SYSOP for account #1, CO-SYSOP for
+				  any other account with maintenance
+				  access.
+
+	CHECKABORT
+		Returns 1 if user has pressed Control-C or SPACEBAR,
+		0 otherwise.  You should call this AFTER a line of
+		output has occurred.  Each time something is printed,
+		this is reset.
+
+	CLS
+		Sends the screen-clear code.
+
+	GETCHAR
+		Already supported by CNet.
+
+	HANGUP
+		Same as CNet's DROPCARRIER
+
+	IREADY
+		Same as CNet's CHECKIO.
+
+	MAYGETCHAR
+		Returns the waiting-input character, or "NOCHAR" if the
+		input buffer is empty.
+
+	NEWLINE
+		Sends the newline code.
+
+	PRINT {arg}
+		Same as CNet's TRANSMIT.
+
+	PROMPT <length> {arg} '"<prompt>"'
+		<length> is the maximum number of characters to input.
+		{arg}	 is one of:
+			NORMAL
+			HIDE		: password input
+			YESNO		: Yes/No, Yes is default
+			NOYES		: Yes/No, No  is default
+		<prompt> must be surrounded by double quotes, and then
+		single quotes, so that AREXX will actually send the quotes
+		to CNet.
+
+	SEND {arg}
+		Sends the given string without translation of any kind.
+		(no MCI, etc).
+
+	SENDFILE {arg}
+		Same as CNet's SENDFILE.
+
+	SETNODELOATION {arg}
+		Same as CNet's NEW command CHANGEWHERE.
+
+	SYSOPLOG {arg}
+		Samge as CNet's LOGENTRY.
+
+	The ABBEREXX standard supports three variables, TIMEONLINE, CARRIER,
+	and TIMELEFT.  At this time, I have not located the correct
+	procedure for adding external variables to an AREXX command file.
+
+121.	When adding a subboard (AL), an option is given to copy the defaults
+	from any other physical subboard number.  To aid this, physical
+	subboard numbers are displayed during EL.
+
+122.	FidoNet I/O may be directed to any logical device now (was
+	hard-wired to MAIL: in the past).  The "net path" is editable
+	from the EL display.  Examples are
+
+			MAIL:			/* the default */
+			MAIL:FIDO/		/* for more organization */
+			RAM:			/* if you have the ram */
+
+	If you use RAM:, you should MAKEDIR the appropriate directories
+	somewhere in your cnet-startup file.
+
+--- version 2.36  7-October-1992
+
+123.	Commenting the BADNAMES and BADNUMBERS files is now allowed. Begin
+	any line with a semicolon (;).
+
+124.	Amaint now SUMMARIZES subboard message kills.  This should shorten
+	logs for people with a lot of activity.  IFIDO/XFIDO now summarize
+	THEIR activity, which is placed in LOG.MAINT, no longer a
+	separate file.
+
+125.	When using the MOVE command in a subboard, option is now given to
+	NOT remove the original (in effect, a COPY option to go along with
+	MOVE).
+
+126.	Using a BBSMENU entry "NSAL," the "scan for new" at logon is now
+	performed AFTER the user's normal logon-macro.
+
+127.	BBSCONFIG has been changed CONSIDERABLY to offer consolidation of
+	many files.  The files BBSQWK and BBSFIDO no longer exist.  All of
+	the necessary information is right in BBSCONFIG.  Also, each
+	subboard's EL screen allows selection of a network from the
+	BBSCONFIG file.
+
+--- version 2.37  10-October-1992
+
+128.	When using the DS command, it is possible to remove RANGES of
+	files.  Also, files removed here will "re-appear" after the
+	download is complete.  This allows downloading PORTIONS of the
+	select buffer at a time!
+
+129.	The EA command allows editing of several more user preferences.
+
+130.	The Z and ZG commands allow you to mark messages, ADDING to your
+	PREVIOUS marked list.  NOTE: Previous versions may have left a file
+	"_marked0" in users' directories, causing problem with RM.
+	This file be deleted after the first use of RM.
+
+131.	It is possible to insert MCI into GFILES/PFILES descriptions.
+	This should add to their flexibility!
+
+--- version 2.38  10-October-1992
+
+132.	Line 9 of BBSTEXT contains the default logon-MACRO for new users.
+	By default, this will contain the NSAL (new scan at logon) command.
+	This now allows users to select whether or not they even WANT the
+	NSAL as part of their logon procedure, and if they do, whether to
+	do it BEFORE or AFTER other macro commands.
+
+	You may wish to leave NEWS for existing users stating that if they'd
+	still like the automatic NSAL, they need to add this to their
+	logon macros.
+
+133.	The L! command in the pfiles/gfiles has been modified to display
+	ALL known information about the list.
+
+134.	This version features better organization of its text files.  Within
+	the SYSTEXT: directory, there are now HELP, MENU, NEW, and VDE
+	subdirectories.  SYSDATA: must contain one new subdirectory
+	entitled LOG.
+
+	Also, several files within SYSTEXT: have been renamed as follows
+	(note that "passwords" has moved to sysdata:):
+
+	Old name			New name
+	-----------------------		-----------------
+	systext:sys.conf.noises		systext:noises
+	systext:sys.passwords		sysdata:passwords
+	systext:sys.new user		systext:sys.nuser
+
+135.	Better organization is in place for systems using multiple
+	BBSTEXT/BBSMENU files.  When CNet attempts to display a file
+	from the SYSTEXT: directory, the following search chain is
+	followed until a file is found:
+
+	ex#1:  systext:menu/main	ex#2:  systext:sys.start
+	------------------------	------------------------
+	systext:x1/menu/tt4.main	systext:x1/tt4.start
+	systext:x1/menu/main		systext:x1/sys.start
+	systext:menu/tt4.main		systext:tt4.start
+	systext:menu/main		systext:sys.start
+
+	There are three things to know:
+
+	1.	CNet checks subdirectories "systext:xX" where X is the
+		BBSMENU/BBSTEXT number.  If the appropriate file is
+		not found, systext: is checked as normal.
+
+		You may copy NONE, ANY, or ALL of the systext: directory
+		into an xX subdirectory.  If a file is not found, CNet
+		will search the standard systext: directory.
+
+	2.	As with all previous versions, CNet will search for the
+		"ttX." prefix in place of the "sys." prefix for alternate
+		terminal types (ANSI, IBM, etc).  If the file doesn't
+		HAVE "sys." as part of its title, CNet will still search
+		for the "ttX." prefix file (tt4.menu and menu above).
+
+	3.	It is possible to have alternate text files in other
+		parts of the system, such as entry/exit files, or pfiles.
+		Given a filename, CNet will search for an "xX" directory
+		before searching for the actual filename.
+
+	ex#3:  base0:games/data/sys.entry
+	---------------------------------
+	base0:games/data/x1/tt4.entry
+	base0:games/data/x1/sys.entry
+	base0:games/data/tt4.entry
+	base0:games/data/sys.entry
+
+136.	More good news for systems running multiple BBSMENU/BBSTEXT files.
+	CNet now loads all BBEMENU/BBSTEXT files at load-time.  If you
+	have more ports that you do text sets, this will save you a
+	considerable amount of RAM.  When a user logs on, or switches
+	text sets, there is no longer a pause as a new bbstext/bbsmenu is
+	read from disk.
+
+137.	More organization is in place for the pfiles/gfiles/news areas.
+	Each of these areas, and each of the subdirectories you have in
+	these areas must now contain a new subdirectory entitled "DATA".
+
+	Into these new directories, you must rename the files _Items2,
+	sys.entry, sys.exit, and _dirinfo (if they exist).
+
+	Old name			New name
+	----------------		------------------
+	pfiles:_Items2			pfiles:data/_Items2
+	pfiles:_dirinfo			pfiles:data/_dirinfo
+	pfiles:_sys.exit		pfiles:data/sys.exit
+	pfiles:_sys.start		pfiles:data/sys.start
+	pfiles:maintenance/_Items2	pfiles:maintenance/data/_Items2
+	...repeat for gfiles:, news:
+	...their subdirectories also
+
+138.	For BASE and UDBASE areas, "subdirectories" and "direct exhange"
+	subboards now must their own subdirectory in the appropriate BASE0:
+	or UDBASE0: partition.  Previously, ony "real" subboards needed
+	to have unique directories.  Within these new directories will be
+	placed the entry and exit files.
+
+	For example, if you have a subdirectory called "Amiga subboards"
+	(which might contain several subboards), and you have given it the
+	unique dirname of "amiga" ...
+
+	Old name			New name
+	---------------------		------------------
+	base0:sys.exit.amiga		base0:amiga/sys.exit
+	base0:sys.entry.amiga		base0:amiga/sys.entry
+
+	This also applies to the BASE and UDBASE subdirectories themselves..
+	Their  unique dirname is always "main"...
+
+	base0:sys.exit.main		base0:main/sys.exit
+	base0:sys.entry.main		base0:main/sys.entry
+
+	Because in previous versions, direct exchange subboards did not
+	HAVE unique-dirnames set when they were created, you should use
+	the EL command to give all direct exchange subboards a name.
+
+--- version 2.40  25-October-1992
+
+139.	System configuration is now performed by a new executable
+	entitled "CONFIG".  The following files are now obsolete, and
+	should be deleted: BBSED, BBSPROTO, BBSCONFIG, BBSARC.
+
+	The following files have changed format, and should be deleted:
+	BBSPORT#?, BBSEVENT#?.  For convenience in re-configuration, it
+	might be wise to print these first.
+
+	The file "bbsconfig3" is a default configuration in the new format.
+	After copying this file to your CNET: area, you may then use
+	CONFIG to make changes.
+
+	When editing/adding archivers, you should leave lines BLANK if
+	they are not used.  Do not use "-".
+
+140.	This version REQUIRES DOS 2.04 (V37) or higher to operate
+	properly.  Many changes will be made to CNet in the near future
+	to take advantage of more of the V37 power.

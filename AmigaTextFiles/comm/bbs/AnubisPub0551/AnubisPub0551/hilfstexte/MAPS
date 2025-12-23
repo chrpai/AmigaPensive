@@ -1,0 +1,257 @@
+                         Anleitung für MAPS V 1.0
+                         ************************
+
+(C) 1995; Oliver Graf - T.O.M. Software
+
+
+1. Was macht MAPS
+-----------------
+
+
+Die Aufgabe von MAPS ist es, einem Pointuser einen einfachen Mechanismus
+zur Bedienung der Box an die Hand zu geben. Über verschiedene Kommandos
+können so Bretter bestellt oder abbestellt werden, die eigenen Pointdaten
+verändert werden oder Files angefordert werden, alles Sachen, die sich ohne
+MAPS nur in Absprache mit dem Sysop oder nur durch einen zusätzlichen
+Userlogin erledigen lassen.
+
+MAPS lehnt sich dabei an den ZC-MAPS Standard, der auf dem Z-Netz Treffen
+Hamburg '94 entwickelt wurde, an. Dieser Standard ist auf ein maschinen-
+lesbares Format ausgelegt worden, daher kann die manuelle Auswertung
+einiger Antwort-Mails schwierig bis unmöglich werden. Drängen Sie Ihren
+Pointprogrammierer, automatische Auswertungsroutinen für diesen Stan-
+dard zu implementieren, es macht auch Ihnen die Arbeit einfacher.
+
+
+2. Die Bedienung von MAPS
+-------------------------
+
+2.1 Anschreiben von MAPS
+------------------------
+
+Jede Nachricht, die für ein Kommando erzeugt wird, muß an den User
+"maps@box.do.main" gesandt werden. Dabei steht "box.do.main" für die in
+Ihrer Serverbox Netzadresse.
+
+Im Betreff der jeweiligen Nachricht steht das Kommando und nur das
+Kommando.
+
+Im Nachrichtentext stehen weitere Parameter, zeilenweise getrennt.
+Dies kann entfallen, abhängig vom jeweiligen Befehl.
+
+
+2.2 Befehle von MAPS
+--------------------
+
+Folgende Befehle sind zur Zeit in MAPS implementiert :
+
+
+ Befehl  : ADD
+ Aufgabe : Bestellen eines oder mehrer Bretter
+ 
+ Für ADD werden die zu bestellenden Bretter zeilenweise in den Nachrichten-
+ text geschrieben. Dabei muß der Brettname mit einem '/' beginnen.
+ Wildcards sind erlaubt, für komplette Brettgruppen kann man beispiels-
+ weise "/Z-NETZ/RECHNER/AMIGA/*" schreiben.
+
+ ADD liefert als Ergebnis eine normierte Liste der bestellten Bretter
+ zurück (siehe LIST).
+
+
+ Befehl  : DEL
+ Aufgabe : Abbestellen eines oder mehrer Bretter
+
+ DEL erwartet im Nachrichtentext die Liste der Bretter, die Sie abbestellen
+ wollen.  Dabei muß ein Brettname mit einem '/' beginnen.
+ Wildcards sind erlaubt, für komplette Brettgruppen kann man beispiels-
+ weise "/Z-NETZ/RECHNER/AMIGA/*" schreiben.
+
+ DEL liefert ein als Ergebnis eine normierte Liste der abbestellten Bretter
+ zurück (siehe LIST).
+
+
+ Befehl  : DELPM
+ Aufgabe : löschen der PMs im User-Postfach
+
+ Bei Pointusern, die Ihren Vertreter auf "Kopie" stehen haben, sammeln sich
+ mit der Zeit eine Menge PMs im Online-Postfach an. Um dem Sysop eine Freude
+ zu machen, sollten Sie hin und wieder die PMs löschen. Dies können Sie mit
+ diesem Befehl machen, ohne sich extra als User in die Box einzuloggen.
+
+
+ Befehl  : FILES
+ Aufgabe : Anforderung eines oder mehrer Files aus der Box
+
+ Ähnlich REQUEST kann man mit FILES Nachrichten aus der Box anfordern, ohne
+ sie online aus der Box saugen zu müssen. Dabei stehen im Nachrichtentext
+ die Filenamen der gewünschten Files, zeilenweise untereinander.
+ Anstatt eines Filenamen kann auch eines der folgenden Schlüsselworte
+ benutzt werden :
+
+   ALLFILES  sendet eine Liste aller über FILES zugänglichen Files
+   HELP	     sendet den Hilfstext
+
+
+ Im Unterschied zu REQUEST können hierrüber nur Binärnachrichten angefordert
+ werden, die in der "FileRequest-Liste" stehen, d.h. der Befehl kann nur auf
+ bestimmte, vom Sysop markierte Bretter zugreifen, unabhängig von Ihren son-
+ stigen Zugriffsrechten.
+
+ Dieser Befehl ist lediglich aus Kompatibilität zum ZC-MAPS Standard imple-
+ mentiert, es wird empfohlen, den Befehl REQUEST zu benutzen.
+
+
+ Befehl  : INDEX
+ Aufgabe : auflisten des Inhalts eines Bretts
+
+ INDEX generiert eine standarisierte Liste des Inhalts eines Bretts. Dabei
+ wird für jede Nachricht ein ZConnect Header erzeugt, der die wichtigsten
+ Daten wiedergibt.
+
+ Hinweis : Da ANUBIS momentan technisch noch nicht in der Lage ist, alle
+           ZConnect(tm) Header zu verwalten, kann nicht der komplette
+           Header wiedergegeben werden. Dies wird aber so bald wie mög-
+           lich geändert.
+
+
+ Befehl  : INHALT
+ Aufgabe : auflisten des Inhalts eines Bretts
+
+ Der Befehl INHALT liefert den Inhalt eines Bretts zurück. Der Aufbau der
+ Liste entspricht dem des alten ANUBIS-MAPS und ist nicht standarisiert.
+ Der Befehl existiert nur aus Kompatibilität zum alten MAPS, für eine
+ standarisierte Liste benutzen Sie bitte den Befehl 'INDEX'.
+
+
+ Befehl  : HELP
+ Aufgabe : Zurücksenden des Hilfstextes
+
+ HELP macht nichts anderes, als diesen Text an den User zurückzusenden.
+ Dies wird auch dann gemacht, wenn ein für MAPS unbekanntes Kommando
+ geschickt wurde.
+ Dieser Befehl kann auch über das Schlüsselwort "HILFE" ausgelöst
+ werden.
+
+
+ Befehl  : LIST
+ Aufgabe : generiert eine Liste aller für Sie zugänglichen Bretter
+
+ Der Befehl LIST erstellt eine Liste derjenigen Bretter, die in der Mailbox
+ für Sie zugänglich sind. Dabei besitzt die Liste einen festgelegten
+ Aufbau, der durch alle Pointprogramme, die nach ZC-MAPS Standard arbeiten,
+ automatisch ausgewertet werden kann.
+ Der Listenaufbau ist folgendermassen definiert (Auszug aus ZC-MAPS Be-
+ schreibung) :
+
+       Pos. 1:         Steuerzeichen
+       Pos. 2:         ASCII 32
+       Pos. 3ff:       Brettname bis zum CR/LF oder White Space.
+                       White Space dient als Trenner für die
+                       optionale Brettbeschreibung.
+
+       Die Länge einer Zeile ist nicht begrenzt!.
+
+       Steuerzeichen:  '+'     Brett ist derzeit bestellt.
+                       '-'     Brett ist nicht bestellbar.
+                       ' '     Brett ist nicht bestellt, bestellbar.
+                       '!'     Brett ist bestellt, kann aber nicht
+                               abbestellt werden (Zwangsanschluß).
+                       ';'     Zeile enthält einen Kommentar.
+
+ Anmerkung : Unter "White Space" versteht man eine beliebig lange Kom-
+	     bination von Leerzeichen (ASCII 32) und Tabulatorzeichen
+	     (ASCII 9).
+
+
+ Befehl  : PASSWORT
+ Aufgabe : Ändern des Point-Passwortes
+
+ Hin und wieder will man als Point-Betreiber sein Passwort in der Box än-
+ dern. Hierfür ist dieses Kommando gedacht.
+ Es erwartet im Nachrichten-Text genau zwei Zeilen. In beiden Zeilen muß
+ das neue Passwort stehen, es wird geprüft, ob Zeile1 = Zeile2 ist. Nur
+ im Gleichheitsfall wird das Passwort geändert.
+
+
+ Befehl  : REQUEST
+ Aufgabe : Bestellen einer Nachricht
+
+ REQUEST bietet die flexibelste Möglichkeit, Nachrichten aus Brettern in der
+ Box zu bestellen. Im Nachrichten-Text stehen folgende Angaben über die
+ bestellten Files :
+
+  <brettname> <File1> <File2> usw.
+
+ Es können also in einer Zeile mehrere Files aus dem gleichen Brett bestellt
+ werden.
+
+  <brettname> ist der Brettname, beginnend mit einem '/'.
+  <Filex>     der Name, die Brettnummer oder die MsgID einer Nachricht, die
+	      bestellt werden sollen. Die sicherste Methode, die richtige
+	      Nachricht zu bekommen, ist die MsgID, gefolgt vom Betreff
+	      der Nachricht (Filename) und der Nummer.
+
+ Alle Angaben werden durch ein Leerzeichen (ASCII 32) voneinander getrennt.
+ Die bestellen Files werden mit der jeweiligen Brettzuordnung bereitge-
+ stellt, ein Protokoll über die angeforderten Files wird an den Pointuser
+ verschickt.
+
+
+ Befehl  : SET
+ Aufgabe : Änderung der Parameter für den eigenen Point
+
+ Ihr Point setzt sich aus vielen Parametern zusammen, die für den Betrieb
+ wichtig sind. Hin und wieder müssen diese Parameter veränderten Situationen
+ angepasst werden. Dies geht entweder nur in Rücksprache mit dem Sysop
+ oder halt mit dem Kommando 'SET'.
+
+ Im Nachrichtentext stehen zeilenweise Schlüsselworte gefolgt von dem
+ neuen Wert für die jeweilige Einstellung.
+
+ Folgende Schlüsselworte sind definiert :
+
+  protokoll=<proto>	; Ändert das Übertragungs-Protokoll Ihres Points
+			  auf das angegebene Protokoll. Dieses Protokoll
+			  muß in der Liste des Systems existieren.
+
+  setuserdate=Ja|Nein	; Ja: Beim Anruf des Points wird das User-Datum
+			      auch gesetzt.
+
+  sendstat=Ja|Nein	; Ja: Für jeden einsortierten Puffer Ihres Points
+			      wird eine Sortierstatistik erzeugt und mit
+			      dem nächsten NetCall an Sie verschickt.
+
+ Die Werte von fehlenden Schlüsselworten werden nicht verändert.
+
+ Beispiel-Nachricht :
+
+  protokoll=zmodem
+  sendstat=ja
+
+
+ Als Antwort erhalten Sie ein Protokoll über alle Änderungen.
+
+ Hinweis : Sollten das Protokoll nicht in den System-Listen existieren,
+ 	   so werden die jeweiligen Einstellungen nicht verändert. Dies
+ 	   kann so Problemen im Pollbetrieb führen (keine Übertragung 
+ 	   möglich) !
+
+
+3. Besondere Hinweise
+---------------------
+
+ a) Es kommt hin und wieder vor, daß ein Sysop aus technischen Gründen
+    ein Brett in der Box anders benennen muß als im Netz. Sie als Point
+    bekommen aber immer den wirklichen Brettnamen. MAPS kann aber beide
+    Brettnamen auswerten. Wenn Sie den Originalnamen benutzen, setzt
+    MAPS den Namen entsprechend um, mit dem Boxnamen geht das sofort
+    ohne Probleme.
+
+ b) Im Allgemeinen wird MAPS sofort nach dem Logoff Ihres NetCalls ausge-
+    führt und bearbeitet Ihre Nachrichten und stellt die Ergebnisse in-
+    nerhalb von ein paar Sekunden zur Verfügung.
+    Dies kann aber durch den Sysop geändert werden (einmal täglich oder
+    alle paar Stunden). Informieren Sie sich bitte bei Ihrem Sysop,
+    wenn Sie keine Antwort von MAPS bekommen (Sie bekommen in jedem
+    Fall, also auch bei Fehlern, eine Antwort.
+

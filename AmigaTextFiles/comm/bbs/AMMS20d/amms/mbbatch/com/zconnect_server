@@ -1,0 +1,330 @@
+;	ZConnect-Server
+;
+;	Scriptfile zum Austausch neuer Nachrichten im ZConnect-Format
+;
+;	$VER: 1.00 / 13.08.1995
+;
+;       Beschreibung :
+;	Server-Datei fuer das Janus-Protokoll. Die gesendeten und
+;	empfangenen Daten werden im Directory MBMSG:POINT/<Portname>/
+;	temporaer gespeichert.
+;	Stehen im Directory MBNET:EXPORT/ die Dateien <USERNAME>.LHA,
+;	<USERNAME>.MSGNR und <USERNAME>.PMNR, so werden nicht die neusten
+;	Nachrichten und Files aktuell exportiert und gepackt, sondern diese
+;	vorgepackten Daten benutzt.
+;	Existiert der Port IMPORT, so wird der Import durch einen Event
+;	auf diesen Port umgelenkt.
+;	Wird diese Batch auf dem Port IMPORT ausgefuehrt, so werden nur
+;	Daten aus dem Directory mbnet:Import/ importiert.
+;	
+;
+;	Das Script sollte so eingebunden werden, dass es ueber Flags
+;	auf die folgende Befehle zugreifen kann !
+;
+;	ADD EVENT
+;	CHECK FILE
+;	DISK DOWNLOAD
+;	DISK EXECUTE
+;	DISK UPLOAD
+;	ECHO
+;	EXTERN
+;	FASTNET GETFILE
+;	GOTO
+;	HANGUP
+;	IF
+;	LOGOUT		<-- Option /FAST muss unterstuetzt werden !
+;	ON ERROR
+;	ON HANGUP
+;	ZCONNECT GETFILE
+;	ZCONNECT MAKEFILE
+;	WAIT
+;
+;	Folgende Amiga-Dos-Befehle werden benutzt :
+;
+;	COPY
+;	DELETE
+;	LIST
+;	SORT
+;
+;	Einrichtung eines Netcalls fuer eine Netzbox (Node) :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	STRASSE  : @NETCALL
+;	STADT	 : Name der Domain (z.B. Fastnet.de)
+;
+;	Einrichtung eines LocalGates fuer die Einbindung eines anderen
+;	lokalen Netzwerks :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	VORNAME  : Gatename im Fastnet (z.B. Z-Netz)
+;	STRASSE  : @LOCALGATE
+;	STADT	 : Name der Domain (z.B. Z-Netz.de)
+;
+;	Einrichtung eines Gates fuer die Einbindung eines anderen
+;	globalen Netzwerks :
+;	USERNAME : Name der anrufenden Node (z.B. TBA)
+;	VORNAME  : Gatename im Fastnet (z.B. Z-Netz)
+;	NACHNAME : Gatename im Zerberus-Netz (z.B. Fastnet)
+;	STRASSE  : @GATE
+;	STADT	 : Name der Domain (z.B. Z-Netz.de)
+;
+;	Wenn hinter der anrufenden Node noch weitere Nodes haengen,
+;	die ebenfalls das Netz empfangen, so muss die Datei
+;	MBDAT:NODENAME.NODES eingerichtet werden
+;	(NODENAME = Name der anrufenden Node).
+;	In dieser Datei muessen die anrufende Node und die Nodes stehen,
+;	die ueber sie zu erreichen sind.
+;	Der Aufbau dieses Files ist im Kapitel Systemnachrichten/Nodeliste
+;	der Fastnet-Format-Guide nachzulesen. Die Datei muss einer normalen
+;	Nodelisten-Systemnachricht entsprechen, als Datum darf der Wert 0
+;	angegeben werden, er entspricht immer dem akt. Tag.
+;
+;	Konstanten :
+;
+;DEBUG    ="ON"					; Rette empfangenes Pointfile
+DEBUGDIR  = "AMMS:NETDEBUG/"			; Debug-Directory
+IMPORTPORT= "IMPORT"				; Portname fuer Import
+TMPDIR    = "mbmsg:point/'{port}'/"		; Dir fuer Tmp-Files
+EXPORTDIR = "mbnet:Export/"			; Export-Directory
+IMPORTDIR = "mbnet:Import/"			; Import-Directory
+EXFTABDIR = "mbnet:ExportFTab/"			; Export-FTab-Directory
+IMFTABDIR = "mbnet:ImportFTab/"			; Import-FTab-Directory
+MAXMSGLEN = 2000				; Max. Laenge der Msgs in KByte
+MAXPMLEN  = 2000				; Max. Laenge der PMs in KByte
+MSGFILE   = "'{CALLS}'.BRT"			; Oeff. Nachrichten
+PMFILE    = "'{CALLS}'.PRV"			; Private Nachrichten
+MSGNRFILE = "msgnr"				; File fuer Msg-Nummern
+PMNRFILE  = "pmnr"				; File fuer PM-Nummern
+COPYFILE  = "'{NAME}'@ZC.lha"			; Vorgabefile (Pack-Event)
+COPYMSGNR = "'{NAME}'@ZC.msgnr"			; File fuer Msg-Nummern
+COPYPMNR  = "'{NAME}'@ZC.pmnr"			; File fuer PM-Nummern
+PCKFILE   = "called.lzh"			; Name des gepackten Files
+RECFILE   = "caller.lha"			; Name des empfangenen Files
+TBOXDIR   = "mbdat:"				; Dir fuer Fastnet-Nodefile
+IMPORTFILE= "'IMPORTDIR''{NAME}'@ZC'{CALLNR}'.LHA" ; Importfile fuer anderen Port
+PACKER    = "lha -P-1 m ""'TMPDIR''PCKFILE'"" ""'TMPDIR''PMFILE'"" ""'TMPDIR''MSGFILE'"""
+						; Packen
+UPACKER   = "lha -P-1 e ""'TMPDIR''RECFILE'"" ""'TMPDIR'"" ""~(#?/#?|#?:#?)"""
+						; Entpacken
+LISTFILES = "'IMPORTDIR''{NAME}'@ZC#?"		; Importfile
+LISTUPACK = "makedir *""'TMPDIR'%m*"" *n lha -P-1 e *""%s%s*"" *""'TMPDIR'%m/*"" *""~(#?/#?|#?:#?)*"""
+
+;
+;	Domainname holen
+;
+_on error ERROR					; Im Fehlerfall ...
+DOMAIN={CITY}					; Domainname holen
+
+;
+;	Pruefe auf normalen Netcall
+;
+
+_if {STREET} != "@NETCALL" then _goto LOCALGATE
+FIL=16+128+256+512+32768
+OP_GET="/Type=0/Filter='FIL'/Cache=512/Header=96" ; Setze Optionen
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=0/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=0/Filter='FIL'"
+_goto START
+
+;
+;	Pruefe auf LocalGate
+;
+LOCALGATE:
+_if {STREET} != "@LOCALGATE" then _goto GATE
+FIL=16+128+256+512+32768+262144
+OP_GET="/Type=2/Filter='FIL'/Cache=512/Header=96" ; Setze Optionen
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=2/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=2/Filter='FIL'"
+_goto START
+
+;
+;	Pruefe auf Gate
+;
+GATE:
+_if {STREET} != "@GATE" then _goto USERPOINT
+FIL=16+128+256+512+32768
+OP_GET="/Type=1/Filter='FIL'/Cache=512/Header=96" ; Setze Optionen
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=1/Filter='FIL'"
+FIL=2+8+16+32+64
+OP_MAKEMSG="/Type=1/Filter='FIL'"
+_goto START
+
+;
+;	User-Point
+;
+USERPOINT:
+FIL=16+128+256+512
+OP_GET="/Type=3/Filter='FIL'/Cache=128/Header=48" ; Setze Optionen
+FIL=1+4+16+32+64
+OP_MAKEPM="/Type=3/Filter='FIL'"
+FIL=2+4+8+16+32+64
+OP_MAKEMSG="/Type=3/Filter='FIL'"
+DOMAIN="ZER"					; Domain ZER setzen
+
+;
+;	Filebrett-Konverter-Files einbinden
+;
+START:
+_check file "'EXFTABDIR''{NAME}'" NOEXPORTCVT
+OP_MAKEMSG="'OP_MAKEMSG'/FBoardlist=""'EXFTABDIR''{NAME}'"""
+NOEXPORTCVT:
+_check file "'IMFTABDIR''{NAME}'" NOIMPORTCVT
+OP_GET="'OP_GET'/FBoardlist=*""'IMFTABDIR''{NAME}'*"""
+NOIMPORTCVT:
+
+;
+;	Wenn Spezial-Port, Daten nur importieren
+;
+
+_if IMPORTPORT == {PORT} then _goto SPECIAL 	; Wenn Spezial-Port, verzw.
+
+;
+;	Aktiviere Handshaking
+;
+
+_echo "#home##cls#POINT LOGIN OK ...^J"
+_echo "running ARC^Jrunning ARC^Jrunning ARC^Jrunning ARC^Jrunning ARC"
+
+;
+;	Loesche alte Files / Rename, wenn File immer noch geoeffnet
+;
+
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?"
+_extern/q rename "'TMPDIR''PCKFILE'" "'TMPDIR''PCKFILE''{CALLNR}'"
+_extern/q rename "'TMPDIR''RECFILE'" "'TMPDIR''RECFILE''{CALLNR}'"
+
+;
+;	Neue Nachrichten fuer andere Box sammeln & packen
+;
+
+COPYSTAT=0					; Kopier-Status auf FALSE
+_check file "'EXPORTDIR''COPYPMNR'" EXPORT	; Existiert Sendefile ?
+_extern/q copy "'EXPORTDIR''COPYFILE'" "'TMPDIR''PCKFILE'"    ; Ja, vorgepackte
+_extern/q copy "'EXPORTDIR''COPYMSGNR'" "'TMPDIR''MSGNRFILE'" ; Files benutzen
+_extern/q copy "'EXPORTDIR''COPYPMNR'" "'TMPDIR''PMNRFILE'"
+_check file "'TMPDIR''PMNRFILE'" DELETE		; Alle Daten korrekt kopiert ?
+_check file "'TMPDIR''MSGNRFILE'" DELETE	; Wenn Nein, verzw.
+_check file "'TMPDIR''PCKNRFILE'" DELETE
+COPYSTAT=1					; Kopier-Status auf TRUE
+_goto HANDSHAKE					; Ja -> Warten auf Handshake
+
+;	Schon kopierte Daten aus TMP-Directory loeschen
+
+DELETE:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" ; Nein, kopierte Daten loeschen
+
+
+;	PMs und Messages exportieren
+
+EXPORT:
+_on error/ignore				
+_zconnect makefile'OP_MAKEPM' "'TMPDIR''PMFILE'" 'MAXPMLEN' "'TMPDIR''PMNRFILE'" "'DOMAIN'"
+_zconnect makefile'OP_MAKEMSG' "'TMPDIR''MSGFILE'" 'MAXMSGLEN' "'TMPDIR''MSGNRFILE'" "'DOMAIN'"
+_on error ERROR
+
+;	Messages packen
+
+_extern/q 'PACKER'
+
+;
+;	Handshaking senden
+;
+HANDSHAKE:
+_echo/nolf "^U"					; NAK fuer Fertig senden
+_wait 2						; Sernr. ignorieren
+_echo/nolf "^F"					; Bei uns ist es immer OK !
+
+;
+;	Messages uploaden und downloaden
+;
+
+_on hangup/ignore				; Auch weiter wenn aufgelegt
+_disk upload "'TMPDIR''RECFILE'"		; File vom Point empfangen
+_disk download "'TMPDIR''PCKFILE'"		; File an Point schicken
+
+;
+;	Auflegen nach 3 Sekunden
+;
+
+_on error/ignore				; Alle Fehler ignorieren
+_wait 3						; 3 Sekunden warten
+_hangup						; Modem auflegen
+
+;
+;	Wenn Files vorgepackt abgeholt, dann vorgepackte Daten loeschen
+;
+
+_if/i COPYSTAT == 1 then _extern/q delete "'EXPORTDIR''COPYPMNR'" "'EXPORTDIR''COPYFILE'" "'EXPORTDIR''COPYMSGNR'"
+
+;
+;	Geschickte Messages und PMs als gelesen markieren
+;
+
+_zconnect makefile/setnr "'TMPDIR''MSGNRFILE'"	; Gezogene Msgs = alte Msgs
+_zconnect makefile/setnr "'TMPDIR''PMNRFILE'"	; Gezogene PMs = alte PMs
+
+;
+;	Nicht mehr benoetigte Files loeschen
+;
+
+_extern/q delete "'TMPDIR''PCKFILE'" "'TMPDIR''PMNRFILE'" "'TMPDIR''MSGNRFILE'"
+
+;
+;	Bei Netcall optional zusaetzliche Nodes in Liste aufnehmen
+;
+
+_if {STREET} != "@NETCALL" then _goto NONODES	; @Netcall ? Nein, verzw.
+_check file "'TBOXDIR''{NAME}'.NODES" NONODES	; Wenn File nicht vorhanden, verzw.
+_fastnet getfile "'TBOXDIR''{NAME}'.NODES"	; Nodes in Nodeliste aufnehmen
+NONODES:
+
+;
+;	Wenn Debug-Modus aktiv, empfangenes Pointfile retten
+;
+
+_if DEBUG == "ON" then _extern/q copy "'TMPDIR''RECFILE'" "'DEBUGDIR''{NAME}''{CALLNR}'.LHA"
+
+;
+;	Wenn Port IMPORT existiert, Import-Event starten
+;
+
+_check port "'IMPORTPORT'" IMPORT		; Wenn kein Port, verzw.
+_extern/q copy "'TMPDIR''RECFILE'" "'IMPORTFILE'"
+_add event/Background "'IMPORTPORT'" 0 3 mbbatch:zconnect_import "'{NAME}'"
+_goto END					; -> Ende
+
+;
+;	Alle Messages, Files und PMs im Port IMPORT importieren
+;
+SPECIAL:
+_extern/q list >"t:zc1'{port}'" "'LISTFILES'" lformat "'LISTUPACK' *n delete *"%s%s*""
+_extern/q execute "t:zc1'{port}'"
+_extern/q list >"t:zc1'{port}'" "'TMPDIR'#?/#?" lformat "zconnect getfile'OP_GET' *"%s%s*" 'DOMAIN'"
+_extern/q echo >"t:zc2'{port}'"
+_extern/q sort "t:zc1'{port}'" to "t:zc2'{port}'"
+_disk execute "t:zc2'{port}'"
+_extern/q delete "t:zc1'{port}'" "t:zc2'{port}'"
+_goto END					; -> Ende
+
+;
+;	Wenn kein Port, alle Messages, Files und PMs sofort importieren
+;
+IMPORT:
+_extern/q 'UPACKER'
+_extern/q delete "'TMPDIR''RECFILE'"
+_extern/q list >"t:zc1'{port}'" "'TMPDIR'" lformat "zconnect getfile'OP_GET' *"%s%s*" 'DOMAIN'"
+_extern/q echo >"t:zc2'{port}'"
+_extern/q sort "t:zc1'{port}'" to "t:zc2'{port}'"
+_disk execute "t:zc2'{port}'"
+_extern/q delete "t:zc1'{port}'" "t:zc2'{port}'"
+
+;
+;	Alle temporaer erzeugten Files loeschen
+;
+ERROR:						; Fehler / Ende
+END:
+_if TMPDIR != "" then _extern/q delete "'TMPDIR'#?" all ; Disk aufraeumen
+_logout/f					; Logout

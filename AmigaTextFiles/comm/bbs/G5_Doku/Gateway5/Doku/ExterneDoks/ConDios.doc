@@ -1,0 +1,575 @@
+
+CONDIOS ANSI TEXT/GFX/ANIM VIEWER (16/8/2 colors)
+-------------------------------------------------------------------------------
+
+Created by Kenneth Chr. Nilsen (kenny@bgnett.no).
+Copyright (C) 1998 by Digital Surface. All rights reserved.
+
+This program is SHAREWARE.
+
+
+
+  CONTENT
+
+	0. SHAREWARE NOTICE
+
+	1. INTRODUCTION
+
+	2. USAGE AND OPTIONS
+
+	3. SUPPORT OVERVIEW
+
+	4. MISC
+
+
+0. SHAREWARE
+
+	This program falls into the cathegory SHAREWARE. That means you may
+	distribute this whole archive freely, but you need to pay the program
+	fee if you keep it and use it.
+
+	The fee is small and by paying it you will support atleast one
+	developer of Amiga software. This program is non-crippled. Please
+	respect.
+
+	The fee is (I can only accept the following currencies):
+
+		UKP  12
+		USD  19
+		DM   30
+		NOK 100
+		SEK 130
+		DEK 120
+
+	Do not send coins as the bank don't exchange those. The fee includes
+	exchange fee and future updates.
+
+	You may send cash at own risk (!) or send a money order payable to:
+
+	Kenneth Chr. Nilsen
+	Skinstadgaarden
+	N-3370 Vikersund
+	NORWAY
+
+	Postbanken: 0535 068 4664
+	Bank (DnB): 5270 11 03718
+
+	When I receive your money you will get the latest version (email only,
+	or add 20% to the fee for disk & post).
+
+
+1. INTRODUCTION
+
+	With ConDios you can view plain text, ANSI text, ANSI graphics, ANSI
+	animations and more. It can be configured in many ways including
+	different filtering, sequence interpertations, visual and more.
+
+
+	It can process any file that contains ANSI 3.41, VT100 (VT54), VT220
+	ESCape control codes, CSI sequences, SGR, ISO, control codes and
+	EMCA94 Latin 1, and display the result in monochrome (2 colors),
+	Amiga ANSI (8 colors) or EGA (16 colors). You can choose between two
+	palettes, one for standard ANSI (8/16) and one to support ANSI
+	graphics colors (EGA) such as human skin. It can strip ANSI,
+	optionally wrap, scroll and much more. It can read a file of any
+	size as it uses buffered input. You can also specify several files on
+	the same comandline. The condios engine allocates its own colors on
+	any public screen you decide to open ConDios on (it's recommended that
+	you open on a screen with atleast 32 colors for EGA ANSIs). By using a
+	fifo or pipe you can actually use ConDios as a terminal display too..
+
+	ConDios uses the condios.library (which will have its own developer
+	package released later) that contains an ANSI engine. That means it
+	does NOT use the Amiga's console.device which is quite limited when it
+	comes to some of the features ConDios provides. However,
+	condios.library support almost every sequences in the console.device
+	except a few very specialized sequences (raw events etc) and a couple
+	of Amiga specific sequences are replaced with more 'global' ones. The
+	ANSI engine is written in assembler and even with all features enabled
+	it is upto 17% times faster then Amiga's console.device with plain
+	text and upto 55 times (!) faster with ANSI animations (A4000/030/25)
+	(see benchmarks at end of this file).
+
+	ConDios is mainly written to demostrate the engine in condios.library
+	(which is under development with more engines for different purposes
+	such as ANSI editing). Another reason is that I wanted to have the
+	Amiga to view all kinds of ANSIs.
+
+	Limitations
+
+	ConDios does not yet support scrollback or saving of any kind (iff,
+	stripped ansi etc.). Currently you can't alter options/defaults if you
+	start ConDios from WB. Changes are on TODO.
+
+2. USAGE AND OPTIONS
+
+	ConDios require OS3.0/MC68020 or better to work.
+
+	I have chosen to set ConDios in a default state that suits most EGA
+	ANSI graphics.
+
+	Defaults of ConDios (see option on how to override these):
+
+	- EGA (16-colors)
+	- Line wrap
+	- No cursor wrap
+	- Font IBM.font/8 (in archive)
+	- Human colored palette (EGA-ish).
+	- No CSI (code 155 is printed)
+	- Width 650 (640 for condios display/80 chars)
+	- Paging
+	- VT codes disabled
+	- Pubscreen Workbench
+	- Jumpscroll with 30 lines
+
+	USAGE (from shell/cli):
+
+	ConDios ?
+
+	?=HELP/S,FILES/M,A=AMIGAANSI/S,C=CURSOR/S,S=NOSCROLL/S,NW=NOWRAP/S,
+	R=WRAPCURSOR/S,I=STRIP/S,M=MONO/S,P=NOPAUSE/S,V=VT/S,N=NOHUMAN/S,
+	L=LEFT/N/K,T=TOP/N/K,W=WIDTH/N/K,H=HEIGHT/N/K,U=PUBSCREEN/K,
+	J=JUMP/N/K,O=FONT/K,G=FONTHEIGHT/N/K,B=BUFFER/N/K,D=DELAY/N/K,CSI/S
+
+	FILES/M		 - Name on ANSI text/anim file(s) to view.
+			   You can specify more than one file on the same line.
+
+	?=HELP/S	 - About program.
+			   Display a short help text to DefOut.
+
+	A=AMIGAANSI/S	 - Use 8 pens (def. 16 pens PC ANSI).
+			   Force ConDios to use 8 colors instead of 16.
+
+	C=CURSOR/S	 - Allow cursor (def. forced cursor off).
+			   The ANSI text can now control the cursor on/off
+			   locally.
+
+	S=NOSCROLL/S	 - Do not scroll display (def. jumpscroll).
+			   When this option is used the display will not
+			   scroll. You will still get paging (if not turned
+			   off).
+
+	NW=NOWRAP/S	 - Don't wrap lines (def. Line-wrap).
+			   Tell ConDios not to wrap lines. If on the lines that
+			   exceeds right edge will be truncated.
+
+	R=WRAPCURSOR/S	 - Wrap cursors (def. no Cursor-wrap).
+			   Tell ConDios to wrap left/right cursor movments as
+			   well.
+
+	I=STRIP/S	 - Strip ANSI sequences (def. nostrip).
+			   If you choose this option all ANSI and special codes
+			   will be stripped (except for LF, CR etc.).
+
+	M=MONO/S	 - Use monochromo colors (overrides PCANSI).
+			   Tell ConDios to use 2 colors (black/white) instead
+			   of 16 colors. This option will override the
+			   AMIGAANSI option if specified.
+
+	P=NOPAUSE/S	 - Don't hold page before scroll (def. pagepause).
+			   This option disables paging. That means you can't
+			   exit ConDios before the whole text is read and
+			   processed.
+
+	V=VT/S		 - Enable partly VT100/54 emulation.
+			   This option enables partly support for some VT100
+			   (VT54) cursor movement control codes. VT220 is
+			   enabled always as these are mostly compatible with
+			   ANSI 3.41. The sequence supported is <ESC>[nX.
+
+	N=NOHUMAN/S	 - Use standard ANSI palette (def. 'human' palette).
+			   Tell ConDios to use standard ANSI palette instead.
+
+	L=LEFT/N/K	 - Place window (def. so window's in center)
+			   Select where to place left egde of window. ConDios
+			   will if this option isn't specified try to center
+			   the window if possible.
+
+	T=TOP/N/K	 - Set top line of window (def. fontheight+2).
+			   Select where to place top edge. If height+top>screen
+			   height this number will be overridden with null.
+
+	W=WIDTH/N/K	 - Width of window (def. 650).
+			   Set width of window.
+
+	H=HEIGHT/N/K	 - Height of window (def. full-top).
+			   Set height of window.
+
+	U=PUBSCREEN/K	 - Name on public screen to open on (def. WB).
+			   You may open ConDios on any non-private PUBLIC
+			   screen. Here you specify the name. Note that public
+			   screen names are casesensitive and not necessarly
+			   the same as the screen title. It defaults to
+			   "Workbench". The screen should have 32 colors or
+			   more for 16 colors ANSI files.
+
+	J=JUMP/N/K	 - Number of lines to jump (def. 30).
+			   Tell ConDios how many lines to jump when it attemps
+			   to scroll the display. If lines>rows-1 lines=rows-1.
+
+	O=FONT/K	 - Name on font to use (def. IBM.font).
+			   Tell ConDios to use this font instead. The font can
+			   exist in memory or on disk. If it fails to open the
+			   specified font it will try it's default font
+			   IBM.font. If this fails too it will use a fallback
+			   font namly (surprise!) the topaz.font.
+
+	G=FONTHEIGHT/N/K - Y size on font (def. 8).
+			   Specify font height. Only useful if option FONT is
+			   used.
+
+	B=BUFFER/N/K	 - Read buffer size in KB (def. 40)
+			   Specify loadbuffer in KB. The bottleneck is the ANSI
+			   processing so changing this will not influence speed
+			   much, except if the size is very small.
+
+	D=DELAY/N/K	 - Set an integer delay for each char. This is most
+			   useful with ANSI animations as ConDios display
+			   them to fast. On my (ancient) 030/25 I set 400 to
+			   give an o.k. speed on animations (the included
+			   one).
+
+	FIFO/S		 - Input is a fifo (*) or pipe.
+			   This tells ConDios not to stop reading from input
+			   even if the size of data is less than buffer size.
+			   Reading will end at EOF.
+
+			   This makes ConDios very powerful as you can use it as
+			   a terminal. Example:
+
+			   In a shell you start ConDios like this:
+
+			   1> run ConDios fifo:in/r NoPause NoHuman Cursor CSI
+
+			   Then start the shell based terminal program like
+			   this:
+
+			   1> DignetTERM duart.device >fifo:in/wmKe
+
+			   Have the shell active and you can now type AT
+			   commands and dial and get all data displayed in the
+			   ConDios display. Nice to have when you log into EGA
+			   based BBS'es etc.
+
+			   (*) Info on the fifo-handler can be found on Aminet.
+			   DignetTERM comes in an archive called DigNet.lha also
+			   on Aminet:util/libs/.
+
+	CSI/S		 - Enable CSI sequences (Amiga uses these in eg. shell).
+			   CSI code (155) represent <ESC>+[. You should enable
+			   this with Amiga files or terminals.
+
+
+	THE GUI
+	-----------------------------------------------------------------------
+
+	Press Closegadget in the window to exit the program.
+
+	Buttons
+	-------
+
+	Continue - if paging (default) then press this gadget to continue.
+		   You can also press return or space, or you can simply
+		   press the picture with the mousepointer.
+
+	Reload   - This will reload the current file selected and start
+		   displaying it from the top. You can also press 'r'.
+		   Everytime a file is loaded a reset sequence (<ESC>c) is
+		   sent to the condios engine.
+
+	Next	 - If multiple files were specified on the comandoline you
+		   can go to the next with this button. It will stop at the
+		   last file. You can also press 'n'.
+
+	Prev	 - If multiple files were specified on comandoline you can
+		   go back to the previous file. It will stop at the first
+		   file. You can also press 'p'.
+
+	?	 - A short ANSI about text will be displayed. It will only
+		   be displayed when the file is done loading. This is
+		   because ConDios doesn't track lines and content of the
+		   file. When in about, press return/space or the OK button
+		   to exit. After exit it will reload the current file. You
+		   can also press '?'.
+
+	Quit	 - Quit ConDios. You can also press 'q'.
+
+
+	The current file name and number will be displayed at top of window.
+
+
+3. SUPPORT OVERVIEW
+
+	In this section you will find a list on all ANSI sequences and control
+	codes ConDios (condios.library engine) support. This should be a part
+	of the developer package, but we put it here as well.
+
+	The following standards are supported (some optional):
+
+	ANSI 3.41 [except CTC, TBC, DSR, aSRE, aIER, aRRE, aSKR, aWSR, HTS, RI]
+	VT100 (VT52) [partly, cursor movements]
+	VT220 [partly, common codes and <ESC>[nX]
+	CSI sequences
+	SGR
+	ISO sequences [reset]
+	CTRL codes
+	ECMA 94 Latin 1
+	Special support for the IBM charset [complex filter].
+
+	You can also specify callhooks for the following ANSI sequences when
+	invoked:
+
+	LF[SCROLL], vtID, CPR, aWBR, BEL
+
+	Some *private* Amiga sequences are overridden such as <ESC>[u which is
+	restore saved cursor position in condios, and <ESC>[s which is save
+	cursor position. <ESC>[u is <ESC>[U in condios (set display width).
+
+	Here is a list on all sequences and control codes supported. The ANSI
+	table is ripped of from the autodoc for console.device/CMDWRITE
+	slightly edited.
+
+	 *  = Full support, others are ignored.
+	 -  = Supported, but in another way (see above).
+	[ ] = Support in condios, not in console.device
+
+	Independent Control Functions (no introducer) --
+	Code	Name	Definition
+	-----	---	-------------------------------------------------------
+ *	7	BEL	BELL: DisplayBeep() (invokes beephook in ConDios)
+ *	8	BS	BACKSPACE
+ *	9	HT	HORIZONTAL TAB
+ *	10	LF	LINE FEED (invokes scrollscr. hook in ConDios)
+ *	11	VT	VERTICAL TAB
+ *	12	FF	FORM FEED
+ *	13	CR	CARRIAGE RETURN
+ *	14	SO	SHIFT OUT: causes all subsequent G0 (ASCII)
+			characters to be shifted to G1 (ECMA 94/1)
+			characters.
+ *	15	SI	SHIFT IN: cancels the effect of SHIFT OUT.
+ *	27	ESC	ESCAPE
+
+	Code or Esc Name Definition
+	-----	--- ---- ------------------------------------------------------
+ *	132	D   IND	 INDEX: move the active position down one line.
+ *	133	E   NEL	 NEXT LINE
+	136	H   HTS  HORIZONTAL TABULATION SET
+	141	M   RI	 REVERSE INDEX
+ *	155	[   CSI	 CONTROL SEQUENCE INTRODUCER: see next list
+
+	ISO Compatible Escape Sequences (introduced by Esc) --
+
+	Esc   Name Definition
+	----- ---- ------------------------------------------------------------
+ *	c     RIS  RESET TO INITIAL STATE: reset the console display.
+[*	E     cLF  LINE FEED					]
+
+	VT100 (VT54) Optionally Supported control codes (ConDios only) --
+	<ESC><parameter>
+
+	Esc   Name  Definition
+	----- ----  -----------------------------------------------------------
+[*	A     vtCUU Cursor Up					]
+[*	B     vtCUD Down					]
+[*	C     vtCUF Left					]
+[*	D     vtCUB Right					]
+
+[*	H     vtCUP Set cursor position to 1,1			]
+[*	J     vtED  Clear Screen from cursor to bottom		]
+[*	K     vtEL  Clear Line from cursor to end of line	]
+[*	7           Save cursor position			]
+[*	8           Restore saved cursor position		]
+[*	Z     vtID  Invokes the idhook if any specified.	]
+
+	If VT100 (VT54) is disabled:
+
+[*	D     cCUD	Cursor Down				]
+
+
+	Control Sequences, with the number of indicated parameters.
+	i.e. <CSI><parameters><control sequence letter(s)>.  Note the
+	last entries consist of a space and a letter.  CSI is either
+	9B or Esc[.  A minus after the number of parameters (#p)
+	indicates less is valid.  Parameters are separated by
+	semicolons, e.g. Esc[14;80H sets the cursor position to row
+	14, column 80.
+
+	CSI #p	Name Definition
+	--- --- ---- ----------------------------------------------------------
+ *	@   1-	ICH  INSERT CHARACTER
+ *	A   1-	CUU  CURSOR UP
+ *	B   1-	CUD  CURSOR DOWN
+ *	C   1-	CUF  CURSOR FORWARD
+ *	D   1-	CUB  CURSOR BACKWARD
+ *	E   1-	CNL  CURSOR NEXT LINE
+ *	F   1-	CPL  CURSOR PRECEDING LINE
+ *	H   2-	CUP  CURSOR POSITION
+ *	I   1-	CHT  CURSOR HORIZONTAL TABULATION
+ *	J   1-	ED   ERASE IN DISPLAY (only to end of display)
+ *	K   1-	EL   ERASE IN LINE (only to end of line)
+ *	L   1-	IL   INSERT LINE
+ *	M   1-	DL   DELETE LINE
+ *	P   1-	DCH  DELETE CHARACTER
+ *	R   2	CPR  CURSOR POSITION REPORT (invokes currep. hook in ConDios)
+ *	S   1-	SU   SCROLL UP
+ *	T   1-	SD   SCROLL DOWN
+[*	U   1   SLL  SET LINE LENGTH (display width)		]
+	W   n	CTC  CURSOR TABULATION CONTROL
+[*	X   1-  vtEL CLEAR CHARACTERS FROM CURSOR (VT220)	]
+ *	Z   1-	CBT  CURSOR BACKWARD TABULATION
+ *	f   2-	HVP  HORIZONTAL AND VERTICAL POSITION
+	g   1-	TBC  TABULATION CLEAR
+ *	h   n	SM   SET MODE: see modes below.
+ *	l   n	RM   RESET MODE: see modes below.
+ *	m   n	SGR  SELECT GRAPHIC RENDITION
+	n   1-	DSR  DEVICE STATUS REPORT
+ *	t   1-	aSLPP SET PAGE LENGTH (private Amiga sequence)
+ -	u   1-	aSLL  SET LINE LENGTH (private Amiga sequence)
+ *	x   1-	aSLO  SET LEFT OFFSET (private Amiga sequence)
+ *	y   1-	aSTO  SET TOP OFFSET (private Amiga sequence)
+	{   n	aSRE  SET RAW EVENTS (private Amiga sequence)
+	|   8	aIER  INPUT EVENT REPORT (private Amiga Read sequence)
+	}   n	aRRE  RESET RAW EVENTS (private Amiga sequence)
+	~   1	aSKR  SPECIAL KEY REPORT (private Amiga Read sequence)
+ *	p   1-	aSCR  SET CURSOR RENDITION (private Amiga sequence)
+	q   0	aWSR  WINDOW STATUS REQUEST (private Amiga sequence)
+ *	r   4	aWBR  WINDOW BOUNDS REPORT (invokes boundrep. hook in ConDios)
+ -	s   0	aSDSS SET DEFAULT SGR SETTINGS (private Amiga sequence-V39)
+ *	v   1	aRAV  RIGHT AMIGA V PRESS (private Amiga Read sequence-V37)
+
+	Modes, set with <CSI><mode-list>h, and cleared with
+	<CSI><mode-list>l, where the mode-list is one or more of the
+	following parameters, separated by semicolons --
+
+	Mode	Name Definition
+	------- ---- ----------------------------------------------------------
+	20	LNM  LINEFEED NEWLINE MODE: if a linefeed is a newline
+ *	>1	ASM  AUTO SCROLL MODE: if scroll at bottom of window
+ *	?7	AWM  AUTO WRAP MODE: if wrap at right edge of window
+
+	SGR (SELECT GRAPHICS RENDITION)
+		Selects colors, and other display characteristics
+		for text.
+
+	Parameters:
+
+ *		0	- Normal colors, and attributes
+ *		1	- Set bold (bright on)
+ *		2	- Set faint (secondary color)
+ *		3	- Set italic
+ *		4	- Set underscore
+[*		5	- Set blinking on, bold in condios	]
+ *		7	- Set reversed character/cell colors
+ *		8	- Set concealed mode.
+ *		22	- Set normal color, not bold (bright off)
+ *		23	- Italic off
+ *		24	- Underscore off
+[*		25	- Blinking off, bold off in condios	]
+ *		27	- Reversed off
+ *		28	- Concealed off
+
+ *		30-37	- Set character color
+ *		39	- Reset to default character color
+
+ In EGA mode you can set BOLD to get bright colors.
+
+ *		40-47	- Set character cell color
+ *		49	- Reset to default character cell color
+
+ *		>0-7	- Set background color
+			  Used to set the background color before
+			  any text is written.
+
+
+ ConDios' reset command <ESC>c reset all aspects in the display. It also clears
+ the saved cursor position.
+
+
+4. MISC
+
+    *** BENCHMARKS ***
+
+	Hardware: A4000/030/25mhz, OS 3.1
+	Screen  : AGA 800x600x6 (64 colors)
+
+	Condios window tested against KingCON shell window.
+
+	Both same sizes.
+	Both same font (IBM.font/8)
+	Both had cursor disabled.
+	Both buffered files from RAM:
+
+	ConDios - default settings, no paging, 'q' pressed during rendering.
+	That means EGA (16-colors) [Amiga ANSI (8-colors) was also tested,
+	but it was to little difference - actually EGA was a tiny bit
+	faster].
+
+	Shell - standard Amiga ANSI (8-colors).
+
+	NOTE that the times for ConDios includes the time it uses to open
+	its window and condios handler, draw GUI/gadgets and close window
+	and condios handler. Subtract ~1 seconds to get more real time with
+	times here.
+
+	Test files included in archive. I am interrested in seeing
+	benchmarks from other Amigas with different hardware configs. I use
+	the TimeCmd command to measure time (from AmiNet).
+
+
+	*** TEST 1: PLAIN TEXT (no ANSI codes).
+
+	Text file consist of 80x10 chars introduced with formfeed control code
+	(12). ~200 copies in same file.
+
+	Filesize: 174.020 bytes (PlainText.test)
+
+	Shell  :   37,47 seconds
+	ConDios:   31,02 seconds
+
+
+	*** TEST 2: ANSI GRAPHICS (GirlFaces.ans)
+
+	Text file consist of a long page with EGA ANSI.
+
+	Filesize: 108.634 bytes
+
+	Shell  :   54,25 seconds
+	ConDoos:   13,83 seconds
+
+
+	*** TEST 3: ANSI ANIMATION
+
+	Animation in EGA ANSI.
+
+	Filesize: 1.000.000 bytes (ren&stim.ans)
+
+	Shell  : 3884,66 seconds (1 hour and 4 minuttes !!)
+	ConDios:   70,54 seconds
+
+
+	As you can see ConDios is faster than the built-in console. With the
+	ANSI animation it is 55 times (!) faster. With plain text about 17%
+	faster and more than 4 times faster with ANSI graphics.
+
+
+	If you find bugs, have comment, wishes etc. contact
+
+	Kenneth "Kenny" Nilsen, kenny@bgnett.no
+
+ TODO (ConDios viewer) [based on feedback in form of shareware fee]
+
+	- Add tooltype support and handling Workbench args (reg. version)
+	- Loading files from requester if none specified and from button/menu
+	  (reg. version)
+	- Scrollback
+	- Stripping and saving of ANSI file.
+	- Saving current display as IFF file (reg. version)
+	- Better GUI buttons setup
+
+ TODO (condios.library)
+
+	- Implement support for history buffer, field editing so condios can
+	  be used directly for ANSI editing.
+	- Misc utility functions
+
+-------------------------------------------------------------------------------

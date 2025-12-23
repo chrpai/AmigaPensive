@@ -1,0 +1,245 @@
+
+
+        _____     _                  _     _              _    ___
+       |_   _|_ _(_) ___  _ __      | |__ | |__  ___     / |  / _ \
+         | | | '_| |/ _ \| '_ \     | '_ \| '_ \/ __|    | | | | | |
+         | | | | | | (_) | | | |    | |_) | |_) \__ \    | |_| |_| |
+         |_| |_| |_|\___/|_| |_|    |____/|____/|___/    |_(_)\___/
+
+                        © 1994/97 by Paul Spijkerman
+                             All Rights Reserved
+
+
+
+     Well here is the second Update since the Version V1.0 archive.
+
+     Some bug fixes and FileFix testversion (before I do some
+     other changes to AreaFix)
+
+
+
+     Utils:   BBS, TrionRM, tick, areafix, ViewPacket
+              FileEd, UserEd, Maintmod, Guimod
+     Docs:    Trion-Net.doc, rexxlist
+     Doors:   ReadNla.rexx
+
+
+
+   -Changed a 'Tron:' to 'Trion:' in the help text of TrionRM.
+
+   -Fixed a little problem in TrionRM .. if you had transferred more
+    then 99 files the flags in the monitor shifted.
+
+   -Changed the BBS so it recognizes a space as a CONNECT line because
+    of a ISDN modem that sometimes gives a weird connect.
+
+    Changed it for even weirder connect strings, if the strings isn't
+    recognized but has as space it is recognized as as connect.
+
+   -Changed the dial code, so there is no time our before the
+    connect string is received. Because ISDN modems are
+    very quick with connect strings. This was the last place
+    where it wasn't changed yet.
+
+   -Changed the internal modem speed variables from 16 bit to 32 bit
+    so I don't have to be afraid they will become to small.
+
+   -Rewritten the code that splits up the CONNECT line, it detects
+    if it is an digital connect (ISDN), if it is an analog connection
+    (V32 or V34) if error correction (V42, V42BIS, LAPM or REL) or
+    data compression is used (V42BIS or ARQ).
+
+
+ ! -Changed Areafix so it also reacts on 'FileFix' and 'AllFix'
+
+    Started to rewrite Areafix so it can use UserDefined messages,
+    by using code from the log off police.. not finished yet..
+
+    Build a 'FileFix' function in areafix.
+    It now also wil connect and disconnect file echo's and
+    give a list of the available file echo's.
+    (could someone test this ?)
+
+    Changed Triontick so it can handle the changed configs.
+
+    You have to change some configs (areafix.cfg and filenet.cfg)
+
+    In Areafix.cfg you have to change the line with "GROUPS" to
+    "MAIL GROUPS" like so:
+
+
+MAIL GROUPS
+
+TRION_SYSOP    51-99
+TRION_BETA     50-99
+
+NLA_POINT     100 - 109 , 111 - 115 , 117 - 118 , 120 - 199
+NLA_NODE      100 - 109 , 111 - 118 , 120 - 199
+NLA_MODERATOR 100 - 109 , 111 - 199
+NLA_HUB       100 - 199
+
+#    ;END-OFF-MAIL-GROUPS
+
+
+    You have to add file groups .. like so:
+    Note that the FN_ part means file net and is especially done
+    to see the difference with the mail nets .. but you can use
+    every name you want.
+
+
+
+FILE GROUPS
+
+FN_TRION     100-199
+FN_NLA       200-299
+FN_AMY       300-399
+FN_NUN       400-499
+
+#    ;END-OFF-FILE-GROUPS
+
+
+
+    You have to add the file groups that Users have acces to to
+    the nodes in the areafix.cfg
+
+
+350:1002/101  PASSWORD    SEND    350:1002/1  TRION_BETA    FN_TRION
+350:1002/102  PASSWORD  NOSEND    350:1002/1  TRION_BETA    FN_TRION
+350:1002/199  PASSWORD    SEND    350:1002/1  TRION_BETA    FN_TRION
+
+
+
+    The FileNet.Cfg is changed a little .. you have to add a
+    number between de "AREA" word and the areaname in every
+    section.
+    The number should ne unique and so choosen that sections
+    within a filenet have numbers in a specific range.
+    In the areafix.cfg we have the numbers for the trion filnet defined
+    as 100 - 199 .. so all the trion file echo's should have numbers
+    between 100 and 199
+
+
+
+; format:
+;
+; AREA  <number>  <areaname>  <origin NodeNum>  <FileAreaNumber>
+; <send to NodeNum>
+; #
+;
+;
+;<number>         = a Unique number for each area used in areafix.cfg
+;<areaname>       = name of this area
+;<origin NodeNum> = your nodenumber for this area
+;<FileAreaNumber> = number of area in fileareas.cfg where the files go
+;
+
+
+
+AREA   102   TRION_BBS   350:1002/0   23
+350:1001/100
+14:101/209.0
+350:1002/200
+350:1002/101
+#
+
+
+
+
+
+   -Fixed a bug in ViewPacket .. it did weird things when the
+    packet name you gave it didn't exist.
+    I used an unsigned variable for the size of the packet,
+    but the code gave a negative number for the size whe
+    the file didn't exist. So it always looked like the
+    file was there .. and after the scan (which didn't
+    take place because it couldn't open the file) it closed
+    the filebuffer (wich wasn't opend because the file
+    wouldn't open) which crashed the programm.
+
+
+   -Revised my GUI-library.
+
+    Tried to fix some of the problems of the GUI-lib.
+    So i can use it better in future projects
+    When I set the parameters for space around objects to zero,
+    all objects should touch eachother when the window is in the
+    smallest state.
+    But the objects overlapped, checked all calculations but the
+    problem was I forgot the '- 1' part in the folowing piece
+    of code when calculating where the border of an object
+    was rendered. Also to compensate I had to make all objects
+    a pixel bigger.
+
+    x1 = object->position.X
+    y1 = object->position.Y
+    x2 = object->position.X + object->size.X - 1
+    y2 = object->position.Y + object->size.Y - 1
+
+    It did the reverse with calculating the innerspace of a window
+    (had to remove the '- 1' part) so for the code the window
+    looked a pixel smaller.
+
+    When making a border around groups of objects there was 1
+    parameter for the space needed for the border. But there
+    where different types of lines that could be rendered in
+    that border. So now it calculates the space needed by taking
+    the thickness of the line and adding the border space parameter
+    to both sides.
+
+    With these things fixed I can set all space parameters to zero
+    and get a GUI with no space between objects like Dopus or
+    Adpro when the window is the smallest.
+    But the GUI didn't look very well.
+
+    There are now 2 pixels between objects instead of 1 pixel.
+    (if the space between objects parameter is set to 1)
+
+    Now when you have 10 lastcallers in your TrionRM.cfg you
+    get 10 lastcallers instead of 9 in the monitor.
+
+    This last point is changed again when changing some other
+    code. The window is 2 pixels to small for the 10 lastcallers.
+    I gues that the space some groups of objects get isn't a
+    whole number. So one group gets 80 + 1/10 pixels and the
+    other group 119 + 9/10 pixels.
+    This has something to do with the minimum and maximum size
+    of objects .. when the min and max size of the lastcaller
+    list is the same .. there is no problem and there are
+    10 lastcallers in the list.
+
+
+   -There was a little problem with the public screen of TrionRM.
+    (Which was mentioned in the Update doc when the public screen
+     was added to TrionRM)
+
+    When you closed the public screen (with the Iconize button or
+    the monitor close window gadget) the Monitor window disappeared
+    and TrionRM was waiting until al other windows where closed
+    until the screen could be closed and TrionRM could go on with
+    business.
+
+    This wasn't a problem with the Edit, Logs and Commands window
+    because they don't need any service of TrionRM .. but with
+    UserEd en FileEd and MaintMod it was a problem because
+    they needed service of TrionRM .. but TrionRM couldn't
+    give it because it was waiting for a signal that all windows
+    where closed. The system looked like it frooze because
+    the editors where waiting for TrionRM and TrionRM was waiting
+    for the editors window to close.
+
+    Also when TrionRM was waiting for all windows to be closed
+    the BBS nodes where also didn't get any service and
+    seemed to be frozen.
+
+    There was a a little problem when writing this code
+    because some signals seemed to be random instead of
+    when all windows where closed which delayed a cure.
+
+    This is now solved .. when you iconize .. only the window
+    is closed and all services are continued while TrionRM is
+    waiting for the signal that all windows are closed.
+    When a signal arrives it tries to close the screen .. and
+    only if the system succeeds in closing the screen (which
+    can only be done when all windows are closed) all resources
+    and signals are deallocated.
+

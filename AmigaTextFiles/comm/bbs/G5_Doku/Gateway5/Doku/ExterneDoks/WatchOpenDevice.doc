@@ -1,0 +1,202 @@
+                    +-----------------------------+
+                          WatchOpenDevice 1.8
+
+                       © 1996 by Matthias Andree
+                    +-----------------------------+
+
+
+
+DISCLAIMER, COPYRIGHT -- see below
+
+Copyright 1996 Matthias Andree.
+
+See below for precise explanation.
+
+
+------------------------------------------------------------------------
+INTRODUCTION -- what is it
+
+WatchOpenDevice monitors OpenDevice() calls in a safe way (Hey, it  uses
+Semaphores  and  does  no  I/O  on  the schedule of the caller) and more
+verbosely than SnoopDOS 3.0 by Eddy Carrol does.
+
+
+------------------------------------------------------------------------
+MOTIVATION -- why is it
+
+When trying to debug HyperCOM40.device by VMC/Harald Frank, I needed  to
+check  which  parameters were used when opening devices, so I wrote this
+tool. It should be pretty safe, it is small.
+
+
+------------------------------------------------------------------------
+INSTALLATION -- this is the easy part
+
+If you have PGP and MD5SUM installed, execute the CHECK script  (have  a
+look at it before) to check the archive integrity.
+
+Copy WatchOpenDevice wherever you like and you will find it, it is best
+put somewhere in your shell command search path.
+
+
+------------------------------------------------------------------------
+USAGE -- even easier
+
+Just type WatchOpenDevice in your shell to start it, send it CTRL-C  (by
+pressing  this  sequence  in  its  window  or  by  using the BREAK shell
+command) to end it.
+
+WatchOpenDevice cannot be started twice (see history). If you try to, it
+will  show  up  a  requester and ask you if you want to remove the first
+copy running. If you click "remove", both copies will quit, if you click
+"abort", the first copy will stay in memory.
+
+It will show you output about the  parameters  used  in  the  OpenDevice
+call. Let us have a look at an example output:
+
+Device                      Unt IOReqst  Flags    SF Task
+--------------------------- --- -------- -------- -- -------------------
+hyperCOM40.device             0 0827F560 00000000 A4 term
+
+Device, Unt, IORequest and Flags are as given in the call. Task  is  the
+Task  or  Process  name  of  the caller, and SF is something special: it
+reflects the contents of io_SerFlags.
+
+Although it is shown every time an OpenDevice() happens (this causes  no
+harm,  even  for other devices), it is only meaningful for serial.device
+compatibles.
+
+
+This is the meaning of io_SerFlags (bit-by-bit-basis):
+
+80 SERF_XDISABLED - XOn/XOff is disabled
+
+40 SERF_EOFMODE - if set, device checks agains io_TermArray
+
+20 SERF_SHARED - if set, other tasks using this bit can access this
+                 device at the same time
+
+10 SERF_RAD_BOOGIE - hi-speed mode. Sets data format to 8N1 (no parity,
+                     8 bit), disables XOn/XOff and do not test for break
+                     signals
+
+08 SERF_QUEUEDBRK - if set, break commands are queued and
+                    inserted into the data stream instead of being
+                    reported instantaneously
+04 SERF_7WIRE - if set, device will use 7-wire (RTS/CTS) handshaking
+
+02 SERF_PARTY_ODD - selects odd parity
+
+01 SERF_PARTY_ON - switch on parity checking.
+
+Note:  Full  diagnostic  of  parity  settings  would   require   showing
+io_ExtFlags also. This is not yet implemented, as I do not need it. Most
+connections are in 8N1 format anyways.
+
+
+------------------------------------------------------------------------
+NOTES
+
+Has been compiled using SAS/C 6.57. Source code is available from author
+upon request.
+
+Has been tested on A4000 with CyberStorm board and OS  3.0  with  SetMan
+running  (on Aminet also). SetMan can be found on Aminet or Aminet Set 1
+Disc A, in util/boot/setman10g.lha - it is 13 K in size.
+
+
+------------------------------------------------------------------------
+AUTHOR
+
+Matthias Andree
+Stormstr. 14
+58099 Hagen
+Germany
+
+E-Mail: m_andree@tribal.line.org            PGP welcome here
+        mandree@sx1.hrz.uni-dortmund.de    MIME welcome here
+-----------------------------------------------------------------------
+DISCLAIMER, COPYRIGHT -- legal stuff
+
+Copyright 1996 Matthias Andree
+
+Copying
+-------
+Commercial use without prior written consent  of  copyright  holders  is
+prohibited.  This  also  applies  to magazine's cover disks other CD-ROM
+collections than stated below and Arktis, Pawlowski and  TIME  disks  in
+particular.
+
+Permission is granted to distribute this file without profit as long  as
+is  distributed  as  entire,  unmodified  archive  and if no more than a
+reasonable media cost is charged. This "reasonable media cost" MUST  NOT
+exceed DM 2,- or the equivalent in other currencies.
+
+Permission is also granted to distribute this package on Meeting Pearls,
+Aminet and Cronus CD-ROM - not exceeding the suggested retail prices (DM
+30,- per CD-ROM contained in package) - as well as SaarAG PD disks.
+
+Permission is granted to distribute this in BBS  and  offer  it  on  FTP
+servers, provided that these allow unaccounted, anonymous access free of
+charge.
+
+Disclaimer
+----------
+There is no warranty for the  WatchOpendevice  Package,  to  the  extent
+permitted by applicable law. Except when otherwise stated in writing the
+copyright holder or any other party which  may  distribute  the  package
+provides  the  program  "as  is"  without  warranty  of any kind, either
+expressed or  implied,  including,  but  not  limited  to,  the  implied
+warranties  of merchantability and fitness for a particular purpose. The
+entire risk as to the quality and performance of  the  program  is  with
+you.  Should  the  program  prove  defective, you assume the cost of all
+necessary servicing, repair or correction.
+
+In no event unless required by applicable law or agreed  to  in  writing
+will  the  copyright  holder  or  any  other  party be liable to you for
+damages, including any general,  special,  incidental  or  consequential
+damages  arising  out  of  the  use  or  inability  to  use  the program
+(including but not limited to  loss  of  data  or  data  being  rendered
+inaccurate  or  losses sustained by you or third parties or a failure of
+the program to operate with any other programs), even if  the  copyright
+holder  or  other  party  has  been  advised  of the possibility of such
+damages.
+
+
+------------------------------------------------------------------------
+CREDITS
+
+Mohammad Asiri <m.asiri@csu-e.csuohio.edu>
+  for reporting trouble with my checksums
+
+Nils Goers <N.Goers@Art-line.de>
+  who suggested the check to prevent running WatchOpenDevice twice
+
+
+------------------------------------------------------------------------
+HISTORY
+
+NOTA BENE: Minor changes are  not  noted  here.  Thus,  the  history  is
+complete,  although  it  shows the changes only up to 1.5 whereas 1.8 is
+the current version.
+
+
+WatchOpenDevice 1.2 (24.11.96) 21:25:12 by mandree@sx1.hrz.uni-dortmund.de
+
+Added io_SerFlags to output.
+
+
+WatchOpenDevice 1.3 (1.12.96) 23:46:05 by mandree@sx1.hrz.uni-dortmund.de
+
+Can only be started if not yet active.
+
+
+WatchOpenDevice 1.4 (1.12.96) 23:55:27 by mandree@sx1.hrz.uni-dortmund.de
+
+Added requester which pops up if started twice.
+
+
+WatchOpenDevice 1.5 (1.12.96) 23:59:25 by mandree@sx1.hrz.uni-dortmund.de
+
+Added option to remove first copy if started twice.
+

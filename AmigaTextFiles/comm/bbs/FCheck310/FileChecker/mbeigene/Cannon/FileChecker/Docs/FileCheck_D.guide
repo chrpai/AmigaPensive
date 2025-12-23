@@ -1,0 +1,982 @@
+@database FileCheck.guide
+@$VER: 3.10
+@author "cANNoN/iDP!"
+@(c) "1996-97
+@font pearl.font 8
+@index "Main"
+
+
+@node "Main" "FileCheck - AmigaGuide-Dokument *DEUTSCH*"
+
+            @{fg shine}_ __  _ ___  _______ _____  _ ___  _____  _  _______
+           (@{fg text}_)  \\@{fg shine}| @{fg text}|   \\@{fg shine}|  @{fg text}_/ _ \\  _/ \\@{fg shine}| @{fg text}|   \\@{fg shine}|  @{fg text}_/ \\@{fg shine}| @{fg text}|@{fg shine}/  @{fg text}/  _/
+           @{fg shine}| @{fg text}| \\ \\ | (@{fg shine}) @{fg text}\\ -_>  _/ -_>\\ \\ | (@{fg shine}) @{fg text}\\ -_>\\ \\ @{fg shine}/  @{fg text}/@{fg shine}| @{fg text}-_>
+           @{fg shine}|@{fg text}_|_|\\__|____/___\\_| @{fg shine}|@{fg text}___\\|\\__|____/___\\|\\__\\__\\@{fg shine}|@{fg text}___\\
+                       ... @{b}in a world of wonder@{ub} ...
+
+                 @{fg shine}FileCheck V3.10  by cANNoN/iNDEPENDENCE!@{fg text}
+                @{b}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~@{ub}
+                             Copyright 1996-97
+
+
+                 @{" Einleitung          " link "instruction" 0}  Warum? Und was kann er?
+                 @{" Inhalt              " link "contents" 0}  Was gehört dazu?
+                 @{" Installation        " link "install" 0}  Was muß wo hin?
+                 @{" Konfiguration       " link "config" 0}  Auch das noch.
+           __    @{" Systemanforderungen " link "system" 0}  Was braucht man noch?
+          ///
+     __  ///     @{" Der Autor           " link "author" 0}  Na das bin ich!
+     \\\\\\///      @{" Registrierung       " link "register" 0}  Wozu?
+      \\XX/       @{" Rechtliches         " link "rights" 0}  Ja, das muß hier rein!
+
+                 @{" Geschichte          " link "history" 0}  Damals ..
+                 @{" To Do               " link "todo" 0}  Was fehlt noch?
+                 @{" Danksagungen        " link "thanks" 0}  Bevor ich es vergesse ..
+@endnode
+
+
+@node "Instruction" "FileCheck - Einleitung"
+
+FileCheck  ist  ein  FileChecker für das Mailboxsystem AMMS. Er dient dazu,
+Files  die  geuploaded  wurden  zu  prüfen.  Dazu kommen noch einige andere
+Funktionen,  wie z.B. Dateitypen selbstständig erkennen, Werbung entfernen,
+Werbung  hinzufügen,  filtern  und konvertieren von Zeichen in der File_ID,
+Zeilen  löschen  und  hinzufügen zur File_ID. Es wird auf Wunsch sogar nach
+doppelten   Dateien  gesucht.  So  ziemlich  alle  Funktionen  sind  direkt
+abschaltbar oder/und können in der Konfiguration eingestellt werden.
+Der Funktionsumfang von FileCheck ist inzwischen so stark gewachsen, daß es
+kaum  noch  möglich  ist  alle Funktionen in wenigen Sätzen zu fassen. Aber
+hier noch einmal eine Auflistung der Funktionen:
+
+ · viele unterstützte Dateitypen
+   (LHA, LZX, ZIP, RAR, ARJ, DMS, TXT, GIF, JPEG, EXE)
+ · Dateityperkennung (wird intern ausgewertet)
+ · Dateien werden automatisch umbenannt, wenn die Endung nicht mit der
+   eigentliches Endung des Dateitypes übereinstimmt
+ · einfaches prüfen von Dateien
+ · defekte und doppelte Dateien werden auf Wunsch verschoben und
+   gekennzeichnet
+ · File_ID wird entpackt
+ · File_ID wird noch nachbearbeitet
+ · Zeichen können in der File_ID konvertiert und gelöscht werden
+   (interessant bei unterschiedlichen PC und AMIGA-Texten)
+ · an die File_ID kann eine Zeile angehängt und es können Zeilen gelöscht
+   werden
+ · File_ID kann gespeichert werden
+ · Werbung kann gekillt und hinzugefügt werden
+ · Duplicate-Check mit Turbomode-Option
+ · User können vom Duplicate-Check ausgeschlossen werden
+   (z.B. Sysops/Cosysops und andere aktive User)
+ · verschiedene Filebretter können von verschiedenen Aktionen (z.B. Werbung
+   anhängen, Werbung löschen etc.) ausgeklammert werden
+ · verschiedene Werbetexte für verschiedene Dateiformate möglich
+ · MAPUS wird direkt unterstützt
+ · SetReturn wird direkt unterstützt
+ · Return-Codes werden zurückgegeben
+ · Ausgabetexte können komplett geändert werden
+ · Parameter werden standardmäßig aus den ENV-Variablen eingelesen
+   (wenn möglich)
+ · FileCheck ist der schnellste mir bekannte MultiArchiv-Checker
+ · alle Dateiformate sind abschaltbar
+ · FileCheck ist KOSTENLOSE SHAREWARE
+
+FileCheck  ist  ab Version 3.00 in C geschrieben und ist dadurch wesentlich
+schneller  und  flexibler  geworden.  RexxMast muß ab jetzt auch nicht mehr
+gestartet sein.
+@endnode
+
+
+@node "Contents" "FileCheck - Inhalt"
+
+@{b}mbeigene:Cannon/FileChecker@{ub}
+
+@{" FastScan.bat        " link "fastscan.bat" 0} -> die Batch für das Event zum scannen
+@{" FileCheck           " link "filecheck" 0} -> das Hauptprogramm
+@{" FileCheck.fast      " link "filecheck.fast" 0} -> Fileliste der BBS für den Turbo-DupeCheck
+@{" FileCheck.key       " link "register" 0} -> KeyFile für *registrierte* Benutzer
+@{" MultiDesc           " link "multidesc" 0} -> File_ID-Tool für Text, GIF und JPEG
+@{" ScanDir             " link "scandir" 0} -> zum scannen der Dirs für den Duplicate-Checker
+
+
+@{b}mbeigene:Cannon/FileChecker/Config@{ub}
+
+@{" FileCheck.config    " link "filecheck.config" 0} -> hier werden die Haupteinstellungen vorgenommen
+@{" FileCheck.dirs      " link "filecheck.dirs" 0} -> AmigaDOS-Pfade für den Duplicate-Check
+@{" FileCheck.lstrip    " link "filecheck.lstrip" 0} -> enthält  Striplines für die File_ID
+@{" FileCheck.noadd     " link "filecheck.noadd" 0} -> Brett-Pfade an denen keine Werbung angefügt wird
+@{" FileCheck.nodup     " link "filecheck.nodup" 0} -> Bretter, die vom Dupe-Check ausgeschlossen werden
+@{" FileCheck.nostrip   " link "filecheck.nostrip" 0} -> Brett-Pfade in denen nicht gestrippt wird
+@{" FileCheck.noudup    " link "filecheck.noudup" 0} -> User, welche vom Dupe-Check ausgeschlossen werden
+@{" FileCheck.strip     " link "filecheck.strip" 0} -> enthält die Striplines für LhA, LZX und ZIP
+@{" FileCheck.suffixes  " link "filecheck.suffixes" 0} -> Endungen, die direkt umbenannt werden dürfen
+
+
+@{b}mbeigene:Cannon/FileChecker/Docs@{ub}
+
+@{" FileCheck_D.guide   " link "author" 0} -> Anleitung im AmigaGuide-Format *DEUTSCH*
+@{" FileCheck_E.guide   " link "author" 0} -> Anleitung im AmigaGuide-Format *ENGLISCH*
+@{" History.txt         " link "history.txt/main" 0} -> die Evolution von FileCheck im Textformat ;)
+
+
+@{b}mbeigene:Cannon/FileChecker/Docs/Data@{ub}
+
+@{" Default.iff         " system "MultiView Data/Default.iff SCREEN" 0} -> Screenshot der Standard-Sprache
+@{" BigPlanet.iff       " system "MultiView Data/BigPlanet.iff SCREEN" 0} -> Screenshot der BigPlanet-Sprache
+@{" Progress.iff        " system "MultiView Data/Progress.iff SCREEN" 0} -> Screenshot der Progress-Sprache
+
+
+@{b}mbeigene:Cannon/FileChecker/Languages@{ub}
+
+@{" FileCheck.default   " link "filecheck.lang1" 0} -> @{" " system "MultiView Data/Default.iff SCREEN" 0} Standard-Sprache
+@{" FileCheck.bigplanet " link "filecheck.lang2" 0} -> @{" " system "MultiView Data/BigPlanet.iff SCREEN" 0} BigPlanet-Sprache
+@{" FileCheck.progress  " link "filecheck.lang3" 0} -> @{" " system "MultiView Data/Progress.iff SCREEN" 0} Progress-Sprache
+
+@{b}mbbatch:Upload@{ub}
+
+@{" @                   " link "up-batch" 0} -> die Upload-Batch, wie sie aussehen kann :)
+
+
+Um  Fehler zu vermeiden sollten diese Programme auch vorhanden sein.  Diese
+sind  jedoch  nicht  von mir und liegen hier als Zusatz bei.  Die Rechte an
+diesen  Programmen  liegen  natürlich bei den jeweiligen Autoren.  Ich habe
+hier noch die Versionsnummern dahinter geschrieben, wie sie bei mir laufen:
+
+@{b}C:@{ub}
+
+CheckHunks             -> V1.0
+DMSDescript            -> V1.1
+ExeDescript            -> V1.0
+MaPuS                  -> V1.40
+LhA                    -> V1.52 (Evaluation)
+LZX                    -> V1.21 (Evaluation)
+UnARJ                  -> V2.41
+UnARJ_FID              -> V1.02
+UnRAR                  -> V2.02
+UnZIP                  -> V5.12
+ZIP                    -> V2.01
+
+
+@{b}Fonts:@{ub}
+
+Pearl/8                -> der klassische Font für das AmigaGuide-Dokument
+Pearl.font
+@endnode
+
+
+@node "Install" "FileCheck - Installation"
+
+Die  Dateien  aus  'FileChecker/mbeigene'  und 'FileChecker/mbbatch' müssen
+nach   AMMS   kopiert   werden.   Der  Rest  kommt  in  die  entsprechenden
+Systemverzeichnisse.
+
+Allerdings  reicht das noch nicht.  FileCheck muß noch konfiguriert werden.
+Näheres dazu findet man unter dem Punkt @{" Konfiguration " link "config" 0}.
+@endnode
+
+
+@node "Config" "FileCheck - Konfiguration"
+
+Hier sind alle Dateien aufgezählt und erklärt, die irgendwie verändern oder
+verändert werden können:
+
+
+@{b}mbeigene:Cannon/FileChecker@{ub}
+
+@{" FastScan.bat        " link "fastscan.bat" 0} -> die Batch für das Event zum scannen
+@{" FileCheck           " link "filecheck" 0} -> das Hauptprogramm
+@{" FileCheck.fast      " link "filecheck.fast" 0} -> Fileliste der BBS für den Turbo-DupeCheck
+@{" ScanDir             " link "scandir" 0} -> zum scannen der Dirs für den Duplicate-Checker
+
+
+@{b}mbeigene:Cannon/FileChecker/Config@{ub}
+
+@{" FileCheck.config    " link "filecheck.config" 0} -> hier werden die Haupteinstellungen vorgenommen
+@{" FileCheck.dirs      " link "filecheck.dirs" 0} -> AmigaDOS-Pfade für den Duplicate-Check
+@{" FileCheck.lstrip    " link "filecheck.lstrip" 0} -> enthält  Striplines für die File_ID
+@{" FileCheck.noadd     " link "filecheck.noadd" 0} -> Brett-Pfade an denen keine Werbung angefügt wird
+@{" FileCheck.nodup     " link "filecheck.nodup" 0} -> Bretter, die vom Dupe-Check ausgeschlossen werden
+@{" FileCheck.nostrip   " link "filecheck.nostrip" 0} -> Brett-Pfade in denen nicht gestrippt wird
+@{" FileCheck.noudup    " link "filecheck.noudup" 0} -> User, welche vom Dupe-Check ausgeschlossen werden
+@{" FileCheck.strip     " link "filecheck.strip" 0} -> enthält die Striplines für LhA, LZX und ZIP
+@{" FileCheck.suffixes  " link "filecheck.suffixes" 0} -> Endungen, die direkt umbenannt werden dürfen
+
+
+@{b}mbeigene:Cannon/FileChecker/Languages@{ub}
+
+@{" FileCheck.default   " link "filecheck.lang1" 0} -> @{" " system "MultiView Data/Default.iff SCREEN" 0} Standard-Sprache
+@{" FileCheck.bigplanet " link "filecheck.lang2" 0} -> @{" " system "MultiView Data/BigPlanet.iff SCREEN" 0} BigPlanet-Standard
+@{" FileCheck.progress  " link "filecheck.lang3" 0} -> @{" " system "MultiView Data/Progress.iff SCREEN" 0} Progress-Sprache
+
+
+@{b}mbbatch:Upload@{ub}
+
+@{" @                   " link "up-batch" 0} -> die Upload-Batch, wie sie aussehen kann :)
+
+
+@{b}Es werden auch Return-Codes zurückgegeben, sodaß man mit FailAt oder direkt
+an der Variable RC abfragen und gegebenenfalls verzweigen kann:@{ub}
+
+ 0 - kein Fehler aufgetreten
+ 5 - Fehler bei der Parameterübergabe
+10 - Fehler beim erstellen der Datei @{" FileCheck.fast " link "filecheck.fast" 0}
+15 - doppelte Datei wurde gefunden
+20 - Datei ist fehlerhaft
+25 - Datei konnte nicht gefunden werden
+30 - die Konfigurationsdatei @{" FileCheck.config " link "filecheck.config" 0} ist fehlerhaft
+40 - freier Speicherplatz ist nicht mehr ausreichend
+50 - Fehler mit der Registrierung
+
+
+Es  werden  verschiedene @{" ENV-Variablen " link "env-vars" 0} von FileCheck/AMMS gesetzt, die dann in
+den Sprachtexten und der Zeile für die File_ID verwendet werden können.
+@endnode
+
+
+@node "System" "FileCheck - Systemanforderungen"
+
+@{b}Benötigt werden:@{ub}
+
+ · ein Amiga mit Kickstart 2.04+
+ · AMMS 2.0/3.0
+ · etwas freier RAM-Speicher
+ · uploadende User ;)
+
+
+@{b}Getestet auf:@{ub}
+
+ · meinem Amiga   : Amiga 1200 + Tower + Zorro II
+   Prozessor      : MC68030/50MHz/MMU (Blizzard 1230IV)
+   Grafik-Set     : Advanced Graphic Architecture
+   Speicher       : 2MB Chip, 16MB Fast
+   Kickstart      : 40.68 (OS 3.1)
+   Festplatte     : 2x1.2GB Western Digital, 1.2GB Conner Peripherals
+   Software       : AMMS 3.0
+   Sonstiges      : Mitsumi CD-ROM FX001D, Mitsumi CD-ROM FX400,
+                    Winner 4fach AT-Adapter, Tandem AT-IDE Controller,
+                    GOLEM FAST-SCSI-II/IDE Controller, HyperCOM4
+
+ · Mad Dog's Amiga: Amiga 2000
+   Prozessor      : MC68030, MC68882 (A2630 030 Turbo)
+   Grafik-Set     : Enhanced Chip Architecture
+   Speicher       : 1MB Chip, 4MB Fast
+   Kickstart      : 40.63 (OS 3.1)
+   Festplatte     : 1GB NEC
+   Software       : ---
+   Sonstiges      : Mitsumi CD-ROM FX400, BSC MultiFaceCard III,
+                    Oktagon 2008 SCSI-Controller, Tandem AT-IDE Controller
+
+ · Ron's Amiga    : Amiga 4000
+   Prozessor      : MC68030, MC68882
+   Grafik-Set     : Advanced Graphic Architecture
+   Speicher       : 2MB Chip, 16MB Fast
+   Kickstart      : OS 3.0
+   Festplatte     : 1.2GB Quantum Fireball
+   Software       : AMMS 3.0
+   Sonstiges      : CD-ROM, BSC MultiFaceCard III
+
+ · Shadow's Amiga : Amiga 3000 Tower
+   Prozessor      : MC68030/25MHz/MMU, MC68882/25MHz
+   Grafik-Set     : Enhanced Chip Set
+   Speicher       : 1MB Chip, 4MB Fast
+   Kickstart      : 37.175 (OS 2.04)
+   Festplatte     : 1.2GB Seagate SCSI, 540MB Samsung, 540MB Quantum
+   Software       : AMMS 3.0
+   Sonstiges      : Mitsumi CD-ROM FX001D, NoName CD-ROM, Tandem AT-IDE
+                    Controller, Oktagon 2008 AT/IDE Controller, BSC
+                    MultiFaceCard III, HyperCOM4
+
+ · T-Bone's Amiga : Amiga 1200
+   Prozessor      : MC68030/40MHz/MMU, MC68881/33MHz
+   Grafik-Set     : Advanced Graphic Architecture
+   Speicher       : 2MB Chip, 20MB Fast
+   Kickstart      : 39.106 (OS 3.0)
+   Festplatte     : 3.2GB Quantum Fireball, 1.28GB Quantum Fireball,
+                    840MB Conner
+   Software       : AMMS 3.0
+   Sonstiges      : Mitsumi CD-ROM FX001D (Overdrive), 4fach AT-Adapter
+@endnode
+
+
+@node "Author" "FileCheck - Der Autor"
+
+Natürlich  könnt  ihr  mir auch Vorschläge und Fehler mitteilen.  Ich werde
+dann  sehen, was sich so machen läßt.  Und auch zur @{" Registrierung " link "register" 0} brauche
+ich Post.  :)
+
+@{b}Man kann mich unter folgenden Adressen und Nummern erreichen:@{ub}
+
+         E-Mail: Cannon@BigPlanet.tobcv.de
+           oder: 100.143122@germanynet.de
+
+BigPlanet - BBS: ++49 3342 203926 - 33.600 bps
+                 ++49 3342 204908 - 28.800 bps
+                 ++49 3342 204908 - 64.000 bps (X.75)
+
+
+@{b}Das Guide wurde ins englische übersetzt von:@{ub}
+
+                 Thomas 'Shadow' Knuppe
+
+Du kannst ihn erreichen unter
+
+         E-Mail: Shadow@outside.in-berlin.de
+           oder: T.Knuppe@bbrandes.leine.de
+
+ Outside World : ++49 30 66709151 - 33k6 bps
+                 ++49 30 66709543 - 19k2/ZyX+ bps
+                 ++49 30 66709544 - 14k4 bps
+@endnode
+
+
+@node "Register" "FileCheck - Registrierung"
+
+FileCheck ist SHAREWARE und kann bei mir KOSTENLOS registriert werden.  Die
+Registrierung  gibt  es nur deshalb, damit ich weiß wer überhaupt FileCheck
+benutzt und ob es sich lohnt daran weiterzuarbeiten.
+
+Also  wen  dieses  Programm  gefällt,  der  sollte sich sofort registrieren
+lassen.   Ich  verschicke  dann Infos, wann eine neue Version existiert und
+man  ist  immer  auf  den  aktuellsten  Stand.   Außerdem  wird die weitere
+Entwicklung sehr stark von der Nachfrage beeinflußt.
+
+Einfach eine Mail schicken und man bekommt dann ein KeyFile, welches direkt
+auf  den  Benutzter  zugeschnitten ist.  Da dieses Programm ja nur sinnvoll
+für  AMMS-Benutzer  ist,  wird das KeyFile auf den Namen des Bestellers und
+den Nodenamen der BBS registriert (z.B.  Cannon@BigPlanet).
+
+In  der unregistrierten Version stehen alle Funktionen im vollen Umfang zur
+Verfügung.   Allerdings  erscheint  nach Programmende ein Nervtext, der für
+einige  wenige  Sekunden bestehen bleibt.  Bei vielen Dateien kann das echt
+nerven deshalb, SOFORT registrieren lassen.  ;)
+@endnode
+
+
+@node "Rights" "FileCheck - Rechtliches"
+
+FileCheck  wird  unter  dem  SHAREWARE-Konzept  vertrieben.   Man läßt sich
+registrieren  und  bekommt  ein  persönliches KeyFile.  In diesem Falle ist
+hier die Registrierung sogar kostenlos.
+Das  verändern  des  Programmes  und  das  weitergeben  eines  KeyFiles ist
+verboten.
+
+Ich  werde  auch  nicht  haften  für  Probleme, die durch die Benutzung von
+FileCheck  entstanden  sind.   Das  heißt,  wenn jemand von seiner Freundin
+verlassen wird, weil er mehr Zeit mit FileCheck verbracht hat oder wenn die
+Festplatte  durch  die starke Benutzung abbrennt, dann kann ich dafür nicht
+haftbar gemacht werden.  ;)
+
+Desweiteren  liegen  diesem  Programmpaket  noch  viele  andere zusätzliche
+Programme  bei,  die ich hoffentlich auch dabei lassen darf.  Sie sind alle
+irgendwie  ein  Teil  von  FileCheck  und  ich möchte den Programmierern an
+dieser Stelle danken.
+Es  wäre  ein gewaltiger Aufwand, wenn sich die Benutzer von FileCheck alle
+Tools  selbst  besorgen  müßten und daher habe ich mich entschlossen, diese
+dem Programmpaket zuzufügen.
+@endnode
+
+
+@node "History" "FileCheck - Geschichte"
+
+@{b}V3.00 - 13.07.1997@{ub}
+
+ - komplett in C geschrieben
+ - wesentlich schneller als frühere Versionen
+ - Unmengen an neuen Features (deshalb auch neue History)
+
+
+@{b}V3.10 - 30.08.1997@{ub}
+
+ - bei defekten DMS-Archiven ging es ein wenig durcheinander, wenn die
+   File_ID entnommen werden sollte
+ - wenn Werbetexte vor Texte gehangen wurden, dann wurde die File_ID
+   nicht korrekt gelöscht und gespeichert
+ - CheckHunks/Slt ersetzt nun den ExeChecker
+ - viele Programmteile leicht bearbeitet
+ - Sprachtexte werden wesentlich schneller geladen und ausgegeben
+ - FileCheck.types entfernt und in die Sprachtexte befördert 
+ - FileCheck.nodup wird zu FileCheck.noudup (User die vom Duplicate-Check
+   ausgeschlossen werden sollen)
+ - FileCheck.nodup (prüft beim Upload in den angegebenen Brettern nicht
+   nach Duplicaten)
+ - neue Option "MASKTYPES" (verschiedene Dateitypen lassen sich über
+   Bit-Optionen abschalten)
+ - Fehlermeldungen der Packer werden jetzt endlich unterdrückt
+ - Standardverzeichnis für temporäre ist jetzt "MBTMP:"
+ - Zeilen in FileCheck.config können mit einem Semikolon an erster Stelle
+   deaktiviert werden
+@endnode
+
+
+@node "ToDo" "FileCheck - To Do"
+
+ · Ich  hätte  gerne  eine  eigene  Routine  zum  schreiben  der File_ID in
+   DMS-Archive.  Allerdings  brauche  ich  dazu noch Informationen zum DMS-
+   Format und wie man da die CRCs einer Spur berechnet.
+
+ · Die  Übersetzung  der  Dokumentation  in andere Sprachen wäre vielleicht
+   sehr  sinnvoll.  Hier  bin  ich auf die Hilfe anderer angewiesen. Wer so
+   etwas machen möchte kann sich ja bei mir melden. :)
+
+ · Ein  HTML-Dokument  von  FileCheck  war  in  Arbeit,  aber  wurde  wegen
+   Zeitmangel und Unlust zurückgestellt (das ist ja soooo langweilig).
+   Wer auch hier Lust hat sowas zu machen kann ruhig mal Bescheid geben.
+
+ · In  den  nächsten Versionen wird es ein Interface geben,  womit man dann
+   FileCheck komplett konfigurieren kann.
+
+ · Einen Installer wird es demnächst auch geben,  sofern ich die Zeit  dazu
+   habe.  Ausserdem muss ich mich  erst  einmal  in  die  Installer-Sprache
+   hineinversetzen.
+@endnode
+
+
+@node "Thanks" "FileCheck - Danksagungen"
+
+@{b}Als erstes möchte ich allen registrierten Benutzern danken. Darunter finden
+sich dann auch noch die hilfreichen Beta-Tester:@{ub}
+
+Daemon@TACHELES, Mad Dog@Advanced, Shadow@Outside, T-Bone@sTEAKhOUSE
+
+
+@{b}Im folgenden danke und grüße ich noch folgende (wichtige) Leute:@{ub}
+
+Adrock & Fastman: - für das 'Amiga Multiuser Mailbox System'
+                  - für die Programmierhilfen
+                  - für öfter lange Durchlaufzeiten meiner Mails ;)
+
+IRoN & Shadow   : - für die tolle MailBox
+                  - meinen E-Mail-Server ;)
+
+MagicSN         : - durch ihn kam ich erst in die Sprache C hinein
+
+T-Bone          : - für die manchmal mehr oder weniger guten Tips
+                    in Sachen C-Programmierung
+@endnode
+
+
+@node "Fastscan.bat" "FileCheck - FastScan.bat"
+
+Diese  Batch  ist  eine  AMMS-Batch  und  sollte über ein Event eingebunden
+werden.    Es   werden   dann   alle   Verzeichnisse   eingelesen   die  in
+@{" FileCheck.dirs " link "filecheck.dirs" 0} stehen.
+Die Verzeichnisinhalte werden in die Datei @{" FileCheck.fast " link "filecheck.fast" 0} geschrieben.
+
+
+@{b}Die Batch könnte z.B. so aussehen:@{ub}
+
+@{fg shine}_extern/quiet mbeigene:Cannon/FileChecker/FileCheck TURBOSCAN@{fg text}
+@endnode
+
+
+@node "FileCheck" "FileCheck - FileCheck"
+
+@{fg shine}FileCheck [FILE file] [BOARD board] [PORT port] [NAME name]
+          [LANGUAGE language] [MASKTYPES filetypemask] [NOCHECK] [NOADD]
+          [NOLADD] [NOSTRIP] [NOLSTRIP] [NOCSTRIP] [NOCVT] [NODIZ] [NODUP]
+          [NOTURBO] [NOMOVE] [NOSAVE] [TURBOSCAN]@{fg text}
+
+@{b}Diese Punkte müssen angegeben werden, wenn keine ENV-Variablen dafür
+gesetzt sind:@{ub}
+
+file      - erklärt sich von selbst
+board     - gibt das Zielboard an
+port      - legt den aktuellen Port fest, um Überschneidungen bei
+            gleichzeitigen Uploads zu vermeiden
+name      - gibt den Usernamen, des Uploaders an
+
+@{b}Die anderen Optionen sind nicht unbedingt erforderlich:@{ub}
+
+language  - stellt den aktuellen Sprachtext ein
+masktypes - erlaubt es verschiedene Dateitypen abzuschalten @{" " link "masktypes" 0}
+noadd     - fügt keine Werbung hinzu
+noladd    - fügt am Ende der File_ID keine Zusatz-Zeile ein
+nostrip   - löscht keine Werbefiles
+nolstrip  - löscht keine Zeilen aus der File_ID
+nocstrip  - löscht keine Zeichen aus der File_ID
+nocvt     - konvertiert keine Zeichen in der File_ID
+nodiz     - extrahiert die File_ID nicht
+nodup     - führt keinen DoppelCheck durch
+noturbo   - schaltet den TurboScan beim Duplicate-Checker ab
+nomove    - verschiebt defekte und doppelte Dateien nicht
+nosave    - speichert die File_ID nicht zurück
+
+@{b}Hier die letzte spezielle Option:@{ub}
+
+turboscan - erstellt eine Fileliste für den Turbo-DupeChecker
+@endnode
+
+
+@node "MaskTypes" "FileCheck - MaskTypes"
+
+Dieser  Parameter  erlaubt es verschieden Dateitypen über Bit-Kombinationen
+abzuschalten.   Dabei  entspricht  @{b}1 = AN@{ub} und @{b}0 = AUS@{ub}.  Die Reihenfolge der
+Bits ist mit der Reihenfolge in den Sprachtexten identisch.
+
+  1. LHA
+  2. LZX
+  3. ZIP
+  4. ARJ
+  5. RAR
+  6. DMS
+  7. GIF
+  8. JPG
+  9. TXT
+ 10. EXE
+
+
+@{b}Beispiel:@{ub}
+
+LHA  und  RAR  sollen  unbekannt  bleiben, der Rest soll bekannt sein.  Die
+Bit-Kombination lautet also:
+
+    @{fg shine}0111011111
+    |   |
+   LHA RAR@{fg text}
+
+Es  würde  auch  "01110"  reichen,  da  nicht  angegebene  Stellen immer @{b}AN@{ub}
+bedeuten.
+@endnode
+
+
+@node "FileCheck.fast" "FileCheck - FileCheck.fast"
+
+Diese  Datei  enthält  die komplette File-Liste für den Duplicate-Check und
+wird  mit  dem  Befehl  @{" FileCheck TURBOSCAN " link "filecheck" 32} erstellt.  Die zu scannenden
+Verzeichnisse befinden sich in der Datei @{" FileCheck.dirs " link "filecheck.dirs" 0}.
+@endnode
+
+
+@node "MultiDesc" "FileCheck - MultiDesc"
+
+Mit  diesem  Programm  können  File_IDs  von Texten, GIF- und JPEG-Grafiken
+verwaltet  werden.   Das  heißt,  man  kann  sie  hinzufügen,  löschen  und
+entpacken.
+Es gibt drei Möglichkeiten des Aufrufes von MultiDesc.
+
+@{b}1. File_ID entpacken:@{ub}
+
+@{fg shine}MultiDesc e <FILE> [DESCRIPTION]@{fg text}
+
+Im  Normalfall wird die File_ID, wenn vorhanden, in die entsprechende Datei
+geschrieben.   Wird  die  DESCRIPTION  (Beschreibung  oder  File_ID)  nicht
+angegeben, so erfolgt die Ausgabe auf dem Bildschirm mit zusätzlichem Kopf-
+und Fußtext.
+
+@{b}2. File_ID hinzufügen:@{ub}
+
+@{fg shine}MultiDesc a <FILE> <DESCRIPTION>@{fg text}
+
+Die DESCRIPTION (Beschreibung oder File_ID) wird an die entsprechende Datei
+gehängt.  Es wird nicht überprüft, ob bereits eine File_ID existiert.
+
+@{b}3. File_ID löschen:@{ub}
+
+@{fg shine}MultiDesc d <FILE>@{fg text}
+
+Die  File_ID  wird  von  der  Datei  entfernt.   Wenn  sich bereits mehrere
+File_IDs in der Datei befinden, wird nur die erste gelöscht.
+
+
+@{b}MultiDesc gibt verschiedene Return-Codes zurück:@{ub}
+
+ 0 - kein Fehler aufgetreten
+ 5 - keine File_ID gefunden
+10 - Fehler bei der Parameterübergabe
+20 - Datei wurde nicht gefunden
+30 - anderer Fehler
+@endnode
+
+
+@node "ScanDir" "FileCheck - ScanDir"
+
+Mit diesem kleinen Programm kann man seine komplette Filebrett-Liste in das
+File  @{" FileCheck.dirs " link "filecheck.dirs" 0}  einlesen  lassen.  Einfach Programm starten und als
+Parameter den Assign der Files übergeben.
+Wenn  mehrere  Pfade  existieren,  kann  das Programm mehrmals nacheinander
+gestartet werden und die Daten werden angehängt.
+
+@{fg shine}ScanDir <PATH> [P|PATTERN muster] [NEW] [QUIET]@{fg text}
+
+path     - Pfad der zu lesenden Verzeichnisse
+pattern  - Muster der zu lesenden Verzeichnisse
+new      - @{" FileCheck.dirs " link "filecheck.dirs" 0} wird neu angelegt (Standard ist anhängen)
+quiet    - gibt die Verzeichnisnamen während des Scanvorganges nicht aus
+@endnode
+
+
+@node "FileCheck.config" "FileCheck - FileCheck.config"
+
+Diese Datei stellt alle notwendigen Konfigurationen für das Programm ein:
+
+ @{b}Zeile 01:@{ub}
+ Gibt  den  Pfad  oder  das  File  an,  welches  als  Werbung  an  LHA  und
+ LZX-Archiven gehängt wird. Es sind auch Muster erlaubt.
+ (z.B.:RAM:BBSADDS/#?)
+
+ @{b}Zeile 02:@{ub}
+ Gibt  den  Info-Kommentar  eines ZIP-Archives an, welcher angehängt werden
+ soll.  Dieser Kommentar ist sichtbar, wenn man sich das Archiv z.B. listen
+ läßt.
+
+ @{b}Zeile 03:@{ub}
+ Gibt  den  Pfad oder das File an, welches an ZIP-Archiven gehängt wird. Es
+ gilt ähnliches wie bei Zeile 01.
+
+ @{b}Zeile 04:@{ub}
+ Gibt  ein  Text-File  an,  welches am Anfang eines Textes angehängt werden
+ soll.
+
+ @{b}Zeile 05:@{ub}
+ Gibt ein Text-File an, welches am Ende eines Textes angehängt werden soll.
+
+ @{b}Zeile 06:@{ub}
+ Gibt die Optionen für MAPUS (DMS-Archive) beim anhängen der Werbung an.
+
+  a - Add front banner
+  A - Add tail banner
+  t - Add track banner
+  d - Add date on track banner
+
+ (z.B. Front&Track-Banner anhängen: at)
+
+ Die  entsprechenden  Banner  müssen natürlich vorher noch erstellt werden!
+ Weiteres steht in der Dokumentation von MAPUS, die aus Platzgründen leider
+ hier nicht vorhanden ist und aus dem AMINET bezogen werden kann.
+
+ @{b}Zeile 07:@{ub}
+ Gibt die Optionen  für MAPUS beim strippen von Werbung an.
+
+  r - Remove front banner(s)
+  R - Remove tail banner(s)
+  k - Kill track banner(s)
+
+ Sonst gilt gleiches, wie unter Zeile 06.
+
+ @{b}Zeile 08:@{ub}
+ Das  ist  das  Verzeichnis,  in  welches die defekten oder doppelten Files
+ verschoben werden sollen. Dieses Verzeichnis ist ein AmigaDOS-Verzeichnis.
+
+ (Tip: FileBrett verwenden und beim Sysoplogin mit UPDATE FBOARD den Inhalt
+       aktualisieren.)
+
+ @{b}Zeile 09:@{ub}
+ Gibt  die Zeichen im ASCII-Code an, welche aus der File_ID entfernt werden
+ sollen.  (z.B.:  13 65, löscht 'CR' und 'A')
+
+ @{b}Zeile 10:@{ub}
+ Gibt  die  Konvertierungen  für  den IBM-Zeichensatz an. Das heißt es wird
+ nur dann konvertiert, wenn in der File_ID ein CR (ASCII 13) gefunden wurde.
+
+ @{b}Zeile 11:@{ub}
+ Das gleiche hier wie Zeile 12, jedoch nur wenn kein CR gefunden wurde.
+
+ @{b}Zeile 12:@{ub}
+ Gibt  eine  Zeile  an, die an der File_ID angehängt wird. Diese Zeile kann
+ @{" ENV-Variablen " link "env-vars" 0}   enthalten.   Einige  werden  von  FileCheck  selbst  zur
+ Verfügung gestellt.
+
+ @{b}Zeile 13:@{ub}
+ Gibt  an  welche  Flags  für  SETRETURN  gesetzt werden, wenn eine File_ID
+ existiert und keine Fehler aufgetreten sind.
+
+ @{b}Zeile 14:@{ub}
+ Gibt  an  welche  Flags  für  SETRETURN gesetzt werden, wenn keine File_ID
+ existiert und keine Fehler aufgetreten sind.
+
+ @{b}Zeile 15:@{ub}
+ Gibt  an  welche  Flags  für  SETRETURN gesetzt werden, wenn eine doppelte
+ Datei gefunden wurde.
+
+ @{b}Zeile 16:@{ub}
+ Gibt  an  welche  Flags  für  SETRETURN gesetzt werden, wenn eine doppelte
+ Datei gefunden wurde und es erlaubt ist die Datei zu verschieben.
+
+ @{b}Zeile 17:@{ub}
+ Gibt  an  welche Flags für SETRETURN gesetzt werden, wenn die Datei defekt
+ ist.
+
+ @{b}Zeile 18:@{ub}
+ Gibt  an  welche Flags für SETRETURN gesetzt werden, wenn die Datei defekt
+ ist und es erlaubt ist die Datei zu verschieben.
+
+ @{b}Zeile 19:@{ub}
+ Das  Verzeichnis, in welchem sämtliche Operationen ihre temporären Dateien
+ auslagern. Wenn nichts angegeben ist, wird 'T:' genutzt.
+ (ACHTUNG: Der  benötigte  Speicherplatz  kann  u.U.  größer, als die Datei
+           selbst werden.)
+
+Eine @{" Beispiel-Konfiguration " link "example-config" 0} liegt auch bei.
+@endnode
+
+
+@node "FileCheck.dirs" "FileCheck - FileCheck.dirs"
+
+Um  den  Duplicate-Check durchführen zu können muß auch noch eine Datei mit
+dem  Namen  'FileCheck.dirs'  existieren.   Hier  dürfen  allerdings  keine
+Filebretter,   sondern   die  richtigen  AmigaDOS-Verzeichnisse  eingegeben
+werden.  Es werden aus Zeitgründen keine Unterverzeichnisse gescannt, daher
+muß  jedes  und  auch  wirklich  jedes  Verzeichnis  angegeben werden.  Das
+Ergebnis   ist   aber   eine  extrem  hohe  Scanngeschwindigkeit.   Um  die
+Verzeichnisse  schneller  eintragen  zu können, kann das Programm @{" ScanDir " link "scandir" 0}
+benutzt werden.  Man muß dann nicht alle Pfade selbst eintragen.
+@endnode
+
+
+@node "FileCheck.lstrip" "FileCheck - FileCheck.lstrip"
+
+Diese  Datei  gibt  die Zeilen an, welche aus einer File_ID gelöscht werden
+sollen.  Es sind die normalen AmigaDOS-Pattern für jede Zeile erlaubt.
+@endnode
+
+
+@node "FileCheck.noadd" "FileCheck - FileCheck.noadd"
+
+Man  kann  ausserdem noch eine Datei namens 'FileCheck.noadd' erstellen und
+Fileboards  (mit vollem Pfad) eingeben, die keine Werbung enthalten sollen.
+Dies ist z.B.  für private Files recht sinnvoll.
+Hier  ist  zu  beachten, daß die Pfadangaben, den AMMS-Standard entsprechen
+müssen, also keine AmigaDOS-Verzeichnisse, sondern reale Brettnamen!
+@endnode
+
+
+@node "FileCheck.nodup" "FileCheck - FileCheck.nodup"
+
+Diese  Datei  enthält eine Liste von Fileboards (mit vollem Pfad), in denen
+kein Duplicate-Check ausgeführt werden soll.
+@endnode
+
+
+@node "FileCheck.nostrip" "FileCheck - FileCheck.nostrip"
+
+Die  Datei  'FileCheck.strip'  enthält  eine  Liste von Fileboards in denen
+keine Werbung gelöscht werden soll.  Dies ist z.B.  für private Files recht
+sinnvoll.
+Hier  ist  zu  beachten, daß die Pfadangaben, den AMMS-Standard entsprechen
+müssen, also keine AmigaDOS-Verzeichnisse, sondern reale Brettnamen!
+@endnode
+
+
+@node "FileCheck.noudup" "FileCheck - FileCheck.noudup"
+
+Enthält  eine Liste von Usernamen, die vom Duplicate-Checker ausgeschlossen
+werden.  Sinnvoll für Leute die öfter callen und den Durchblick haben.  :)
+@endnode
+
+
+@node "FileCheck.strip" "FileCheck - FileCheck.strip"
+
+Hier  werden  die zu löschenden Files für Archive definiert.
+Es  können  alle  AmigaDOS-Pattern benutzt werden, die der jeweilige Packer
+unterstützt.
+@endnode
+
+
+@node "FileCheck.suffixes" "FileCheck - FileCheck.suffixes"
+
+Diese  Datei  enthält  alle bekannten Endungen für FileCheck.
+Normalerweise  wird  an  einer  Datei, die eine falsche Endung zum Dateityp
+besitzt,  die  richtige  Endung angehangen.  Existiert diese falsche Endung
+aber  in  dieser  Datei,  dann  wird  die  Endung nicht angehangen, sondern
+überschrieben.
+
+
+@{b}Beispiel:@{ub}
+
+Nehmen wir einmal an die Datei 'FileCheck.suffixes' hat folgende Einträge:
+
+lha
+lzx
+zip
+gif
+jpg
+jpeg
+
+Dann passiert nach dem Start von FileCheck folgendes:
+
+LZX-Archiv: Test.lha  -> Test.lzx
+LZX-Archiv: Test.jpeg -> Test.lzx
+LZX-Archiv: TestV1.25 -> TestV1.25.lzx
+@endnode
+
+
+@node "FileCheck.types" "FileCheck - FileCheck.types"
+
+Hier  werden  die Dateitypen gespeichert, wie sie unter FileCheck angezeigt
+werden.
+
+@{fg shine}Unknown File-Format!
+LhA-Archive
+LZX-Archive
+ZIP-Archive
+ARJ-Archive
+RAR-Archive
+DMS-Archive
+GIF-Picture
+JPEG-Picture
+ASCII/ANSI-Text
+Executable@{fg text}
+
+
+--[settingsfile for the filetypes]-----------------------------------------
+
+LINE 01: UNKNOWN FILEFORMAT
+LINE 02: LHA-ARCHIVE
+LINE 03: LZX-ARCHIVE
+LINE 04: ZIP-ARCHIVE
+LINE 05: ARJ-ARCHIVE
+LINE 06: RAR-ARCHIVE
+LINE 07: DMS-ARCHIVE
+LINE 08: GIF-PICTURE
+LINE 09: JPEG-PICTURE
+LINE 10: ASCII/ANSI-TEXT
+LINE 11: EXECUTABLE
+
+---------------------------------------------------------------------------
+@endnode
+
+
+@node "FileCheck.lang1" "FileCheck - Language: Default"
+
+Das ist die Standardsprache die gewählt wird, wenn nichts anderes angegeben
+wurde.
+
+Es  werden  von  FileCheck/AMMS  verschiedene @{" ENV-Variablen " link "env-vars" 0} zur Verfügung
+gestellt, die hier verwendet werden können.
+
+Ein  Bereich  im  Sprachtext  wird  immer durch zwei * begrenzt.  Es ist zu
+beachten,  daß  die  Sternchen  ganz allein in einer Zeile zu stehen haben.
+Ausserdem  muß,  wenn  kein  Text  ausgegeben  werden  soll, eine Leerzeile
+zwischen zwei * stehen.  Das sieht dann so aus:
+
+*
+
+*
+
+Wer  noch  gute  Styles  gestaltet hat, kann sie mir ruhig schicken und sie
+werden dann auf Wunsch ins nächste Programmpaket von FileCheck gepackt.
+@endnode
+
+
+@node "FileCheck.lang2" "FileCheck - Language: BigPlanet"
+
+Das  ist der Sprachtext meiner MailBox (BigPlanet).  Wenn man wissen möchte
+wie die BigPlanet so aussieht kann man das mal ruhig ausprobieren.  ;)
+
+Für weitere Infos einfach mal bei @{" FileCheck.default " link "filecheck.lang1" 0} reinschauen.
+@endnode
+
+
+@node "FileCheck.lang3" "FileCheck - Language: Progress"
+
+Dieser  Sprachtext  hat eine Fortschrittsanzeige in Form eines Balkens.  Da
+ich  Urlaub  habe  und  mir  das  spontan  einfiel,  habe  ich  das  sofort
+realisiert.
+
+Für weitere Infos einfach mal bei @{" FileCheck.default " link "filecheck.lang1" 0} reinschauen.
+@endnode
+
+
+@node "Up-batch" "FileCheck - Upload-Batch"
+
+So  könnte  beispielsweise  die Upload-Batch aussehen.  Mehr ist eigentlich
+nicht erforderlich und man könnte sogar noch andere Dinge wegkürzen:
+
+@{fg shine}SetHFlags m0t1c0x0
+FailAt 100
+mbeigene:Cannon/FileChecker/FileCheck
+Echo "${CLS}" NOLINE@{fg text}
+
+Es  werden  Return-Codes  zurückgegeben,  sodaß  man  hier  sogar  noch mit
+Bedingungen erweitern könnte.  Näheres steht unter @{" Konfiguration " link "config" 0}.
+@endnode
+
+
+@node "Example-Config" "FileCheck - Beispiel-Konfiguration"
+
+@{fg shine}AMMS:ADDING/#?
+AMMS:ADDING/BPLANET.DOC
+AMMS:ADDING/#?
+AMMS:ADDING/BPLANET.DOC
+AMMS:ADDING/BPLANET.DOC
+a
+Rrk
+FILES:SYSTEM/TRASHCAN/
+13 26
+132=128 148=129 129=130 225=131 142=132 153=133 154=134
+228=128 246=129 252=130 223=131 196=132 214=133 220=134 183=249 178=253 247=246 166=124 172=32 171=174 187=175 161=124
+sent on: {FC_DAY}.{FC_MONTH}.{FC_YEAR}
+REFRESH NOEDIT ECOMMENT CHANGEDAT
+REFRESH CHANGEDAT
+RFERESH WAIT
+REFRESH DELETE WAIT
+REFRESH WAIT
+REFRESH DELETE WAIT
+T:@{fg text}
+
+
+--[settingsfile for FileCheck V3.00+]--------------------------------------
+
+LEAVE LINE BLANK (ONLY LF) TO SKIP PART
+
+@{" LINE 01: " link "filecheck.config" 4} LHA/LZX/LZH    ADDY       ( PATTERN ALLOWED )
+@{" LINE 02: " link "filecheck.config" 9} ZIP         COMMENT
+@{" LINE 03: " link "filecheck.config" 14} ZIP            ADDY       ( PATTERN ALLOWED )
+@{" LINE 04: " link "filecheck.config" 18} TXT-FRONT      ADDY
+@{" LINE 05: " link "filecheck.config" 22} TXT-END        ADDY
+@{" LINE 06: " link "filecheck.config" 25} MAPUS   ADD-OPTIONS
+@{" LINE 07: " link "filecheck.config" 39} MAPUS STRIP-OPTIONS
+@{" LINE 08: " link "filecheck.config" 48} HOLD DIRECTORY            ( SYSOP'S PRIVATE DIR )
+@{" LINE 09: " link "filecheck.config" 55} FILE_ID-STRIPCHARS        ( ASCII/EXAMPLE: 13 26 )
+@{" LINE 10: " link "filecheck.config" 59} FILE_ID-CONVERTCHARS      ( IBM-MODE / EXAMPLE: 50=51 )
+@{" LINE 11: " link "filecheck.config" 63} FILE_ID-CONVERTCHARS      ( AMIGA-MODE )
+@{" LINE 12: " link "filecheck.config" 66} LINEADD         ADDY      ( ENV-VARS ALLOWED E.G. ${FILE} )
+@{" LINE 13: " link "filecheck.config" 71} SETRETURN: FILE_ID
+@{" LINE 14: " link "filecheck.config" 75} SETRETURN: NO FILE_ID
+@{" LINE 15: " link "filecheck.config" 79} SETRETURN: DUPLICATE
+@{" LINE 16: " link "filecheck.config" 83} SETRETURN: DUPLICATE/MOVE
+@{" LINE 17: " link "filecheck.config" 87} SETRETURN: CORRUPT
+@{" LINE 18: " link "filecheck.config" 91} SETRETURN: CORRUPT/MOVE
+@{" LINE 19: " link "filecheck.config" 95} TEMPDIR
+
+---------------------------------------------------------------------------
+@endnode
+
+
+@node "ENV-Vars" "FileCheck - ENV-Variablen"
+
+Folgende  Variablen  werden  von  FileCheck  oder AMMS selbst zur Verfügung
+gestellt.  Sie sind auch noch nach Programmende von FileCheck verfügbar und
+können weiterhin verwendet werden.
+
+@{b}Diese  Variablen  werden nur gesetzt, wenn diese nicht schon vorher bekannt
+waren:@{ub}
+
+ ${FILE}       : Pfadname und Dateiname
+ ${PATHPART}   : Pfadname
+ ${FILEPART}   : Dateiname
+ ${BOARD}      : Brettname
+ ${PORT}       : Portname
+ ${NAME}       : Username
+ ${FC_LANGUAGE}: Sprachstring (gewählte Sprache)
+
+
+@{b}Diese  Variablen werden in jedem Fall von FileCheck selbst gesetzt, egal ob
+sie vorher existierten oder nicht:@{ub}
+
+ ${FC_FILETYPE}: Dateityp
+ ${FC_FSIZE1}  : Dateilänge (1235)
+ ${FC_FSIZE2}  : Dateilänge (0012345)
+ ${FC_FSIZE3}  : Dateilänge (  12345)
+ ${FC_DAY}     : Datum (Tag)
+ ${FC_MONTH}   : Datum (Monat)
+ ${FC_YEAR}    : Datum (Jahr)
+ ${FC_HOUR}    : Zeit (Stunde)
+ ${FC_MIN}     : Zeit (Minute)
+ ${FC_SEC}     : Zeit (Sekunde)
+ ${FC_RDDAY}   : Datum der Veröffentlichung (Tag)
+ ${FC_RDMONTH} : Datum der Veröffentlichung (Monat)
+ ${FC_RDYEAR}  : Datum der Veröffentlichung (Jahr)
+ ${FC_VERSION} : Version
+ ${FC_REVISION}: Revision
+ ${FC_REGISTER}: Registrierungsstring
+@endnode

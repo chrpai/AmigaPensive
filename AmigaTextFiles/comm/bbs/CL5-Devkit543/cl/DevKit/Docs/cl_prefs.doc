@@ -1,0 +1,119 @@
+TABLE OF CONTENTS
+
+cl_prefs.library/CLP_GetPrefs
+cl_prefs.library/CLP_GetPrefsSize
+cl_prefs.library/CLP_SetPrefs
+cl_prefs.library/CLP_GetPrefs                   cl_prefs.library/CLP_GetPrefs
+
+   NAME   
+    CLP_GetPrefs -- Read one preference entry
+
+   SYNOPSIS
+    RealSize = CLP_GetPrefs( PrefsID, SubID, Data, Datasize, Stamp )
+    D0                       D0       D1     A0    D2        A1
+
+    ULONG CLP_GetPrefs( ULONG, APTR, ULONG, APTR );
+   
+   FUNCTION
+   This function reads one preference entry from the Connectline
+   preference database and copies a maximum of "Datasize"
+   Bytes to the destination data area.
+   
+    You may provide a secondary buffer to hold a comparision
+   stamp for CLP_SetPrefs(). This should generally be NULL
+    if you don't plan to write back the preference entry.
+   
+   INPUTS
+    PrefsID        The 4 Byte Preference ID
+   SubID        32 Bit SubID
+   Data        Pointer to your destination data area
+    Datasize    sizeof( Data )
+   Stamp        (optional) Pointer to your stamp data
+               area. May be NULL. If provided, must be
+                sizeof( Data )
+   
+   RESULTS
+   RealSize    The real size of the preference entry
+   
+   NOTES
+   For TAGT_NOL, you must supply a pointer to a pointer
+   to a NOL, which will be filled in with a pointer to
+   a copy of the real NOL maintained by cl_prefs. You
+   *must* free this NOL yourself via CLU_NOL_Delete().
+   
+   SEE ALSO
+     CLP_SetPrefs(), CLP_GetPrefsSize(), clutil.library/CLU_NOL_Delete()
+   
+   BUGS
+   Before V16, TAGT_LONG didn't automatically set size to 4.
+
+cl_prefs.library/CLP_GetPrefsSize           cl_prefs.library/CLP_GetPrefsSize
+
+    NAME
+    CLP_GetPrefsSize -- Read size of preference entry
+
+    SYNOPSIS
+    Size = CLP_GetPrefsSize( PrefsID, SubID )
+    D0                       D0       D1
+
+    ULONG CLP_GetPrefsSize( ULONG, ULONG );
+
+    FUNCTION
+    This routine returns the size of a preference entry with a
+    given ID.
+
+    INPUTS
+    PrefsID        The 4 Byte Preference ID
+    SubID            32 Bit SubID
+
+    RESULTS
+    Size        The size of the preference entry or 0 if no
+                entry with the given ID exists
+
+    NOTES
+    Returns 4 (sizeof(NOL)) for NOL entries.
+
+    SEE ALSO
+    CLP_SetPrefs(), CLP_GetPrefs()
+
+    BUGS
+
+cl_prefs.library/CLP_SetPrefs                   cl_prefs.library/CLP_SetPrefs
+
+   NAME   
+    CLP_SetPrefs -- Write a preference entry
+
+   SYNOPSIS
+    error = CLP_SetPrefs( PrefsID, SubID, Data, Datasize, Stamp )
+    D0                    D0       D1     A0    D2        A1
+
+    ULONG CLP_SetPrefs( ULONG, APTR, ULONG, APTR );
+   
+   FUNCTION
+   Set a preference entry. The data will be copied and can
+   be freed later (Note that this is also true for TAGT_NOL,
+   whereas a copy will be create via CLU_NOL_Clone())
+
+   INPUTS
+    PrefsID        -- The 4 Byte Preference ID
+   SubID        -- 32 Bit SubID and Datatypes flags
+   Data        -- Pointer to your data area
+    Datasize    -- sizeof( Data )
+   Stamp        -- (optional) Pointer to your stamp data
+                  area. May be NULL. If provided, must be
+                   sizeof( Data )
+   
+   RESULTS
+   error -- 0 or error code.
+   
+   NOTES
+   For TAGT_NOL, you must supply a pointer to a pointer
+   to a NOL. This is for compatibility with CLP_GetPrefs().
+   
+   SEE ALSO
+     CLP_GetPrefs(), CLP_GetPrefsSize()
+   
+   BUGS
+   As of V16, stamps are not yet implemented.
+
+

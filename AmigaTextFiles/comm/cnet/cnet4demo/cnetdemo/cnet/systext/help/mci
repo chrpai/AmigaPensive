@@ -1,0 +1,223 @@
+The Message Command Interpreter (MCI) is one of C-Net's more powerful features. It allows users to insert "command sequences" directly into messages to be interpreted by the system when the message is later read. These commands include changing colors, moving the cursor, and many other useful utilities.
+
+In CNet/3, MCI commands begin with CONTROL-Q.  When you press CONTROL-Q in the editor, CNet will print the character {.  Immediately following this, you must place the desired MCI command character, then the appropriate arguments, ending the command with the character }. For example, {c1} will change the text output color to Red.
+
+In order to maintain some visual continuity with older versions of CNet, you may optionally use the CONTROL-Y key to display a special character \. Following the \ character, you MUST place a command letter and an argument character.  For example, instead of {c1}, ^c1 can be used to change the text output color to Red.
+
+NOTE:  Remember that the { and \ characters in MCI commands are produced using the special keys CONTROL-Q and CONTROL-Y, NOT the actual \ and { keys on the keyboard!
+
+Access to MCI commands is divided into three categories: SYSOP ONLY, LEVEL 1, and LEVEL 2.  Commands which are level 2 or SYSOP ONLY are marked with a (+) in the following descriptions.  If you do NOT have access to a particular command, the command will be entered into the message exactly as you have written it, and will not be "interpreted" by the system.
+
+Following are the MCI commands:
+
+  {@n}      Set MCI environment variables
+            n= 0  reset MCI environment settings (except n=8)
+            n= 1  disable further MCI interpretation (all codes PRINTED)
+            n= 2  disable word wrap-around
+            n= 4  disable the More? pause temporarily
+            n= 8  disable sysop-only MCI commands (cannot be reset)
+            n=32  ENABLE SkyPix pseudo-ANSI commands
+            n=64  DISABLE Text Translation (use when sending system-
+                  specific text files, like C64/128 screens).
+                  Screen output, MCI, and ALL formatting is suppressed.
+
+            To set multiple items, add their values ( for 1,2,4, use 7 ).
+            All codes are reset at the end of the current file or message.
+
+  {:n}      Set the automatic indentation of text
+            n= 0  disable indentation altogether
+            n= 1  return to default indentation (sysop defined)
+            n= 2  set indentation to occur at the current cursor position
+
+  {.n}      TAB to column n on the CURRENT LINE.  Useful for lining up
+            output which contains invisible MCI.
+
++ {An}      Disable message abortion using the SpaceBar or the / key
+
+  {Bn}      Print n Bells (beeps)
+
+  {Cn}      Change the cursor color to #n.
+            0=black    1=red     2=green      3=yellow    4=blue
+            5=purple   6=cyan    7=white
+
+            Color codes 8,9,a,b,c,d,e, & f are INTENSE versions of the first
+            8 ... visible on 16 color terminals only.
+
+  {F0}      Move cursor to home position
+  {F1}      Move cursor to home position and clear screen
+
++ {Gn}      Wait for a key press.  The key will be placed into MCI string
+            variable n (70+n).
+
+  {Hn}      Print n backspaces
+
++ {In m}    Input a line.  The result will ALWAYS be placed into variable 70.
+            n=input options ... (may be summed)
+            n=     1   all caps
+            n=     2   FILENAME ... don't allow =:;"/*
+            n=     8   chop leading spaces
+            n=    16   force 1st letter of each word uppercase
+            n=    32   force all others letters lower case
+            n=    64   numeric input only
+            n=   128   print input box (.)
+            n=   256   allow MCI control-A/C
+            n=   512   HANDLES ... don't allow ^_`{|}~@
+            n= 16384   Don't allow spaces
+            n= 32768   Don't allow cursor movement
+
+            m=length of input (default is 40).
+
+  {JA n}    Jump to label #n unconditionally
+  {JE n}    Jump to label #n if last TEST was EQUAL.
+  {JG n}    Jump to label #n if GREATER THAN.
+  {JL n}    Jump to label #n if LESS THAN.
+  {JN n}    Jump to label #n if NOT EQUAL.
+
+            By specifying a label which does not EXIST, it is possible to
+            effectively EXIT the message.
+
+  {n}       An MCI command which consists only of a NUMBER is a LABEL.
+            LABELS are used to "mark a spot" in a message. LABELS are used
+            with the MCI "Jump" commands above.
+
+            It is legal to jump "backward" to the 20 most recent labels.
+            The reverse branching will only be effective when the message
+            is READ FROM DISK, and will not occur when reading the message
+            in an editor.
+
+            By placing the special character + after the label number (like
+            {JA 2+}, it is possible to force CNet to only branch forward.
+            This is useful in situations where you re-use the same label
+            number.
+
+  {Kn}      Kolorific mode on/off.  When enabled, the text color will be
+            changed automatically as each character is printed.
+
++ {Ln m}    Load the variable specified by 'n' with contents of 'm'.
+            n and m may be any legal GETUSER specifications.  m may also
+            be a "literal" by placing the special character # before text
+            or numbers.
+
+            {L60 61}    Copy contents of register 1 into 0
+            {L21 #100}  Set user's game points to 100
+
+            Use EXTREME caution with this command.  Memory can easily be
+            corrupted to the point of system failure if used indiscriminately.
+
++ {Mn x..}  Perform MATH functions on the variable specified by n.
+            This MCI command can be used to add, subtract, multiply, divide,
+            and mod (find remainder).  Arguments may be variables, literals,
+            or one of the special characters +, -, /, *, or %.
+
+            Arguments must be entered in RPN, Reverse Polish Notation. That
+            is, specify the operands, and THEN the operators.
+
+            {M60 #1 +}       Add 1 to MCI register 0
+            {M60 24 #3 / +}  Add a third of the current CPS rate to reg 0
+
+            Calculate your gas mileage without leave the editor!
+
+  {Nn}      Print n NewLines
+
+  {On}      Set FLASHing text (Commodore C/G) or BOLD text (ANSI)
+
+  {Pn}      Set Print Direction
+            n=0 normal printing
+            n=1 print each character, backspace, then the character again
+            n=2 print upward
+            n=3 print downward
+            n=4 print backwards
+
+  {Q0}      Re-send all current ANSI settings
+  {Q1}      Cancel all active MCI modes (colors/printmodes, etc).
+  {Q2}      Remember current ANSI settings
+  {Q3}      Recall last remembered ANSI settings
+
+  {Rn}      Set REVERSE video on/off
+
++ {Sn}      Set the number of 1/50 seconds to pause between characters
+
++ {Tn m}    Test a variable or literal against another.  Results may be
+            interpreted using the {J} commands.
+
+            n and m may be any legal GETUSER specification, as detailed
+            under the {V} command.
+
+            In addition, you may specify "literal" text or numbers by
+            using the special character #.
+
+            {T60 61}  Compare the MCI numeric register 0 with register 1.
+            {T60 #1}  Compare the MCI numeric register 0 to the number '1'
+            {T70 #Y}  Compare the MCI string register 0 with "Y"
+
+            When comparing strings, variables are compared case-insensitive.
+            Also, the special character ' may be used IN PLACE of # to
+            determine whether one variable appears within (instr()) another,
+            instead of strict equality.
+
+  {Un}      Set underline mode on/off
+
++ {Vn s}    Display a system variable
+            n may be any valid GETUSER specification.  The special numbers
+            60-69 correspond to the MCI numeric registers.  The special
+            numbers 70-74 correspond to the MCI string registers.  See the
+            CNet manual for a complete list.
+
+            If the optional argument 's' is specified, it must be of the
+            form %n.ms ... a 'C' style format command.
+
+            alternately, 's' may be the special character 'c' followed
+            by a field width.  The variable will be displayed CENTERED
+            within a field of spaces of the specified width.
+
++ {Wn}      Wait for n seconds to pass
+
++ {XM n}    Replace MCI character register 0 (70) beginning with its nth
+            character. Similar to BASIC MID$()
++ {XL n}    Replace MCI character register 0 with its leftmost n characters.
+            Similar to BASIC LEFT$()
++ {XR n}    Replace MCI character register 0 with its rightmost n characters.
+            Similar to BASIC RIGHT$()
++ {XP}      Replace MCI character registers 0 and 1 with the PARSED version
+            of MCI character register 0.  Text is parsed at the first space.
++ {XS}      Store the SIZE (strlen()) of MCI character register 0 into
+            MCI numeric register 0 (60).
+
+  {Zn}      ANSI users, change Background color to n (same as C colors)
+
+  {^n}      Move cursor up n lines
+
+  {!n}      Move cursor down n lines
+
+  {>n}      Move cursor to the right n spaces
+
+  {<n}      Move cursor to the left n spaces
+
+  {-n}      Insert n characters at cursor point
+
++ {*n f}    Display file with path/name given by f.
+            'n' will be OR'ed with the current MCI environment (see '@').
+
++ {#n f}    Run a program file with path/name given by f.
+            n=0 for a AREXX   program, n=1 for AREXX   w/exclusive access
+            n=2 for a CNet C  program, n=3 for C       w/exclusive access.
+            n=4 for a DOS     program, n=5 for DOS     w/exclusive access.
+            n=6 for a Paragon program, n=7 for Paragon w/exclusive access.
+
++ {$ f}     Send AmigaDOS command specified by f.
+
++ {+ s}     Write string specified by 's' to the call log.
+
++ {& s}     Perform BBS command specified by 's' ... must a 'system'
+            command like Time, Who, Chat, etc.
+
++ {% d}     Set the user's time remaining to 0 (hang-up) if the current
+            date is less than the date specified by 'd' in the format
+            dd-mm-yy.
+
++ {?n}      Wait for a Yes or No response (used in BBSTEXT for prompt lines)
+            n=0 for No, n=1 for Yes.  The response is ALSO placed in MCI
+            string register 0 (variable 70) as "1" or "0".
+
++ {=n}      Manually set the response for a prompt line in BBSTEXT
+            n=0 for No, n=1 for Yes.

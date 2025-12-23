@@ -1,0 +1,361 @@
+           Guardian v1.2 (C)1998 by Stefano Coletta (alias Creator)
+                        & Lorenzo Colitti (alias Lor)
+
+                    **** Works only with CNet v4.32+ ****
+
+------------------------------------------------------------------------------
+                                WHAT'S THIS?!
+------------------------------------------------------------------------------
+
+Are  you  tired of coming back home only to see CNet crashed and your BBS down
+for  the count?  Well, check out Guardian and this problem will become a thing
+of the past!
+
+This  is  not  a  Rexx door nor is it a CNetC program, it is a guardian...  it
+hunts  for  crashed  nodes, tries to revive them and, if necessary, resets the
+system  without  human  intervention.   How?  By monitoring the status of each
+loaded  port and taking the correct moves to reset the Amiga SAFELY.  Guardian
+is  able  to  catch  the  majority  of  node lockups because it is an EXTERNAL
+program  detached  from  CNet.   It  will  NEVER  interfere  with  normal CNet
+operation since a port is crashed and it uses less than 0.01% CPU time.
+
+This is what Guardian does:
+
+1)  Monitors all loaded ports (whether a user is online or not) to see if they
+    are locked  up.
+2)  If a  node  crashes, Guardian tries to unlock or close and then reload it.
+    If it succeeds, it goes back to monitoring.
+3)  If not, it  immediately closes all loaded nodes that are IDLE (where there
+    is no user online) and shuts down CNet related tasks (ie. Yank-Task, etc.)
+4)  It  then sends two  OLMs telling  remaining  online users to logout within
+    a configurable period of time.
+5)  Sends a mail message to every kicked user to inform them why they have been
+    disconnected. The crashed user also receives a message asking for a
+    detailed report of what he/she was doing before the crash.
+6)  It waits for all users to log out before closing the remaining ports; if a
+    user  does  not log out within a  specified  (configurable) period of time,
+    Guardian closes the port anyway. The user was warned... 
+    If a user logs out of his own accord, CNet closes the port automatically.
+7)  When  all ports  except the locked  one are idle Guardian unmounts ALL devs
+    through an external utility and resets the Amiga.
+8)  In rare instances Guardian is able to close  all the ports and reload them
+    without forcing a reset.
+
+Everything Guardian does is logged.  The default file is SYSDATA:Log/Guardian,
+but this can be changed by editing Guardian.cfg.
+
+  This program is the final solution you have always wanted for your CNet BBS.
+Well, you won't know if you don't try it, will you?! :-)
+
+
+Limits
+------
+
+*  Guardian will not catch frozen CNetC or Arexx doors that are not responding
+   due to endless loops or similar problems.
+
+*  Guardian does not support TrapDoor. Coming soon...
+
+------------------------------------------------------------------------------
+                                 INSTALLATION
+------------------------------------------------------------------------------
+
+Quite simple, actually...
+
+A beginner's guide:
+ 1. Install ShutAll following the instructions included.
+ 2. Copy the Guardian directory into DOORS: .
+ 3. Edit the Guardian.cfg and Delay.cfg files to suit your needs.
+ 4. Edit CNet-Startup so it starts Guardian after Control at every boot.
+ 5. All done, it should work... :-)
+
+
+------------------------------------------------------------------------------
+                    UPGRADING FROM *ANY* PREVIOUS VERSION
+------------------------------------------------------------------------------
+
+                 YOU NEED TO REINSTALL THE ENTIRE PACKAGE! :(
+
+
+
+------------------------------------------------------------------------------
+                                 THE PROGRAM
+------------------------------------------------------------------------------
+
+There are THREE executables:
+
+Guardian (the  main  program). This one must be started AFTER Cnet is loaded.
+Launch it with the normal RUN command from CLI, or put it in your CNet-Startup
+after control.
+
+e.g.:
+
+   run <>NIL:  Control
+   Cd DOORS:Guardian
+   Run <>NIL: Guardian WAIT QUIET
+
+The  "cd doors:guardian" statement is necessary because Guardian looks for its
+configuration file in the current directory.  Ok, I'm lazy, so shoot me.  :-)
+
+GCmd  (short  for  Guardian  Commander)  is used to send commands to Guardian.
+Guardian will be completely invisible after it starts up, and with this little
+utility you can quit Guardian or query it to see if it is alive.  You can also
+obtain information such as uptime from last boot or crash and a rather useless
+"Guardian Performance Index", which measures the load on your system.  A score
+of 100 represents optimal performance.
+
+TaskCloser is the executable which Guardian uses to close CNet-related tasks.
+It can also be run as a stand-alone program.
+
+GCmd has four command line options:
+
+INFO     - Uptime info and Guardian Performance Index
+QUIT     - To quit the Guardian
+QUERY    - To check if Guardian is alive
+SHUTDOWN - Performs a safe CNet & system shutdown. Note that this is a safer
+           way to reboot the system than simply rebooting. If you have set an
+           event which periodically reboots the system, you might want to
+           change the event so it runs GCmd SHUTDOWN instead.
+
+Guardian has two command line options:
+
+WAIT     - Wait 2 minutes for CNet to load.
+QUIET    - Suppresses usual messages from displaying.
+
+TaskCloser accepts one command line option: the NAME of the port associated
+with the task. For example, if you want to close Yank-Task, you could do:
+
+     TaskCloser cnyank_serv
+
+Note that the name of the port is case sensitive!
+
+
+------------------------------------------------------------------------------
+                           THE CONFIGURATION FILES
+------------------------------------------------------------------------------
+
+Here is an example Guardian.cfg file (the default one, in fact):
+
+--------------------8<---------------8<--------------8<-----------------------
+SYSDATA:Log/Guardian
+Run SYS:Rexxc/Rx DOORS:Guardian/ClosePort.rexx %d
+Run <>NIL: CNET:bbs %d
+Run SYS:ShutAll/ShutAll
+*** WARNING! A critical error has occurred. Port %d has crashed. Shutdown sequence has commenced. You have THREE minutes to logoff.
+*** WARNING! You will be disconnected in ONE minute. This is your last chance to logoff normally!
+*** System shutdown sequence commenced! You have THREE minutes to logoff.      *** System shutdown imminent! You will be disconnected in ONE minute. This is your last chance to logoff normally!
+Run <>NIL: DOORS:Guardian/DosOLM T=%d M=%s
+Run <>NIL: DOORS:Guardian/TaskCloser %s
+Run <>NIL: CNET:mail-task
+Run <>NIL: CNET:file-task
+Run <>NIL: CNET:yank-task
+Run <>NIL: CNET:news-task
+Run <>NIL: CNET:cnsmtpd
+--------------------8<---------------8<--------------8<-----------------------
+
+           ***  NOTE THAT THE LINES MUST NOT BE LONGER
+                THAN 255 CHARACTERS, INCLUDING COMMENTS!  ***
+
+Let's start from the beginning, line by line:
+1. Complete path of the Guardian log file. Check it out, it's very informative
+   and can be fun to read!
+2. Command line which Guardian will use to close ports with the AREXX script.
+3. Command line which Guardian will use to load ports.
+4. Command line of the external program which Guardian  will use to unmount all
+   devices prior to rebooting. We highly recommend you install the included
+   ShutAll archive.
+5. First warning message sent to online users when a port crashes.
+6. Second  (last  chance)  warning  message  sent  to  online users when a port
+   crashes.
+7. First warning message sent to online users when GCmd tells Guardian to 
+   perform a shutdown.
+8. Second  (last  chance)  warning  message  sent  to  online users when GCmd
+   tells Guardian to perform a shutdown.
+9. Command line of the DosOLM program, which Guardian will use to send OLMs.
+10.Command line of the TaskCloser which Guardian will use to close CNet related
+   tasks.
+11.Command line to run the the Mail-Task.
+12.Command line to run the the File-Task.
+13.Command line to run the the Yank-Task.
+14.Command line to run the the News-Task.
+15.Command line to run the the Cnet SMTP daemon.
+
+
+Here is an example Delay.cfg file (the default one, in fact):
+
+
+--------------------8<---------------8<--------------8<-----------------------
+120
+60
+20
+40
+60
+15
+5
+20
+30
+--------------------8<---------------8<--------------8<-----------------------
+
+           ***  NOTE THAT THE LINES MUST NOT BE LONGER
+                THAN 255 CHARACTERS, INCLUDING COMMENTS!  ***
+
+Let's start from the beginning, line by line:
+1. Time in seconds between first and last warnings to online users.
+2. Time  in seconds  between  the  last warning and forced logout (if you don't
+   logout, you'll get kicked out!).
+3. Time, in  seconds, that  Guardian  will  wait  for  the  external program to
+   unmount all devices before rebooting.
+4. If  Guardian succeeds in closing all ports and CNet-related tasks after a
+   crash, it will attempt to reload them again,  assuming that the crash  was
+   due to port conflicts. This is the time in  seconds which  Guardian will
+   wait for CNet to reload all the ports and tasks before giving up and
+   rebooting. Note that Guardian will only reload those ports and tasks which
+   were running when the crash occurred.
+5. This is the time in seconds which Guardian will wait for all ports and
+   CNet-related tasks to close. See line 4.
+6. If a port crashes, one of the first things that Guardian tries to do is
+   close it. This is the time Guardian will wait before giving up on the port
+   and resort to more effective measures.
+7. This is the time Guardian will wait for the port to reload in the unlikely
+   event that the attempt to close the crashed port succeeds. See line 6.
+8. If the WAIT command line option is specified, this is the number of times
+   which Guardian will check to see if Control is running on startup. An
+   attempt is made every six seconds; if all these attempts fail Guardian will
+   exit and report "CNet Control is not running".
+9. If a port seems to crash when there is no one online, Guardian will wait
+   a bit before checking the port again to make sure it has really crashed
+   (unlikely if no one is online!). This is the number of seconds it will
+   wait.
+------------------------------------------------------------------------------
+                                   HISTORY
+------------------------------------------------------------------------------
+
+
+01/02/1998: v1.2 - Major changes/bugfixes release
+
+            A massive bug was fixed! Due to silly variable declarations,
+            buffers were being copied into arrays which were too small for
+            them, guaranteeing a software failure... oh well.
+
+            Run statement was missing in the first line of Guardian.cfg.  :)
+
+            GCmd no longer hangs if Guardian is busy fighting crashes.
+            It now reports "Guardian is busy".
+
+            Guardian now accepts comments in config files.
+
+            Config file split in two files:
+            - Main configuration file: "Guardian.cfg"
+            - Delay configuration file: "Delay.cfg". This contains ALL delay
+              values to adapt Guardian to your configuration and system speed.
+
+            Hard coding for optimization: code reduced, functions smarter and
+            faster than ever!
+
+            Crash resolution routine completely rewritten: now it is ready for
+            TrapDoor and/or other add-ons.
+
+            Improved Guardian's strategy. Guardian now identifies and
+            attempts to solve many problems which it wouldn't see before.
+
+            Ports that  have been closed  by CNet (due to a normal user logoff)
+            are now logged - finally!
+
+            Now Guardian takes care to shut down all CNet related tasks before
+            rebooting. Check out the TaskCloser command; it may also be used
+            as a stand-alone program, separately from Guardian.
+
+            Fixed multiple port crash crisis situations: Guardian no longer
+            hangs after trying to send an OLM to a crashed port.
+
+            Fixed a bug in the log routine: events after date changes are now
+            logged correctly.
+
+            Removed Guardian's dependency from Runport.rexx script.
+            You may delete the runport.rexx script.
+
+            Enforcer Hit removed from Guardian.
+
+            Guardian now sends a mail message to every kicked user to inform
+            them why they have been disconnected. The crashed user also
+            receives a message asking for a detailed report of what he/she was
+            doing before the crash. The text of these messages is in the files
+            kick.msg and crash.msg.
+
+            Enforcer Hit removed from GCmd.
+
+            WAIT command line option added. If WAIT is specified, Guardian
+            will wait a user-defined time for CNet Control to load. The WAIT
+            statement in CNet-Startup is no longer necessary.
+
+            Improved Guardian logging.
+
+            Guardian now checks to see if Control has been closed while it is
+            running. If Guardian sees that Control is no longer active it will
+            exit.
+
+            Fixed trash display in "Kicking out user..." log entry.
+
+            Added SHUTDOWN command to GCmd. With this function you can safely
+            reboot your machine with the same method Guardian uses.
+
+12/01/1998: v1.1a - Bug fix release (not released)
+
+            In v1.1 GCmd was the same as the one in v1.0 due to an archive
+            packing error.
+
+            Bug fixed in reporting uptime status. Now minutes are properly
+            displayed.
+
+11/01/1998: v1.1 - Upgrading release
+
+            Better handling for crashed ports with no one on.
+
+            Added hours display to the "uptime" report generated by Guardian.
+
+            Now GCmd is responsible for handling Guardian output, so Guardian
+            is completely invisible.
+
+            Added an icon for Guardian.
+
+            Improved log with more details:
+
+            - Added WHERE and USERNAME info when kicking out users
+            - NEW: Guardian now logs when it is started.
+            - NEW: Guardian now logs when it is closed by GCmd.
+            - NEW: Before rebooting, Guardian logs uptime
+
+06/01/1998: v1.0 - First release
+
+            After 15 hours of hard work, v1.0 sees the light of day. There's
+            no going back now...
+
+
+------------------------------------------------------------------------------
+                                   CREDITS
+------------------------------------------------------------------------------
+
+Spark   -  for the original idea of a watchdog which would monitor the ports
+Hmetal  -  for his  idea of  using the internal CNet timers  to check up on the
+           status of  ports, and, of course,  for his CONTINUING development of
+           CNet/4!
+Stephane
+Nicole  -  for writing ShutAll
+
+Jan-Tore-  for painting the Guardian icon
+Eliassen
+
+                               ---------------
+
+             LET US KNOW IF YOU HAVE COMMENTS AND/OR SUGGESTIONS!
+
+
+                               Stefano Coletta
+                                  (Creator)
+
+                      EMAIL: coletta.s@eurodatabank.com
+
+                               Lorenzo Colitti
+                                    (Lor)
+
+                         EMAIL: l.colitti@flashnet.it

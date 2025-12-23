@@ -1,0 +1,224 @@
+
+/*
+
+Are your 28k8 CNet-BBS callers really getting 28k8 connections?
+Which port is doing the best/worst?
+Which users are get bad/good rates again and again?
+
+This CNet-BBS prg keeps a log of all users that log-in at less than
+their maximum bps rates.
+
+You can use the "SHOW" option to show the log...
+> 25Jun96  210a ID #1234, 26k4 of 28k8 (95%) port 1, SysOp (B. Beogelein)
+> 26Jun96  632a ID # 486, 24k0 of 28k8 (95%) port 3, JohnD (John Doe)
+> 27Jun96  954p ID # 909, 21k6 of 28k8 (80%) port 4, SysOp (B. Beogelein)
+> 27Jun96 1130a ID #1197, 26k4 of 28k8 (95%) port 1, JaneD (Jane Doe)
+
+You can use the "AVG" option to show the log averages...
+>  6 users at 14k4 connections averaging  3k6 ( 25%)
+> 11 users at 26k4 connections averaging 22k0 ( 83%)
+>  6 users at 28k8 connections averaging 26k4 ( 91%)
+
+You can use the "GRAPH" option to show a graph...
+(Not yet in service.)
+
+Additional options:
+   LogAll      (Log ALL calls, not just those running slower than usual.)
+   ShowAll     (Show all calls, not just those running slower than usual.)
+   AvgAll      (Average all calls, not just those running slower than usual.)
+
+Installation:
+   1) Edit the variable(s) below marked as "SysOp-Settable".
+
+   2) Add the following line into your SysText:sys.welcome file:
+         {#0 Pfiles:Rexx/LowBPS.rexx ADD}
+         (If you specify more than 1 option, enclose all options
+         in double quotes.)
+
+   3) Copy LowBPS.rexx to Pfiles:Rexx/LowBPS.rexx
+
+   4) Add the following line on to the END of your CNet:BBSmenu
+      "Available Anywhere" cmds:
+         LOWGraphbps | {#5 rx Pfiles:Rexx/LowBPS.rexx GRAPH}
+         LOWbps      | {#5 rx Pfiles:Rexx/LowBPS.rexx AVG SHOW}
+
+Author Info:
+   Bill Beogelein
+   Box 530441
+   Livonia, MI 48153
+   Amiga ShareWare HeadQuarters BBS
+   1-810-473-2020 BBS 33k6 1:2410/207 or ag775@detroit.freenet.org
+
+$VER: LowBPS.rexx v1.0 Tue 25-Jun-96 17:53
+   Checked for correct operation with CNet-BBS v3.05c.
+   (Can't guarantee compatibility with older or newer CNet releases.)
+
+Future Plans:
+   Don't show certain demo accts.
+   Add an option to turn the log into a graph.
+   Add an option to show log with totals-line.
+   Add OnlyPorts feature.
+   Add OnlyBPS feature.
+   Please make suggestions for new features, and report all bugs found.
+
+Ignore:
+   LHA u CNet3:LowBPS.LHA Pfiles:Rexx/LowBPS.rexx a:zzzBBS r:LowBPS.readme
+
+*/
+
+/**************** Top of SysOp-Settable variables **************/
+
+logName= "Logs:LowBPS.log"    /* Full name of log */
+min=     0                    /* Not in use */
+max= 33600                    /* Not in use */
+skip="1 30 44 190"            /* Not in use */
+
+onlyBPS  = "2400 4800 7200 9600 12000 14400 16800 19200 21600 24000 26400 28800 31200 33600"    /* Not in use */
+onlyPorts= "0 1 2"            /* Not is use */
+
+/**************** End of SysOp-Settable variables ***************/
+
+call Init()
+options results
+parse arg opts
+o_show   = GetSwitch(opts, "SHOW"   , 0)
+o_graph  = GetSwitch(opts, "GRAPH"  , 0)
+o_avg    = GetSwitch(opts, "AVG"    , 0)
+o_add    = GetSwitch(opts, "ADD"    , 0)
+o_logAll = GetSwitch(opts, "LOGALL" , 0)
+o_showAll= GetSwitch(opts, "SHOWALL", 0)
+o_avgAll = GetSwitch(opts, "AVGALL" , 0)
+
+if(o_show ) then call Average()
+if(o_graph) then call Graph()
+if(o_avg  ) then call Average()
+if(o_add  ) then call Add()
+
+exit     /************* End ***************/
+
+Graph:
+   say LF LF "pFiles:rexx/LowBPS.rexx GRAPH option not yet in service." LF BELL
+return
+
+Add:
+   'getUser'       1 ; handle = RESULT
+   'getUser'       3 ; name   = RESULT
+   'getUser' 1100557 ; private= RESULT /* Is user's name private? */
+
+   'getUser'      40 ; acct   = RESULT
+   'getUser'      23 ; port   = RESULT
+   'getUser'      24 ; bps    = RESULT *10
+   'getUser' 1200544 ; maxBps = RESULT *10
+
+   if(bps<maxBps | o_logAll) then
+   do
+      if(private) then
+         name=""
+      else
+         if(handle==name) then
+            name=" (=)"
+         else
+            name=" (" || name || ")"
+
+      mode='WRITE' ; if(exists(logName)) then mode='APPEND'
+      if(open(fp, logName, mode)) then
+      do
+         acct  = right("#" || acct, 5)
+         port  = right(port,2)
+
+         perc  = trunc(bps/maxBps*100)
+         perc  = "(" || right(perc,3) || "%)"
+         bps   = MakeBPS(bps)
+         maxBps= MakeBPS(maxBps)
+         call writeLN(fp, DateForm() "ID" acct || "," bps "of" maxBps perc "port" port || "," handle || name)
+         call close(fp)
+      end
+   end
+return
+
+DateForm: PROCEDURE              /* 24Jun96 1207a */
+   a2=date('NORMAL')             /* 01 Jan 1990 */
+   a2=delstr(a2, 8, 2)           /* 01 Jan 90   */
+
+   a4=bitor(time('CIVIL'))       /* 1:23am      */
+   a4=compress(a4, ":")          /* 123am       */
+return compress(a2) left(right(a4,6),5)    /* 01Jan90 _123a */
+
+/* Change bps values >9600 into 14k4 28k8 33k6 */
+MakeBPS:      PROCEDURE   /* Change bps values >9600 into 14k4 28k8 33k6 */
+   parse arg bps
+   /* if(bps>9999) then */
+   bps= bps%1000 || "k" || (bps%100)//10
+return right(bps,4)
+
+Average: /* 25-Jun-96 2:10a ID #1234, 26k4 of 28k8 (96%) port 1, SysOp (B. Beogelein) */
+         /*     1      2    3    4      5  6   7 */
+   if(o_show) then
+      if(o_showAll) then
+         say LF || "Users connect rates..."
+      else
+         say LF || "Users that don't connect at their highest rates..."
+
+   a.=0
+   if(open(fp, logName, 'READ')) then
+   do
+      do i=1 to 99999
+         buf = readLN(fp)
+         if(length(buf)<20) then leave
+
+         bps1= word(buf,5)
+         bps2= word(buf,7)
+
+         bps1= compress(bps1, "k") *100
+         bps2= compress(bps2, "k") *100
+
+         low=1; if(bps1==bps2) then low=0
+         if(o_show & (o_showAll | low)) then say buf
+
+         if(o_avgAll | low) then
+         do
+            a.bps2.1= a.bps2.1 +1
+            a.bps2.2= a.bps2.2 +bps1
+         end
+      end i
+      call close(fp)
+   end
+   else
+   do
+      say LF "Pfiles:rexx/LowBPS.rexx can't open" logName "for reading." LF BELL
+      exit
+   end
+
+   if(o_avg) then
+   do
+      if(o_avgAll) then
+         say LF || "Average connect rates..."
+      else
+         say LF || "Users that don't connect at their highest rates will average..."
+      w=words(onlyBPS)
+      do i=1 to w
+         bps=word(onlyBPS,i)
+         if(a.bps.1 ~== 0) then
+         do
+            perc= trunc(((a.bps.2 / a.bps.1) / bps)*100)
+            perc= "(" || right(perc,3) || "%)"
+            say right(a.bps.1,4) "users at" MakeBPS(bps) "connections averaging" MakeBPS(a.bps.2 / a.bps.1) perc
+         end
+      end i
+   end
+exit
+return
+
+GetSwitch:  PROCEDURE   EXPOSE opts
+   parse arg opts, str, def
+   w=find(upper(opts), upper(str))
+   if(w<1) then return def
+   opts=delword(opts, w, 1)
+return ~(def)        /*** End of GetSwitch ***/
+
+Init:
+   LF  = '0a'x
+   BELL= '07'x
+return
+
+/*** EOF pfiles:rexx/LowBPS.rexx 810-473-2020 ***/

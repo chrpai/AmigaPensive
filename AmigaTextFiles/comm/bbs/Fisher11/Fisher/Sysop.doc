@@ -1,0 +1,246 @@
+ ---------------------------------------------------------------------------
+
+                                Fisher.rexx
+              ARexx/DLG Front End for the KingFisher Database.
+                      Copyright © 1994 Keith R. Burby
+                           [Sysop Documentation]
+
+ ---------------------------------------------------------------------------
+
+
+Legal Stuff
+¯¯¯¯¯¯¯¯¯¯¯
+The Fisher.rexx script and the documentation are copyrighted by the author.
+Feel free to make changes, to this program,to suit your needs, however, I
+ask two things:  1) If you feel that the changes you've made, to this
+program, are improvements or bug fixes, please send me a copy of the updated
+script with some notes regarding the changes you made.  2) Do not alter the
+program's title, in particular, the two lines which give credit to both
+myself and Mr. Shuermann.
+
+The author accepts no responsibility for any damage to the system of anyone
+who uses this program.
+USE THIS PROGRAM AT YOUR OWN RISK.
+
+
+Features
+¯¯¯¯¯¯¯¯
+Fisher.rexx is an ARexx/DLG BBS front end to Udo Schuermann's famous
+KingFisher database program, allowing users to now view, select, and request
+titles from the Fred Fish collection online.
+
+Some of the features included are:
+
+- The ability to step to the next or previous selection, version of the
+  current selection, or disk in the database.
+
+- The ability to jump to the first entry of a specific disk, or even a
+  specific entry itself, with commands to jump to the first and last entries
+  without a hassle.
+
+- The ability to conduct a search of either the titles or descriptions,
+  forwards or backwards, with the full pattern matching capabilities of
+  KingFisher available.
+
+- The ability to optionally allow the user to send an E-Mail request, to the
+  sysop, for a specific title or disk.
+
+In fact, most of the features that are available in KingFisher have been
+implemented in this script.
+
+
+Requirements
+¯¯¯¯¯¯¯¯¯¯¯¯
+The following items are included in this archive:
+
+  Fisher.rexx     (Script)
+  Fisher.doc      (User documentation)
+  Sysop.doc       (Sysop documentation [what you're reading])
+  KingFisher.cfg  (Blank configuration file)
+
+The following items must be installed on your system, in order for
+Fisher.rexx to work:
+
+  ARexx
+  DLG BBS/OS
+  KingFisher v1.40
+
+
+Installation
+¯¯¯¯¯¯¯¯¯¯¯¯
+Just drop Fisher.rexx and KingFisher.cfg in the appropriate directory(ies).
+
+
+Setting Up
+¯¯¯¯¯¯¯¯¯¯
+Both Fisher.rexx and KingFisher.cfg will need to be configured for your
+system's setup.
+
+
+  Fisher.rexx
+  ¯¯¯¯¯¯¯¯¯¯¯
+  The following variables will need to be changed to suit your setup.
+
+    KingFisher.Path  = "DH1:Database/KingFisher"
+    KingFisher.Prefs = "DOORS:Fisher/KingFisher.cfg"
+    KingFisher.Port  = "KINGFISHER1"
+    KingFisher.Quit  = TRUE
+
+    Sysop = "Keith_Burby"
+
+    RightMargin = 77
+
+  The variabes are:
+
+    .Path       -- The complete path/filename of the KingFisher program.
+    .Prefs      -- The complete path/filename of the configuration file.
+    .Port       -- The name of the ARexx port to access (UPPER CASE).
+    .Quit       -- Whether or not to quit KingFisher upon exit of the script.
+
+    Sysop       -- Sysop's name, with spaces changed to underscores.
+    RightMargin -- Right margin for text formatting.
+
+  NOTE:  Two constants, TRUE and FALSE, have been defined for use with the
+         .Quit variable.  Use either these names, or 1 and 0.  Any other
+         value assigned to .Quit will not be accepted.
+
+  NOTE:  The Sysop variable is used for sending requests to the sysop via
+         E-mail.  If this variable is set to an empty string (""), the
+         request option will be disabled.
+
+
+  KingFisher.cfg
+  ¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+  The following lines will need to be changed to suit you setup.
+
+    # Datafile partitioning information
+    # Format:  begin-entry,end-entry,volume-name
+    FishData=0001,0500,
+    FishData=0501,1100,
+    FishData=1101,1700,
+    FishData=1701,2300,
+    FishData=2301,2900,
+    FishData=2901,3500,
+
+    # Datafiles appended by KingFisher to appropriate paths
+    # Should contain TWO `%d' symbols (for first and last entry)
+    FishFileNames=DH1:Database/Fish-%04d-%04d
+
+    # Unsplittable datafiles (path plus filename)
+    FishIndexFile=DH1:Database/Fish.Index
+    NameIndexFile=DH1:Database/Name.Index
+
+  The variables are:
+
+    FishData      -- These should have any path info removed.
+    FishFileNames -- Complete path/filename of KingFisher database.
+    FishIndexFile -- Complete path/filename of index file.
+    NameIndexFile -- Complete path/filename of name file.
+
+  NOTE:  For further information, regarding KingFisher's configuration file,
+         please refer to the comments in the file and to KingFisher's
+         documentation.
+
+  NOTE:  Experience has shown me that when using a custom setup that uses
+         CG/Outline fonts, KingFisher's load time will double, which I
+         consider unacceptable when going though a script, especially since
+         that pretty font can't be be seen anyhow.  Therefore, I've included
+         a "blank" configuration file, to be used with the script.  However,
+         usage of this configuration file is optional.  If you feel that
+         your configuration loads fast enough and you have complete paths
+         specified in the three lines mentioned, then feel free to use your
+         configuration and throw this one away.
+
+
+BBS Setup
+¯¯¯¯¯¯¯¯¯
+Now all that's left is assigning a menu entry for the puppy.  Best place for
+the entry would be the files base.  Here's what the entry should look like:
+
+  [ 1] Letter:                   !
+  [ 2] Executable: (path/name)   Rx DOORS:Fisher/Fisher %ANSI %USER
+  [ 4] Description:              Fisher - KingFisher database
+  [ 5] Type:                     Executable
+  [ 6] Help File:                FILE_MAIN/!
+  [ 7] Lower level:              1
+  [ 8] Upper level:              255
+  [ 9] Hidden:                   NO
+  [10] Load type:                OVERLAY
+  [11] Ask user if sure:         NO
+  [12] Pend messages:            YES
+  [13] Cli mode:                 YES
+  [14] Pause on completion:      NO
+  [15] Log value:                None
+  [16] Activity string:          Gone fishing!
+  [17] Priority:                 DEFAULT
+  [18] Edit help file
+
+After that, select entry #18, and upload the Fisher.doc (user documentation)
+to the help file.
+
+NOTE:  The reason the type is an executable instead of ARexx macro is
+       because the only way to pass arguments, namely the user's name, via
+       the command line is by calling the script with Rx.
+
+And on that note, you're good to go!
+
+
+Thanks!
+¯¯¯¯¯¯¯
+A great deal of thanks goes to my good friend Dave Birdsong, current
+president of the Wateford Amiga Users Group and sysop of Midiland BBS
+(810/887-HELP).  Without his suggestion and allowing me access to his BBS
+this script wouldn't have been written, and without his constant pushing and
+nagging (and I'll get you for that :>) this script would have never left the
+Highland area.
+
+Also, some recognition is due for Mr. Schuermann for his reliable and easy
+to use database program, THAT HAS AN AREXX PORT, without which, this script
+would pretty much be useless.  :>
+
+
+Future
+¯¯¯¯¯¯
+Although the script is complete, it's far from done.  Currently in the
+planning stages are (from most important to least important):  Adding an
+option to export a range of entries to the user's private file area,
+Reorganizing the code to make it easier to modify for use with other Amiga
+based BBSes, and make the script interact with KingFisher in a more friendly
+manner.
+
+
+How to Contact Me
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+If you have any comments, suggestions, or questions, regarding Fisher.rexx,
+please feel free to contact me.  I can be reached at:
+
+  E-Mail
+  ¯¯¯¯¯¯
+  kb0s2113@sycom.mi.org
+  Arcane@lppl.mi.org
+  an989@freenet.buffalo.edu
+
+  Support BBS
+  ¯¯¯¯¯¯¯¯¯¯¯
+  Midiland BBS 810/887-HELP
+                      (4357)
+  Snail Mail
+  ¯¯¯¯¯¯¯¯¯¯
+  Keith R. Burby
+  3800 Teeple Lake Road
+  White Lake, MI  48383
+  USA
+
+
+Finally
+¯¯¯¯¯¯¯
+The script is free for your use and abuse, and while I'm not asking for any
+money, if you feel compelled to send some my way, I won't be ashamed to
+accept it. :>
+
+Here's to hoping that you'll find my little diddy here a useful addition
+to your BBS.
+
+As always.
+                                                  K/B
+                                                  ~~~

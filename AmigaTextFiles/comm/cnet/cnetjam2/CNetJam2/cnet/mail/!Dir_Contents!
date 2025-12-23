@@ -1,0 +1,122 @@
+1/28/95
+
+Directory of "Mail:" files:
+
+    Bin/
+
+        - stores all JamMail executable binaries, INCLUDING JamMail itself!
+
+    dupetables/
+
+        - Used to store tables of message id's which are used in catching
+          echomail duplicates that come over the line. CNet creates the
+          tables as needed. All YOU need to do is create the directory.
+
+    FFRS/
+
+        - Contains files for use with FFRS (Fido File Request Server).
+
+    fido/
+
+        - Contains dos executables, as well as standard ARexx utilities
+          which do various things for me.
+
+    inbound/
+
+        - This directory should be created and assigned as INBOUND:. It is
+          where all new mail packets, crash-sent files, .TIC files, NodeDiff
+          files, etc will be stored.
+
+    jammail/
+
+        - Where I store all other files relating to JamMail(like text files,
+          doc files, etc.)
+
+    netmail/
+
+        - If you plan on allowing UUCP type mail to be sent and received,
+          then you'll need this directory. Also remember to assign it as
+          NETMAIL:
+
+    nodelist/
+
+        - Stores the current NodeList and index files. Is also the place I
+          chose to store TrapList and TrapList.cfg, which are really only
+          used in conjunction with NodeLists anyways.
+
+    outbound/
+
+        - This directory, which should also be assigned as OUTBOUND: is where
+          all messages, netmail, file attaches, etc. that will originate from
+          your bbs are placed. Further, JamScan will look in this directory
+          when it does it's work to find files it needs to crunch.
+
+    queue/
+
+        - This directory is used by JamMail when performing FREQ requests.
+          You need to assign this directory as XFERQ: if you'll be using
+          JamMail to process file requests. Don't mess with any of the files
+          you may find in this directory yourself.
+
+    temp/
+
+        - The "Poll-Script2" file copies files located in INBOUND:, OUTBOUND:
+          and NETMAIL: to the mirror directories inside this base, just in
+          case something goes awry. You'll have these files to fall back on.
+
+    users/
+
+        - Needed by CNet Amiga to store user mail directories. This is also
+          the directory used to store UUCP mail.
+
+    JamCall.rexx
+
+        - This is the intelligent dialer script I wrote for use with JamMail.
+          The "Poll-Script2" file calls this script, as does the "CallJam"
+          file, located in the "pfiles:fido/" directory.
+
+    jamscan.cfg
+
+        - Here's the config I'm presently using, just so you'll have another
+          example to look at.
+
+    Poll-Script1
+    Poll-Script2
+
+        - To call my Boss Node for polling, I use these two scripts. I use
+          CNet's Events Scheduler to launch the first one, which in turn
+          launches the second one. Numerous things are done with this script
+          as shown below:
+
+                - Logs are restarted.
+                - Files are backed up.
+                - CNet Toss is run to export needed echo packets.
+                - Outbound files are JamScanned.
+                - My boss node is dialed, upon which anything from my end
+                  is sent, and anything from his end is received by me.
+                - Files are backed up.
+                - NodeDiff's are processed.
+                - .TIC files are processed.
+                - Echomail packets are tossed(using CNet Toss).
+                - Script is exited.
+
+        - If you'd like to use this script yourself, you'll have to do some
+          editing within the script to change things like node addresses as
+          well as activating certain portions of code if you want to use
+          them(I deactivated the NodeDiff and .TIC processors in case you
+          don't wish to use them, but you can activate them if you want)
+
+        - Lastly, as mentioned above, I launch the first script through CNet
+          twice a day as an event using these settings:
+
+            Command: DOS-CMD
+               Args: run >NIL: execute mail:poll-script1
+          [port(s)]: 1                 (the port JamMail is loaded on)
+               Type: Immediate--force system idle
+               Days: Check ALL Seven
+               Time: 800               (For 8AM)
+              Valid: 100               (Try to poll between 8 and 9)
+           Interval: 1200              (Every 12 hours)
+            Iterate: 2                 (twice daily at 8AM and 8PM)
+
+Dotoran

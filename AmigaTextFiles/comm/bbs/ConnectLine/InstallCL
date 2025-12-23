@@ -1,0 +1,194 @@
+;
+; Installer-Script Connectline
+;
+; $VER: Connectline-Install 5.2 (04.12.99)
+;
+
+(set #clexists
+(cat    "Connectline ist bereits auf Ihrem System installiert.\n\n"
+                "Möchten Sie die bestehende Installation Updaten oder "
+                "Connectline komplett neu installieren?\n\n"
+                "ACHTUNG!\n\n"
+                "Bei einer Neuinstallation gehen Ihre bestehenden Daten "
+                "komplett verloren, wenn Sie Connectline in demselben "
+                "Verzeichnis wie die alte Version installieren!\n\n"
+                "In jedem Fall sollte Connectline vor der Installation "
+                "komplett beendet werden!\n"
+))
+
+(set #install-hd-msg
+(cat    "Wohin soll das Connectline-Verzeichnis "
+                "installiert werden?"
+))
+
+(set #install-hd-help
+(cat    "\nHier müssen Sie angeben, wo auf Ihrer "
+                "Festplatte das Connectline-Verzeichnis installiert werden "
+                "soll.\n\n"
+                "Das Installationsprogramm erzeugt dann in dem von Ihnen "
+                "angegebenen Verzeichnis eine neue Schublade mit dem "
+                "Namen \"Connectline\".\n\n"
+))
+
+(set #autostart
+(cat    "Soll Connectline beim Booten des Systems automatisch gestartet werden?"
+))
+
+(set #autostart-help
+(cat    "Es wird in die Datei \"S:User-Startup\" ein Assign \"CONNECTLINE:\" und das Kommando \"RUN >NIL: Connectline:CL eingefügt."
+))
+
+(set #autostart-norun
+(cat    "Es wird in die Datei \"S:User-Startup\" ein Assign \"CONNECTLINE:\" eingefügt."
+))
+
+(set #conv_msgbase
+(cat    "Möchten Sie die Brettinhalte Ihrer alten CL-Installation konvertieren?\n\n"
+                "Die alten Indexfiles (BRETTINFO, MESSAGE) bleiben bei der Konvertierung "
+                "erhalten und sollten später von Hand gelöscht werden.\n\n"
+                "Trotzdem wird DRINGEND ein vorheriges Backup empfohlen!\n"
+))
+
+(set #conv_pmbs
+(cat    "Möchten Sie die Daten Ihrer Prometheus-Installation konvertieren?\n\n"
+                "Die alten Datensätze bleiben bei der Konvertierung erhalten. "
+                "Aufgrund unterschiedlicher Datenstrukturen sind Abweichungen "
+                "bei der Konvertierung nicht auszuschließen.\n"
+))
+
+
+(procedure askcldir
+        (if (<> (exists "Connectline:" (noreq)) 0)
+                (if (askbool
+                                (prompt #clexists)
+                                (help #clexists)
+                                (default 0)
+                                (choices "Update" "Neuinstallation" )
+                        )
+                        (set update_mode 1)
+                        (set update_mode 0)
+                )
+        )
+        (if (= 0 update_mode )
+                (
+                        (set default-dest
+                                (askdir
+                                        (prompt #install-hd-msg)
+                                        (help #install-hd-help)
+                                        (default @default-dest)
+                                )
+                        )
+                        (set @default-dest
+                                (tackon default-dest "Connectline")
+                        )
+                        (makedir @default-dest
+                                (infos)
+                        )
+                        (makedir (tackon @default-dest "Data"))
+                        (makedir (tackon @default-dest "Data/Bretter"))
+                        (makedir (tackon @default-dest "Data/Fido"))
+                        (makedir (tackon @default-dest "Data/Fido/Inbound"))
+                        (makedir (tackon @default-dest "Data/Fido/Outbound"))
+                        (makedir (tackon @default-dest "Data/Janus"))
+                        (makedir (tackon @default-dest "Data/MsgId"))
+                        (makedir (tackon @default-dest "Data/Spool"))
+                        (makedir (tackon @default-dest "Data/Spool/PRESPOOL"))
+                        (makedir (tackon @default-dest "Data/User"))
+                        (makedir (tackon @default-dest "ExIndex"))
+                        (makedir (tackon @default-dest "Log"))
+                        (makedir (tackon @default-dest "Prefs"))
+                        (makedir (tackon @default-dest "Prefs/Mailinglisten"))
+                        (makedir (tackon @default-dest "TCPIP"))
+                        (makedir (tackon @default-dest "TCPIP/bin"))
+                )
+                (set @default-dest "Connectline:")
+        )
+)
+
+(procedure copycl
+        (copyfiles
+                (source "Connectline/")
+                (dest @default-dest)
+                (pattern "~(Prefs|Online|Log|S)")
+                (prompt "Kopiere Connectline-Module" )
+                (help @copyfiles-help)
+                (confirm)
+                (infos)
+        )
+        (complete 75)
+        (copyfiles
+                (source "")
+                (dest (tackon @default-dest "docs") )
+                (pattern "(!ZuerstLesen#?|ConnectLine-readme#?|History#?|MsgConv.txt#?|ToDo#?)")
+                (prompt "Kopiere Texte" )
+                (help @copyfiles-help)
+                (confirm)
+                (infos)
+        )
+        (complete 80)
+        (if (= 0 update_mode )
+                (copyfiles
+                        (source "Connectline/")
+                        (dest @default-dest)
+                        (pattern "(Prefs|Online|Log|S)")
+                        (prompt "Kopiere Connectline-Beispielkonfiguration" )
+                        (help @copyfiles-help)
+                        (confirm)
+                        (infos)
+                )
+        )
+)
+
+(procedure askautostart
+        (if (askbool
+                        (prompt #autostart)
+                        (help #autostart-help)
+                        (default 0)
+                        (choices "Automatisch starten" "Nicht automatisch starten" )
+                )
+                (startup "Connectline" 
+                        (prompt #autostart-help)
+                        (help #autostart-help)
+                        (command ("Assign Connectline: \"%s\"\nRun >NIL: Connectline:CL" @default-dest ) ) 
+                )
+                (startup "Connectline"
+                        (prompt #autostart-norun)
+                        (help #autostart-help)
+                        (command ("Assign Connectline: \"%s\"" @default-dest ) )
+                )
+        )
+)
+
+(procedure convmsgbase
+        (if (<> (exists "Connectline:" (noreq)) 0)
+                (if (askbool
+                                (prompt #conv_msgbase)
+                                (help #conv_msgbase)
+                                (default 0)
+                                (choices "Konvertieren" "Nicht konvertieren" )
+                        )
+                        (
+                                (run "avail flush")
+                                (run "Connectline:c/msgconv #?")
+                                (run "Connectline:c/msgconv USER #?")
+                        )
+                )
+        )
+)
+
+
+;
+;
+; GO!
+;
+;
+
+(complete 0)
+(askcldir)
+(complete 1)
+(copycl)
+(complete 50)
+(askautostart)
+(complete 60)
+(convmsgbase)
+(complete 100)

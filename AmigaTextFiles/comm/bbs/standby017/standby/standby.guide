@@ -1,0 +1,928 @@
+@DATABASE t:standby.guide.tmp
+## @{FG Highlight}@{FG Text}
+## @{BG Highlight}@{BG Background}
+@WIDTH 80
+@MASTER system.guide
+@AUTHOR Frank Hartung
+@NODE MAIN "standby - Guide ... Main menu"
+@remark: $VER: standby.guide
+@(c) "Copyright © 1997/98 Frank Hartung."
+@prev FREEWAY
+@font system-font.font 8
+@font venus.font 8
+@font jetterm.font 8
+@font times.font 24
+@font times.font 18
+@font times.font 15
+@font times.font 13
+@font times.font 11
+@font xen.font 13
+@font xcourier.font 13
+@font xhelvetica.font 13
+
+        @{FG Highlight}S t a n d B y            ©1997/98 by F.HARTUNG@{FG Text}
+
+
+	@{"   " link "standby"}  S t a n d B y             						@{"   " link freeway}  FREEWAY-Werbung
+
+	@{"   " link "req"}  Voraussetzungen							@{"   " link "blitz2"}  Was ist Blitz2 ?
+
+	@{"   " link "hae"}  Wer kriegt den Leckerli?					@{"   " link "arexx"}  Was ist ARexx?
+
+	@{"   " link "programmliste"}  Weitere Klamotten von mir...
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node standby "S t a n d B y"
+
+                                S t a n d B y
+                        =============================
+                        FREEWARE (C)1997/98 F.HARTUNG
+
+
+Einleitung:
+-----------
+
+Das Programm, welches ich urspruenglich in @{"ARexx" link arexx} getippert und mit
+RexxPlus compilierte, liegt hier nun als in @{"Blitz2" link blitz2} reprogrammierte Version
+vor.
+
+
+StandBy  haelt  die  Endgeraete(Modem/isdn) ansprechbar und gibt dem SysOp am
+Boxrechner  sowie  CoSysops  ONLINE  die Moeglichkeit die Bereitsschaft aller
+Endgeraete zu kontrollieren und neu zu setzen.
+
+Alle  Funktionen  beruecksichtigen natuerlich die Multiportkompatiblitaet, so
+das es NICHT zu Abstuerzen etc.  kommen kann!
+
+Ab  v0.16beta  gibt es eine StandBy-Prefs ueber die es moeglich ist portweise
+ein  Befehl  fuer  das  Endgeraet  einzustellen  -  Grundlegender Unterschied
+zwischen der prometheusinternen Modem-String-Routine und StandBy:  es duerfen
+auch Befehle sein die KEIN "OK" zurueckgeben (unter Prometheus wuerde hierbei
+der  Port mehrfach versucht werden zu initalisieren weil Prometheus stets ein
+"OK"  moechte!).   Weiterhin  ist  z.B.   fuer  verzoegernde Resetbefehle ein
+LANGES  Delay  konfigurierbar  - (auch dies ist unter Prometheus selbst nicht
+moeglich!).
+
+
+
+Funktionsweise:
+---------------
+
+Das  jeweilige  Endgeraet  wird  durch  den  Hayes-Grundbefehl  "AT" versucht
+anzusprechen,   dies   wird   ggf.    mehrmals   versucht,   wird  kein  "OK"
+zurueckgegeben  dann  wird  versucht das Endgeraet durch eine Impulsfolge von
+DTR-Signalen zu "wecken" - dann wird die Ansprechbarkeit erneut geprueft.
+
+Ist  das  Endgeraet  trotz  dieser  Procedure  nicht  ansprechbar  wird  eine
+Nachricht   an   den   SysOp   abgesetzt   durch  ausfuehren  von  Batchdatei
+..batches/StandBy_gh.bat  !   Diesem  Batch  wird der Port uebergeben, dessen
+Endgeraet nicht mehr reagiert...
+
+StandBy  erkennt  selbststaendig  ob  der  Port  mit  einem Endgeraet(=Modem)
+verbunden  ist oder ob es der SysOp-Port ist.
+
+Nur  bei Nullmodem-Verbindungen - hierbei sind die echten zwischen 2 Rechnern
+gemeint  -  benoetigt StandBy folgendes zur Erkennung:  auf Prometheus-Server
+unter  Konfigurationen  "Modemparameter"  fuer solche Ports den Esccode auf 0
+(Null) setzen und Waehl/Besetzt/Init-String LEEREN.
+
+Mehrere  Versuche  werden  meistens  bei  HOCHWERTIGEN  Endgeraeten  wie z.B.
+ISDN-Geraeten (z.B.  "USR i-MODEM with ISDN/V.34") - generell bei Endgeraeten
+mit  sogenannten Sleep-Mode zum Sparen von Strom und durch runterschalten von
+Taktung   verlaengernd  auf  die  Lebensdauer  eines  Geraetes  wirken  soll.
+Einfache  Endgeraete  (z.B.   noname  14400er) reagieren meist auf den ersten
+Versuch  von  StandBy.   Generell  sollte man nicht beunruhigt sein wenn also
+gerade  hochwertige  Endgeraeten  mehrere  Versuche  zum  korrekten Antworten
+benoetigen.
+
+StandBy-Prefs  werden in env:  bzw.  envarc:  unter Datei standbyghport<port>
+gespeichert.
+
+
+
+Aufruf-Parameter:
+-----------------
+
+standby -> ohne Parameter wie SETUP.
+
+standby ? -> zeigt knappe Information ueber die Benutzung an.
+
+standby <port> <para> -> der Port wird ueber $PO wie gewohnt
+uebergeben, als Parameter gibt man den Port an der ge-check-t werden
+soll.  Es ist durch Angabe von $PO $PO moeglich das wenn der Aufruf
+in der PostLogoff.bat steht auf jeden Port, ausser dem SysOp-Port,
+zum Check fuehrt.
+
+standby <port> ONLINE -> Onlineschnittstelle fuer CoSysop(s) um die
+Kontrolle der Endgeraete online vorzunehmen.
+
+standby SETUP -> oeffnet ein GUI ueber den der SysOp am Boxrechner alle
+Ports oder einen einzelnen Port checken lassen kann.  Das Ergebnis wird
+im Listview angezeigt.
+
+
+
+Installation:
+-------------
+
+StandBy in irgendein Verzeichnis legen, vorzugsweise C: oder
+prometheus:extern/
+
+
+Um StandBy in die PostLogoff.bat einzubauen ist einfach folgende Zeile
+in die Batchdatei ..batches/PostLogoff.bat einzufuegen:
+standby $PO 2   ;hier wird nur das Endgeraet von Port2 geprueft.
+standby $PO $PO ;hiermit werden die Endgeraeten von ALLEN Ports geprueft.
+
+ACHTUNG: ab Prometheus 2.5 gibt es eine neue, spezielle Batchdatei, die
+..batches/PreModeminit.bat - es empfiehlt sich StandBy in diese Batchdatei
+einzubauen, falls mind. die genannte Prometheus-Version verwendet wird.
+
+
+als Boxbefehl einbinden ...
+
+Im Prometheus-Server unter Konfigurationen "Befehle" aufrufen und den
+Befehl wie folgt eintragen:
+
+        Name            : STANDBY
+                          (egal, was Du willst!)
+
+        Beschreibung    : irgendwas
+
+        Parameter       : standby $PO ONLINE
+                          (Pfad individuell aendern, jedoch OHNE run-aufruf)
+
+        Gruppe          : COSYSOP
+                          (was Du willst!)
+
+        Typ             : DOSDOOR
+                          (NICHT arexx/library)
+
+        Shortcut        : 7
+                          (oder anders!)
+
+        Befehl          : bitte einschalten
+
+        Extern          : einschalten (wenn gewuenscht!)
+
+        unsichtbar      : wie man moechte
+
+        Ports           : nach Belieben einschalten
+
+
+
+Fuer  den  SysOp empfiehlt es sich StandBy als SETUP-Aufruf ab Prometheus2.3b
+unter  Zusatzprogramme  einzubinden,  so  das  man  es  vom Prometheus-Server
+jederzeit auf einfache Weise aufrufen kann.
+
+
+
+History:
+--------
+
+v0.17     - Versionsstring ausgetauscht - oeffentliches Release.
+
+v0.17beta - Setup - "Prefs" - "Hilfe": Hilfstext erweitert.
+
+          - Setup - Busypoint bei zeitaufwenigen Routinen.
+
+v0.16beta - Setup um die Seite "Prefs" erweitert - darauf kann man fuer jeden
+            Port ein Kommando sowie Delay einstellen.  Dieser Befehl wird beim
+            premodeminit.bat-Aufruf direkt vor dem Check selbst an das
+            Endgeraet gesendet.  weitere infos siehe im Hilfsfenster oder
+            im oberen Teil dieses Guides.
+
+v0.15beta - komplett "1:1" in BB2 umgeschrieben.
+            Es entfallen dadurch folgende Bedingungen: rexxplslib.library,
+            rexxtricks.library, rexxsupport.library und rxlib .
+            ..durch die BB2-Reprogrammierung ist das Programm kompakter
+              geworden und waere bei richtiger 1:1-Umsetung natuerlich
+              deutlich kuerzer geworden aber in der BB2-Reprogrammierung
+              wuerde das Setup komlett in MUI realisiert so das das
+              BB2-Programm gegenueber dem frueheren ARexx-Compilat 'nur'
+              ca. 30 KB kuerzer ist. :-)  Ein kleiner Tribut fuer MUI!
+
+          - Modemroutinen nochmals verbessert und sehr viel schneller.
+
+          - Guide in Punkto "Hintergrundinformationen" ueberarbeitet - LESEN!
+
+          - Setup-Aufruf : beachtet nun das Prometheus-Schloss , d.h.
+            wenn das Schloss von Prometheus aktiv ist kann man das Setup
+            nicht aufrufen.  Es erscheint ein Requester-Listview und die
+            Moeglichkeit StandBy erneut zu starten (Gelegenheit fuer
+            den richtigen SysOp das Schloss zu deaktivieren) oder ganz
+            einfach abzubrechen.
+
+v0.14beta - Port die fuer Nullmodem-Verbindungen genutzt werden, werden nun
+            erkannt (Esccode 0, leerer bzw. kein Waehl/Besetzt/Init-String).
+
+          - Online-Befehl StandBy bietet Administratoren wie z.B. CoSys die
+            Moeglichkeit ueber "<A)lle_Ports_Checken>" alle Ports zu checken.
+            Diese Moeglichkeit stand zwar bisher auch schon in der Auswahl
+            war aber noch nicht eingebaut - hat wohl keinem gefehlt eh? :)
+
+          - Modemroutinen global optimiert -> kuerzerer Programmcode.
+
+          - Modemroutinen stark verbessert -> sicherere Geraeterkennung.
+
+v0.13     - Versionsstring ausgetauscht, oeffentliche Version
+
+v0.13beta - Es wird nun ein Protokoll fortgeschrieben, wenn es Probleme
+            mit Endgeraeten gibt.
+
+          - SETUP - "info" - neues Gadget "Protokolle" - man kann nun die
+            von StandBy angelegten Protokolle anzeigen lassen.
+
+v0.12beta - Bugfix: bei PostLogoff.bat-Aufruf wurde mit der Meldung
+            "Port ist z.zt. nicht frei!" sofort wieder beendet, ohne
+            das das Endgeraet gecheckt wurde.
+
+          - Generell wird nun beim PostLogoff.bat-Aufruf die Aktion
+            gemaess der Funktion gesetzt so das man auf dem Prometheus-
+            Server sehen kann was los ist.
+            Auch beim Onlineaufruf wird im Aktionsfeld angezeigt welcher
+            Port gecheckt wird!
+
+v0.11beta - SETUP - "Check" - die Arbeitsausgabe findet nun in einem
+            Fenster statt.
+
+          - Bugfix: die infomail , wenn ONLINE festgestellt wurde das
+            ein Endgeraet nicht ansprechbar ist, beinhaltet nicht die
+            richtige Portnummer.
+
+v0.10beta - erste oeffentliche Version
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node req "Voraussetzungen / Requirements"
+
+Voraussetzungen (Requirements):
+
+ -Amiga-Kompatiblen Multitask-Rechner sowie Betriebssystem AmigaOS mind. 2.0
+ -@{"ARexx" link arexx}-Installation (Rexxmast 36.5)
+ -@{"Prometheus" link pmbs}-Installation    (1.992)
+ -prometheus.library         (2.2)
+ -pmbsonline.library         (4.0)
+ -@{"MUi" link mui} 3.8
+ -@{"ptTools.library" link pttools}            (37.12)
+
+
+Das AmigaDos-Programm filenote muss im Verzeichnis C: liegen !!!
+
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node arexx "ARexx - Amiga Rexx"
+
+@{b}ARexx - Amiga Rexx@{ub}
+------------------
+
+ARexx ist Copyright 1987 by William S. Hawes.
+
+Ein paar Worte von mir zu/fuer ARexx:
+
+ARexx  ist  das  Amiga-Gegenstueck  zur  IBM-Programmiersprache REXX (staun).
+Seit  WB/AmigaOS  Version  2.0  ist  ARexx  integraler Bestandteil des Amiga-
+Betriebssystems und gehoert seitdem zum Lieferumfang jedes Amigas.
+
+
+Wenn  man  von Programmiersprache im Zusammenhang mit ARexx spricht, wird man
+von  vielen  ausgelacht,  da  diese  ARexx nicht fuer eine Programmiersprache
+halten.    Was   ARexx  nun  fuer  jeden  einzelnen  ist,  ist  jedem  selbst
+ueberlassen;  fuer  mich  ist  ARexx die schnellste und meist auch einfachste
+Moeglichkeit,  einen  Programmgedanken in ein Programmergebnis zu verwandeln.
+:)
+
+
+ARexx   eignet  sich  besonders  gut  zur  Steuerung  und  Modifizierung  von
+Anwendungen sowie deren Interaktion mit anderen Anwendungen definiert werden.
+Fazit dieser Aussage ist:  Anwendungen, welche ARexx-Schnittstellen besitzen,
+koennen direkt ueber ARexx gesteuert, koordiniert und delegiert werden.
+
+In  anderen  Sprachen  ist  es  uebrigens  sehr  viel  leichter moeglich z.B.
+Speicher  zu  "verschlucken",  Dateilocks zurueckzulassen bei nicht korrekter
+Programmierung.   Unter  ARexx  ist  dies nicht ohne weiteres moeglich:  egal
+wieviel   Speicher   belegt   und   wieviel   Dateien  geoeffnet  werden,  im
+Programmlauf,  nach Beendigung eines ARexx , auch durch einen Fehler(!), wird
+der   verwendete   Speicher   freigegeben   und   alle   geoeffneten  Dateien
+standardmaessig geschlossen.
+
+
+Zur  Initiierung  von ARexx muss generell einmal vor dem Start von Prometheus
+das  Programm  @{b}RexxMast  >NiL:@{ub}  aufgerufen  werden.
+Aber  als  alter "Amiga-Hase" ist dies natuerlich ein "alter Hut" fuer Dich !
+:-)
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node blitz2 "Blitz2"
+
+@{b}BB2 - BlitzBasic2@{ub}
+-----------------
+
+Blitz2 ist Copyright 1993 by Acid Software, entwickelt von Mark Sibly unter
+Verwendung von HiSoft's DevPac2-Assembler.
+
+...zuvor etwas ueber ARexx:
+Bis  Ende  Oktober  1997  habe  ich  oeffentliche  Programme in ARexx und mit
+RexxPlus  compiliert.   ARexx  ist  eine  faehige Sprache mit der man schnell
+Ergebnisse  erzielt,  leider wird der RexxPlus-Compiler nicht mehr entwickelt
+und  hat so einige Bugs; z.B.  in Variablenverwaltung, einigen Funktionen und
+im  Linker,  so  das  die  Objekte auf bestimmten Amigas (1200er) mit kleinen
+Prozessoren nie liefen - verursachten leider sofortigen Absturz.
+
+Seit  November  1997  beschaeftige  ich  mich  mit  Blitz2  und  schaetze die
+Faehigkeiten   der   Variablenverwaltung   sowie  den  geringen  Mehraufwand.
+Blitz2-Programme  bestehen aus schneller, kompakter Maschinensprache und sind
+kompatibel  mit  ALLEN  Amiga-Computern  -  dies  sind  Fakten  die fuer mich
+entscheidend waren.
+
+
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node mui "MUi - MagicUserInterface"
+
+@{b}MUI:@{ub}
+
+              Dieses Programm benutzt  MUI - MagicUserInterface
+                   (c) Copyright 1993-97 by Stefan Stuntz
+
+
+MUI   ist   ein   System   zum   Erzeugen  und  Unterstützen  von  grafischen
+Benutzungsoberflächen.   Mit der Hilfe eines Konfigurationsprogrammes bekommt
+der  Benutzer  einer  @{b}MUI@{ub}-Applikation  die  Möglichkeit das Aussehen
+dieser Applikation seinem Geschmack anzupassen.
+
+MUI  wird  als  Shareware  vertrieben.  Um ein vollständiges Programmpaket zu
+bekommen,  das  viele Beispiele und mehr Informationen über die Registrierung
+beinhaltet,  sollten  Sie  auf  lokalen  Bulletin  Boards  oder Public Domain
+Disketten  nach einer Datei namens muiXXusr.lha Ausschau halten (XX steht für
+die letzte Versionsnummer).
+
+ Sie  können  sich  auch direkt registrieren lassen, indem Sie 30.- DM oder
+                 20.- US$ an die folgende Adresse schicken:
+
+                                Stefan Stuntz
+                          Eduard-Spranger-Straße 7
+                                80935 München
+                                   GERMANY
+
+                          Telefon: +49-89-313-1248
+                  E-Mail:  stuntz@informatik.tu-muenchen.de
+
+
+@{i}BEMERKUNG:
+
+Es  ist  nicht notwendig MUI zu registrieren, um dieses Programm zu benutzen.
+Die Registrierung von MUI ist aber sehr sinnvoll.
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node pttools "ptTools.library"
+
+@{b}Erklaerung der ptTools.library@{ub}
+
+ Die ptTools.library ist eine Funktionslibrary zur vereinfachten Ansteuerung
+ und Benutzung der prometheusinternen RAM-Struktur, prometheus- sowie
+ pmbsonline.library.  Die Programmierer der ptTools.library unterstuetzen
+ damit Programmierer von Prometheus-Tools sowie programmierende
+ Prometheus-SysOp.
+
+ Ich bedanke mich hiermit bei den Autoren der ptTools.library und gebe
+ nachfolgend Ihre EMail-Adressen sowie die Bezugsquelle der ptTools.library
+ bekannt :
+
+
+
+@{b}Autoren der ptTools.library@{ub}
+
+ Programmierer der ptTools.library:
+
+         Andi      andi@a-angels.aworld.de
+
+         Percy     krypi@lair.pfalz.de
+
+
+@{b}Bezugsquelle der ptTools.library@{ub}
+
+ Wenn Du an einem Update oder an einem der anderen Programme von uns
+ interessiert bist, dann rufe uns an.
+
+         A-Angels Wuppertal     0202-2665124    V.34
+                                0202-2665125    V.34
+            oder  Lair...
+
+ Dort findest Du in dem folgenden Brett die jeweils die aktuellste Version
+ der ptTools.library :  /B1-SUPPORT/B04-AA-TOOLS
+
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node pmbs "Prometheus - Mailboxprogramm"
+
+@{b}Herstellerinformationen zum Mailboxprogramm Prometheus@{ub}
+------------------------------------------------------
+
+@{u}Anschrift des Autors:@{uu}
+
+Softwareentwicklung M.Brueckner
+Buddestr. 16
+
+33602 Bielefeld
+
+Modem  : 0521 / 179227 ISDN: 0521 / 179200  - SYSOP@CCASTLE2.prometheus.de
+Voice  : 0521 / 179463
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node hae "Wer kriegt den Leckerli?"
+
+@{b}Wer kriegt den Leckerli?@{ub}
+------------------------
+
+   Die Benutzung dieses Programmes geschieht  auf Deine eigene Gefahr!
+   Obwohl dieses  Programm mit groesster Sorgfalt  programmiert wurde,
+   kann und wird keinerlei  Garantie oder Haftung  fuer evtl. Schaeden
+   uebernommen , welche durch  die Benutzung entstanden sein koennten.
+
+   Dieses  Programm  ist   uneingeschraenkte   FREEWARE - Bitteschoen!
+
+
+   Supportbox ist die FREEWAY [+49] (0)431 338382/338310/338352/335668
+
+   Programmierer :     Frank Hartung, Projensdorferstr. 22, 24106 Kiel
+    und Urheber                         Voice  0431 338375  (21-23Uhr)
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node ubp "UploadBonusPro - Vorstellung"
+@font diamond.font 12
+@font helvetica.font 18
+@font times.font 18
+@font ruby.font 12
+@font xhelvetica.font 13
+
+Einleitung (Introduction):
+--------------------------
+
+UploadBonusPro ist das Gutschriften-Tool fuer Mailboxprogramm @{"Prometheus" link pmbs}.
+UploadBonusPro is the credittool of the bbs-prg @{"prometheus" link pmbs}.
+
+Als Systembetreiber Deiner Mailbox weisst Du sicherlich, dass Uploads von
+Usern oftmals nur dazu dienen, Downloadfreiraum zu gewinnen.  Die User neigen
+deshalb gern dazu Dinge upzuloaden, die entweder kaum jemandem nuetzen, zu
+alt oder einfach schlecht sind.  :-(   Nach einiger Zeit sind dann
+Deine Platten mit Files vollgemuellt, die niemand haben will - Deine Box
+verliert so schnell an Attraktivitaet _UND_ Aktualitaet.
+
+Um Deine Userschaft zu besseren Uploads zu bewegen, kannst Du UploadBonusPro
+einsetzen; setze den Ratio in den BiN-Brettern Deiner Box herunter, so dass
+es nach dem direkten Upload nur wenig Downloadfreiraum zu gewinnen gibt,
+Ist ein Upload gut, dann wird dieser oft downgeloadet, und der Uploader wird
+mit weiterem Downloadfreiraum BELOHNT - das erledigt UploadBonusPro fuer
+Dich !  User koennen UploadBonusPro uebrigens nicht austricksen, z.B. ein
+zweiter User mit FREE-DL zieht den Upload seines Kumpels mehrmals, damit
+dieser mehrmals Bonusgutschriften bekommt - nene das merkt UploadBonusPro
+natuerlich wie vieles mehr. :)
+
+
+Achja ...in Mailboxen in denen ALLE User in ALLEN Brettern freien Down-
+load (FREE-Download) haben ist der Einsatz von UploadBonusPro ohne Sinn !
+
+UploadBonusPro vergibt Downloadfreiraum-Gutschriften anhand des Download-
+Protokolls an die Uploader (Absender) von Files.  Weiterhin kann es aber
+auch Brettverwaltern den durch Download entstandenen Freiraumabzug wieder
+rueckvergueten - wenn man es denn so konfiguriert hat.
+
+UploadBonusPro ist eine Weiterentwicklung der Idee, die hinter den bereits
+bekannten Gutschriftentools XLSpicePro von Andreas Horn und FREE4DOWN
+von Maik Schreiber steckt.
+
+Obwohl ich mich bei Andreas Horn fuer XLSpicePro registrieren liess, gab es
+trotz sofort folgenden bugreports keine Reaktion mehr von ihm.  XLSpicePro
+schien mir faehig zu sein, jedoch hat es Fehler, die ich langfristig nicht
+fuer meine User in kauf nehmen wollte.
+
+Free4Down von Maik Schreiber war mir einfach zu einfach. :)  Weiterhin hat
+sich dieser Programmierer anscheinend vom Prometheus(Amiga)-Support zurueck-
+gezogen und eine Weiterentwicklung scheint es wohl nicht zu geben.
+
+Ich wollte meinen Usern ganz einfach mehr bieten und natuerlich auch eine
+einwandfreie Funktion sowie Kontrolle ueber alle Vorgaenge.
+Leider liess sich das mit meinen einfachen Moeglichkeiten und der unaus-
+reichenden Ahnung erst zu diesem Zeitpunkt realisieren.   Da die User
+meiner Box sehr aktiv und ebenfalls sehr unzufrieden mit der einzig
+verfuegbaren XLSpicePro-Version sind, hat deren Klagen ueber diesen
+Zustand meiner Motivation den Extrakick gegeben.
+
+UploadBonusPro ist sozusagen aus einer Not heraus entstanden, wobei mir
+die Programmierung ohne eine dominierende Logik nicht moeglich gewesen
+waere, da ich mich eigentlich NICHT Programmierer nenne und keine all-
+taegliche Routine(n) besitze.
+
+
+Entwickelt wurde UploadBonusPro dank AmigaOS-Multitask auf dem Mailboxrechner,
+meiner @{"FREEWAY" link freeway}: Amiga2000 mit 68060-Turbokarte, OS3.1 und der ueblichen
+Hardware und Software die man so als SysOp braucht.  UploadBonusPro wird
+natuerlich auch in meiner Box eingesetzt.
+
+
+Faehigkeiten (Features):
+------------------------
+
+Hier einige features in Stichworten:
+
+
+ -UploadBonusPro ist 100% Backdoor-Frei !
+
+ -Das  UploadBonusPro-Paket  beinhaltet  ein  UNinstall.bat
+  zum einfachen   Deinstallieren   des   UploadBonusPro bei
+  Nichtgefallen. :)
+
+ -UploadBonusPro wird weiterentwickelt.
+
+ -UploadBonusPro wird nach  bugreports debuggt(korrigiert).
+
+ -UploadBonusPro  veraendert  Daten nur  ueber  Prometheus,
+  d.h. es  veraendert   NICHT   gewaltsam  den  Inhalt  von
+  Userdateien ueber Doszugriff.
+
+ -UploadBonusPro  benutzt ordnungsgemaess  die  Prometheus-
+  Ramstruktur  sowie  den  Prometheus-Server  zum Ermitteln
+  der benoetigten Daten.
+
+ -UploadBonusPro  ist  voll  multiportkompatibel;  berueck-
+  sichtigt Onlineuser-, Sorter- und  Cruncher-Aktivitaeten.
+
+ -UploadBonusPro  arbeitet   systemkonform  und  verursacht
+  im Programmlauf KEINE Abstuerze.
+
+ -UploadBonusPro verarbeitet Downloadvorgaenge NICHT online,
+  das  bedeutet  KEINE  Wartezeit fuer  Onlineuser nach dem
+  Download.
+
+ -UploadBonusPro vermeidet  moegliches  Fehlverhalten durch
+  Beruecksichtigung   und  evtl.   Ermittlung   beteiligter
+  Faktoren.
+
+ -UploadBonusPro   verarbeitet  jede  Zeile  des  Download-
+  protokolls  nur ein  einziges Mal , UploadBonusPro  merkt
+  sich Zeitpunkt sowie Zeilennummer.
+
+ -UploadBonusPro  hat  einen eigenen  Dupecheck nach MSGID.
+
+ -UploadBonusPro  hat  sekundaer  auch  einen Dupecheck mit
+  Filenamen fuer Files ohne MSGID.
+
+ -UploadBonusPro  arbeitet  mit  Tempdateien und  blockiert
+  dadurch  weder die  Downloadprotokolldatei noch sonstige.
+
+ -UploadBonusPro  prueft  unter  anderem  Gruppen , wodurch
+  man  gezielt  und  komfortabel die  Userschafteinstellung
+  ueber den  Gruppeneditor von  Prometheus vornehmen kann.
+
+ -UploadBonusPro laesst das Downloadprotokoll UNVERAENDERT.
+
+ -UploadBonusPro loescht das Downloadprotokoll NICHT.
+
+ -UploadBonusPro liest den  aktuellen Brettpfad aus der Pro-
+  metheus-Server-Ramstruktur aus.
+
+ -UploadBonusPro ueberspringt doppelte Downloads.
+
+ -UploadBonusPro ueberspringt Downloads eigener Uploads.
+
+ -UploadBonusPro  macht  eine Gutschrift  nur einmal , auch
+  bei mehrfachem Download  durch  denselben User.
+
+ -UploadBonusPro  wird  NICHT  durcheinandergebracht , wenn
+  die  Downloadprotokolldatei durch DRITTE  veraendert oder
+  geloescht wird.
+
+ -UploadBonusPro frist kein  Brot, ist  jedoch  trocken und
+  stubenrein.
+
+ -UploadBonusPro  legt  alle  Dateien  im  normal  lesbaren
+  Amiga-ASCII-Format an.
+
+ -UploadBonusPro  ermoeglicht  dem  SysOp , JEDEM  User und
+  JEDEM Brett  einen  ANDEREN  Prozentwert  fuer die Bonus-
+  gutschriften  ueber die  Vergabe von  FREI  definierbaren
+  Prometheus-Gruppen bzw. Brettkommentar-Flags  zuzuordnen.
+
+ -UploadBonusPro kann  Bonusgutschriften  user-  UND brett-
+  bezogen LIMITIEREN, z.B. nur 10 Gutschriften, danach gibt
+  es auch bei  weiteren Downloads  keine  Bonusgutschriften
+  mehr.
+
+ -UploadBonusPro  berechnet  prozentuale  Bonusgutschriften
+  NACHKOMMAGENAU und rundet auf falls noetig.
+
+ -UploadBonusPro  erstellt auf  Wunsch eine Brettverwalter-
+  Informationsmail  fuer  jede Bonusgutschrift  durch Down-
+  loads aus seinem Brett.
+
+ -UploadBonusPro  fuehrt  eine  Bonus-Backupdatei , wodurch
+  Bonusgutschriften , welche  durch  Reset/Absturz  vor dem
+  Speichern  der Userdaten  nicht in  die  Userdaten ueber-
+  nommen werden , VOLLAUTOMATISCH und natuerlich nachtraeg-
+  lich gutgeschrieben werden koennen.
+
+ -UploadBonusPro kann  Brettverwaltern  den durch Kontroll-
+  downloads abgezogenen  Downloadfreiraum rueckvergueten.
+
+ -Es bietet maximale  Konfigurationsmoeglichkeiten  und das
+  nicht nur fuer den SysOp , denn ueber  den UBPclient kann
+  ein User den  Empfang von  diversen  Infomails und Proto-
+  kollen abschalten  -  sofern  Du  als  SysOp dies erlaubt
+  (konfiguriert) hast.
+
+ -Die  Verarbeitung  von  UploadBonusPro  kann  auf  wenige
+  Bretter begrenzt  werden.  Dafuer gibts  sogar zwei Moeg-
+  lichkeiten: Brettliste oder Brettkommentarauswertung.
+
+ -UploadBonusPro  verarbeitet  Download.prt-Zeilen , dessen
+  Brettpfade  und/oder  Dateinamen  Leerzeichen  enthalten,
+  korrekt.
+
+ -UploadBonusPro  laesst  durch  Erzeugung  von Fehler- und
+  Zeilenprotokoll keine Frage auf Gutschrift-(verhinderung)
+  und Konfigurationsfehler offen  -  besonders wichtig wenn
+  UploadBonusPro  "unsichtbar" im Hintergrund  laeuft, aber
+  dafuer  gibts  speziell die  infowindow-Funktion  die die
+  grundsaetzlichen  Hauptvorgaenge  stichwortartig parallel
+  zur Verarbeitung anzeigen kann.
+
+ -Fuer UploadBonusPro gibt es  ein ausfuehrliches, staendig
+  erweitertes Handbuch(Anleitung).  DIESES Guide.
+
+ -UploadBonusPro ist einfach lueckenlos in Logik und
+  Durchfuehrung.
+
+
+
+
+wenn  Du Interesse an UploadBonusPro haben solltest, dann kannst Du es in der
+FREEWAY downloaden...
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node FREEWAY "FREEWAY - Mailbox vom StandBy-Programmierer"
+@font jetterm.font 8
+                _____ ____   ___   ___   _   _  ____  __  __
+                ||__  ||_)) //__  //__  //   || ||__\\  \\\\//
+                ||    || \\\\ \\\\___ \\\\___ \\\\_|_|| ||  ||  ||
+
+
+                  FREEWAY - Privates Kommunikationsmedium,
+                      Freundlich und NICHT Kommerziell
+                           Online seit 08.07.1990
+                    Betreiber: Frank Hartung alias Hardy
+                          (hardy@freeway.shnet.org)
+
+                   0431 338382 -> analog V.34 28800
+                   0431 338310 -> analog V.32terbo 19200
+                   0431 338352 -> analog V.34 28800
+                   0431 335668 -> analog V.34+ 33600 & x2 56000
+                   0431 335669 -> analog V.34+ 33600 & x2 56000
+                   0431 338310 ---> iSDN X.75 64000
+                   0431 335668 ---> iSDN X.75 64000
+                   0431 335669 ---> iSDN X.75 64000
+
+                              Login-User: GAST
+                 Support-Brett: /!FILES/SUPPORT/UBP-SUPPORT
+
+
+     Prometheus-Mailboxbetreiber koennen das UploadBonusPro-Support-Netz
+     nach Absprache auch ueber direkte Netcall-Verbindung fest beziehen:
+
+       Support-Netzbretter: /UBP-Support/UBP-!WiCHTiG
+                            /UBP-Support/UBP-BETATEST
+                            /UBP-Support/UBP-BiNAER
+                            /UBP-Support/UBP-BUGREPORTS
+                            /UBP-Support/UBP-DiSKUSSiONEN
+                            /UBP-Support/UBP-SYSTEM
+
+      Die Support-Netzbretter werden z.B. an folgende Systeme geroutet:
+       @{FG Highlight}INOUT@{FG Text}, @{FG Highlight}ANDRO@{FG Text}, @{FG Highlight}CIRCUS@{FG Text}, @{FG Highlight}NCC1701D@{FG Text}, @{FG Highlight}CCASTLE2@{FG Text}, @{FG Highlight}BLUE@{FG Text}, @{FG Highlight}BBRANDES@{FG Text}
+
+@endnode
+------------------------------------------------------------------------------
+
+                               /X\ /X\ /X\
+                               \X/ \X/ \X/
+
+------------------------------------------------------------------------------
+@node programmliste "Weitere Klamotten von mir"
+@font jetterm.font 8
+
+
+      Hier eine Liste meiner Produkte, die ich veroeffentlicht habe...
+
+
+
+                                ARexx.guide:
+                                ============
+AmigaGuide  fuer Prometheus/ARexx-Programmierer und die die es werden wollen.
+Ersetzt  die  arexx.dok  von Martin Brueckner und erklaert weiterhin auch die
+Funktionen der ptTools.library sowie hwspmbs.library !
+
+
+
+                               UploadBonusPro:
+                               ===============
+          umfangreiches Gutschriftentool fuer Mailboxen mit Ratio !
+
+
+
+                                Alienrunner:
+                                ============
+            Ein Aktion-Onlinespiel aehnlich wie ein Autorennen !
+               [Anfang November '97 in Blitz2 reprogrammiert!]
+
+
+
+                                 SuchBrett:
+                                 ==========
+     kleines Tool fuer die Mustersuche/Ausgabe/Download von Brettpfaden!
+               [Anfang Dezember '97 in Blitz2 reprogrammiert!]
+
+
+
+                             TrueLogicHandshake:
+                             ===================
+Zum  Abpassen(warten) von bestimmten Programmen, wichtig z.B.  fuer Tools die
+erst NACH Beendigung von einem bestimmten Programm fortfahren sollen !
+                [Ende Dezember '97 in Blitz2 reprogrammiert!]
+
+
+
+                                 CheckQuit:
+                                 ==========
+Spuert  Tools/Befehle/Programme  auf die illegal QUIT's an den ARexx-Port von
+Prometheus adressieren und damit einen Absturz vorprogrammieren !
+                              Ein Debug-Tool !
+
+
+
+                                   Filter:
+                                   =======
+                          gezieltes Mailfiltering !
+
+
+
+                                ListManager:
+                                ============
+         komfortables , umfangreicher Listserver fuer das Betrieben
+                             von Mailinglisten !
+
+
+
+                                 NetControl:
+                                 ===========
+ komfortables, umfangreiches Tool zur Kontrolle von Box/Point-Teilnehmern !
+
+
+
+                                  Typefile:
+                                  =========
+                       Multifunktionaler Textchanger !
+                [Ende November '97 in Blitz2 reprogrammiert!]
+
+
+
+                               ShowVerwalter:
+                               ==============
+             Listenerstellung fuer Brettverwalter mit optionalen
+          Selektivmoeglichkeiten als Onlinebefehl und CLI-Befehl !
+                [Ende November '97 in Blitz2 reprogrammiert!]
+
+
+
+                                  StandBy:
+                                  ========
+haelt die Endgeraete(Modem/isdn) ansprechbar und gibt dem SysOp am Boxrechner
+sowie  CoSysops ONLINE die Moeglichkeit die Bereitsschaft aller Endgeraete zu
+kontrollieren und neu zu setzen.
+                [Mitte Februar '98 in Blitz2 reprogrammiert!]
+
+
+
+                               MultichatCheck:
+                               ===============
+Multichat-Door  fuer  die Login.bat - zeigt einen einloggenden User mit einem
+editierbaren  Text  an  wenn  ein  Multichat  laeuft um ihn zum mitchatten zu
+motivieren !  [Mitte November '97 in Blitz2 reprogrammiert!]
+
+
+
+                                 QuickMail:
+                                 ==========
+   schnelle (kurze) PM die dem User direkt im z.B.  Login angezeigt wird.
+
+
+
+                                 ToolGruppe:
+                                 ===========
+Universelle  Tool-Door  fuer ALLE Programmaufrufe(ARexxLib/DosDoor) z.B.  zum
+Schuetzen  von Befehlen durch Ein/Ausschluss der Gruppen- teilnahme des Users
+als   Bedingung  -  wirkt  auch  beschleunigend,  da  z.B.   gruppenbedingte,
+ueberfluessige  Programmaufrufe  vermieden werden koennen (siehe Login.bat) !
+               [Mitte November '97 in Blitz2 reprogrammiert!]
+
+
+
+                                  ListArc:
+                                  ========
+das   bekannte   Tool  von  Lahn-Eck-Software  in  Blitz2  umgeschrieben  und
+weiterentwickelt...   PufferManager  ist  ein  Tool zum Einsehen von Archiven sowie
+lesen  und  downloaden aus Archiven (auch DMS).  Weiterhin kann man als SysOp
+Anwendungen  wie  Bildanzeiger  und  Soundplayer  mit  bestimmten  Dateitypen
+verknuepfen.  [Mitte Dezember '97 in Blitz2 reprogrammiert!]
+
+
+
+                                 LCRcontrol:
+                                 ===========
+MUi-Oberflaeche  zur  Unterstuetzung  des  "Least  Cost  Routing"-Projekt von
+B.Brandes.   LCR  berechnet anhand von Carrier-Anbietern(=Telekom-Konkurrenz)
+den  guenstigsten Anbieter zu jeder Stunde und jeder Ziel(-Zone) und erstellt
+daraus eine einfach anwendbare Liste fuer jedermann.
+                  [Ende Januar '98 in Blitz2 programmiert!]
+
+
+
+                               EFMUIger.guide:
+                               ===============
+Deutsche  Uebersetzung der EFMUI.Guide - EFMUI ist ein Entwicklungspaket fuer
+            MUI-Oberflaechen unter Verwendung von Blitz Basic 2.
+
+
+
+                               PufferManager:
+                               ==============
+das   bekannte   Tool  von  Lahn-Eck-Software  in  Blitz2  umgeschrieben  und
+weiterentwickelt...   Bei  PufferManager dreht sich alles um den Netzpuffer -
+damit  der  Pointuser oder SysOp einer angeschlossenen Box auch online Puffer
+uploaden  und downloaden kann.  Weiterhin gibt es natuerlich auch Zugriff auf
+Kopien  von  bereits  uebertragenen  Puffer.   Auch  lassen  sich Puffer nach
+verschiedenen  Wuenschen  bearbeiten  (filtern).  Janus sowie JANUS2 wird bei
+(fast) allen moeglichen Funktionen unterstuetzt.
+                [Anfang Maerz '98 in Blitz2 reprogrammiert!]
+
+
+
+    .....und die aktuellsten Versionen gibts im Support-Netz /UBP-SUPPORT
+
+@endnode

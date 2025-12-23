@@ -1,0 +1,151 @@
+
+#include		"Header.h"
+
+struct	Library		*PipelineBase;
+
+int main( int argc, char *argv[] )
+{
+	struct	MsgPort		*mp;
+	struct	Message		 msg;
+	struct	Line			*line;
+	struct	SharedData	*Shared;
+	APTR						 pipe;
+	long						 linenum;
+	BPTR						 file;
+	char						 buff[80];
+	char						 portname[10];
+	ULONG						 Mask, Bits, SB;
+	BOOL						 Done;
+	UBYTE						*Data;
+	long						 Skip;
+	int						 RC = 20;
+
+	Printf( "The Logger -- Session logging utility for Pipeline BBS\n" );
+	Printf( "Written by Alex May ©1994 Pipeline Developments\n\n" );
+
+	if( argc < 2 || argc > 3 )
+	{
+		Printf( "Usage: %s <Line Number> [FileName]\n\n", argv[0] );
+		return( 20 );
+	}
+
+	linenum = atol( argv[1] );
+
+	sprintf( portname, "LOGGER.%d", linenum );
+
+	if( mp = FindPort( portname ) )
+	{
+		Printf( "Logger active -- Signalling...\n\n" );
+		Signal( mp->mp_SigTask, SIGBREAKF_CTRL_C );
+		return( NULL );
+	}
+
+	if( mp = CreateMsgPort() )
+	{
+		mp->mp_Node.ln_Name = portname;
+		mp->mp_Node.ln_Pri  = 10;
+		AddPort( mp );
+
+		SB = 1 << mp->mp_SigBit;
+
+		if( PipelineBase = OpenLibrary( "pipeline.library", 37 ) )
+		{
+			if( Shared = GetShared() )
+			{
+				if( line = GetLine( linenum ) )
+				{
+					if( argc == 3 )
+					{
+						file = Open( argv[2], MODE_READWRITE );
+					}
+					else
+					{
+						sprintf( buff, "%sLogger.%d", Shared->Paths->Logs, linenum );
+						file = Open( buff, MODE_READWRITE );
+					}
+				
+					if( file )
+					{
+						Seek( file, NULL, OFFSET_END );
+
+						sprintf( buff, "LINE%d_out", linenum );
+
+						if( KillMe( SIGBREAKF_CTRL_C ) )
+						{
+							if( pipe = OpenPipe( buff, 8192, PIPE_READ ) )
+							{
+								memset( &msg, NULL, sizeof(msg) );
+
+								msg.mn_ReplyPort = mp;
+								msg.mn_Length    = sizeof(msg);
+
+								RequestPipe( pipe, &msg, PIPE_REQ_READ );
+							
+								Done = FALSE;
+								Mask = SB | SIGBREAKF_CTRL_C;
+								RC   = NULL;
+
+								while( !Done )
+								{
+									Bits = Wait( Mask );
+								
+									if( Bits & SB )
+									{
+										SetSignal( NULL, SB );
+										Skip = NULL;
+
+										while( ( Skip = ReadPipe( pipe, &Data, Skip ) ) > 0 )
+										{
+											Write( file, Data, Skip );
+										}
+									
+										if( Skip == NULL ) RequestPipe( pipe, &msg, PIPE_REQ_READ );
+									}
+								
+									if( Bits & SIGBREAKF_CTRL_C )
+									{
+										SetSignal( NULL, SIGBREAKF_CTRL_C );
+										Done = TRUE;
+									}
+								}
+							
+								RequestPipe( pipe, &msg, PIPE_REQ_ABORT );
+
+								ClosePipe( pipe, NULL );
+							}
+							else
+							{
+								Printf( "Cannot open pipe\n\n" );
+							}
+							DontKillMe();
+						}
+						Close( file );
+					}
+					else
+					{
+						Printf( "Cannot open output file\n\n" );
+					}
+				}
+				else
+				{
+					Printf( "Cannot get line %ld\n\n", linenum );
+				}
+			}
+			else
+			{
+				Printf( "Cannot get the SharedData -- Is Pipeline active?\n\n" );
+			}
+			CloseLibrary( PipelineBase );
+		}
+		else
+		{
+			Printf( "Can't open the Pipeline Library!\n\n" );
+		}
+		RemPort( mp );
+		DeleteMsgPort( mp );
+	}
+	else
+	{
+		Printf( "Cannot create a MsgPort\n\n" );
+	}
+}

@@ -1,0 +1,2446 @@
+REM ******************************************************************
+'
+REM Program- StatDoor
+REM    Date- 31 October 1991
+REM  Author- Peter Francis Deane
+REM
+REM Version- 3.3 (GFA)
+'
+'  3.3 - bug fix for where HiUser and OldHiuser were different.
+'  3.4 - dusted it off for OzMetro (after over 3 years)
+'
+'  Finally started to get extra users added to the log, and it hit me!
+'
+REM ******************************************************************
+'
+versnum$="3.4"
+versdate$="08-Dec-94"
+doorname$="StatDoor"
+'
+MODE 1
+DIM ansi$(10)
+ON ERROR GOSUB woops
+'
+cr$=CHR$(13)+CHR$(10)
+de$=CHR$(8)+" "+CHR$(8)
+esc$=CHR$(27)
+'
+IF NOT EXIST("RAM:userdata")
+  ' setup dummy names, etc
+  rtime$="300"
+  uname$="PETER DEANE"
+  id$="1"
+  lev$="9"
+  bd$="2400"
+  ring$="0"
+  ansi%=99
+  path$=""
+ELSE
+  OPEN "I",#2,"RAM:USERDATA",1024
+  LINE INPUT #2,rtime$
+  LINE INPUT #2,uname$
+  LINE INPUT #2,id$
+  LINE INPUT #2,lev$
+  LINE INPUT #2,bd$
+  LINE INPUT #2,ring$
+  LINE INPUT #2,path$
+  CLOSE #2
+  '
+  ' DoorData check
+  '
+  IF NOT EXIST("ram:doordata")
+    ansi%=99
+  ELSE
+    OPEN "I",#2,"Ram:doordata",1024
+    FOR k%=1 TO 7
+      LINE INPUT #2,fred$
+    NEXT k%
+    CLOSE #2
+    ansi%=VAL(fred$)
+  ENDIF
+ENDIF
+'
+' Investigate our working environment from the NEW config file...
+'
+'
+IF EXIST("S:Metro.cfg")
+  config$="S:Metro.cfg"
+ELSE IF EXIST("BBS:Metro.cfg")
+  config$="BBS:Metro.cfg"
+ELSE IF EXIST("Metro.cfg")
+  config$="Metro.cfg"
+ELSE
+  config$="XXX"
+ENDIF
+'
+' Defaults
+'
+bbsname$="The OzMetro BBS"
+mbd$="19200"
+sfd$="BBS:"
+udfd$="BBS:"
+sysopname$="The Sysop"
+winw$="640"
+winh$="200"
+'
+IF config$<>"XXX"
+  '
+  OPEN "I",#2,config$,128
+  DO WHILE (NOT EOF(#2))
+    LINE INPUT #2,xx$
+    xx$=TRIM$(xx$)
+    xxu$=UPPER$(xx$)
+    '
+    IF xxu$="" OR LEFT$(xxu$,1)=";"
+      ' Do nothing
+    ELSE IF LEFT$(xxu$,7)="BBSNAME"
+      xx$=MID$(xx$,8,255)
+      xx$=TRIM$(xx$)
+      bbsname$=xx$
+    ELSE IF LEFT$(xxu$,7)="MAXBAUD"
+      xx$=MID$(xx$,8,255)
+      xx$=TRIM$(xx$)
+      mbd$=xx$
+    ELSE IF LEFT$(xxu$,9)="SYSOPNAME"
+      xx$=MID$(xx$,10,255)
+      xx$=TRIM$(xx$)
+      sysopname$=xx$
+    ELSE IF LEFT$(xxu$,11)="WINDOWWIDTH"
+      xx$=MID$(xx$,12,255)
+      xx$=TRIM$(xx$)
+      winw$=xx$
+    ELSE IF LEFT$(xxu$,12)="WINDOWHEIGHT"
+      xx$=MID$(xx$,13,255)
+      xx$=TRIM$(xx$)
+      winh$=xx$
+    ENDIF
+    '
+  LOOP UNTIL EOF(#2)
+  CLOSE #2
+ENDIF
+'
+bbspath$=sfd$+"BBSFiles/"
+'
+sw%=VAL(winw$)
+sh%=VAL(winh$)
+sx%=0
+sy%=0
+ww%=sw%
+wh%=sh%-12
+wx%=0
+wy%=11
+'
+' integer conversion for system variables
+'
+tpc%=VAL(rtime$)
+id%=VAL(id$)
+lev%=VAL(lev$)
+ring%=VAL(ring$)
+bd%=VAL(bd$)
+timeon%=CINT(TIMER/200)
+'
+wtype%=258+4096
+'
+'
+OPENS 1,sx%,sy%,sw%,sh%,3,32768
+' IF ring%=1
+'   BACKS 1
+' ENDIF
+OPENW #1,wx%,wy%,ww%,wh%,0,wtype%,1
+'
+' Hack these settings if you like: format &Hxxx
+' the xxx is the HEX value of the RGB register
+'
+SETCOLOR 0,&H0
+SETCOLOR 1,&HF11
+SETCOLOR 2,&H1F1
+SETCOLOR 3,&HFF1
+SETCOLOR 4,&H11F
+SETCOLOR 5,&HF1F
+SETCOLOR 6,&H1FF
+SETCOLOR 7,&HFFF
+'
+title$="Stats Door  ID: "+id$+" ("+uname$+") Lev: "+lev$+" Baud: "
+IF ring%=0
+  title$=title$+"Local Login"
+ELSE
+  title$=title$+bd$
+ENDIF
+TITLEW #1,title$,"Written by Peter F Deane (c) "+versdate$+" [V "+versnum$+" - GFA]"
+TITLES #1,"Written by Peter F Deane (c) "+versdate$+" [V "+versnum$+" - GFA]"
+'
+' modem need not be opened if it's a local login!
+' then you can test em standalone with the BBS running, among other things...
+'
+IF ring%<>0
+  GOSUB modem.o
+ENDIF
+'
+' Figure out the page pause setting
+'
+flnm$=sfd$+"BBSFILES/userlog"
+IF EXIST(flnm$)
+  GOSUB userlogprep
+  GET #3,id%
+  page%=VAL(dm2$)
+  CLOSE #3
+ELSE
+  page%=23
+ENDIF
+IF page%>5
+  page%=page%-1
+ELSE
+  page%=22
+ENDIF
+IF ring%=0
+  page%=(wh%/8)-3
+ENDIF
+'
+' ======================================================================
+'
+' We're in, hit em hard and good!
+'
+' reset terminal
+o$=esc$+"[0;40;37m"+CHR$(12)
+GOSUB 2
+o$=cr$+cr$+"           Metro Stats Door"
+GOSUB 2
+o$=cr$+cr$+"                By PFD"
+GOSUB 2
+o$=cr$+cr$+"        Version "+versnum$+" - GFA BASIC"
+GOSUB 2
+o$=cr$+cr$+"               "+versdate$+cr$
+GOSUB 2
+GOSUB press
+IF car%>0
+  GOTO bye
+ENDIF
+'
+'
+' Bright points of the program
+DIM sorted%(5)
+DIM sorted(5)
+DIM allbbs%(10)
+' /\ the above few are erased and re-dimensioned later.
+DIM temp%(10)
+DIM ratio(10)
+'
+' add the strings to the type list
+DIM type$(12)
+type$(0)=" Number of Calls         "
+type$(1)=" Public Messages Posted  "
+type$(2)=" Private Messages Posted "
+type$(3)=" Downloads Received      "
+type$(4)=" Uploads Sent            "
+type$(5)=" Games/Doors Entered     "
+type$(6)=" Public Msgs Per Call    "
+type$(7)=" Private Msgs Per Call   "
+type$(8)=" Downloads Per Call      "
+type$(9)=" Uploads Per Call        "
+type$(10)=" Games/Doors Per Call    "
+type$(11)=" Uploads By Downloads    "
+type$(12)=" Pub. Msgs By Priv. Msgs "
+'
+'
+' set config variables
+lines%=1
+IF ansi%>2
+  GOSUB checkansi
+ENDIF
+'
+GOSUB setansi
+'
+'
+' find Hi User #
+flnm$=bbspath$+"hiuser"
+OPEN "I",#2,flnm$,10
+LINE INPUT #2,hiuser$
+hiuser%=VAL(hiuser$)
+CLOSE #2
+' find old hiuser number
+flnm$=bbspath$+"logstats.oldhi"
+IF NOT EXIST(flnm$)
+  oldhiuser%=hiuser%-10
+  ' Take a lucky guess  ??
+ELSE
+  OPEN "I",#2,flnm$,10
+  LINE INPUT #2,oldhiuser$
+  oldhiuser%=VAL(oldhiuser$)
+  CLOSE #2
+ENDIF
+'
+' Grab the weightings from the config
+DIM weight%(5)
+conferror%=0
+flnm$=path$+"StatDoor.config"
+OPEN "I",#2,flnm$,1024
+LINE INPUT #2,garb$
+IF UPPER$(LEFT$(garb$,3))<>"CAL"
+  conferror%=1
+ENDIF
+LINE INPUT #2,garb$
+weight%(0)=VAL(garb$)
+LINE INPUT #2,garb$
+IF UPPER$(LEFT$(garb$,3))<>"PUB"
+  conferror%=1
+ENDIF
+LINE INPUT #2,garb$
+weight%(1)=VAL(garb$)
+LINE INPUT #2,garb$
+IF UPPER$(LEFT$(garb$,3))<>"PRI"
+  conferror%=1
+ENDIF
+LINE INPUT #2,garb$
+weight%(2)=VAL(garb$)
+LINE INPUT #2,garb$
+IF UPPER$(LEFT$(garb$,3))<>"DOW"
+  conferror%=1
+ENDIF
+LINE INPUT #2,garb$
+weight%(3)=VAL(garb$)
+LINE INPUT #2,garb$
+IF UPPER$(LEFT$(garb$,3))<>"UPL"
+  conferror%=1
+ENDIF
+LINE INPUT #2,garb$
+weight%(4)=VAL(garb$)
+LINE INPUT #2,garb$
+IF UPPER$(LEFT$(garb$,3))<>"DOO"
+  conferror%=1
+ENDIF
+LINE INPUT #2,garb$
+weight%(5)=VAL(garb$)
+'
+' get the starting date -
+' for THIS version I've added it at the end of the config!
+'
+LINE INPUT #2,startdate$
+IF LEN(startdate$)>19
+  startdate$=LEFT$(startdate$,19)
+ENDIF
+'
+CLOSE #2
+'
+IF conferror%=1
+  o$=cr$+cr$+ansi$(1)+"There is a problem with the config file."
+  GOSUB 2
+  o$=cr$+"Please inform your sysop. This program cannot run!"
+  GOSUB 2
+  GOSUB press
+  GOTO bye
+ENDIF
+'
+' Set the Selections Array
+DIM sel$(25)
+sel$(0)=""
+sel$(1)="C"
+sel$(2)="P"
+sel$(3)="S"
+sel$(4)="D"
+sel$(5)="U"
+sel$(6)="G"
+sel$(7)="A"
+sel$(8)="F"
+sel$(9)="T"
+sel$(10)="1"
+sel$(11)="2"
+sel$(12)="3"
+sel$(13)="4"
+sel$(14)="5"
+sel$(15)="6"
+sel$(16)="7"
+sel$(17)="!"
+sel$(18)="@"
+sel$(19)="#"
+sel$(20)="$"
+sel$(21)="%"
+sel$(22)="^"
+sel$(23)="Q"
+sel$(24)="8"
+sel$(25)=""
+'
+'
+'
+' Read in all the stats from the sequential file
+'
+o$=cr$+cr$+CHR$(12)
+GOSUB 2
+mcol(32)
+mprint(cr$+cr$+"Loading the statistical data...")
+mcol(35)
+mprint(cr$+cr$+"There are "+hiuser$+" users on the system.")
+mprint(cr$+cr$+"We have stats on "+oldhiuser$+" of them.")
+mprint(cr$+cr$+SPACE$(6))
+'
+DIM stats%(hiuser%,5)
+DIM weighted%(hiuser%)
+'
+IF bd%>2000
+  progress%=25
+ELSE
+  progress%=50
+ENDIF
+'
+flnm$=bbspath$+"Logstats"
+OPEN "I",#2,flnm$,4096
+FOR k%=1 TO oldhiuser%
+  FOR l%=0 TO 5
+    INPUT #2,stats%(k%,l%)
+    weighted%(k%)=weighted%(k%)+(stats%(k%,l%)*weight%(l%))
+  NEXT l%
+  ' show em we ARE doing something!
+  IF (k% MOD progress%)=0 THEN
+    mprint(de$+de$+de$+de$+de$+de$)
+    mprint(SPACE$(6-LEN(STR$(k%)))+STR$(k%))
+  ENDIF
+NEXT k%
+CLOSE #2
+mcol(31)
+mprint(cr$+cr$+"Computing the totals...")
+'
+'
+FOR j%=0 TO 5
+  FOR k%=1 TO hiuser%
+    allbbs%(j%)=allbbs%(j%)+stats%(k%,j%)
+  NEXT k%
+  IF allbbs%(j%)=0
+    allbbs%(j%)=1
+  ENDIF
+NEXT j%
+'
+' calculate an idle time for the main command line:
+'
+IF lev%>7
+  allowidle%=480
+ELSE
+  allowidle%=240
+ENDIF
+'
+' ******************************************************************
+topmenu:
+' ******************************************************************
+'
+' Print Menu checking for HotKey every now and again
+o$=cr$+cr$+CHR$(12)
+GOSUB 2
+'
+in%=9
+il%=1
+'
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º")
+mcol(33)
+mprint("             ")
+mcol(35)
+mprint("The Metro Statistics Door   ")
+mcol(33)
+mprint("Coded by Peter Deane             ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("ÇÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¶"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿                      ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("³  ")
+mcol(33)
+mprint("Top Fifteens:      ")
+mcol(31)
+mprint("³  ")
+mcol(37)
+mprint("<")
+mcol(33)
+mprint("Q")
+mcol(37)
+mprint(">")
+mcol(33)
+mprint("uit This Door    ")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(31)
+mprint("³  ")
+mcol(33)
+mprint("Overall Lists:       ")
+mcol(31)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´                      ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("³ <")
+mcol(32)
+mprint("C")
+mcol(31)
+mprint(">")
+mcol(32)
+mprint("allers           ")
+mcol(31)
+mprint("³  ")
+mcol(37)
+mprint("<")
+mcol(32)
+mprint("A")
+mcol(37)
+mprint(">")
+mcol(32)
+mprint("ny User's Stats  ")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(31)
+mprint("³ <")
+mcol(32)
+mprint("!")
+mcol(31)
+mprint(">")
+mcol(32)
+mprint(" Callers           ")
+mcol(31)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("³ <")
+mcol(35)
+mprint("P")
+mcol(31)
+mprint(">")
+mcol(35)
+mprint("ublic Msg Posters")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(31)
+mprint("³                      ³ <")
+mcol(35)
+mprint("@")
+mcol(31)
+mprint("> ")
+mcol(35)
+mprint("Public Msg Posters")
+mcol(31)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("³ <")
+mcol(36)
+mprint("S")
+mcol(31)
+mprint(">")
+mcol(36)
+mprint("ecret Msg Posters")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(31)
+mprint("³  ")
+mcol(37)
+mprint("<")
+mcol(36)
+mprint("F")
+mcol(37)
+mprint(">")
+mcol(36)
+mprint("ull Database     ")
+mcol(31)
+mprint("³ <")
+mcol(36)
+mprint("#")
+mcol(31)
+mprint("> ")
+mcol(36)
+mprint("Secret Msg Posters")
+mcol(31)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("³ <")
+mcol(32)
+mprint("D")
+mcol(31)
+mprint(">")
+mcol(32)
+mprint("ownloaders       ")
+mcol(31)
+mprint("³     ")
+mcol(36)
+mprint("Display. All     ")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(31)
+mprint("³ <")
+mcol(32)
+mprint("$")
+mcol(31)
+mprint("> ")
+mcol(32)
+mprint("Downloaders       ")
+mcol(31)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("³ <")
+mcol(35)
+mprint("U")
+mcol(31)
+mprint(">")
+mcol(35)
+mprint("ploaders         ")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(31)
+mprint("³     ")
+mcol(36)
+mprint("Users, All Stats ")
+mcol(31)
+mprint("³ <")
+mcol(35)
+mprint("%")
+mcol(31)
+mprint("> ")
+mcol(35)
+mprint("Uploaders         ")
+mcol(31)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("³ <")
+mcol(36)
+mprint("G")
+mcol(31)
+mprint(">")
+mcol(36)
+mprint("ame/Door Users   ")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(31)
+mprint("³                      ³ <")
+mcol(36)
+mprint("^")
+mcol(31)
+mprint("> ")
+mcol(36)
+mprint("Game/Door Users   ")
+mcol(31)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(31)
+mprint("ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ")
+mcol(37)
+mprint("<")
+mcol(35)
+mprint("T")
+mcol(37)
+mprint(">")
+mcol(35)
+mprint("op 50 Users!     ")
+mcol(31)
+mprint("ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(32)
+mprint("ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿                                                 ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(32)
+mprint("³  ")
+mcol(33)
+mprint("Ratios:            ")
+mcol(32)
+mprint("ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(32)
+mprint("ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ <")
+mcol(33)
+mprint("3")
+mcol(32)
+mprint(">")
+mcol(33)
+mprint(" DnLoads : Calls")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(32)
+mprint("  <")
+mcol(35)
+mprint("6")
+mcol(32)
+mprint("> ")
+mcol(35)
+mprint("UpLoads  : DnLoads ")
+mcol(31)
+mprint(" ")
+mcol(32)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(32)
+mprint("³ <")
+mcol(31)
+mprint("1")
+mcol(32)
+mprint("> ")
+mcol(31)
+mprint("Pub Msgs : Calls  ")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(32)
+mprint("<")
+mcol(36)
+mprint("4")
+mcol(32)
+mprint("> ")
+mcol(36)
+mprint("UpLoads : Calls ")
+mcol(33)
+mprint(" ")
+mcol(32)
+mprint("<")
+mcol(33)
+mprint("7")
+mcol(32)
+mprint("> ")
+mcol(33)
+mprint("Pub Msgs : Pri Msgs ")
+mcol(32)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(32)
+mprint("³ <")
+mcol(35)
+mprint("2")
+mcol(32)
+mprint("> ")
+mcol(35)
+mprint("Pri Msgs : Calls  ")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(32)
+mprint("<")
+mcol(31)
+mprint("5")
+mcol(32)
+mprint("> ")
+mcol(31)
+mprint("Doors   :")
+mcol(36)
+mprint(" ")
+mcol(31)
+mprint("Calls ")
+mcol(36)
+mprint(" ")
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(32)
+mprint("<")
+mcol(36)
+mprint("8")
+mcol(32)
+mprint("> ")
+mcol(36)
+mprint("DnLoads  : UpLoads")
+mcol(33)
+mprint("  ")
+mcol(32)
+mprint("³  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("º  ")
+mcol(32)
+mprint("ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ  ")
+mcol(36)
+mprint("º"+cr$)
+'
+GOSUB checkhotkey
+IF gotone%=1
+  GOTO gotsel
+ENDIF
+'
+mcol(36)
+mprint("ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼")
+'
+'
+' Menu printed, print command line
+'
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+mcol(32)
+mprint(cr$+cr$+"       "+pd.time$+"   ")
+mcol(35)
+mprint(pd.date$)
+mcol(33)
+mprint("   (Time Left: "+STR$(rtime%)+")")
+mcol(31)
+mprint("    Your Choice? ")
+'
+' wait eternally for a valid keypress (until idle timer, anyway)
+pdidle%=TIMER/200
+WHILE gotone%=0
+  GOSUB tchk
+  GOSUB checkhotkey
+  IF ((TIMER/200)>pdidle%+allowidle%) OR car%>0
+    GOTO bye
+  ENDIF
+WEND
+'
+' Got a keypress, direct control to correct part..
+'
+gotsel:
+'
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+keyin$=in$
+'
+IF keyin$="Q"
+  GOTO bye
+ELSE IF keyin$="C"
+  GOSUB topcallers
+ELSE IF keyin$="P"
+  GOSUB toppubmsgs
+ELSE IF keyin$="S"
+  GOSUB topprimsgs
+ELSE IF keyin$="D"
+  GOSUB topdloaders
+ELSE IF keyin$="U"
+  GOSUB topuloaders
+ELSE IF keyin$="G"
+  GOSUB topgamers
+ELSE IF keyin$="A"
+  GOSUB anyone
+ELSE IF keyin$="F"
+  GOSUB fulldisplay
+ELSE IF keyin$="T"
+  GOSUB top50
+ELSE IF keyin$="1"
+  GOSUB pubpercall
+ELSE IF keyin$="2"
+  GOSUB pripercall
+ELSE IF keyin$="3"
+  GOSUB dlpercall
+ELSE IF keyin$="4"
+  GOSUB ulpercall
+ELSE IF keyin$="5"
+  GOSUB gamespercall
+ELSE IF keyin$="6"
+  GOSUB ulperdl
+ELSE IF keyin$="7"
+  GOSUB pubperpri
+ELSE IF keyin$="8"
+  GOSUB dlperul
+ELSE IF keyin$="!"
+  GOSUB allcallers
+ELSE IF keyin$="@"
+  GOSUB allpubmsgs
+ELSE IF keyin$="#"
+  GOSUB allprimsgs
+ELSE IF keyin$="$"
+  GOSUB alldloads
+ELSE IF keyin$="%"
+  GOSUB alluloads
+ELSE IF keyin$="^"
+  GOSUB allgames
+ENDIF
+'
+GOSUB tchk
+IF car%>0
+  GOTO bye
+ENDIF
+'
+GOTO topmenu
+'
+'
+bye:
+'
+mprint(cr$+cr$+CHR$(12))
+mcol(35)
+mprint("Hope you found this door quite useful."+cr$)
+mcol(32)
+mprint(cr$+"If you did, then leave a message to ")
+mcol(33)
+mprint(sysopname$)
+mcol(32)
+mprint(" asking him"+cr$)
+mprint("to support the shareware concept and register the program."+cr$)
+mcol(36)
+DELAY 1
+mprint(cr$+"The Metro Stats Door was written by Peter Deane"+cr$)
+mprint("Inquestor BBS, Newcastle, NSW, Australia"+cr$+cr$)
+mcol(31)
+mprint("011-61-49-721647 from the USA"+cr$)
+mprint("(049) 72-1647 from Australia"+cr$)
+DELAY 3
+o$=ansi$(0)
+GOSUB 2
+mprint(cr$+cr$+"Hope to see you back soon!")
+CLOSES 1
+IF EXIST("ram:userdata")
+  KILL "RAM:USERDATA"
+ENDIF
+GOSUB modem.c
+CLEAR
+END
+'
+'
+PROCEDURE woops
+  '
+  mprint(cr$+cr$+"Woops! We've had a crash. Returning you to the BBS!"+cr$+cr$)
+  DELAY 3
+  RESUME bye
+  '
+RETURN
+'
+'
+'
+PROCEDURE topcallers
+  '
+  whatis$=type$(0)
+  GOSUB headprint
+  ERASE sorted%()
+  DIM sorted%(16,2)
+  thing%=0
+  thing1$="  Calls   "
+  GOSUB topthings
+RETURN
+'
+PROCEDURE toppubmsgs
+  '
+  whatis$=type$(1)
+  GOSUB headprint
+  ERASE sorted%()
+  DIM sorted%(16,2)
+  thing%=1
+  thing1$="  Pub Msgs"
+  GOSUB topthings
+RETURN
+'
+PROCEDURE topprimsgs
+  '
+  whatis$=type$(2)
+  GOSUB headprint
+  ERASE sorted%()
+  DIM sorted%(16,2)
+  thing%=2
+  thing1$="  Pri Msgs"
+  GOSUB topthings
+RETURN
+'
+PROCEDURE topdloaders
+  '
+  whatis$=type$(3)
+  GOSUB headprint
+  ERASE sorted%()
+  DIM sorted%(16,2)
+  thing%=3
+  thing1$="  DnLoads "
+  GOSUB topthings
+RETURN
+'
+PROCEDURE topuloaders
+  '
+  whatis$=type$(4)
+  GOSUB headprint
+  ERASE sorted%()
+  DIM sorted%(16,2)
+  thing%=4
+  thing1$="  UpLoads "
+  GOSUB topthings
+RETURN
+'
+PROCEDURE topgamers
+  '
+  whatis$=type$(5)
+  GOSUB headprint
+  ERASE sorted%()
+  DIM sorted%(16,2)
+  thing%=5
+  thing1$="  Doors   "
+  GOSUB topthings
+RETURN
+'
+PROCEDURE anyone
+  anyoneentrance:
+  '
+  whatis$=" Any User's Statistics   "
+  GOSUB headprint
+  mcol(37)
+  mprint(cr$+cr$+"This option lets you get stats on any one user, or for the BBS in total.")
+  mcol(33)
+  mprint(cr$+cr$+"To get stats on the BBS, enter 'BBS' as the username.")
+  mcol(32)
+  mprint(cr$+cr$+"You can enter the UserName or UserNumber - the Number is found quicker.")
+  mcol(35)
+  mprint(cr$+cr$+"Which user interests you [Return=Quit] ? ")
+  '
+  in%=2
+  il%=25
+  GOSUB 3
+  '
+  IF in$=""
+    GOTO anyoneexit
+  ENDIF
+  '
+  ' stats for the BBS as a whole
+  IF in$="BBS"
+    GOSUB headprint
+    mcol(32)
+    mprint(cr$+cr$+"Totals for "+bbsname$+cr$)
+    mcol(35)
+    mprint(cr$+"          Calls           : "+STR$(allbbs%(0)))
+    mcol(36)
+    mprint(cr$+"          Public Messages : "+STR$(allbbs%(1)))
+    mcol(37)
+    mprint(cr$+"          Private Messages: "+STR$(allbbs%(2)))
+    mcol(31)
+    mprint(cr$+"          Downloads       : "+STR$(allbbs%(3)))
+    mcol(32)
+    mprint(cr$+"          Uploads         : "+STR$(allbbs%(4)))
+    mcol(33)
+    mprint(cr$+"          Games/Doors     : "+STR$(allbbs%(5)))
+    mcol(35)
+    mprint(cr$+cr$+"          Public Messages Per Call  : ")
+    IF ring%=1
+      PRINT #1,USING "##.#####",allbbs%(1)/allbbs%(0);
+    ENDIF
+    PRINT USING "##.#####",allbbs%(1)/allbbs%(0);
+    mcol(36)
+    mprint(cr$+"          Private Messages Per Call : ")
+    IF ring%=1
+      PRINT #1,USING "##.#####",allbbs%(2)/allbbs%(0);
+    ENDIF
+    PRINT USING "##.#####",allbbs%(2)/allbbs%(0);
+    mcol(37)
+    mprint(cr$+"          Downloads Per Call        : ")
+    IF ring%=1
+      PRINT #1,USING "##.#####",allbbs%(3)/allbbs%(0);
+    ENDIF
+    PRINT USING "##.#####",allbbs%(3)/allbbs%(0);
+    mcol(31)
+    mprint(cr$+"          Uploads Per Call          : ")
+    IF ring%=1
+      PRINT #1,USING "##.#####",allbbs%(4)/allbbs%(0);
+    ENDIF
+    PRINT USING "##.#####",allbbs%(4)/allbbs%(0);
+    mcol(32)
+    mprint(cr$+"          Games/Doors Per Call      : ")
+    IF ring%=1
+      PRINT #1,USING "##.#####",allbbs%(5)/allbbs%(0);
+    ENDIF
+    PRINT USING "##.#####",allbbs%(5)/allbbs%(0);
+    mcol(33)
+    mprint(cr$+"          Pub Msgs Per Private Msg  : ")
+    IF ring%=1
+      PRINT #1,USING "##.#####",allbbs%(1)/allbbs%(2);
+    ENDIF
+    PRINT USING "##.#####",allbbs%(1)/allbbs%(2);
+    mcol(35)
+    mprint(cr$+"          Uploads Per Download      : ")
+    IF ring%=1
+      PRINT #1,USING "##.#####",allbbs%(4)/allbbs%(3);
+    ENDIF
+    PRINT USING "##.#####",allbbs%(4)/allbbs%(3);
+    GOSUB press
+    GOTO anyoneexit
+  ENDIF
+  '
+  ' User entered, check for:
+  ' if a name, search for the user number
+  '
+  IF VAL(in$)<1
+    snoop$=in$+SPACE$(25-LEN(in$))
+    GOSUB userlogprep
+    count%=0
+    snoopname$=""
+    mcol(36)
+    mprint(cr$+cr$+"Standby . . . Searching Userlog.")
+    WHILE snoop$<>snoopname$
+      INC count%
+      EXIT IF count%>hiuser%
+      GET #3,count%
+      snoopname$=un$
+    WEND
+    CLOSE #3
+    IF count%>hiuser%
+      mcol(31)
+      mprint(cr$+cr$+"Sorry, not a user on the system (yet?). Try Again!"+cr$)
+      GOSUB press
+      IF car%>0
+        GOTO anyoneexit
+      ENDIF
+      GOTO anyoneentrance
+    ENDIF
+    '
+    seluser%=count%
+    ' if not a name, it's gotta be a number...
+  ELSE
+    snoop%=VAL(in$)
+    IF (snoop%>hiuser%)
+      mcol(31)
+      mprint(cr$+cr$+"Sorry, not a user on the system (yet?). Try Again!"+cr$)
+      GOSUB press
+      IF car%>0
+        GOTO anyoneexit
+      ELSE
+        GOTO anyoneentrance
+      ENDIF
+    ENDIF
+    seluser%=snoop%
+    GOSUB userlogprep
+    GET #3,seluser%
+    snoopname$=un$
+    CLOSE #3
+  ENDIF
+  '
+  ' Check to see if it's been deleted from the userlog
+  IF LEFT$(snoopname$,10)="          "
+    mcol(31)
+    mprint(cr$+cr$+"Sorry, not a user on the system (yet?). Try Again!"+cr$)
+    GOSUB press
+    IF car%>0
+      GOTO anyoneexit
+    ELSE
+      GOTO anyoneentrance
+    ENDIF
+  ENDIF
+  '
+  ' We have the usernumber (seluser%), get details...
+  FOR k%=0 TO 5
+    temp%(k%)=stats%(seluser%,k%)
+  NEXT k%
+  GOSUB headprint
+  '
+  ' output details
+  mcol(35)
+  mprint(cr$+"          User Name       : "+snoopname$+cr$)
+  mcol(32)
+  mprint("          User Number     : "+STR$(seluser%))
+  GOSUB userlogprep
+  GET #3,seluser%
+  mcol(33)
+  mprint(cr$+"          Date Last Called: "+dl$+cr$)
+  CLOSE #3
+  mcol(35)
+  mprint(cr$+"          Calls           : "+STR$(temp%(0))+SPACE$(6-LEN(STR$(temp%(0)))))
+  mcol(31)
+  mprint("   (")
+  IF ring%=1
+    PRINT #1,USING "##.####",(temp%(0)*100)/allbbs%(0);
+  ENDIF
+  PRINT USING "##.####",(temp%(0)*100)/allbbs%(0);
+  mprint("% of all)")
+  mcol(36)
+  mprint(cr$+"          Public Messages : "+STR$(temp%(1))+SPACE$(6-LEN(STR$(temp%(1)))))
+  mcol(31)
+  mprint("   (")
+  IF ring%=1
+    PRINT #1,USING "##.####",(temp%(1)*100)/allbbs%(1);
+  ENDIF
+  PRINT USING "##.####",(temp%(1)*100)/allbbs%(1);
+  mprint("% of all)")
+  mcol(37)
+  mprint(cr$+"          Private Messages: "+STR$(temp%(2))+SPACE$(6-LEN(STR$(temp%(2)))))
+  mcol(31)
+  mprint("   (")
+  IF ring%=1
+    PRINT #1,USING "##.####",(temp%(2)*100)/allbbs%(2);
+  ENDIF
+  PRINT USING "##.####",(temp%(2)*100)/allbbs%(2);
+  mprint("% of all)")
+  mcol(31)
+  mprint(cr$+"          Downloads       : "+STR$(temp%(3))+SPACE$(6-LEN(STR$(temp%(3)))))
+  mcol(31)
+  mprint("   (")
+  IF ring%=1
+    PRINT #1,USING "##.####",(temp%(3)*100)/allbbs%(3);
+  ENDIF
+  PRINT USING "##.####",(temp%(3)*100)/allbbs%(3);
+  mprint("% of all)")
+  mcol(32)
+  mprint(cr$+"          Uploads         : "+STR$(temp%(4))+SPACE$(6-LEN(STR$(temp%(4)))))
+  mcol(31)
+  mprint("   (")
+  IF ring%=1
+    PRINT #1,USING "##.####",(temp%(4)*100)/allbbs%(4);
+  ENDIF
+  PRINT USING "##.####",(temp%(4)*100)/allbbs%(4);
+  mprint("% of all)")
+  mcol(33)
+  mprint(cr$+"          Games/Doors     : "+STR$(temp%(5))+SPACE$(6-LEN(STR$(temp%(5)))))
+  mcol(31)
+  mprint("   (")
+  IF ring%=1
+    PRINT #1,USING "##.####",(temp%(5)*100)/allbbs%(5);
+  ENDIF
+  PRINT USING "##.####",(temp%(5)*100)/allbbs%(5);
+  mprint("% of all)"+cr$)
+  IF temp%(0)=0
+    temp%(0)=1
+  ENDIF
+  mcol(35)
+  mprint(cr$+"          Public Messages Per Call  : ")
+  IF ring%=1
+    PRINT #1,USING "##.#####",temp%(1)/temp%(0);
+  ENDIF
+  PRINT USING "##.#####",temp%(1)/temp%(0);
+  mcol(36)
+  mprint(cr$+"          Private Messages Per Call : ")
+  IF ring%=1
+    PRINT #1,USING "##.#####",temp%(2)/temp%(0);
+  ENDIF
+  PRINT USING "##.#####",temp%(2)/temp%(0);
+  mcol(37)
+  mprint(cr$+"          Downloads Per Call        : ")
+  IF ring%=1
+    PRINT #1,USING "##.#####",temp%(3)/temp%(0);
+  ENDIF
+  PRINT USING "##.#####",temp%(3)/temp%(0);
+  mcol(31)
+  mprint(cr$+"          Uploads Per Call          : ")
+  IF ring%=1
+    PRINT #1,USING "##.#####",temp%(4)/temp%(0);
+  ENDIF
+  PRINT USING "##.#####",temp%(4)/temp%(0);
+  mcol(32)
+  mprint(cr$+"          Games/Doors Per Call      : ")
+  IF ring%=1
+    PRINT #1,USING "##.#####",temp%(5)/temp%(0);
+  ENDIF
+  PRINT USING "##.#####",temp%(5)/temp%(0);
+  mcol(33)
+  mprint(cr$+"          Pub Msgs Per Private Msg  : ")
+  IF temp%(2)<>0 THEN
+    IF ring%=1
+      PRINT #1,USING "##.#####",temp%(1)/temp%(2);
+    ENDIF
+    PRINT USING "##.#####",temp%(1)/temp%(2);
+  ELSE
+    mprint(" N/A")
+  ENDIF
+  mcol(35)
+  mprint(cr$+"          Uploads Per Download      : ")
+  IF temp%(3)<>0 THEN
+    IF ring%=1
+      PRINT #1,USING "##.#####",temp%(4)/temp%(3);
+    ENDIF
+    PRINT USING "##.#####",temp%(4)/temp%(3);
+  ELSE
+    mprint(" N/A")
+  ENDIF
+  GOSUB press
+  '
+  anyoneexit:
+RETURN
+'
+PROCEDURE fulldisplay
+  fullentrance:
+  '
+  whatis$=" Full Stats Display      "
+  GOSUB headprint
+  '
+  mcol(33)
+  mprint(cr$+"ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ")
+  mcol(32)
+  mprint(cr$+"User#  Name                        Calls  PubMsg PriMsg DnLoad UpLoad Doors ")
+  mcol(33)
+  mprint(cr$+"ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ"+cr$)
+  lines%=6
+  '
+  FOR ct%=1 TO hiuser%
+    '
+    GOSUB userlogprep
+    GET #3,ct%
+    username1$=un$
+    CLOSE #3
+    IF LEFT$(username1$,5)="     "
+      GOTO fulljump
+    ENDIF
+    '
+    mcol(35)
+    mprint(SPACE$(5-LEN(STR$(ct%)))+STR$(ct%)+"  ")
+    mcol(32)
+    mprint(username1$+" ")
+    mcol(36)
+    mprint(SPACE$(7-LEN(STR$(stats%(ct%,0))))+STR$(stats%(ct%,0)))
+    mcol(37)
+    mprint(SPACE$(7-LEN(STR$(stats%(ct%,1))))+STR$(stats%(ct%,1)))
+    mcol(33)
+    mprint(SPACE$(7-LEN(STR$(stats%(ct%,2))))+STR$(stats%(ct%,2)))
+    mcol(31)
+    mprint(SPACE$(7-LEN(STR$(stats%(ct%,3))))+STR$(stats%(ct%,3)))
+    mcol(32)
+    mprint(SPACE$(7-LEN(STR$(stats%(ct%,4))))+STR$(stats%(ct%,4)))
+    mcol(35)
+    mprint(SPACE$(7-LEN(STR$(stats%(ct%,5))))+STR$(stats%(ct%,5))+cr$)
+    INC lines%
+    IF (lines% MOD page%)=0 THEN
+      GOSUB pagepause
+      lines%=3
+      IF abort%=1 OR car%>0
+        ct%=hiuser%+42
+        abort%=0
+      ELSE
+        mcol(33)
+        mprint(cr$+"ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ")
+        mcol(32)
+        mprint(cr$+"User#  Name                        Calls  PubMsg PriMsg DnLoad UpLoad Doors ")
+        mcol(33)
+        mprint(cr$+"ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ"+cr$)
+      ENDIF
+    ENDIF
+    '
+    fulljump:
+  NEXT ct%
+  GOSUB press
+  fullexit:
+RETURN
+'
+'
+PROCEDURE top50
+  '
+  whatis$=" Top 50 BBS Users        "
+  GOSUB headprint
+  '
+  mcol(33)
+  mprint(cr$+"ÄÄ ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ")
+  mcol(32)
+  mprint(cr$+"No User#  Name                       Calls  PubMsg PriMsg DnLoad UpLoad Doors ")
+  mcol(33)
+  mprint(cr$+"ÄÄ ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ"+cr$)
+  lines%=6
+  '
+  ERASE sorted%()
+  DIM sorted%(51,2)
+  '
+  FOR k%=1 TO hiuser%
+    IF weighted%(k%)>sorted%(50,1) THEN
+      sorted%(50,1)=weighted%(k%)
+      sorted%(50,2)=k%
+      FOR l%=50 DOWNTO 2
+        IF sorted%(l%,1)>sorted%(l%-1,1)
+          SWAP sorted%(l%,1),sorted%(l%-1,1)
+          SWAP sorted%(l%,2),sorted%(l%-1,2)
+        ENDIF
+      NEXT l%
+    ENDIF
+  NEXT k%
+  '
+  FOR ct%=1 TO 50
+    unum%=sorted%(ct%,2)
+    IF unum%<1 OR unum%>hiuser%
+      GOTO top50jump
+    ENDIF
+    '
+    IF ct%<10
+      mprint(" ")
+    ENDIF
+    '
+    mcol(37)
+    mprint(STR$(ct%)+" ")
+    mcol(35)
+    mprint(SPACE$(5-LEN(STR$(unum%)))+STR$(unum%)+"  ")
+    mcol(32)
+    GOSUB userlogprep
+    GET #3,unum%
+    mprint(un$)
+    CLOSE #3
+    mcol(36)
+    mprint(SPACE$(7-LEN(STR$(stats%(unum%,0))))+STR$(stats%(unum%,0)))
+    mcol(37)
+    mprint(SPACE$(7-LEN(STR$(stats%(unum%,1))))+STR$(stats%(unum%,1)))
+    mcol(33)
+    mprint(SPACE$(7-LEN(STR$(stats%(unum%,2))))+STR$(stats%(unum%,2)))
+    mcol(31)
+    mprint(SPACE$(7-LEN(STR$(stats%(unum%,3))))+STR$(stats%(unum%,3)))
+    mcol(32)
+    mprint(SPACE$(7-LEN(STR$(stats%(unum%,4))))+STR$(stats%(unum%,4)))
+    mcol(35)
+    mprint(SPACE$(7-LEN(STR$(stats%(unum%,5))))+STR$(stats%(unum%,5))+cr$)
+    INC lines%
+    IF (lines% MOD page%)=0 THEN
+      GOSUB pagepause
+      lines%=3
+      IF abort%=1 OR car%>0
+        abort%=0
+        ct%=99
+      ELSE
+        IF ct%<51
+          mcol(33)
+          mprint(cr$+"ÄÄ ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ")
+          mcol(32)
+          mprint(cr$+"No User#  Name                       Calls  PubMsg PriMsg DnLoad UpLoad Doors ")
+          mcol(33)
+          mprint(cr$+"ÄÄ ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄ"+cr$)
+        ENDIF
+      ENDIF
+    ENDIF
+    top50jump:
+  NEXT ct%
+  '
+  GOSUB press
+  top50exit:
+RETURN
+'
+'
+PROCEDURE pubpercall
+  '
+  whatis$=type$(6)
+  GOSUB headprint
+  ERASE sorted()
+  DIM sorted(51,2)
+  ERASE ratio()
+  DIM ratio(hiuser%)
+  thing1%=1
+  thing2%=0
+  thing1$="  PubMsg"
+  thing2$="  Calls "
+  GOSUB ratiothings
+RETURN
+'
+'
+PROCEDURE pripercall
+  '
+  whatis$=type$(7)
+  GOSUB headprint
+  ERASE sorted()
+  DIM sorted(51,2)
+  ERASE ratio()
+  DIM ratio(hiuser%)
+  thing1%=2
+  thing2%=0
+  thing1$="  PriMsg"
+  thing2$="  Calls "
+  GOSUB ratiothings
+RETURN
+'
+'
+PROCEDURE dlpercall
+  '
+  whatis$=type$(8)
+  GOSUB headprint
+  ERASE sorted()
+  DIM sorted(51,2)
+  ERASE ratio()
+  DIM ratio(hiuser%)
+  thing1%=3
+  thing2%=0
+  thing1$="  DnLds "
+  thing2$="  Calls "
+  GOSUB ratiothings
+RETURN
+'
+'
+PROCEDURE ulpercall
+  '
+  whatis$=type$(9)
+  GOSUB headprint
+  ERASE sorted()
+  DIM sorted(51,2)
+  ERASE ratio()
+  DIM ratio(hiuser%)
+  thing1%=4
+  thing2%=0
+  thing1$="  UpLds "
+  thing2$="  Calls "
+  GOSUB ratiothings
+RETURN
+'
+'
+PROCEDURE gamespercall
+  '
+  whatis$=type$(10)
+  GOSUB headprint
+  ERASE sorted()
+  DIM sorted(51,2)
+  ERASE ratio()
+  DIM ratio(hiuser%)
+  thing1%=5
+  thing2%=0
+  thing1$="  Doors "
+  thing2$="  Calls "
+  GOSUB ratiothings
+RETURN
+'
+'
+PROCEDURE ulperdl
+  '
+  whatis$=type$(11)
+  GOSUB headprint
+  ERASE sorted()
+  DIM sorted(51,2)
+  ERASE ratio()
+  DIM ratio(hiuser%)
+  thing1%=4
+  thing2%=3
+  thing1$="  UpLds "
+  thing2$="  DnLds "
+  GOSUB ratiothings
+RETURN
+'
+'
+PROCEDURE pubperpri
+  '
+  whatis$=type$(12)
+  GOSUB headprint
+  ERASE sorted()
+  DIM sorted(51,2)
+  ERASE ratio()
+  DIM ratio(hiuser%)
+  thing1%=1
+  thing2%=2
+  thing1$="  PubMsg"
+  thing2$="  PriMsg"
+  GOSUB ratiothings
+RETURN
+'
+'
+PROCEDURE dlperul
+  '
+  whatis$=" Worst Downloaders!      "
+  GOSUB headprint
+  ERASE sorted()
+  DIM sorted(51,2)
+  ERASE ratio()
+  DIM ratio(hiuser%)
+  thing1%=3
+  thing2%=4
+  thing1$="  DnLds "
+  thing2$="  UpLds "
+  GOSUB ratiothings
+RETURN
+'
+'
+PROCEDURE allcallers
+  '
+  whatis$=type$(0)
+  GOSUB headprint
+  thing%=0
+  thing1$="  Calls   "
+  GOSUB allthings
+  GOSUB press
+RETURN
+'
+'
+PROCEDURE allpubmsgs
+  '
+  whatis$=type$(1)
+  GOSUB headprint
+  thing%=1
+  thing1$="  Pub Msgs"
+  GOSUB allthings
+  GOSUB press
+RETURN
+'
+'
+PROCEDURE allprimsgs
+  '
+  whatis$=type$(2)
+  GOSUB headprint
+  thing%=2
+  thing1$="  Pri Msgs"
+  GOSUB allthings
+  GOSUB press
+RETURN
+'
+'
+PROCEDURE alldloads
+  '
+  whatis$=type$(3)
+  GOSUB headprint
+  thing%=3
+  thing1$="  DnLoads "
+  GOSUB allthings
+  GOSUB press
+RETURN
+'
+'
+PROCEDURE alluloads
+  '
+  whatis$=type$(4)
+  GOSUB headprint
+  thing%=4
+  thing1$="  UpLoads "
+  GOSUB allthings
+  GOSUB press
+RETURN
+'
+'
+PROCEDURE allgames
+  '
+  whatis$=type$(5)
+  GOSUB headprint
+  thing%=5
+  thing1$="  Doors   "
+  GOSUB allthings
+  GOSUB press
+RETURN
+'
+'
+PROCEDURE topthings
+  '
+  FOR k%=1 TO hiuser%
+    IF stats%(k%,thing%)>sorted%(15,1)
+      sorted%(15,1)=stats%(k%,thing%)
+      sorted%(15,2)=k%
+      FOR l%=15 DOWNTO 2
+        IF sorted%(l%,1)>sorted%(l%-1,1) THEN
+          SWAP sorted%(l%,1),sorted%(l%-1,1)
+          SWAP sorted%(l%,2),sorted%(l%-1,2)
+        ENDIF
+      NEXT l%
+    ENDIF
+    '
+  NEXT k%
+  '
+  mcol(33)
+  mprint(cr$+"ÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ  ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄ")
+  mcol(32)
+  mprint(cr$+"Rank  User #  Name                       "+thing1$+"  % All  Last Called")
+  mcol(33)
+  mprint(cr$+"ÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ  ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄ")
+  '
+  FOR ct%=1 TO 15
+    GOSUB userlogprep
+    IF sorted%(ct%,2)<1 OR sorted%(ct%,2)>hiuser%
+      GOTO top15jump
+    ENDIF
+    GET #3,sorted%(ct%,2)
+    mcol(33)
+    mprint(cr$+STR$(ct%)+SPACE$(5-LEN(STR$(ct%))))
+    mcol(35)
+    mprint(SPACE$(5-LEN(STR$(sorted%(ct%,2))))+STR$(sorted%(ct%,2))+"    ")
+    mcol(32)
+    mprint(un$+" ")
+    mcol(36)
+    mprint(SPACE$(10-LEN(STR$(sorted%(ct%,1))))+STR$(sorted%(ct%,1)))
+    mcol(37)
+    mprint("   ")
+    IF ring%=1
+      PRINT #1,USING "##.##",(sorted%(ct%,1))*100/allbbs%(thing%);
+    ENDIF
+    PRINT USING "##.##",(sorted%(ct%,1))*100/allbbs%(thing%);
+    mcol(31)
+    mprint("  "+dl$)
+    top15jump:
+    CLOSE #3
+  NEXT ct%
+  mprint(cr$)
+  '
+  GOSUB press
+  '
+RETURN
+'
+PROCEDURE allthings
+  '
+  mcol(33)
+  mprint(cr$+"ÄÄÄÄÄÄ   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ  ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄ")
+  mcol(32)
+  mprint(cr$+"User #   Name                       "+thing1$+"  % All  Last Called")
+  mcol(33)
+  mprint(cr$+"ÄÄÄÄÄÄ   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ  ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄ")
+  lines%=6
+  '
+  FOR ct%=1 TO hiuser%
+    GOSUB userlogprep
+    GET #3,ct%
+    IF LEFT$(un$,5)="     "
+      CLOSE #3
+      GOTO allthingsjump
+    ENDIF
+    mcol(35)
+    mprint(cr$+SPACE$(5-LEN(STR$(ct%)))+STR$(ct%)+"    ")
+    mcol(32)
+    mprint(un$+" ")
+    mcol(36)
+    mprint(SPACE$(10-LEN(STR$(stats%(ct%,thing%))))+STR$(stats%(ct%,thing%)))
+    mcol(37)
+    mprint("   ")
+    IF ring%=1
+      PRINT #1,USING "##.##",(stats%(ct%,thing%))*100/allbbs%(thing%);
+    ENDIF
+    PRINT USING "##.##",(stats%(ct%,thing%))*100/allbbs%(thing%);
+    mcol(31)
+    mprint("  "+dl$)
+    CLOSE #3
+    INC lines%
+    IF (lines% MOD page%)=0 THEN
+      mprint(cr$)
+      GOSUB pagepause
+      lines%=3
+      IF abort%=1 OR car%>0
+        ct%=hiuser%+42
+        abort%=0
+      ELSE
+        IF ct%<hiuser%+1
+          mcol(33)
+          mprint(cr$+"ÄÄÄÄÄÄ   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ  ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄ")
+          mcol(32)
+          mprint(cr$+"User #   Name                       "+thing1$+"  % All  Last Called")
+          mcol(33)
+          mprint(cr$+"ÄÄÄÄÄÄ   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ  ÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄ")
+        ENDIF
+      ENDIF
+    ENDIF
+    '
+    allthingsjump:
+  NEXT ct%
+RETURN
+'
+'
+PROCEDURE ratiothings
+  '
+  ' sorted#(51,2)     - where they finally get put: stat,Usernumber
+  ' ratio#(hiuser%)   - where they are calculated into
+  ' thing1% & thing1$ - Numerator
+  ' thing2% & thing2$ - Denominator
+  '
+  mcol(33)
+  mprint(cr$+"ÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ")
+  mcol(32)
+  mprint(cr$+"Rank  User #  Name                       "+thing1$+thing2$+"   Ratio")
+  mcol(33)
+  mprint(cr$+"ÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ"+cr$)
+  lines%=6
+  '
+  FOR k%=1 TO hiuser%
+    IF stats%(k%,thing2%)=0
+      ratio(k%)=0
+      IF (thing2%=4) AND (stats%(k%,thing1%)>0)
+        ratio(k%)=stats%(k%,thing1%)
+      ENDIF
+    ELSE
+      ratio(k%)=stats%(k%,thing1%)/stats%(k%,thing2%)
+    ENDIF
+    '
+    IF ratio(k%)>sorted(50,1)
+      sorted(50,1)=ratio(k%)
+      sorted(50,2)=k%
+      FOR l%=50 DOWNTO 2
+        IF sorted(l%,1)>sorted(l%-1,1)
+          SWAP sorted(l%,1),sorted(l%-1,1)
+          SWAP sorted(l%,2),sorted(l%-1,2)
+        ENDIF
+      NEXT l%
+    ENDIF
+  NEXT k%
+  '
+  FOR ct%=1 TO 50
+    IF sorted(ct%,1)>0 THEN
+      mcol(37)
+      mprint(STR$(ct%)+SPACE$(5-LEN(STR$(ct%))))
+      mcol(36)
+      mprint(SPACE$(5-LEN(STR$(sorted(ct%,2))))+STR$(sorted(ct%,2))+"    ")
+      mcol(35)
+      GOSUB userlogprep
+      GET #3,(sorted(ct%,2))
+      mprint(un$+"  ")
+      CLOSE #3
+      mcol(32)
+      mprint(SPACE$(8-LEN(STR$(stats%(sorted(ct%,2),thing1%))))+STR$(stats%(sorted(ct%,2),thing1%)))
+      mcol(33)
+      mprint(SPACE$(8-LEN(STR$(stats%(sorted(ct%,2),thing2%))))+STR$(stats%(sorted(ct%,2),thing2%)))
+      mprint("  ")
+      mcol(31)
+      IF ring%=1
+        PRINT #1,USING "###.####",sorted(ct%,1);
+      ENDIF
+      PRINT USING "###.##",sorted(ct%,1);
+      mprint(cr$)
+      INC lines%
+      IF (lines% MOD page%)=0 THEN
+        GOSUB pagepause
+        lines%=3
+        IF abort%=1 OR car%>0
+          ct%=99
+          abort%=0
+        ELSE
+          IF ct%<51 THEN
+            mcol(33)
+            mprint(cr$+"ÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ")
+            mcol(32)
+            mprint(cr$+"Rank  User #  Name                       "+thing1$+thing2$+"   Ratio")
+            mcol(33)
+            mprint(cr$+"ÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄ  ÄÄÄÄÄÄÄÄ"+cr$)
+          ENDIF
+        ENDIF
+      ENDIF
+    ENDIF
+  NEXT ct%
+  GOSUB press
+RETURN
+'
+PROCEDURE headprint
+  '
+  o$=cr$+cr$+CHR$(12)
+  GOSUB 2
+  mcol(36)
+  mprint("ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿")
+  mprint(cr$+"³")
+  mcol(31)
+  mprint("Metro Stats (by PD) - "+whatis$+"Start: "+startdate$+SPACE$(19-LEN(startdate$)))
+  mcol(36)
+  mprint("³"+cr$+"ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ")
+RETURN
+'
+PROCEDURE checkhotkey
+  '
+  gotone%=0
+  modout%=1
+  GOSUB 3
+  '
+  IF in$=""
+    GOTO checkhotexit
+  ENDIF
+  '
+  count%=0
+  '
+  DO
+    INC count%
+    IF sel$(count%)=in$
+      gotone%=1
+    ENDIF
+    EXIT IF gotone%=1
+  LOOP UNTIL count%>24
+  '
+  checkhotexit:
+  modout%=0
+  '
+RETURN
+'
+'
+' --------------- PARAMETER SETTNGS
+'
+'
+PROCEDURE checkansi
+  '
+  o$=cr$+cr$+"Do you want ANSI (Y/n)? "
+  in%=3
+  il%=1
+  yes%=1
+  GOSUB 1
+  IF car%>0
+    GOTO checkansiexit
+  ENDIF
+  '
+  IF in$="YES"
+    ansi%=1
+  ELSE
+    ansi%=0
+  ENDIF
+  checkansiexit:
+  '
+RETURN
+'
+'
+PROCEDURE setansi
+  '
+  IF ansi%=1
+    ansi$(1)=esc$+"[31m"
+    ansi$(2)=esc$+"[32m"
+    ansi$(3)=esc$+"[33m"
+    ansi$(4)=esc$+"[34m"
+    ansi$(5)=esc$+"[35m"
+    ansi$(6)=esc$+"[36m"
+    ansi$(7)=esc$+"[37m"
+    ansi$(8)=esc$+"[1m"
+    ansi$(9)=esc$+"[3m"
+    ansi$(10)=esc$+"[4m"
+  ELSE
+    FOR kk%=1 TO 10
+      ansi$(kk%)=""
+    NEXT kk%
+  ENDIF
+  ' regardless of setting, this is needed for safety!
+  ansi$(0)=esc$+"[0;37;40m"
+  o$=ansi$(0)
+  GOSUB 2
+RETURN
+'
+'
+PROCEDURE userlogprep
+  ' open and field the userlog.
+  '
+  flnm$=bbspath$+"userlog"
+  OPEN "R",#3,flnm$,125
+  FIELD #3,25 AS un$,10 AS pa$,1 AS le$,25 AS fr$,12 AS ph$,10 AS dl$,6 AS lm$,6 AS lf$,10 AS ind$,3 AS tc$,3 AS td$,1 AS sw$,1 AS pr$,1 AS mo$,5 AS cn$,4 AS dm1$,2 AS dm2$
+RETURN
+'
+'
+'
+PROCEDURE mcol(an%)
+  ' Usage: mcol(fgcolour)
+  ' Just to set the main colour on black (or same background as before, anyway)
+  ' this saves a STACK of conversion work in the above program!
+  '
+  o$=ansi$(an%-30)
+  GOSUB 2
+RETURN
+'
+'
+'
+PROCEDURE mprint(out$)
+  ' Outputs a string to screen & modem (if remote call)
+  ' This is really a bogus routine to save a HEAP of conversions!
+  '
+  o$=out$
+  GOSUB 2
+RETURN
+'
+'
+'
+PROCEDURE 1
+  GOSUB 2
+  GOSUB 3
+RETURN
+'
+'
+PROCEDURE 2
+  '
+  IF ring%=1
+    PRINT #1,o$;
+  ENDIF
+  IF icon%=0
+    PRINT o$;
+  ENDIF
+  IF (modout%=1)
+    GOSUB 3
+  ENDIF
+  2.1:
+  o$=""
+RETURN
+'
+'
+PROCEDURE 3
+  idle%=CINT(TIMER/200)
+  key$=""
+  in$=""
+  in1$=""
+  a%=0
+  keyy%=0
+  b%=0
+  car%=0
+  DO
+    IF MOUSEK=3
+      ALERT 0,"REALLY kill "+doorname$+" ?",2,"Yes|No",xx%
+      IF xx%=1
+        CLOSES 1
+        IF ring!=TRUE
+          @close_serial
+        ENDIF
+        END
+      ENDIF
+    ENDIF
+    IF ring%=1
+      cd%=0
+      cd%=LPEEK(12570624)
+      cd%=cd% AND 8192
+      IF cd%<>0
+        car%=1
+        keyy%=1
+      ENDIF
+    ENDIF
+    key$=INKEY$
+    IF key$<>""
+      GOTO mod.in1
+    ENDIF
+    '
+    IF ring%=1
+      IF LOC(#1)>0
+        in1$=INPUT$(1,#1)
+        key$=in1$
+        in1$=""
+      ENDIF
+    ENDIF
+    '
+    mod.in1:
+    IF key$=CHR$(19)
+      pau$=""
+      hold%=CINT(TIMER/200)
+      WHILE CINT(TIMER/200)<hold%+45
+        pau$=INKEY$
+        IF pau$<>""
+          key$=""
+          pau$=""
+          GOTO mod.in1.1
+        ENDIF
+        IF ring%=1
+          IF LOC(#1)>0
+            key$=""
+            pau$=""
+            GOTO mod.in1.1
+          ENDIF
+        ENDIF
+      WEND
+      key$=""
+      pau$=""
+      GOTO mod.in1.1
+    ENDIF
+    '
+    mod.in1.1:
+    IF modout%=1 AND key$=""
+      keyy%=1
+    ENDIF
+    IF modout%=1 AND key$=CHR$(32)
+      abort%=1
+      GOTO 2.1
+    ENDIF
+    IF modout%=1 AND key$<>CHR$(32)
+      keyy%=1
+    ENDIF
+    IF key$=""
+      GOTO mod.in2
+    ENDIF
+    mod.in1.5:
+    a%=ASC(key$)
+    b%=LEN(in$)
+    IF a%=13
+      GOTO mod.in1.6
+    ENDIF
+    IF (a%=8 OR a%=127) AND LEN(in$)>=1
+      in$=LEFT$(in$,b%-1)
+      DEC b%
+      o$=de$
+      GOSUB 2
+    ENDIF
+    IF b%=il%
+      GOTO mod.in2
+    ENDIF
+    IF in%=0
+      IF a%>31 AND a%<127
+        IF cmd%=1
+          cmdmenu%=0
+          dismsg%=0
+        ENDIF
+        key$=UPPER$(key$)
+        o$=key$+cr$
+        GOSUB 2
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in1.6:
+    IF in%=1 AND a%>31 AND a%<127
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=2 AND a%>31 AND a%<127
+      key$=UPPER$(key$)
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=3
+      IF a%=13 AND yes%=1
+        o$="YES"
+        GOSUB 2
+        in$="YES"
+        keyy%=1
+      ENDIF
+      IF a%=13 AND yes%=0
+        o$="NO"
+        GOSUB 2
+        in$="NO"
+        keyy%=1
+      ENDIF
+      IF a%=89 OR a%=121
+        o$="YES"+cr$
+        GOSUB 2
+        in$="YES"
+        keyy%=1
+      ENDIF
+      IF a%=78 OR a%=110
+        o$="NO"+cr$
+        GOSUB 2
+        in$="NO"
+        keyy%=1
+      ENDIF
+    ENDIF
+    IF in%=4 AND a%>47 AND a%<58
+      o$=key$
+      GOSUB 2
+      in$=in$+key$
+    ENDIF
+    IF in%=5
+      IF (a%=8 OR a%=127) AND LEN(ln$(ln%))>=1
+        ln$(ln%)=LEFT$(ln$(ln%),LEN(ln$(ln%))-1)
+        o$=de$
+        GOSUB 2
+        keyy%=1
+      ENDIF
+      IF a%=13
+        in$=key$
+        keyy%=1
+      ENDIF
+      IF a%=9
+        o$="     "
+        GOSUB 2
+        in$="     "
+        keyy%=1
+      ENDIF
+      IF a%>26 AND a%<127
+        o$=key$
+        GOSUB 2
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    '
+    ' new one: no echoing of input at all! Good for More (Y/n)? stuff, etc...
+    '
+    IF in%=9
+      IF a%>31 AND a%<127
+        key$=UPPER$(key$)
+        in$=key$
+        keyy%=1
+      ENDIF
+    ENDIF
+    '
+    mod.in1.7:
+    IF a%=13
+      IF (in%<>5 AND in%<>7 AND in%<>9)
+        o$=cr$
+        GOSUB 2
+        keyy%=1
+      ENDIF
+      IF in%=9
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in2:
+    IF CINT(TIMER/200)>idle%+300
+      IF lev%>7 AND CINT(TIMER/200)>idle%+600
+        car%=1
+        keyy%=1
+      ENDIF
+      IF lev%<8
+        car%=1
+        keyy%=1
+      ENDIF
+    ENDIF
+    mod.in2.0:
+  LOOP UNTIL keyy%=1
+  '
+  mod.in2.1:
+RETURN
+'
+'
+PROCEDURE press
+  o$=cr$+cr$+ansi$(0)+"[Any_Key]"
+  in%=0
+  il%=1
+  GOSUB 1
+RETURN
+'
+'
+PROCEDURE pagepause
+  o$="More (Y/n)?"
+  in%=9
+  il%=1
+  GOSUB 1
+  IF car%>0
+    GOTO pagepause9
+  ENDIF
+  o$=de$+de$+de$+de$+de$+de$+de$+de$+de$+de$+de$
+  GOSUB 2
+  IF in$=" " OR in$="N"
+    abort%=1
+  ENDIF
+  lines%=0
+  pagepause9:
+RETURN
+'
+'
+PROCEDURE tchk
+  GOSUB time1
+  timenow%=CINT(TIMER/200)
+  ctime%=(timenow%-timeon%)
+  ctime%=CINT(ctime%/60)
+  rtime%=tpc%-ctime%-depsnow%+withsnow%+winnings%
+  IF rtime%<=0
+    o$=cr$+cr$+"Sorry, Time Limit Exceeded!"
+    GOSUB 2
+    DELAY 2
+    car%=2
+  ENDIF
+RETURN
+'
+'
+PROCEDURE time1
+  t.t%=FRE(0)
+  time1$=TIME$
+  t.t%=VAL(LEFT$(time1$,2))
+  IF t.t%>11
+    a$=" PM"
+  ELSE
+    a$=" AM"
+  ENDIF
+  IF t.t%=0
+    t.t%=12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%<10
+    time1$=RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ELSE IF t.t%>21
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),2)+RIGHT$(time1$,6)
+  ELSE IF t.t%>12
+    t.t%=t.t%-12
+    time1$=RIGHT$(STR$(t.t%),1)+RIGHT$(time1$,6)
+  ENDIF
+  GOSUB dateconv
+  pd.time$=time1$+a$
+  time1$=pd.time$+"  "+pd.date$
+RETURN
+'
+'
+'   **************
+PROCEDURE dateconv
+  ' **************
+  ' converts date to Fido style DD-Mmm-YY
+  ' string to use is pd.date$
+  pd.temp$=DATE$
+  pd.date1$=LEFT$(pd.temp$,2)
+  pd.date2$=MID$(pd.temp$,4,2)
+  pd.date3$=RIGHT$(pd.temp$,2)
+  pd.month%=VAL(pd.date1$)
+  pd.month$="Xxx"
+  IF pd.month%=1
+    pd.month$="Jan"
+  ELSE IF pd.month%=2
+    pd.month$="Feb"
+  ELSE IF pd.month%=3
+    pd.month$="Mar"
+  ELSE IF pd.month%=4
+    pd.month$="Apr"
+  ELSE IF pd.month%=5
+    pd.month$="May"
+  ELSE IF pd.month%=6
+    pd.month$="Jun"
+  ELSE IF pd.month%=7
+    pd.month$="Jul"
+  ELSE IF pd.month%=8
+    pd.month$="Aug"
+  ELSE IF pd.month%=9
+    pd.month$="Sep"
+  ELSE IF pd.month%=10
+    pd.month$="Oct"
+  ELSE IF pd.month%=11
+    pd.month$="Nov"
+  ELSE IF pd.month%=12
+    pd.month$="Dec"
+  ENDIF
+  pd.date$=pd.date2$+"-"+pd.month$+"-"+pd.date3$
+RETURN
+'
+'
+PROCEDURE modem.c
+  CLOSE #1
+RETURN
+'
+PROCEDURE modem.o
+  OPEN "",#1,"COM1:"+bd$+",n,8,1",4096
+  DELAY 1
+RETURN
+'

@@ -1,0 +1,330 @@
+                Documentation for XPRBPlus.library
+                ==================================
+
+                    Version 1.1 - 8th June 1992
+                    ===========================
+
+              by Terence (Terry) Finney [100021,2621]
+              =======================================
+
+
+1. Introduction
+===============
+
+XPRBPlus.library is an Amiga shared library for use with Terminal
+programs which support the XPR standard, such as Term, VLT and
+Backtalk.
+
+Its purpose is to provide the improved facilities allowed by the
+Compuserve B Plus Protocol. This release implements the 'File
+Information' facility which enables file sizes and hence estimated
+download times to be displayed during downloads and 'Download
+Resume' which allows partial file transfers to be completed after
+an abort.
+
+
+2. Disclaimer
+=============
+
+This is my first serious programming effort, so I stress that the
+usual disclaimers apply. I am not a programmer by profession. My
+intention in producing this library was to give myself a challenge
+and hopefully end up with something offering the enhancements of
+other XPR libraries such as XPRZmodem. If after attempting to
+download a 200k file at 300 Baud you find that an error has
+occurred rendering the file useless, please hold your breath, count
+to ten, read this section again and see the Section 12 at the end
+of this document for details of how to report bugs.
+
+
+3. Credits
+==========
+
+The protocol support code for this library was supplied by
+Compuserve in the bpcsrc.arc archive and is by various authors.
+This archive also contains essential information on implementing
+the protocol. Other information was obtained from 'The Compuserve B
+Plus Protocol' by Russ Ranshaw (available as bplus.arc) and
+'B/Quick B Protocol Information' by Steve Sneed (available as
+proto.nfo).
+
+This exercise would have been impossible without reference to the
+source code for XPRZmodem.library originally written by Rick
+Huebner and revised by William M. Perkins, to XPRQuickb.library
+from The Software Distillery, and to the example XPRAscii.library
+by Willy Langeveld.
+
+Further credit is of course due to Willy Langeveld for creating the
+XPR specification in the first place.
+
+The library was written in Lattice (SAS) C.
+
+Thanks also to Steve Ahlstrom for his comments and example source
+code.
+
+Last but not least, special thanks are due to Vic Reeves, whose 'I
+Will Cure You' album was echoing around the room the first time a
+download was achieved successfully. Definitely the best debugging
+tool ever invented.
+
+
+4. Installation
+===============
+
+First, copy the XPRBPlus.library to LIBS: Then enter your XPR
+supporting terminal program and choose the option to select an XPR
+library. This usually takes place through a file requester. Direct
+this to LIBS: (if it isn't there already) and select the
+XPRBPlus.library. That should be it. If you have any problems,
+please read your comms program documentation on selecting an
+external protocol.
+
+
+5. Options
+==========
+
+Once the library is installed there are a number of configurable
+options. Select the comms program command for changing transfers
+options and a number of gadgets should appear showing the
+following:
+            Text conversion             (Default N)
+            Overwrite Mode              (Default N)
+            Buffer size                 (Default 16)
+            Auto initiate               (Default Y)
+            Delete after send           (Default N)
+            Keep partial files          (Default Y)
+            Attempt resume              (Default Y)
+
+The actual format of the display will change from one comm program
+to another, with YES/NO, or ON/OFF being displayed.
+
+Text conversion
+---------------
+
+If this is set to YES, and the file to be uploaded or downloaded is
+an ASCII file, the library will carry out end of line CR/LF
+conversion. If it is set to OFF, no conversion will be carried out.
+Please note that this option only works on ASCII files and will
+have no effect on binary files.
+
+Overwrite mode
+--------------
+
+This can be O, N, or S and only affects downloads where a file with
+the same name already exists. If set to O the original file will be
+overwritten. If set to N, the new file will be downloaded with the
+file name appended with .dup or .dupNN, where NN is a number up to
+99. If 99 is reached, .dup99 will be overwritten. If set to S, the
+transfer will be aborted.
+
+Buffer size
+-----------
+
+This sets the buffer size for disk read/writes and is in multiples
+of 1K. If set to zero, no buffering is used.
+
+Auto initiate
+-------------
+
+This setting affects whether transfers can be initiated by the
+Compuserve Host alone or whether they need to be initiated by the
+user through the XProtocolSend and XProtocolReceive functions. If
+
+set to OFF, the comms program "Receive" and "Send" commands must be
+used.
+
+Delete after sending
+--------------------
+
+If enabled, after a successful upload the local copy of the file
+will be deleted. If disabled, the file will be retained.
+
+Keep partial files
+------------------
+
+If a partial file is transmitted and this option is enabled, the
+file will be retained. It will then be possible to attempt to
+resume the transfer later. If is is disabled the partial file will
+be deleted. The 'Attempt resume' option also forces partial files
+to be retained if it is enabled.
+
+Attempt Resume
+--------------
+
+If this is enabled and a download is attempted where a file of the
+same name already exists, the library will first try to resume
+downloading the remainder of the file. The library will build a
+check value for the local file and will send this to the Host
+computer along with details of the local file's size. The Host then
+compares this check value to its version of the file based on the
+length reported by the library. If the check value matches the Host
+assumes that the local file is part of the file to be downloaded
+and will then download the remainder which the library will append
+to the local file. If the check value does not match the Host will
+download the entire file based on the setting of the Overwrite mode
+above. Enabling this option also temporarily disables the deletion
+of partial files. If a download is resumed the file transfer
+display will show data transfer rates and expected download times
+for the remainder of the file only, to avoid giving unrealistic
+estimates. When checking partial ASCII files, the library tries to
+make allowances for CR/LF conversions but it is possible to confuse
+this if the 'Text conversion' option is changed before the resume
+is attempted.
+
+Important
+---------
+
+The "Delete after sending" and "Keep partial files" options require
+that the comms program implements the xpr_unlink function. Without
+this the library cannot delete files.
+
+
+6. Serial Port Settings
+=======================
+
+I know a lot of grief has been caused by the fact that the
+Compuserve documentation states that serial settings of 7 Bits,
+Even Parity should be used except for the Apple Mac. When I tried
+this originally everything appeared to work OK until I attempted to
+transfer files. All the transfers failed, no matter what program I
+was using. Only when 8 Bits, No Parity was set did the transfers
+work. With most comms programs this means that the "Strip 8th bit"
+option has to be set in order to prevent garbage appearing on the
+screen. I am sorry to say that with this library it's still the
+case that 8N should be set. Although the library does attempt to
+set the serial device properly during transfers itself, either my
+code does not work or the comms programs I have tested it with do
+not support the function properly. If you have problems, please
+make sure that the settings are 8 Bits, No Parity. If you do get
+the library to work with 7 Bits, Even Parity, please let me know
+which program you are using!
+
+Version 1.1. Note: I have changed the serial setting code again,
+still to no avail. Is it actually impossible to change the settings
+"on the fly"?
+
+
+7. Receiving Files
+==================
+
+Since all file transfers are initiated by the Host (ie. Compuserve)
+the appropriate command e.g. DOW or DOWNLOAD will need to be sent.
+This can be done at the appropriate Compuserve menu prompt. After
+the file name has been entered the Host should then initiate the
+transfer and the file transfer window will appear. The library
+recognises abort requests if your comms program supports them. As a
+short cut the library can send the download command itself if the
+comms program uses the XProtocolReceive function. This is usually
+called by selecting the "Receive" menu option of the comms program.
+This will cause the comms program to ask for a filename and once
+this has been entered the library to send the string "dow/proto:b+"
+followed by the filename to the Host. If 'Auto initiate is set to
+off this is the only way to initiate a download. Provided it is
+appropriate to the context the download should now be activated.
+
+
+8. Sending Files
+================
+
+This is very similar to receiving files, except that the Compuserve
+menu command is different! You should use UPLOAD or UPL, or
+activate the XProtocolSend function (usually through a menu "Send"
+command) if your comms program supports it which will cause a
+filename requester to appear before sending the command sequence.
+Once the Host has initiated the transfer the file transfer window
+will again appear.
+
+
+9. Performance
+==============
+
+The library runs roughly 3% slower than xprquickb. At present I am
+afraid that is the price of the file size display. The bulk of this
+difference is during the first 10 to 15 seconds of the transfer and
+I will be looking into it to see if improvements can be made.
+
+
+10. Revision History
+====================
+
+Version 1.0.
+
+Initial release implementing the 'File Information' Facility.
+
+Version 1.1.
+
+Download Resume implemented.
+
+Incorrect freeing of memory bug (spotted by Mungwall) cured.
+
+Use of an invalid file pointer (if a second download was attempted)
+cured. Also shown up by Mungwall.
+
+
+11. The Future
+==============
+
+In the original release I wrote that I would first try to improve
+the performance of the library. Due to initial comments I received
+I decided instead to concentrate on implementing 'Download Resume'.
+I have pared down the source code as well in some places, but
+although this has reduced the size of the library (allowing for the
+addition of Download Resume) it has not noticeably improved
+performance. I will keep trying!
+
+I will also continue to check if the problems detailed in Section
+12 can be ironed out. I will add options to allow the user to
+control aspects of the transfer such as the number of Send Ahead
+buffers and the Quoting Level. I will also look further into the
+serial setting functions.
+
+
+12. Bugs
+========
+
+The library has been tested with Term 2.1 by Olaf Barthel, VLT
+version 5.517 by Willy Langeveld and Backtalk by 1.51 by Steve
+Ahlstrom and Don Curtis. The only problems I have experienced so
+far are that the command sent by XProtocolReceive is not always
+successful and aborts during file transfers are not always
+acknowledged. I will be looking further at these as well.
+
+I have not had chance to test the XProtocolSend function to any
+extent. I would be interested to hear how successful it is.
+
+In case of bugs, please read Section 2 again and then report them
+to me on:
+
+            Compuserve      ID 100021,2621
+            CIX (UK)        ID tfinney
+
+If you have any comments, please let me know.
+
+
+13. And Finally.....
+====================
+
+....I hope you find the library useful!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

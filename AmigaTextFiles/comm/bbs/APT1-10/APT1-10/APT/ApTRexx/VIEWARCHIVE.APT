@@ -1,0 +1,101 @@
+/* viewarchive.apt
+**
+** $VER: viewarchive.apt 0.02 (05.03.93)
+**
+** ARexx program for controlling ApT-BBS by ApT-Design.
+**
+** Copyright (c) 1993 ApT-Design All Rights Reserved,TS,AG
+*/
+
+/* Standard ApTX header  -   Don't require the huge equates bit */
+
+options results
+
+parse arg lineno fname .
+
+portname = 'APTREXX'lineno
+
+address value portname
+
+/*
+** ARCHIVER SUPPORT:
+**
+** This next section should contain all of the archiver(s) along with
+** pathnames (if required) of the ones you wish to support.
+**
+** Change these if you want, ="" to remove a command.
+**
+** Supports: Arc,Zoo,LhArc,LHA,Zip,Arj
+*/
+
+packer.arc		= "PKxArc -v"
+packer.zoo		= "zoo l"
+packer.lharc		= "lha l"
+packer.lha		= "lha l"
+packer.zip		= "unzip -v"
+packer.arj		= "unarj l"
+packer.dms		= "DMS View"
+
+/*
+** MAIN:
+**
+** The main part of the file which does the actual scanning of
+** the fileheaders to see what archive format was used upon
+** itself. Depending on the find then the correct suitable
+** archiver will be used in the displaying of the contents
+** to a file in t: then going on to display this to the
+** call line before being deleted.
+*/
+
+if ~open(file,fname,R) then do
+	'MESSAGE' "%BOLD=1.%TC=1.Couldn't open %TC=7.>%TC=3."||fname||"%TC=7.<%BOLD=0.%TC=7."
+	'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	'APTXEND'
+	exit
+end
+
+'MESSAGE' "%BOLD=1.%TC=6.Viewing archive contents...%BOLD=0.%TC=7.%NL."
+
+readin = readch(file,6)
+call close file
+
+if length(readin) < 6 THEN DO
+	'MESSAGE' "%BOLD=1.%TC=1.Archive %TC=7.>%TC=3."||fname||"%TC=7.<%TC=1. is too short"
+	'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	'APTXEND'
+	EXIT
+END
+
+SELECT
+	when left(readin,3) = "ZOO" then method = "ZOO"
+	when substr(readin,3,4) = "-lh5" then method = "LHA"
+	when substr(readin,2,3) = "-lh" then method = "LHARC"
+	when substr(readin,3,3) = "-lh" then method = "LHARC"
+	when left(readin,2) = "PK" then method = "ZIP"
+	when left(readin,2) = "60ea"x then method = "ARJ"
+	when left(readin,1) = "1a"x then method = "ARC"
+	when left(readin,4) = "DMS!" then method = "DMS"
+	otherwise do
+		'MESSAGE' "%BOLD=1.%TC=1.Can't handle archive %TC=7.>%TC=6."||fname||"%TC=7.<%BOLD=0.%TC=7."
+		'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+		'APTXEND'
+	end
+	exit
+end
+
+if packer.method = "" then do
+	'MESSAGE' "%BOLD=1.%TC=1.Can't do that !%BOLD=0.%TC=7."
+	'HOTKEY' "%NL.%BOLD=1.%TC=1.Press a key...%BOLD=0.%TC=7."
+	'APTXEND'
+	exit
+end
+
+address command packer.method ">t:APTARCH"||lineno fname
+
+'SHOWRAWFILE' "t:APTARCH"||lineno
+'REMOVEFILE' "t:APTARCH"||lineno
+'HOTKEY' "%TC=1.Hit some keys when done...%BOLD=0.%TC=7."
+'APTXEND'
+
+/* Thanks to Peer Hasselmeyer for the archive headers. */
+

@@ -1,0 +1,81 @@
+/* filesearch.trans  to find all files with descriptions and/or */
+/* filenames containing a specified key word                    */
+/* demonstrating the use of FileMaint by Mike Everest (C)1994   */
+/* add this function to your files.rx and disable the usual one */
+
+options results
+
+UserInfo 'x' ; ANSI = result
+If ANSI="ON" then do
+  ESC = '1B'X
+  BRIGHT = ESC||'[1m'
+  NOANSI = ESC||'[0m'
+  CLS    = ESC||'[2J'
+  f0 = ESC||'[30m' ;b0 = ESC||'[40m'  /* Black  */
+  f1 = ESC||'[31m' ;b1 = ESC||'[41m'  /* Red    */
+  f2 = ESC||'[32m' ;b2 = ESC||'[42m'  /* Green  */
+  f3 = ESC||'[33m' ;b3 = ESC||'[43m'  /* Yellow */
+  f4 = ESC||'[34m' ;b4 = ESC||'[44m'  /* Blue   */
+  f5 = ESC||'[35m' ;b5 = ESC||'[45m'  /* Purple */
+  f6 = ESC||'[36m' ;b6 = ESC||'[46m'  /* Cyan   */
+  f7 = ESC||'[37m' ;b7 = ESC||'[47m'  /* White  */
+  end
+ELSE do
+  cls = ''
+  BRIGHT = ''
+  NOANSI = ''
+  f0 = '' ; b0 = ''
+  f1 = '' ; b1 = ''
+  f2 = '' ; b2 = ''
+  f3 = '' ; b3 = ''
+  f4 = '' ; b4 = ''
+  f5 = '' ; b5 = ''
+  f6 = '' ; b6 = ''
+  f7 = '' ; b7 = ''
+  end
+CR = D2C('13')
+LF = D2C('10')
+CRLF = CR || LF
+
+send cls
+
+systeminfo 8
+line = result
+
+rexxportname = "FILEMAINT."||line
+
+systeminfo 2
+libnum = result
+
+transmit
+transmit
+
+queryn f3"Search all file libraries? "f7
+if upper(result) = 'Y' then libnum = ""
+
+transmit
+transmit
+
+query f3'Enter the keyword to search for: 'f7 ; keyword = result
+
+if keyword = 'RESULT' then do
+    transmit f1"You cannot search for a blank string!"f7
+    continue
+    exit
+    end
+
+say "searching for "keyword" in lib #"libnum
+
+/* look for filemaint in arexx mode */
+
+if show(PORTS, rexxportname) then do
+    address value rexxportname
+    search keyword libnum
+    end
+
+/* otherwise use non-arexx mode */
+
+else address command "bbs:bin/filemaint -l"line" -k"keyword" s"libnum
+
+exit
+

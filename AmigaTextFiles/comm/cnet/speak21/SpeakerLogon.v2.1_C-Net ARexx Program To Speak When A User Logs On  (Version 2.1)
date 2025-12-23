@@ -1,0 +1,58 @@
+/*
+                      Speaker Logon
+                       Version 2.1
+                       By  Le Chat
+
+                   Copyright  (c) 1992
+                 A Boothware Presentation
+
+                Contact Gate Keeper or call
+                    The Phone Booth BBS
+              (504)272-2000 3/12/24/HST 24hrs
+         for more C-Net Secondary Support Utilities
+*/
+
+options results
+
+signal on error
+signal on syntax
+
+GETUSER 1
+name = result
+GETUSER 23
+port = result
+if exists("cnet:sound") then
+  do
+    call open(sndfile,"cnet:sound",R)
+    line = readln(sndfile)
+    if upper(line) = "OFF" then line = "OFF"
+      else line = "ON"
+  end
+else line = "ON"
+if line = "ON" then
+  do
+    opt   = ""
+    if exists("PFiles:SpeakerLogon.Config") then
+      do
+        call open(in,"PFiles:SpeakerLogon.Config","R")
+        if eof(in) then type = ""
+          else type = readln(in)
+        if type = "Speaker Logon Version 2.1 by Le Chat" then
+          if eof(in) then opt = ""
+            else opt = readln(in)
+        call close(in)
+      end
+    string = 'echo >speak:'opt' "'name', logging on port 'port'!"'
+    address command string
+  end
+
+exit
+
+ERROR:
+SYNTAX:
+line = sigl
+err = rc
+transmit "Error in line "line" type "err" "errortype(err)
+logentry "Error in SpeakerLogon.v2"
+logentry "Error in line "line" type "err" "errortype(err)
+exit

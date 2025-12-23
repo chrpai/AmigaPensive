@@ -1,0 +1,481 @@
+@Start_of_text
+
+
+
+
+
+
+
+                          -= USERS STANDARDS GROUP =-
+
+
+
+
+                          Text Encapsulation Standard
+
+                            Version 1.31, Release 1
+                                 Updated 4.4.95
+
+                                 (TES-130.TXT)
+
+
+
+                             Public Release Version
+                                LATIN-1 document
+
+
+
+
+                                  Endorsed by
+                             USERS STANDARDS GROUP
+
+                           Written by Peter Bornhall
+
+
+
+
+
+                          Copyright 1995, Johan Torin
+                              All rights reserved
+
+
+
+    ========================================================================
+     INDEX                                                              0.0
+    ========================================================================
+
+    0.1  SECTION LIST
+
+        Index ...................................................... 0.0
+            Section list ........................................... 0.1
+
+        Preface .................................................... 1.0
+            Distribution ........................................... 1.1
+            Disclaimer ............................................. 1.2
+
+        Introduction ............................................... 2.0
+            Background ............................................. 2.1
+            Purpose ................................................ 2.2
+
+        Using the standard ......................................... 3.0
+            The problem ............................................ 3.1
+            The solution ........................................... 3.2
+            Loopholes .............................................. 3.3
+
+        Developers ................................................. 4.0
+            Keystrings ............................................. 4.1
+            Handling ............................................... 4.2
+            Pseude code ............................................ 4.3
+
+        History .................................................... 5.0
+
+        Author ..................................................... 6.0
+
+
+
+    ========================================================================
+     PREFACE                                                            1.0
+    ========================================================================
+
+    1.1  DISTRIBUTION
+
+     This  document is freeware, and may be spread on any medium without the
+    author's permission.  You are in fact encouraged to spread this document
+    to  your  friends  and  your local Bulletin Board Systems.  However, the
+    document is copyrighted, and may NOT be changed in any way.
+
+     The document may NOT be sold in any way, nor included in any commercial
+    packages without the written permission from the author.
+
+
+    1.2  DISCLAIMER
+
+     The author of this document will NOT be held responsible for ANY damage
+    caused  by  persons  or  software  using this standard.  The author also
+    reserves the right to change the standard as he sees fit.
+
+
+
+    ========================================================================
+     INTRODUCTION                                                       2.0
+    ========================================================================
+
+    2.1  BACKGROUND
+
+     This standard was developed by Johan Torin during December 1994. A  pre
+    release was released, but it wasn't spread very much, and there  were no
+    software support for it at the time. Johan also worked on his FilePather
+    standard and software, which was intended  to offer support for the Text
+    Encapsulation Standard (TES for short).
+
+     Since  awaiting  a full release of the FilePather software, the TES got
+    put  "on  hold" for a while.  Some minor changes took place, and this is
+    the  final  release-version  of the specifications.  The actual standard
+    hasn't changed very much, though.
+
+
+    2.2  PURPOSE
+
+     The  Text Encapsulation Standard provides an easy way to be able to get
+    rid  of  annoying BBS advertisements added to text files.  There are two
+    categories of BBS ads;
+
+        1. Ads placed inside file archives
+        2. Ads placed at the beginning and at the end of a textfile
+
+     This standard is aiming to "cure" the second category, the textfiles.
+
+
+
+    ========================================================================
+     USING THE STANDARD                                                 3.0
+    ========================================================================
+
+    3.1  THE PROBLEM
+
+     Ads  in  textfiles.   Very annoying things.  You would probably like to
+    get rid of them as much as I do, so let's take a look at this example of
+    what might happen to a textfile.
+
+     Lets say that the textfile looks like this before upload;
+
+        --- 8< -------------------------------------------
+        This is an example text to demonstrate the
+        use of the Text Encapsulation Standard.
+        --- 8< -------------------------------------------
+
+     Then,  the  textfile  gets uploaded to a BBS, which puts ads in it.  So
+    the resulting file might look something like this;
+
+        --- 8< -------------------------------------------
+        /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+        > Call this excellent board now!  123-4567 890 <
+        \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+        This is an example text to demonstrate the
+        use of the Text Encapsulation Standard.
+        /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+        > Cool sysop, fast warezzz, good ratios, call! <
+        \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+        --- 8< -------------------------------------------
+
+     The   file  just  tripled  its  size.   Not  unusual,  I've  personally
+    downloaded  a  file which was some 10kB in the file listing, but I ended
+    up  with  nearly  40kB!   And that was added by ONE single BBS!  If this
+    keeps  repeating,  the  file  will soon contain more ads than real text!
+    And THAT is what we want to prevent!
+
+     The  solution is pretty easy, or so it may seem.  Simply remove the ads
+    from  the textfile.  Yes, but doing it by hand is very time-consuming to
+    say  the  least, and automated strippers aren't 100% reliable, no matter
+    what the author says.  A stripper may have very sophisticated algorithms
+    to  sense  what  should  be  stripped, but it will probably end up doing
+    something wrong sooner rather than later.  That's the fact of life.
+
+
+    3.2  THE SOLUTION
+
+     By  placing  keystrings  on  the  first and last lines of the textfile,
+    either  when writing it or when added by an automatic upload checker, it
+    will  be  possible  to locate the REAL text in the file.  The keystrings
+    are  "@Start_of_text" and "@End_of_text".  The @ char was chosen because
+    it's  used by other standards supporting textfiles, like for example the
+    FilePather (FILEPATH.LST), FILE_ID.DIZ and the File Description Standard
+    (FILEDESC.TXT).   This makes it fast and easy to implement into existing
+    tools.
+
+     Ok, now for an example of how to use it;
+
+        --- 8< -------------------------------------------
+        @Start_of_text
+        This is an example text to demonstrate the
+        use of the Text Encapsulation Standard.
+        @End_of_text
+        --- 8< -------------------------------------------
+
+     After uploading, it might look like this;
+
+        --- 8< -------------------------------------------
+        /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+        > Call this excellent board now!  123-4567 890 <
+        \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+        @Start_of_text
+        This is an example text to demonstrate the
+        use of the Text Encapsulation Standard.
+        @End_of_text
+        /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+        > Cool sysop, fast warezzz, good ratios, call! <
+        \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+        --- 8< -------------------------------------------
+
+     Later,  when  this textfile is uploaded to a BBS that supports the Text
+    Encapsulation  Standard,  it will be stripped from the ads, and the file
+    will return to its original state;
+
+        --- 8< -------------------------------------------
+        @Start_of_text
+        This is an example text to demonstrate the
+        use of the Text Encapsulation Standard.
+        @End_of_text
+        --- 8< -------------------------------------------
+
+     Easy as that, really.
+
+
+    3.3  LOOPHOLES
+
+     "But what about textfiles that doesn't contain these keystrings?"
+
+     Sure,  that  IS a problem, but it might still prevent the textfile from
+    GROWING in size.  If there are no keystrings in the textfile, the upload
+    checker  should  add  them anyway, encapsulating the textfile.  Some ads
+    might  actually  be encapsulated together with the real text, but in the
+    long  run,  at  least the file won't get any bigger.  And a smaller file
+    will cost YOU less time and money to transfer, as well as taking up less
+    space on your harddrive.
+
+
+    ========================================================================
+     DEVELOPERS                                                         4.0
+    ========================================================================
+
+    4.1  KEYSTRINGS
+
+     Unlike  the keystrings for FilePather, FILE_ID.DIZ and File Description
+    Standard,  softwares supporting this standard should be prepared to find
+    keystrings  consisting  of  upper and lowercased characters mixed in any
+    way.    This  means  that  "@StArT_Of_tExT"  for  example,  is  a  legal
+    keystring.
+
+     But,  softwares that ADD the keystrings should use the standard strings
+    "@Start_of_text" and "@End_of_text".  The same rule applies for software
+    that  rewrites the textfile.  So if the software reads "@STaRT_oF_TeXT",
+    it should still output "@Start_of_text" if possible.
+
+     There is one more thing to consider.  As you might know, some platforms
+    use  CR+LF  as a newline character, while most modern platforms use only
+    LF.   You  will  have  to  take this into account in your software.  For
+    example, an upload checker should examine the textfile to see if it's in
+    CR+LF  format or LF-only, and write the keystring + newline according to
+    what is used in the file.  The same applies when reading the keystrings,
+    you should be aware that there might be CR+LF or LF alone.
+
+        Text file with LF       ->  Write keystring + LF
+        Text file with CR+LF    ->  Write keystring + CR + LF
+
+        CR = ASCII 13, Carriage Return
+        LF = ASCII 10, Line Feed
+
+
+    4.2  HANDLING
+
+     As  a  developer,  you should be prepared to deal with the most strange
+    things,  so  here  are some hints and rules on how to handle some of the
+    "common" weird things.
+
+     First of all, the @Start_of_text and @End_of_text strings should be the
+    first thing on the line, and the only thing.  This means that you should
+    always  look  for  @Start_of_text  and  @End_of_text  directly  after  a
+    [CR]+LF-sequence or at the very beginning of a file (first byte is "@").
+    There must not be anything between the "..._text" string and the newline
+    character(s).  Strict rules applies, as you understand.
+
+     The second thing to pay attention to is when there are multiple strings
+    in the same textfile.  For example;
+
+        --- 8< -------------------------------------------
+        @Start_of_text
+        /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+        > Call this excellent board now!  123-4567 890 <
+        \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+        @Start_of_text
+        This is an example text to demonstrate the
+        use of the Text Encapsulation Standard.
+        @End_of_text
+        /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+        > Cool sysop, fast warezzz, good ratios, call! <
+        \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+        @End_of_text
+        --- 8< -------------------------------------------
+
+     As you probably have understood by now, the BBS ads are unwanted, which
+    means that we want the (in this case) innermost @Sot-@Eot sequence.  The
+    thing  to  do,  is  to  always  use  the  FIRST VALID sequence.  A valid
+    sequence is considered to be a sequence of;
+
+        @Start_of_text
+
+        < anything except @Start_of_text >
+
+        @End_of_text
+
+     Here is a bit of pseudo-code you could take a look at (it may need some
+    tweaking to work, though);
+
+            do
+                read LINE
+                if LINE = "@Start_of_text" then
+                    SOT = 1
+                    SOP = seek() - len(LINE)
+                elseif LINE = "@End_of_text" then
+                    if SOT = 1 then
+                        EOT = 1
+                        EOP = seek() - len(LINE)
+                    endif
+                endif
+            loop until eof() or (SOT = 1 and EOT = 1)
+
+     As  you  understand,  it is not 100% percent safe, as this example will
+    show;
+
+        --- 8< -------------------------------------------
+        @Start_of_text
+        /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+        > Call this excellent board now!  123-4567 890 <
+        \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+        @End_of_text
+        @Start_of_text
+        This is an example text to demonstrate the
+        use of the Text Encapsulation Standard.
+        @End_of_text
+        @Start_of_text
+        /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+        > Cool sysop, fast warezzz, good ratios, call! <
+        \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+        @End_of_text
+        --- 8< -------------------------------------------
+
+     The  routine would pick the first valid sequence, which in this case is
+    the  BBS ad itself!  Now, this is probably not likely to happen, because
+    even  if  the sysop wants to advertise, he wouldn't do this, as it would
+    kill  the  actual  textfile.  And a BBS without users...  No, that's not
+    very probable.
+
+     One more thing to consider.  If a non-encapsulated textfile contains;
+
+        --- 8< -------------------------------------------
+        This is example text 1, demonstrating the
+        use of the Text Encapsulation Standard.
+        @Start_of_text
+        This is example text 2, demonstrating the
+        use of the Text Encapsulation Standard.
+        --- 8< -------------------------------------------
+
+     ...then  you  are allowed to strip everything before the @Start_of_text
+    marker.   Same  thing  with  the @End_of_text marker, except you have to
+    strip  everything  after  the  marker  instead.   If  you  have a better
+    solution,  go ahead and use it.  But don't expect others to do the same.
+    You may of course let us know, and maybe we'll put it in in the future.
+
+
+    4.3  PSEUDE CODE
+
+     Since  you  will  have  to take other standards into consideration, for
+    example  the  FilePather, FILE_ID.DIZ and the File Description Standard,
+    you  should take a look at the supplied pseudo code, which might help in
+    the  development of software that supports this standard.  Johan is also
+    the  author  of  the  FilePather software, which works according to this
+    method.  Ok, here goes;
+
+     ***************************
+     * Logic of the textcopier *
+     ***************************
+     * All 'Write's are to an assumed file.
+
+     * First you must search after all the different '@'-nodes: S&EOT,
+     * Filedesc, FileIdDiz, FilePather, and save start and end pointers.
+     * Some pointers has to be adjusted. It will turn out as you test your
+     * code. Don't forget to include LF's and eventual CR's in the node.
+
+     Write "@Start_of_text",Linefeed
+     Write BeginFiledesc -> EndFiledesc ;First write all nodes to the file.
+     Write BeginFilepath -> EndFilepath
+     Write BeginFileId -> EndFileId
+     Write ...              ;Add more if needed.
+
+     CurrentStart = StartText ;'@Start_of_text' or start of textfile
+     CurrentEnd = EndText    ;'@End_of_text' or end of textfile.
+
+     * This code loops until all text that is NOT inside a node is copied.
+     Check:
+
+     If BeginFileDesc < CurrentEnd Then
+         If BeginFileDesc > CurrentStart Then
+             CurrentEnd = BeginFileDesc
+             NextStart = EndFileDesc
+         Endif
+     Endif
+
+     If BeginFilePath < CurrentEnd Then
+         If BeginFilePath > CurrentStart Then
+             CurrentEnd = BeginFilePath
+             NextStart = EndFilePath
+         Endif
+     Endif
+
+     If BeginFileId < CurrentEnd Then
+         If BeginFileId > CurrentStart Then
+             CurrentEnd = BeginFileId
+             NextStart = EndFileId
+         Endif
+     Endif
+
+     If ...                 ;Add more if needed.
+
+     Write CurrentStart -> CurrentEnd
+     If CurrentEnd = EndText Then Goto Finito
+     CurrentEnd = EndText
+     CurrentStart = NextStart
+     Goto Check
+
+     * If "@End_of_text" wasn't found earlier, then print it now.
+     Finito:
+     If EndofTextFound = 0
+         Write "@End_of_text",Linefeed
+     Endif
+
+     * Final result: all nodes are moved to just under @SOT, original text
+     * is placed directly under.
+     ***********************************
+
+
+
+    ========================================================================
+     HISTORY                                                            5.0
+    ========================================================================
+
+        1.0     19.12.94  JT   Wrote it.
+
+        1.1     20.12.94  JT   Added pseudo code example.
+
+        1.1a    21.12.94  JT   Fixed bug in the pseudo code. :)
+
+        1.1b      2.1.95  JT   Added info about case insensitivity.
+
+        1.1c     12.2.95  JT   Slightly edited.
+
+        1.20     24.3.95  PB   Rewritten by Peter Bornhall.
+
+        1.30      3.4.95  PB   Added hints for developers.
+
+        1.31      4.4.95  JT   Removed some obsolete information.
+
+
+    ========================================================================
+     AUTHOR                                                             6.0
+    ========================================================================
+
+     Johan Torin may be contacted via;
+
+        FidoNet:    2:203/804.13
+         USGNet:    8:100/102.7
+          email:    JTorin@Academy.Bastad.se       or
+          email:    jt@p13.f804.n203.z2.fidonet.org
+
+          Snail:    Johan Torin
+                    Fotstad
+                    S-31303 ÅLED
+                    SWEDEN
+
+
+
+@End_of_text

@@ -1,0 +1,190 @@
+
+
+; ZoolDIZ II installation script by the author (Lauri Ahonen)
+; This is a crappy script and if you do improve it, let me know!
+; Date : xx-02-97
+
+(transcript "Installing ZoolDIZ II...")
+
+(set name "PFiles:ZoolDIZ")
+
+(set #welcome "\n\n\n\nWelcome to the ZoolDIZ II Installation utility!\n\nI will now install ZoolDIZ II enviroment to your CNet BBS system.\n\nYou *must* have PFiles: assigned because I will use it to create the ZoolDIZ dir.")
+(set sourcename "ZoolDIZ_Distribution")
+(set #configure "\n\n\n\nNow, please edit the ZoolArchives Configuration!")
+(set #already "\n\n\n\nYou already have ZoolDIZ Installed.\n\n\nIt is easy to update older version with this installer! Just proceed and everything will be taken care of!\n\n(I hope :))")
+(set #installing "Installing %s...")
+(set #externalcom "\n\n\nZoolDIZ uses various external commands and programs.\n\nMost of them will be copied directly to PFiles:ZoolDIZ/External_Commands/ path, but some of them must lie on normal paths.\n\nI will now copy most of them to PFiles:ZoolDIZ/External_Commands/")
+(set #processortext "\n\n\n\n\nIn LZX program, it is possible to use 68020 or 68040 optimized versions instead of 68000 ones.\n\nPlease state which one would you like to install!")
+(set #librarytext "\n\n\n\nYou must have some libraries installed in your system in order to make ZoolDIZ work properly.\n\nYou will now be prompted for all of them if needed.")
+(set #xpktext "\n\n\n\nI'm about to install the XPK libraries! It is really neat packer system which you can't afford to pass!")
+(set #ctext "\n\n\n\nSome commands will be copied to your C: dir.\n\nOne of them is keyfile program for ZoolDIZ.\n\nThe other (AddToVCBuffer.exe) allows you to add files to the ZDIZ VirusChecking-buffer!")
+(set #xpk000 "\n\nI'm about to install the 68000 versions of the xpk-sublibraries\n\nThe xpk-package has only a few of 68020+ optimized sublibraries and they don't make that much difference.\n\nIf you like, you can copy them by hand.\n\nThey're located in Extras/Xpk_user/libs_68020+/")
+(set #xpk020 "\n\n\n\n\n\nI'm about to install the few 68020+ versions of the xpk-sublibraries")
+(set #installxpk=1)
+(set #virus "\n\n\nYou should always have VirusZ II 2.16 or Virus_Checker 8.04\n(or newer ones :))\nrunning in the background. If you enable ZoolDIZ-VirusChecking, it will use either one of these (Stated in config!).\n\nIf either isn't located in memory, no files will be checked!")
+(set #bbstextmenu "\n\n\n\nNow *you must run* the installation script which will add the necessary bits to your \n\nBBSText and BBSMenu files!\n\nIf you would rather test ZoolDIZ otherwise, you can locate Pre-installed BBSTEXT/MENU files in ZoolDIZ dir!")
+(set #mainfiles "\n\n\n\n\nI will now install the ZoolDIZ-mainfiles to PFiles:ZoolDIZ/")
+(set #mptext "\n\n\n\nFirst of all, ZoolDIZ supports MPEG-I, MPEG-II & MPEG-III files\n\nWe need mp3info program for that and it needs Ixemul.library\nTHIS IS NOT PROVIDED WITH THE PACKAGE!")
+
+(message #welcome)
+
+(if (exists name)
+	(message #already)
+
+)
+
+(message #mptext)
+
+(makedir "PFiles:ZoolDIZ/External_Commands")
+
+(message #externalcom)
+
+(copyfiles
+	(prompt "Copying External Commands.")
+	(help @copyfiles-help)
+	(source "PFiles/ZoolDIZ/External_Commands")
+	(dest "PFiles:ZoolDIZ/External_Commands")
+	(pattern "~(#?Lzx#?)")
+	(files)
+)
+
+(message #processortext)
+
+(set PROCESSOR
+	(askchoice
+		(prompt "Please state, which LZX version would you like to install")
+		(help @askchoice-help)
+		(choices "68000" "68020/68030" "68040/68060")
+		(default 1)
+	)
+)
+
+
+(if (= PROCESSOR 0)
+  (copyfiles
+    (source "PFiles/ZoolDIZ/External_Commands/Lzx")
+    (dest "PFiles:ZoolDIZ/External_Commands")
+  )
+)
+
+(if (= PROCESSOR 1)
+  (copyfiles
+    (source "PFiles/ZoolDIZ/External_Commands/Lzx_68020")
+    (dest "PFiles:ZoolDIZ/External_Commands")
+    (newname "Lzx")
+  )
+)
+
+(if (= PROCESSOR 2)
+  (copyfiles
+    (source "PFiles/ZoolDIZ/External_Commands/Lzx_68040")
+    (dest "PFiles:ZoolDIZ/External_Commands")
+    (newname "Lzx")
+  )
+)
+
+(message #ctext)
+
+(copyfiles
+	(prompt "Copying External Commands.")
+	(help @copyfiles-help)
+	(source "C")
+	(dest "C:")
+	(pattern "#?")
+	(files)
+)
+
+(message #librarytext)
+
+(copylib
+  (source "Libs/rexxtricks.library")
+  (dest "Libs:")
+  (confirm)
+  (prompt "\n\n\nZoolDIZ will use rexxtricks.library for its operations!")
+  (help
+    (cat
+      "rexxtricks.library is needed for several arexx operations."
+      " You really should have this one installed!\n\n"
+      @copylib-help
+    )
+  )
+)
+
+(copylib
+  (source "Libs/xfdmaster.library")
+  (dest "Libs:")
+  (confirm)
+  (prompt "\n\n\nxfdmaster.library is a unique unpacker library used by ZoolDIZ")
+  (help
+    (cat
+      "xfdmaster.library is needed for PowerPacker / XPK operations."
+      " You really should have this one installed!\n\n"
+      @copylib-help
+    )
+  )
+)
+
+(copylib
+  (source "Libs/powerpacker.library")
+  (dest "Libs:")
+  (confirm)
+  (prompt "\n\n\nUnpacking PowerPacked datafiles requires powerpacker.library")
+  (help
+    (cat
+      "powerpacker.library is needed for PowerPacker unpacking."
+      " You really should have this one installed!\n\n"
+      @copylib-help
+    )
+  )
+)
+
+(message #xpktext)
+
+(copylib
+  (source "Extras/Xpk_User/Libs/xpkmaster.library")
+  (dest "Libs:")
+  (confirm)
+  (prompt "\n\n\nxpkmaster.library is needed for xpk-functions!")
+  (help
+    (cat
+      "xpkmaster.library is needed for XPK-unpacking."
+      " You really should have this one installed!\n\n"
+      @copylib-help
+    )
+  )
+)
+
+  (message #xpk000)
+  (copyfiles
+	(prompt "Copying 68000 xpk-libraries.")
+  	(help @copyfiles-help)
+	(source "Extras/xpk_user/libs/compressors")
+	(dest "Libs:compressors")
+	(pattern "#?")
+	(files)
+	(confirm)
+  )
+
+(message #mainfiles)
+
+(copyfiles
+	(prompt "Copying MainFiles.")
+	(help @copyfiles-help)
+	(source "PFiles/ZoolDIZ")
+	(dest "PFiles:ZoolDIZ")
+	(pattern "#?")
+	(files)
+)
+
+(copyfiles
+	(prompt "Copying Screenshots.")
+	(help @copyfiles-help)
+	(source "PFiles/ZoolDIZ/Screenshots")
+	(dest "PFiles:ZoolDIZ/Screenshots")
+	(pattern "#?")
+	(files)
+)
+
+(message #bbstextmenu)
+
+(exit "\n\n\n\n\nNow you're a happy user of ZoolDIZ II \n\nJust remember to *adopt* and *run* the PFiles:ZoolDIZ/ZoolCON.rexx!")

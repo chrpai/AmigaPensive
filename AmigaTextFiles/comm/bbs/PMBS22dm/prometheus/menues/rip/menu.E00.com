@@ -1,0 +1,11 @@
+1;C:Setup
+2;C:Vertreter;taste
+3;C:Anschrift;taste
+4;C:Mitteilung;taste
+5;C:Signatur;taste
+6;C:Passwort;taste
+S;C:Status;taste
+G;C:Gruppen;taste
+!;C:logoff
+Q;M:menu0
+?;C:Hilfe

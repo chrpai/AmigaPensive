@@ -1,0 +1,85 @@
+
+
+
+   =====( MailDecode V1.00 )=============================================
+
+
+        Trion 'MailDecode' Utility.
+
+        (c) Copyright Paul Spijkerman, 1997. All rights reserved.
+
+        Written for use with the Trion BBS package.
+
+
+   ===================================================================
+
+
+   Maildecode is a program to decode files from text files.
+   It was especially written to handle mail packets and more
+   specific to be called by the trion mail processor.
+   At this moment it can handle UUencoded and Base64 encoded files.
+
+   There are a number of decode programms but they all seem
+   to have some problems.
+   they don't work with mail packets because they need a
+   specific line format. They only do 1 type of decoding,
+   and they are not very smart.
+
+   So I started to make a smart programm with all the important
+   types of protocols I could find.
+   I tried to write it as a 'state engine' so it can be easily
+   integrated in other programms .. so at one time it may
+   be a part of the trion mail processor.
+
+   At this moment it doesn't look at start codes but it checks
+   every line if it could be the first line of a coded file,
+   and if it is it has a protocol to check if the folowing
+   lines are part of that file.
+   The first line has to fit the rules of the protocols and
+   also contain at least 40 encoded bytes, the next lines only
+   have to fit the rules of the protocol it found earlier
+   with the first line.
+   Also it doesn't have buffers yet, it seems to be quit .. accept
+   if it not only reading the text file but also writing the
+   uncoded file.
+
+   It decodes UUencoded en Base64 coded files.
+   But i had to take a little step back at the smart part,
+   because UUEncoded programmas don't follow the protocols.
+   Some decoders start all the UUencoded lines with an 'M' .. but
+   the first character of the line is actually the value for
+   the number of characters on a line .. and 'M' means that after
+   the 'M' follow 76 coded characters.
+   So when a line starts with an 'M' the line is also accepted
+   when the length is not correct. Some coders go even further
+   by using the 'M' and putting an uneven number of coded bytes
+   on a line .. this is not accepted by the maildecoder.
+
+
+   You have to call the maildecode programm with the text
+   it should decode on the commandline folowed with
+   an optional path. The default path is RAM:
+
+
+   MailDecode 00000000.PKT
+
+   Decodes files and writes them to RAM:
+
+
+   MailDecode 00000000.PKT   dh1:test/
+
+   Decodes files and writes them to DH1:TEST/
+
+
+
+   If you use the Trion mail processor with -F flag while
+   unpacking it tries to decode files in the mail by calling
+   the mail decode programm.
+
+   It calls MailDecode after a mail packet was succesfull processed 
+   with the "trion:inbound/decode/" path so you have to make that
+   one for it to work.  Also it uses the Quiet flag but that
+   isn't implemented yet in maildecode.
+
+
+

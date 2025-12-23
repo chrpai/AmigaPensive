@@ -1,0 +1,255 @@
+ 3.42.P23 - P29
+
+   -- Fixed a minor bug in CONFG.  If you attached a directory to the
+      first three rooms, it would remove it as an error.
+   -- Fixed a memory allocation bug in getenv replacement routine.  The
+      routine was eating memory.
+   -- reformatted the .RS a little.
+   -- fixed a few minor nits in the code.
+   -- added some code for the XPR functions(still not done yet).
+   -- added code to collect monthly networking stats creating two
+      new files.  Network_stats.sys which is created in the audit
+      area keeps track of the monthly traffic totals and when the
+      month changes, Network_log.sys will be created also in the
+      audit area.  Network_stats.sys is binary, where Network_log.sys
+      is a text file with the month, input/output data amounts and
+      the total time spent networking.
+   -- fixed minor bug. The BADWORDS.SYS file was never closed.  Also
+      the code never initialized the discard file properly.
+      The discard file was not being used for net messages or QWK messages
+      but only for messages posted on the current BBS.  To make it
+      consistant, it will always use the same discard file for bad words.
+   -- Added code to open the console window if it is iconified and a
+      request for the window to be ReActivated occurs.  This could be:
+         -- Sysop Call ^T
+         -- Chat Enabled and Chat Request
+         -- Sysop Edit session(well not very likey that you would do this!)
+   -- Added the code for BADUSER.SYS from 3.45.  This allows you to specify
+      that certain names cannot be used as UserNames.
+   -- Fixed a bug in the QWK code that caused all uploads to go in to
+      the #HOMEAREA instead of the room intended.
+   -- Added a bit of code to reload the statistics for networking from
+      the last run.  The information is displayed in the .RS.  It would
+      have been reloaded once a net session occured, but this is cleaner.
+   -- Implemented a SYSOP customizable message system.  See the Citadel
+      68K.man for details on the format.  This means a new file for the
+      sysop to maintain, CIT_MESSAGES.SYS.  Now, you can implement a menu
+      for novice users if you desire.
+   -- Changed the prompts for terminal width.
+   -- Fixed the Networking messages so that a sysop not using +netdebug
+      or +netlog would not get all the messages anyway and dumped into
+      the debug.sys file.  Now the messages are turned off totally with
+      those options not specified.
+   -- Changed the code for the checking of BADUSER.SYS to be usable for
+      both the username and password.  If the file BADUSER.SYS exists, it
+      will be checked.  If the file BADPASSWORD.SYS exists, it will be
+      checked.  Both files are looked for in the #ROOMAREA.
+   -- Added a check to make sure that a password is longer than 4 chars
+      or it is invalid.  Also added a check to make sure a user does not
+      use their username as their password.
+   -- Added a check in CONFG to make sure you have valid arguments on
+      #events in certain cases(like anytime-net).
+   -- Changed the vortex detection to be the default.  Now, the +VORTEX
+      is not needed on the command line and -VORTEX will turn off the
+      option.
+   -- Implemented most instances of Expert/Novice checks as customizable
+      messages.  Now, the "NO" or "EX" on the end of the code is checked
+      in one place and not all through out Citadel.  90% of the use of the
+      expert flag usage is now done in the message routine.
+   -- got rid of many redundant messages by using the message codes.  There
+      were 3 occurances of the same message in some cases, all just slightly
+      different.
+   -- fixed various bugs in the message routines.
+   -- fixed some additional messages in the network routines.  All should
+      be controlled by +netlog and +netdebug.  Removed some other debug
+      messages in the timer routines.
+   -- Still have many messages to update to new format plus the total
+      change of the help system to rely on the new method giving the sysop
+      the ability to vary the Expert/Novice messages to their hearts content!
+   -- fixed many message bugs pointed out by Shawn Kelly of The Amiga
+      Annals.
+   -- fixed .RA in a non-directory room.  It was actually checking the
+      wrong flag!
+   -- fixed a bug in the network valid check.
+   -- Added all the Yes/No, String and Number routines to the new Message
+      system.
+   -- Added a couple of new variable to the message formatter.  See the
+      file CIT_MESSAGES.SYS for details.
+   -- Updated several messages:
+       NOPERS - added the username as a parameter(^sa1).
+       WIDT40 - added it back in, it was used.
+       DRPIRV - fixed, it was supposed to be DRPRIV
+       NODUPT - fixed the message that was supposed to use it.
+   -- Fixed a bug.  For users without net privileges, it will not
+      let them even try to enter a net message with .EN.  They
+      can still enter net messages if the room allows it with a
+      regular message entry.
+   -- Fixed a message bug.  The wrong message was displayed for the
+      [W]ho command on messages when you tried to put the main recipient
+      down for a carbon copy.
+   -- Removed a redundant message for user not found(NSUCHP) and
+      used NOPERS instead.
+   -- Added a ^b for backspace to the message variables.
+
+ 3.42.P31-33
+
+   -- Added several new messages to the cit_message.sys file
+        ... again and again...
+   -- Added several new messages to the cit_message.sys file
+   -- Fixed a bug in the code for adding a node, it had an invalid
+      message code.
+   -- Fixed a bug.  If you do not have an audit area, it will not report
+      the caller count in the sysop menu.  If you request the caller
+      count and it does not exist, a zero will always be returned.
+   -- Should have the .ECG setting saved now, it was getting reset before
+      the user logged off.
+   -- Fixed a bug in the net statistics.  It was overflowing a 16 bit
+      int, made it a long.  Fixed a second bug, it was not using the
+      %ld but instead %d to print a long.  It also was not reseting the
+      monthly statistics if the write routine was not called.  Now it
+      will write zeros from the read routine.
+   -- Added a log file to the network statistics.  The raw data in this
+      file contains the system name, how much was networked and how long
+      the session took.  It is for use with the new utility netstat which
+      will report the data rates by month and system.  This will only be
+      collected if you have AUDITAREA defined.
+   -- Added a slight delay in the network caller so it does not hog the
+      cpu time by busy waiting.  This delay only occurs when Citadel is
+      calling out and waiting for an answer from the other system.
+   -- Add a check to see if there were AREXX commands, Forced Net requests
+      when the short cut was taken in the timed events code.  In previous
+      versions it could take up to 59 seconds for Citadel to recognize a
+      command from the console like ^A or an ARexx command.
+   -- Added code to detect a net session at the room prompt.  This is
+      essentially Hue's code from version 3.48.
+
+ .P34
+
+   -- added code to display the member net to the net menu's node list
+      displays.
+   -- Added commands to toggle the NetDebug and NetLog flags to the
+      net menu.
+   -- Fixed several message errors.
+
+  .P35
+
+   -- Added code to implement the pause at end of messages option.
+   -- removed the redundant network statistics code, the netstat
+      utility provides a better method.
+   -- Added a fix to the confg so that net sessions at the room prompt
+      would work correctly.  ^G(7) was being eaten...
+   -- Fixed Aide Privs message(was backwards).
+   -- Added Sysop options(Journal, Delete) to message pause
+   -- Fixed Pause to not pause in Mail room.
+   -- changed option to be Yield(.ECY)
+   -- Fixed several calls to a string prompt routine that was using the
+      new message handling, but the calls were not setup correctly.  Most
+      of these would never be notice.
+   -- corrected typos in the message file.
+   -- fixed a couple of messages from net session that were not under
+      the control of +NETLOG so they came out in DEBUG.SYS.
+
+ /**************  You need the new utilities for this version **********/
+  .Q00 - Q02
+   -- Added the Qwk code, fixed several bugs, made the subject the room
+      name.  Still bugs to fix...
+   -- Fixed a bug in the Sysop Menu handling... Should display better now.
+   -- Fixed several messsage bugs(some in the code, some in the message file).
+      Posted the changes in Citadel 68K room
+   -- Created a utility to compute the add/change/deleted messages.
+   -- Added code to read and process a file BADPEOPLE.SYS.  This file if
+      it exists will allow a sysop to remove messages by that person totaly.
+      This may not be the final implementation, but it does work.  It allow
+      a person to be banned from a room, or all rooms.  This means that if
+      the message is removed and your networking the room involved, it does
+      not get sent to other systems.  This means your Censoring for the net!
+   -- With the help of Jim Dawson(author of AmiQwk), I was able to find the
+      bug and the Qwk packet downloads works fine!  The bug was in the file
+      MESSAGES.DAT, it did not have the conference number wrong.  Still some
+      cleanup work before a release.
+   -- Fixed the delay in the recognition of ARexx commands.  No longer will
+      it take up to a minute for stuff to be processed.  Slightly more cpu
+      overhead, but not really all that much.
+   -- Added many new messages for the QWK processing, several new help files.
+   -- Added an option to CONFG.  -F, -f, -I, or -i is identical to FirstInit
+      on the command line.  -O, or -o is identical to OnlyParams.  -R, -r or
+      ReInit will rebuild the ctdltabl.sys file.  Anything else will still be
+      assumed to be a ReInit, but will tell you that you made a parameter error.
+   -- Fixed a bug in CONFG that may be the long outstanding bug that people with
+      A3000s and A4000s have reported where they must do a NOFASTMEM before
+      they can run CONFG.  There appears to be a bug in the SHORTINT option
+      since it called a routine with a word value when the routine expected
+      a LONG value.  I finally got that to happen with the 6.55 compiler.
+   -- Re-built everything with the 6.55 compiler.
+      It helped to find the above CONFG bug and the solution may fix other
+      odd problems that have been happening from time to time...
+
+  .Q03-.Q04
+
+   -- Added parameters #TEMPAREA and #BIOAREA to define a temporary and
+      Biography area.  CONFG changed.
+   -- Updated a few messages.
+   -- Changed CTDL to use one temporary file area.
+   -- removed some debug messages.
+   -- Added internal Zmodem code.  Zmodem will be disabled unless you put a
+      parameter in the CTDLPROT.SYS file.  XPR code removed, it was too
+      buggy.  This is a replacement, you can still use XPR as an external
+      protocol.
+   -- Updated the AmigaGuide and Text Documentation.
+   -- increased the size of the message header buffer after Hue mentioned that
+      an author's name could be really long(when comming from a foriegn net)
+      formheader() in misc.c header[100] -> header[250].
+      also fixed several places where the author's name was used and the
+      item it was copied into was citadel's standard 20 characters.
+   -- removed the #TEMPAREA parameter, it was too dangerous if an error
+      occured, it could delete the homearea files(and did in my testing).
+      CTDL uses the existing temporary file area scheme.
+   -- Added a parameter #BANNERAREA
+   -- increased the delay in the hangup() routine, it was not waiting
+      quite long enough(or so it seemed).
+
+  .Q05-Q07
+
+   -- fixed the check in CONFG for -O,o,F,f,I,i options, there was a
+      bug that always caused these options to do a ReInit.  Now, -O,o
+      and -F, -f should work correctly.
+   -- Minor fixes to some menu files.
+   -- added the fix to CONFG to zap the last netted message if you re-initializing
+      the message file.  Otherwise, you will not send anything you net until the
+      message index gets past the old value...
+   -- change the network session message to come out even if netloging is
+      not turned on...
+   -- fixed a minor bug in CONFG, a directory could have gotten an extra
+      slash on the end if the name had a colon(was a full path) in it.
+   -- fixed a bug in the QWK code, if the protocol you have selected was
+      made invalid(for example you have Zmodem selected, or never selected
+      a protocol, then Zmodem was taken offline for some reason), the QWK
+      code did not do a transfer.  It will now assume Xmodem as the default
+      and use Xmodem if nothing valid is selected.
+   -- fixed a bug for an invalid baud code for serial port speeds greater
+      than 32767, Citadel would report that -2713 was invalid during the
+      initialization of the baud rate.
+
+  .Q08-.Q12
+   -- Added check for error on open in a crashout to prevent an enforcer hit.
+   -- Re-wrote the file comment routines. partly tested
+   -- Found a Userlog trashing bug. Fixed.
+   -- Found a message buffer trashing bug.
+   -- Removed some terrible auditing code that created the two trashing bugs.
+   -- Found there still is a case of an invalid baud rate.
+   -- Added some code to display modem data/results.sys data mismatch.
+   -- Added some code to collect Caller Id info in debug.sys, option +cid
+   -- added some code to display modem text when collecting info +results
+   -- Back in Q02 I discovered that the compiler was not passing a long where
+      memcpy was expecting one.  I found the bug again in another place in the
+      code and did a global search for the same situation.  It killed my
+      system for two days until I found the cause because it was in  net
+      recovery routine and prevented the bbs from coming up.  It should be
+      fixed once and for all...
+   -- Fixed Fast Transfers!  There were several bugs in the process, they
+      are all fixed.  Cit 68K will not do it with Zmodem.  There is still
+      a filename disconnect with external protocols, nothing I can do with
+      that at this time.
+   -- Fixed a bug in the Readbps routine, it did not handle all possible
+      baud rates on the command line.
+

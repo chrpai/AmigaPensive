@@ -1,0 +1,52 @@
+/*
+** GetFile.zeus -- Asks the user for a file name or number and expands it to a
+**                 full path and filename which is placed in the variable
+**                 'FILENAME'.  Script returns 0 if all went ok and 10 otherwise
+*/
+
+Options Results
+Parse Arg Line
+
+GetVar 'FILENAME'
+if RC ~= 0 then do
+	DrawBar 30 4 7
+	Read MaxLen 30 MakeUpper OnlyAlpha Reset
+	if RC ~= 0 | RESULT = 'RESULT' then return 5
+end
+
+FileName = strip( RESULT )
+if FileName = '' then return 5
+
+if datatype( FileName, 'w' ) then do
+	FileNum = FileName
+
+	FileNumberToArea FileName
+	if RC ~= 0 then Signal BadData
+	FileArea = RESULT
+
+	FileNumberToName FileName
+	if RC ~= 0 then Signal BadData
+	Filename = RESULT
+	end
+else do
+	FileNameToNumber FileName
+	if RC ~= 0 then Signal BadData
+	FileNum = RESULT
+
+	FileNumberToArea FileNum
+	if RC ~= 0 then Signal BadData
+	FileArea = RESULT
+	end
+
+ExpandCC '"%1002:'FileArea'|'FileName'"'
+FullPath = RESULT
+
+if FullPath ~= 'RESULT' then do
+	SetVar 'FILENAME' '"'RESULT'"'
+	return 0
+	end
+
+BadData:
+	Write '"\n[1;31mUnknown file number/name.\n"'
+	DelVar 'FILENAME'
+	return 5

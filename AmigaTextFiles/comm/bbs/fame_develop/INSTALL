@@ -1,0 +1,179 @@
+; $VER: FAME_DEV_INSTALL 0.1 (22.06.96) - written by Sascha "SieGeL" Pfalz
+; Installer and Installer project icon
+; (c) Copyright 1995-96 Escom AG.  All Rights Reserved.
+; Reproduced and distributed under license from Escom AG.
+;
+; V1.0 (22.06.96) - First Version, yet untested and unfinished
+
+;================
+;= GERMAN TEXTS =
+;================
+
+(IF (= @language "deutsch")
+	(
+	(set default_lang 2)
+	(set #ERROR 								"\n%s abgebrochen mit Fehlernummer %ld !")
+	(set #bad-kick		(cat			"\nSie benötigen mindestens Kickstart V2.04 oder\n\n"
+															"höher, um diese Installation durchzuführen !\n\n"
+															"-> Bitte updaten Sie Ihr System <-"))
+	(set #introduction (cat			"\nDieses Skript installiert die FAME Developer\n"
+                              "Archive auf Ihrem Computer. Diese Archive werden\n"
+															"benötigt, um eigene FAME Programme zu schreiben,\n"
+															"für den normalen Betrieb der FAME ist diese Disk\n"
+															"nicht notwendig !"))
+	(set #selectdest	(cat			"Bitte Verzeichnis wählen, in welches die\n"
+															"Developerdateien entpackt werden sollen:"))
+	(set #selectdesthelp	(cat	"Sie werden aufgefordert anzugeben, in welchem Ver-\n"
+															"zeichnis Sie die Developer-Dateien installiert\n"
+                              "haben möchten. \n\n" @askdir-help))
+	(set #choosedev (cat				"Bitte wählen Sie die Teile der Developer-Dateien\n"
+															"aus, die Sie installiert haben möchten. Wählen Sie\n"
+															"'Hilfe...' für weitere Informationen."))
+	(set #choosedevhelp (cat		"Sie können nun entscheiden, welche Dateien des\n"
+															"FAME Developerkits installiert werden sollen.\n"
+															"Der Installer entpackt zuerst die FAME.library\n"
+                              "Autodocs sowie zwei Beispielprogramme in C.\n"
+															"Zusätzlich können Sie entscheiden, für welche\n"
+															"Sprachen Sie die Developerfiles installiert\n"
+															"haben möchten:\n\n"
+															"SAS/C and StormC - Includes und Beispiele für C\n"
+															"Amiga-E          - Module und Beispiele für E\n"
+															"DevPac/ASM-One   - Assembler includes & Beispiele\n\n\n" @askoptions-help))
+	(set #extracting	(cat			"\n\nInstaller entpackt nun die von Ihnen angewählten\n"
+															"Dateien, bitte einen Moment Geduld..."))
+	(set #main_dev 							"\nInstalliere Autodocs und Beispiele...")
+	(set #dev_c                 "\nInstalliere C Includes und Beispiele...")
+	(set #dev_e                 "\nInstalliere E Includes und Beispiele...")
+	(set #dev_asm								"\nInstalliere Assembler Includes und Beispiele...")
+	))
+
+;=================
+;= ENGLISH TEXTS =
+;=================
+
+(IF (= @language "english")
+	(
+	(set default_lang 4)
+	(set #ERROR 								"\n%s aborted with errornumber %ld !")
+	(set #bad-kick		(cat			"\n\nYou must be using Kickstart V2.04 or higher\n\n"
+															"to use this Installation !\n\n"
+															"-> Please update your machine ! <-"))
+	(set #introduction (cat			"\nThis script will install the FAME development\n"
+															"archives to your System. You need this files if\n"
+															"you plan to write your own FAME doors, but the\n"
+															"normal BBS usage doesn't need this disk to run!\n"))
+	(set #selectdest	(cat			"Please choose the directory where to install\n"
+															"the Development files:" ))
+	(set #selectdesthelp (cat		"You where prompted to enter the destination path\n"
+															"for the development files.\n\n" @askdir-help))
+	(set #choosedev	(cat				"Please choose which parts of the Developerfiles\n"
+															"you wish to install. Select 'Help...' for more\n"
+															"details about these options."))
+	(set #choosedevhelp (cat		"You have to choose now which parts of the FAME\n"
+															"development files you wish to install. The\n"
+                              "installer will extract the FAME.library autodocs\n"
+															"and two example programs. Additional you could\n"
+															"choose for which language you wish to install the\n"
+															"required tools to program FAME doors. There are:\n\n"
+															"SAS/C and StormC - Includes and examples for C\n"
+															"Amiga-E          - Modules and examples for E\n"
+															"DevPac/ASM-One   - Assembler includes & examples\n\n\n\n" @askoptions-help))
+  (set #extracting	(cat			"\n\nPlease be patient, Installer extract\n"
+															"now selected archives..."))
+	(set #main_dev 							"\nNow installing Autodocs and Examples...")
+	(set #dev_c                 "\nNow installing C Includes and Examples...")
+	(set #dev_e                 "\nNow installing E Includes and Examples...")
+	(set #dev_asm								"\nNow installing Assembler Includes and Examples...")
+	))
+
+;=======================================================
+;= PROCEDURE TO CHECK RETURNVALUE OF EXTERNAL PROGRAMS =
+;=======================================================
+
+(procedure p_checkit #checkvalue #name
+	(
+	(if (<> #checkvalue 0)
+		(
+		(set errline (#ERROR #name @ioerr))
+		(abort errline)))
+	)
+)
+
+;=========================
+;= START OF INSTALLATION =
+;=========================
+
+(if (< (/ (getversion) 65536) 37) ( (ABORT #bad-kick)))
+
+(complete 10)
+
+(welcome)																	; Say hello to the user ;O
+
+(complete 20)
+
+(message #introduction)										; Display Informationtext
+
+(complete 30)
+
+(set destdir															; Ask for installation path
+	(askdir	(prompt #selectdest)
+					(help		#selectdesthelp)
+					(default	"FAME:")))
+
+(set @default-dest destdir)								; Set installers path (!)
+
+(complete 40)
+
+(set myopts                               ; Ask what to install
+	(askoptions (prompt 	#choosedev)
+							(help			#choosedevhelp)
+							(choices  "SAS/C and StormC"
+												"Amiga-E"
+												"DevPac/ASM-One")))
+
+(complete 50)
+
+(working #extracting)											; Show that Installer is busy now
+
+(set #cmdline ("FAME_Developer:c/lha -q x FAME_Developer:FAME_DEV.LHA %s" @default-dest))
+(set #myerr
+	(run	#cmdline													; Install first the main archive
+		(prompt	#main_dev)
+		(help		"")))
+(p_checkit #myerr "LHA")
+
+(complete 60)
+
+(if (IN myopts 0)
+	(
+	(set #cmdline ("FAME_Developer:c/lha -q x FAME_Developer:FAME_C.LHA %s" @default-dest))
+	(set #myerr
+	(run	#cmdline													; Install C includes
+		(prompt	#dev_c)
+		(help		"")))))
+(p_checkit #myerr "LHA")
+
+(complete 70)
+
+(if (IN myopts 1)
+	(
+	(set #cmdline ("FAME_Developer:c/lha -q x FAME_Developer:FAME_E.LHA %s" @default-dest))
+	(set #myerr
+	(run	#cmdline													; Install E includes
+		(prompt	#dev_e)
+		(help		"")))))
+(p_checkit #myerr "LHA")
+
+(complete 80)
+
+(if (IN myopts 2)
+	(
+	(set #cmdline ("FAME_Developer:c/lha -q x FAME_Developer:FAME_ASM.LHA %s" @default-dest))
+	(set #myerr
+	(run	#cmdline													; Install ASM includes
+		(prompt	#dev_asm)
+		(help		"")))))
+(p_checkit #myerr "LHA")
+
+(complete 100)														; That's it, say goodbye and leave...
+(exit)
